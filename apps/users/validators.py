@@ -12,4 +12,4 @@ def tax_id_validator(value):
     try:
         int(value)
     except ValueError:
-        raise serializers.ValidationError("EIN must contain only numbers")
+        raise serializers.ValidationError("EIN must contain only numbers") from None

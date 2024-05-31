@@ -3,7 +3,7 @@ import pytest
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestSocialMeta:
     def test_string(self):
         rp = RevenueProgramFactory()

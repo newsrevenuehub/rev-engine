@@ -1,5 +1,4 @@
 import json
-import os
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -58,12 +57,12 @@ user_model = get_user_model()
 fake = Faker()
 
 
-@pytest.fixture
+@pytest.fixture()
 def org_valid_patch_data():
     return {"name": fake.pystr(min_chars=1, max_chars=Organization.name.field.max_length - 1)}
 
 
-@pytest.fixture
+@pytest.fixture()
 def org_invalid_patch_data_name_too_long():
     return {
         "name": fake.pystr(
@@ -72,7 +71,7 @@ def org_invalid_patch_data_name_too_long():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_checkout_process_completed(organization):
     return {
         "id": "evt_1234567890",
@@ -116,7 +115,7 @@ def stripe_checkout_process_completed(organization):
     }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 @pytest.mark.usefixtures("default_feature_flags")
 class TestOrganizationViewSet:
     @pytest.fixture(
@@ -131,7 +130,7 @@ class TestOrganizationViewSet:
         return request.getfixturevalue(request.param)
 
     def test_retrieve_when_expected_user(self, user, api_client, mocker):
-        """Show that expected users can retrieve only permitted organizations
+        """Show that expected users can retrieve only permitted organizations.
 
         NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
@@ -144,8 +143,8 @@ class TestOrganizationViewSet:
         if user.is_superuser:
             query = Organization.objects.all()
             assert query.count()
-            for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("organization-detail", args=(id,)))
+            for id_ in query.values_list("id", flat=True):
+                response = api_client.get(reverse("organization-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_200_OK
         else:
             query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
@@ -156,11 +155,11 @@ class TestOrganizationViewSet:
                 assert unpermitted.count() == 0
             else:
                 assert unpermitted.count() >= 1
-            for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("organization-detail", args=(id,)))
+            for id_ in query.values_list("id", flat=True):
+                response = api_client.get(reverse("organization-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_200_OK
-            for id in unpermitted.values_list("id", flat=True):
-                response = api_client.get(reverse("organization-detail", args=(id,)))
+            for id_ in unpermitted.values_list("id", flat=True):
+                response = api_client.get(reverse("organization-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_404_NOT_FOUND
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
@@ -186,7 +185,7 @@ class TestOrganizationViewSet:
         assert response.status_code == expected_response
 
     def test_list_when_expected_user(self, user, api_client, mocker):
-        """Show that expected users can list only permitted organizations
+        """Show that expected users can list only permitted organizations.
 
         NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
@@ -202,8 +201,9 @@ class TestOrganizationViewSet:
             assert query.count()
             response = api_client.get(reverse("organization-list"))
             assert response.status_code == status.HTTP_200_OK
-            assert len(orgs := response.json()) == query.count()
-            assert set([x["id"] for x in orgs]) == set(list(query.values_list("id", flat=True)))
+            orgs = response.json()
+            assert len(orgs) == query.count()
+            assert {x["id"] for x in orgs} == set(query.values_list("id", flat=True))
 
         else:
             query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
@@ -215,8 +215,9 @@ class TestOrganizationViewSet:
             else:
                 assert unpermitted.count() >= 1
             response = api_client.get(reverse("organization-list"))
-            assert len(orgs := response.json()) == query.count()
-            assert set([x["id"] for x in orgs]) == set(list(query.values_list("id", flat=True)))
+            orgs = response.json()
+            assert len(orgs) == query.count()
+            assert {x["id"] for x in orgs} == set(query.values_list("id", flat=True))
 
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
@@ -227,7 +228,7 @@ class TestOrganizationViewSet:
         return request.getfixturevalue(request.param) if request.param else None
 
     def test_list_when_unexpected_user(self, list_user, api_client):
-        """Show that unexpected users can't list organizations"""
+        """Show that unexpected users can't list organizations."""
         api_client.force_authenticate(list_user)
         response = api_client.get(reverse("organization-list"))
         assert response.status_code == (status.HTTP_403_FORBIDDEN if list_user else status.HTTP_401_UNAUTHORIZED)
@@ -307,7 +308,7 @@ class TestOrganizationViewSet:
         return request.getfixturevalue(request.param) if request.param else None
 
     def test_patch_when_unexpected_user(self, unsupported_patch_user, api_client, organization):
-        """Show that unexpected users cannot patch an Org"""
+        """Show that unexpected users cannot patch an Org."""
         api_client.force_authenticate(unsupported_patch_user)
         response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == (
@@ -315,7 +316,7 @@ class TestOrganizationViewSet:
         )
 
     def test_patch_different_org(self, org_user_free_plan, api_client, organization):
-        """Show that only org admins can access this patch endpoint"""
+        """Show that only org admins can access this patch endpoint."""
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -383,11 +384,11 @@ class TestOrganizationViewSet:
         assert mock_send_email.call_count == len(org_admin_emails)
         for n, x in enumerate(org_admin_emails):
             expected_context = {
-                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                "plus_icon": os.path.join(settings.SITE_URL, "static", "plus-icon.png"),
-                "mail_icon": os.path.join(settings.SITE_URL, "static", "mail-icon.png"),
-                "paint_icon": os.path.join(settings.SITE_URL, "static", "paint-icon.png"),
-                "check_icon": os.path.join(settings.SITE_URL, "static", "check-icon.png"),
+                "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
+                "plus_icon": f"{settings.SITE_URL}/static/plus-icon.png",
+                "mail_icon": f"{settings.SITE_URL}/static/mail-icon.png",
+                "paint_icon": f"{settings.SITE_URL}/static/paint-icon.png",
+                "check_icon": f"{settings.SITE_URL}/static/check-icon.png",
                 "mailchimp_integration_url": mailchimp_url,
                 "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
             }
@@ -423,7 +424,7 @@ class TestOrganizationViewSet:
     def test_handle_checkout_session_completed_event(
         self, api_client, stripe_checkout_process_completed, mocker, settings
     ):
-        """Show that the handle_stripe_webhook endpoint works as expected"""
+        """Show that the handle_stripe_webhook endpoint works as expected."""
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
         mock_sub = mocker.MagicMock()
@@ -521,11 +522,11 @@ class TestOrganizationViewSet:
         )
 
     @pytest.mark.parametrize(
-        "event_type,handler",
-        (
+        ("event_type", "handler"),
+        [
             ("checkout.session.completed", "handle_checkout_session_completed_event"),
             ("customer.subscription.deleted", "handle_customer_subscription_deleted_event"),
-        ),
+        ],
     )
     def test_handle_stripe_webhook_when_handled_event_type(self, event_type, handler, mocker, api_client):
         mock_handler = mocker.patch(f"apps.organizations.views.OrganizationViewSet.{handler}")
@@ -581,69 +582,69 @@ class TestOrganizationViewSet:
         logger_spy.assert_called_once_with("No organization found with stripe subscription id %s", sub_id)
 
 
-@pytest.fixture
+@pytest.fixture()
 def tax_id_valid():
     return fake.pystr(min_chars=TAX_ID_MIN_LENGTH, max_chars=TAX_ID_MAX_LENGTH)
 
 
-@pytest.fixture
+@pytest.fixture()
 def tax_id_invalid_too_short():
     return fake.pystr(max_chars=TAX_ID_MIN_LENGTH - 1)
 
 
-@pytest.fixture
+@pytest.fixture()
 def tax_id_invalid_too_long():
     return fake.pystr(min_chars=TAX_ID_MAX_LENGTH + 1)
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_valid_patch_data(tax_id_valid):
     return {"tax_id": tax_id_valid}
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_invalid_patch_data_tax_id_too_short(tax_id_invalid_too_short):
     return {"tax_id": tax_id_invalid_too_short}
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_invalid_patch_data_tax_id_too_long(tax_id_invalid_too_long):
     return {"tax_id": tax_id_invalid_too_long}
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_invalid_patch_data_contact_phone():
     return {"contact_phone": "abc"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_valid_patch_data_contact_phone():
     return {"contact_phone": "+14155552671"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_invalid_patch_data_contact_email():
     return {"contact_email": "abc"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_valid_patch_data_contact_email():
     return {"contact_email": "valid@email.com"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
 
 
-@pytest.fixture
-def mock_secret_manager(mocker):
+@pytest.fixture()
+def _mock_secret_manager(mocker):
     mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
     mocker.patch.object(GoogleCloudSecretProvider, "__set__")
     mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 @pytest.mark.usefixtures("default_feature_flags")
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
@@ -654,7 +655,7 @@ class TestRevenueProgramViewSet:
         return request.getfixturevalue(request.param)
 
     def test_retrieve_rp_when_expected_user(self, user, api_client, mocker):
-        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't.
 
         NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
@@ -701,7 +702,7 @@ class TestRevenueProgramViewSet:
         return request.getfixturevalue(request.param) if request.param else None
 
     def test_retrieve_rp_when_unexpected_user(self, unsupported_user, api_client, revenue_program):
-        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't.
 
         NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
@@ -711,7 +712,7 @@ class TestRevenueProgramViewSet:
         assert response.status_code == (status.HTTP_403_FORBIDDEN if unsupported_user else status.HTTP_401_UNAUTHORIZED)
 
     def test_list_when_expected_user(self, user, api_client, mocker):
-        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't.
 
         NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
@@ -729,8 +730,9 @@ class TestRevenueProgramViewSet:
             assert query.count()
             response = api_client.get(reverse("revenue-program-list"))
             assert response.status_code == status.HTTP_200_OK
-            assert len(rps := response.json()) == query.count()
-            assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
+            rps = response.json()
+            assert len(rps) == query.count()
+            assert {x["id"] for x in rps} == set(query.values_list("id", flat=True))
 
         else:
             query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
@@ -739,9 +741,9 @@ class TestRevenueProgramViewSet:
             assert query.count()
             assert unpermitted.count()
             response = api_client.get(reverse("revenue-program-list"))
-            assert len(rps := response.json()) == query.count()
-            assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
-
+            rps = response.json()
+            assert len(rps) == query.count()
+            assert {x["id"] for x in rps} == set(query.values_list("id", flat=True))
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
@@ -777,7 +779,7 @@ class TestRevenueProgramViewSet:
             (
                 "rp_invalid_patch_data_contact_phone",
                 status.HTTP_400_BAD_REQUEST,
-                {"contact_phone": ["Phone not parsable: abc"]},
+                {"contact_phone": ["Unknown phone format: abc"]},
                 False,
             ),
             (
@@ -813,7 +815,7 @@ class TestRevenueProgramViewSet:
         return user
 
     def test_patch_when_have_access(self, patch_user, api_client, revenue_program, patch_test_case):
-        """Show that superusers can patch RPs with valid data and cannot with invalid data"""
+        """Show that superusers can patch RPs with valid data and cannot with invalid data."""
         data, expect_status_code, error_response, has_fake_fields = patch_test_case
         api_client.force_authenticate(patch_user)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data=data)
@@ -826,7 +828,7 @@ class TestRevenueProgramViewSet:
                 assert response.json()[key] == getattr(revenue_program, key)
 
     def test_patch_when_not_have_access(self, org_user_free_plan, api_client):
-        """Show that org admins cannot patch another org's rp"""
+        """Show that org admins cannot patch another org's rp."""
         unowned = RevenueProgramFactory()
         assert unowned.organization != org_user_free_plan.get_role_assignment().organization
         api_client.force_authenticate(org_user_free_plan)
@@ -834,7 +836,7 @@ class TestRevenueProgramViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_patch_show_rp_user_not_allowed(self, rp_user, api_client, revenue_program):
-        """Show that rp admins cannot patch their own rp"""
+        """Show that rp admins cannot patch their own rp."""
         ra = rp_user.get_role_assignment()
         ra.revenue_programs.add(revenue_program)
         ra.save()
@@ -843,19 +845,19 @@ class TestRevenueProgramViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_patch_when_unexpected_user(self, unsupported_user, api_client, revenue_program):
-        """Show that unexpected users cannot patch an RP"""
+        """Show that unexpected users cannot patch an RP."""
         api_client.force_authenticate(unsupported_user)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
         assert response.status_code == (status.HTTP_403_FORBIDDEN if unsupported_user else status.HTTP_401_UNAUTHORIZED)
 
     def test_patch_different_org(self, org_user_free_plan, api_client, revenue_program):
-        """Show that org admins cannot patch another org's rp"""
+        """Show that org admins cannot patch another org's rp."""
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_mailchimp_detail_configured_correctly(self):
-        """Prove the mailchimp detail endpoint is configured properly
+        """Prove the mailchimp detail endpoint is configured properly.
 
         We use this approach so that we don't end up testing DRF itself. Knowing that this view
         is configured in the way expected here should be a guarantee that this endpoint
@@ -873,7 +875,6 @@ class TestRevenueProgramViewSet:
         )
 
     def test_mailchimp_configure_detail_configured_correctly(self):
-        """ """
         assert RevenueProgramViewSet.mailchimp_configure.detail is True
         assert RevenueProgramViewSet.mailchimp_configure.url_name == "mailchimp-configure"
         assert (
@@ -922,11 +923,11 @@ class TestRevenueProgramViewSet:
 
 
 class FakeStripeProduct:
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, id_):
+        self.id = id_
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestHandleStripeAccountLink:
     def test_happy_path_when_stripe_already_verified_on_payment_provider(self, org_user_free_plan, api_client):
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
@@ -1086,7 +1087,8 @@ class TestHandleStripeAccountLink:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_when_dont_have_access_to_rp(self, org_user_free_plan, api_client, revenue_program):
-        assert revenue_program not in (ra := org_user_free_plan.roleassignment).revenue_programs.all()
+        ra = org_user_free_plan.roleassignment
+        assert revenue_program not in ra.revenue_programs.all()
         url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
         api_client.force_authenticate(user=ra.user)
         response = api_client.post(url)
@@ -1190,13 +1192,13 @@ def test_get_stripe_account_link_return_url_when_env_var_not_set(settings):
     assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_feature_flag(default_feature_flags):
     Flag = get_waffle_flag_model()
     return Flag.objects.get(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     mailchimp_feature_flag.everyone = None
     mailchimp_feature_flag.staff = False
@@ -1205,7 +1207,7 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     return mailchimp_feature_flag
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestHandleMailchimpOauthSuccessView:
     def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
@@ -1266,11 +1268,11 @@ class TestHandleMailchimpOauthSuccessView:
         assert response.json() == {"detail": "Requested revenue program not found"}
 
     @pytest.mark.parametrize(
-        "data,expected_response",
-        (
+        ("data", "expected_response"),
+        [
             ({"mailchimp_oauth_code": "something"}, {"revenue_program": ["This field is required."]}),
             ({"revenue_program": 1}, {"mailchimp_oauth_code": ["This field is required."]}),
-        ),
+        ],
     )
     def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
@@ -1295,13 +1297,13 @@ class TestHandleMailchimpOauthSuccessView:
     ]
 )
 def hub_admin_user_with_rps_in_ra(hub_admin_user, request):
-    hub_admin_user.roleassignment.revenue_programs.add((rp := request.getfixturevalue(request.param)))
+    hub_admin_user.roleassignment.revenue_programs.add(rp := request.getfixturevalue(request.param))
     hub_admin_user.roleassignment.organization = rp.organization
     hub_admin_user.roleassignment.save()
     return hub_admin_user
 
 
-@pytest.fixture
+@pytest.fixture()
 def org_user_for_email_test(org_user_free_plan, revenue_program):
     org_user_free_plan.roleassignment.organization = revenue_program.organization
     org_user_free_plan.roleassignment.revenue_programs.add(revenue_program)
@@ -1309,7 +1311,7 @@ def org_user_for_email_test(org_user_free_plan, revenue_program):
     return org_user_free_plan
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_user_for_email_test(rp_user, revenue_program):
     rp_user.roleassignment.organization = revenue_program.organization
     rp_user.roleassignment.revenue_programs.add(revenue_program)
@@ -1326,7 +1328,7 @@ def test_email_user(request, revenue_program):
     return user
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestSendTestEmail:
     def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
         assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
@@ -1339,11 +1341,11 @@ class TestSendTestEmail:
         assert response.json() == {"detail": "Requested revenue program not found"}
 
     @pytest.mark.parametrize(
-        "data,expected_response",
-        (
+        ("data", "expected_response"),
+        [
             ({"email_name": "something"}, {"revenue_program": ["This field is required."]}),
             ({"revenue_program": 1}, {"email_name": ["This field is required."]}),
-        ),
+        ],
     )
     def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
@@ -1452,7 +1454,7 @@ class TestSendTestEmail:
         send_email_spy = mocker.spy(send_templated_email, "delay")
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         expected_data = make_send_test_magic_link_email_data(test_email_user, rp)
-        expected_data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
+        expected_data["style"]["logo_url"] = f"{settings.SITE_URL}/static/nre-logo-white.png"
         api_client.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "magic_link"},

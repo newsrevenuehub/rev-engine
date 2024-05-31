@@ -14,13 +14,13 @@ TEST_DOMAIN_APEX = "testing.com"
 
 
 @pytest.fixture(autouse=True)
-def defaults(settings):
+def _defaults(settings):
     settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = TEST_LIVE_KEY
     settings.DOMAIN_APEX = TEST_DOMAIN_APEX
     settings.STRIPE_LIVE_MODE = True
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestAppleDomainVerifyCommandTest:
     def run_command(self, slug=None):
         out = StringIO()

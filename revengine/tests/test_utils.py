@@ -12,12 +12,12 @@ from revengine.settings.base import __ensure_gs_credentials
         ("invalid_google_service_account_credentials", False, False),
     ]
 )
-def __ensure_gs_credentials_test_case(request):
+def ensure_gs_credentials_test_case(request):
     return request.getfixturevalue(request.param[0]), request.param[1], request.param[2]
 
 
-def test___ensure_gs_credentials(__ensure_gs_credentials_test_case):
-    raw_value, raise_if_unset, expect_value = __ensure_gs_credentials_test_case
+def test___ensure_gs_credentials(ensure_gs_credentials_test_case):
+    raw_value, raise_if_unset, expect_value = ensure_gs_credentials_test_case
     if raise_if_unset:
         if expect_value:
             assert __ensure_gs_credentials(raw_value, raise_if_unset)

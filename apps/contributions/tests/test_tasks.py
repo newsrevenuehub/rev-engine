@@ -1,5 +1,4 @@
 import datetime
-import os
 from csv import DictReader
 from datetime import timedelta
 
@@ -25,24 +24,24 @@ from apps.contributions.types import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
 
-@pytest.fixture
+@pytest.fixture()
 def now():
     return timezone.now()
 
 
-@pytest.fixture
+@pytest.fixture()
 def expiring_flagged_contributions(now):
     flagged_date = now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA) - timedelta(days=1)
     return ContributionFactory.create_batch(2, status=ContributionStatus.FLAGGED, flagged_date=flagged_date)
 
 
-@pytest.fixture
+@pytest.fixture()
 def non_expiring_flagged_contributions(now):
     flagged_date = now - timedelta(days=1)
     return ContributionFactory.create_batch(2, status=ContributionStatus.FLAGGED, flagged_date=flagged_date)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class AutoAcceptFlaggedContributionsTaskTest:
     def test_successful_captures(self, non_expiring_flagged_contributions, expiring_flagged_contributions, mocker):
         expected_update_count = len(expiring_flagged_contributions)
@@ -94,7 +93,7 @@ class TestTaskPullSerializedStripeContributionsToCache:
 NEXT_PAGE = "some-page-identifier"
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_pi_search_result_factory(pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
     class Factory:
         def get(self, rp_slug: str, has_more: bool, num_with_subs: int, num_without_subs: int):
@@ -113,7 +112,7 @@ def stripe_pi_search_result_factory(pi_for_active_subscription_factory, pi_for_v
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_uninvoiced_subscription_factory(subscription_data_factory):
     class Factory:
         def get(self, rp_slug: str, *args, **kwargs) -> stripe.Subscription:
@@ -132,7 +131,7 @@ def stripe_uninvoiced_subscription_factory(subscription_data_factory):
     return Factory()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestTaskPullPaymentIntentsAndUninvoicedSubs:
     def test_happy_path(
         self, revenue_program, mocker, stripe_pi_search_result_factory, stripe_uninvoiced_subscription_factory
@@ -200,10 +199,10 @@ class TestTaskPullPaymentIntentsAndUninvoicedSubs:
         assert mock_upsert_uninvoiced_subs.call_count == 1
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestEmailContributionCsvExportToUser:
     def test_when_all_requested_contributions_found(self, monkeypatch, mocker, org_user_free_plan):
-        """Show happy path behavior when all of requested contributions are found and included in export
+        """Show happy path behavior when all of requested contributions are found and included in export.
 
         Note that we rely on narrow unit testing of export_contributions_to_csv elsewhere. We only assert that
         expected rows show up based on value for contribution id, but we don't test any other attributes at row
@@ -228,7 +227,7 @@ class TestEmailContributionCsvExportToUser:
             message_as_text=render_to_string(
                 "nrh-contribution-csv-email-body.txt",
                 context := {
-                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
                     "show_upgrade_prompt": show_upgrade_prompt,
                 },
             ),
@@ -237,12 +236,12 @@ class TestEmailContributionCsvExportToUser:
             content_type="text/csv",
             filename="contributions.csv",
         )
-        data = [row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]
+        data = list(DictReader(send_email_spy.call_args[1]["attachment"].splitlines()))
         assert set(data[0].keys()) == set(CONTRIBUTION_EXPORT_CSV_HEADERS)
-        assert set([str(_.pk) for _ in contributions]) == set([_["Contribution ID"] for _ in data])
+        assert {str(_.pk) for _ in contributions} == {_["Contribution ID"] for _ in data}
 
     def test_when_some_requested_contributions_missing(self, org_user_free_plan, monkeypatch, mocker):
-        """Show behavior when some requested contributions are not found
+        """Show behavior when some requested contributions are not found.
 
         In this case, the task should still succeed, generating a CSV with a subset of the requested contributions.
 
@@ -268,7 +267,7 @@ class TestEmailContributionCsvExportToUser:
                 "nrh-contribution-csv-email-body.txt",
                 (
                     context := {
-                        "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                        "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
                         "show_upgrade_prompt": True,
                     }
                 ),
@@ -278,20 +277,18 @@ class TestEmailContributionCsvExportToUser:
             content_type="text/csv",
             filename="contributions.csv",
         )
-        data = [row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]
-        assert set(str(x) for x in ids).difference(set([_["Contribution ID"] for _ in data])) == {str(deleted_id)}
+        data = list(DictReader(send_email_spy.call_args[1]["attachment"].splitlines()))
+        assert {str(x) for x in ids}.difference({x["Contribution ID"] for x in data}) == {str(deleted_id)}
         logger_spy.assert_called_once_with(
-            (
-                "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following "
-                "IDs could not be found: %s"
-            ),
+            "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following"
+            " IDs could not be found: %s",
             1,
             len(ids),
             str(deleted_id),
         )
 
     def test_when_contribution_ids_is_empty_list(self, org_user_free_plan, monkeypatch, mocker):
-        """Show behavior when task called with empty list for contributions ids
+        """Show behavior when task called with empty list for contributions ids.
 
         In this case, a CSV with only headers will be sent.
         """
@@ -304,22 +301,20 @@ class TestEmailContributionCsvExportToUser:
         contribution_tasks.email_contribution_csv_export_to_user(ids, org_user_free_plan.email, True)
         send_email_spy.assert_called_once()
         make_csv_spy.assert_called_once()
+        context = {
+            "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
+            "show_upgrade_prompt": True,
+        }
         assert set(make_csv_spy.call_args[0][0]) == set(Contribution.objects.none())
         assert send_email_spy.call_args[1]["to"] == org_user_free_plan.email
         assert send_email_spy.call_args[1]["subject"] == "Check out your Contributions"
         assert send_email_spy.call_args[1]["message_as_text"] == render_to_string(
-            "nrh-contribution-csv-email-body.txt",
-            (
-                context := {
-                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                    "show_upgrade_prompt": True,
-                }
-            ),
+            "nrh-contribution-csv-email-body.txt", context
         )
         assert send_email_spy.call_args[1]["message_as_html"] == render_to_string(
             "nrh-contribution-csv-email-body.html", context
         )
-        assert len([row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]) == 0
+        assert len(list(DictReader(send_email_spy.call_args[1]["attachment"].splitlines()))) == 0
 
 
 class TestTaskverifyAppleDomain:
@@ -364,7 +359,7 @@ class TestPingHealthChecks:
 
 
 class TestProcessStripeWebhookTask:
-    """This a minimal and admittedly suboptimal test class for our process_stripe_webhook_task
+    """Minimal and admittedly suboptimal test class for our process_stripe_webhook_task.
 
     The critical thing we'd like to test about this task is that when the task fails, the
     on_process_stripe_webhook_task_failure gets called (which gives us a notification in Sentry).
@@ -380,13 +375,13 @@ class TestProcessStripeWebhookTask:
     """
 
     def test_config(self):
-        """Test that our task is configured properly -- especially that its link_error parameter is set as expected"""
+        """Test that our task is configured properly -- especially that its link_error parameter is set as expected."""
         assert (
             contribution_tasks.process_stripe_webhook_task.link_error.task
             == "apps.contributions.tasks.on_process_stripe_webhook_task_failure"
         )
 
-    @pytest.mark.parametrize("contribution_found", (True, False))
+    @pytest.mark.parametrize("contribution_found", [True, False])
     def test_synchronously(self, contribution_found, payment_intent_succeeded, mocker):
         mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
         mock_logger = mocker.patch("apps.contributions.tasks.logger.info")
@@ -409,10 +404,10 @@ def test_on_process_stripe_webhook_task_failure(mocker):
     exc = Exception("foo")
     tb = mocker.Mock()
     contribution_tasks.on_process_stripe_webhook_task_failure(task, exc, tb)
-    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {my_id} failed. Error: {exc}")
+    mock_logger.assert_called_once_with("process_stripe_webhook_task %s failed. Error: %s", my_id, exc)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_intent_succeeded_one_time_event, mocker):
     logger_spy = mocker.spy(contribution_tasks.logger, "info")
     Contribution.objects.all().delete()
@@ -424,11 +419,13 @@ def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_i
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_task_import_contributions_and_payments_for_stripe_account(mocker):
     mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments")
     contribution_tasks.task_import_contributions_and_payments_for_stripe_account(
         from_date="",
         to_date="",
         stripe_account_id="",
+        retrieve_payment_method=False,
+        sentry_profiler=False,
     )

@@ -22,7 +22,7 @@ ALL_ACCESSOR = "all"
 
 
 class IsContributor(permissions.BasePermission):
-    """Contributor permission
+    """Contributor permission.
 
     If the user making the request is a contributor, grant permission. Object-level
     permissions for contributors are handled elsewhwere
@@ -33,7 +33,7 @@ class IsContributor(permissions.BasePermission):
 
 
 class IsHubAdmin(permissions.BasePermission):
-    """Hub admin permission
+    """Hub admin permission.
 
     This is only used for gating access to the resource altogether. Object-level
     permissions are not handled here.
@@ -49,7 +49,7 @@ class IsHubAdmin(permissions.BasePermission):
 
 
 class IsOrgAdmin(permissions.BasePermission):
-    """Org Admin permission
+    """Org Admin permission.
 
     If the user making the request is an org admin, grant permission.
     """
@@ -64,7 +64,7 @@ class IsOrgAdmin(permissions.BasePermission):
 
 
 class IsRpAdmin(permissions.BasePermission):
-    """RP Admin permission
+    """RP Admin permission.
 
     If the user making the request is a RP admin, grant permission.
     """
@@ -89,20 +89,17 @@ class IsPatchRequest(permissions.BasePermission):
 
 
 class UserIsRequestedContributor(permissions.BasePermission):
-    """Determine if the requesting user is the same contributor as the object in question"""
+    """Determine if the requesting user is the same contributor as the object in question."""
 
     def has_object_permission(self, request, view, obj):
         return obj == request.user if isinstance(obj, Contributor) else False
 
 
 class ContributorOwnsContribution(permissions.BasePermission):
-    """Handle object-level permissions for contributors vis-a-vis contributions"""
+    """Handle object-level permissions for contributors vis-a-vis contributions."""
 
     def has_object_permission(self, request, view, obj):
-        """
-        If request is coming from a contributor, verify that the requested contribution
-        belongs to them.
-        """
+        """If request is coming from a contributor, verify that the requested contribution belongs to them."""
         return all([is_a_contributor(request.user), obj.contributor.pk == request.user.pk])
 
 
@@ -110,9 +107,7 @@ IsContributorOwningContribution = IsContributor & ContributorOwnsContribution
 
 
 class HasRoleAssignment(permissions.BasePermission):
-    """
-    Determine if the request user has a role assignment. Contributors will not.
-    """
+    """Determine if the request user has a role assignment. Contributors will not."""
 
     def has_permission(self, request, view):
         ra = getattr(request.user, "get_role_assignment", lambda: None)()
@@ -129,7 +124,7 @@ class BaseFlaggedResourceAccess(permissions.BasePermission):
         self.flag = None
 
     def has_permission(self, request, view):
-        """Has permission if flag is active for user
+        """Has permission if flag is active for user.
 
         NB: We need to do `self.flag.is_active_for_user` and also self.flag.everyone
         because django-waffle's `is_active_for_user` doesn't reference .everyone in its
@@ -163,3 +158,15 @@ class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
         self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError()
+
+
+class IsSwitchboardAccount(permissions.BasePermission):
+    """Permission to lock down access to the switchboard account."""
+
+    def has_permission(self, request, view) -> bool:
+        logger.debug("Checking if user is switchboard account")
+        return bool(
+            request.user.is_authenticated
+            and request.user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL
+            and settings.SWITCHBOARD_ACCOUNT_EMAIL
+        )

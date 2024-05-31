@@ -14,18 +14,17 @@ LONG_TOKEN = "long"
 
 
 class ContributorRefreshToken(RefreshToken):
-    """
-    Override simplejwt.RefreshToken to create a for_contributor class, which
-    closely resembles RefreshToken.for_user. Instead of setting the USER_ID_CLAIM,
-    we set the CONTRIBUTOR_ID_CLAIM. This is used later to distinguish between
-    regular users and contributors.
+    """Override simplejwt.RefreshToken.
+
+    To create a for_contributor class, which closely resembles RefreshToken.for_user. Instead of setting the
+    USER_ID_CLAIM, we set the CONTRIBUTOR_ID_CLAIM. This is used later to distinguish between regular users and contributors.
     """
 
     @classmethod
     def for_contributor(cls, contributor_uuid):
-        """
-        Returns a refresh token that is used to generate an access token, following the pattern set by
-        simplejwt, but in this case we're using a contributor instance, and setting the CONTRIBUTOR_ID_CLAIM
+        """Returnsa refresh token that is used to generate an access token.
+
+        Following the pattern set by simplejwt, but in this case we're using a contributor instance, and setting the CONTRIBUTOR_ID_CLAIM.
         """
         logger.info("[ContributorRefreshToken][for_contributor] called for contributor_uuid (%s)", contributor_uuid)
         token = cls()
@@ -35,10 +34,10 @@ class ContributorRefreshToken(RefreshToken):
 
     @property
     def short_lived_access_token(self):
-        """
-        Returns a short-lived access token from a refresh token that will be provided as a
-        paramter in a magic link. This token has a short TTL-- it is exchanged with a more secure, slightly
-        longer-lived token when it is redeemed.
+        """Return short-lived access token.
+
+        From a refresh token that will be provided as a paramter in a magic link. This token has a short TTL-- it is
+        exchanged with a more secure, slightly longer-lived token when it is redeemed.
         """
         logger.info("[ContributorRefreshToken][short_lived_access_token] called")
         access = self.access_token
@@ -48,10 +47,10 @@ class ContributorRefreshToken(RefreshToken):
 
     @property
     def long_lived_access_token(self):
-        """
-        After a short_lived_access_token is redeemed, we set this long_lived_access_token in an HTTP-only cookie,
-        completing the contract expected by the front-end and established in the muggle authentication pattern used
-        in this app.
+        """Set long_lived_access_token in an HTTP-only cookie.
+
+        We set long_lived_access_token after a short_lived_access_token is redeemed. Completing the contract expected by
+        the front-end and established in the muggle authentication pattern used in this app.
         """
         logger.info("[ContributorRefreshToken][long_lived_access_token] called")
         access = self.access_token

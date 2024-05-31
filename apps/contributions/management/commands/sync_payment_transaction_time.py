@@ -14,8 +14,7 @@ from apps.contributions.models import Payment
 
 
 # otherwise we get spammed by stripe info logs when running this command
-stripe_logger = logging.getLogger("stripe")
-stripe_logger.setLevel(logging.ERROR)
+logging.getLogger("stripe").setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):
@@ -71,11 +70,11 @@ class Command(BaseCommand):
                 bt = stripe.BalanceTransaction.retrieve(
                     payment.stripe_balance_transaction_id, stripe_account=payment.contribution.stripe_account_id
                 )
-            except stripe.error.StripeError as e:
+            except stripe.error.StripeError as exc:
                 self.stdout.write(
                     self.style.ERROR(
                         f"Error while retrieving balance transaction {payment.stripe_balance_transaction_id} for "
-                        f"payment {payment.id} and stripe account {payment.contribution.stripe_account_id}: {e}"
+                        f"payment {payment.id} and stripe account {payment.contribution.stripe_account_id}: {exc}"
                     )
                 )
                 continue

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import invoke
-from colorama import Style, init
+from colorama import init
 
 
 PROJECT_BASE = Path(__file__).resolve().parent
@@ -11,8 +11,8 @@ init(autoreset=True)
 
 @invoke.task()
 def generate_tag(c):
-    """
-    Generate tag based on local branch & commit hash.
+    """Generate tag based on local branch & commit hash.
+
     Set the config "tag" to the resulting tag.
     Usage: inv image.tag
     """
@@ -25,14 +25,12 @@ def generate_tag(c):
         if dirty:
             dirty = "-dirty"
         c.config.tag = f"{branch}-{commit}{dirty}"
-        print(Style.DIM + f"Set config.tag to {c.config.tag}")
 
 
 @invoke.task(pre=[generate_tag], default=True)
 def build_image(c, tag=None, dockerfile=None):
-    """
-    Build Docker image using docker build. Tags with <tag> parameter
-    and "latest".
+    """Build Docker image using docker build. Tags with <tag> parameter and "latest".
+
     Params:
         tag: A user supplied tag for the image
         dockerfile: A non-standard Dockerfile location and/or name
@@ -43,7 +41,6 @@ def build_image(c, tag=None, dockerfile=None):
     if dockerfile is None:
         dockerfile = "Dockerfile"
     # build app image
-    print(Style.DIM + f"Tagging {tag}")
     c.run(
         f"docker build -t {c.config.app}:latest -t {c.config.app}:{tag} -f {dockerfile} .",
         echo=True,
@@ -53,7 +50,8 @@ def build_image(c, tag=None, dockerfile=None):
 
 @invoke.task()
 def up(c):
-    """Brings up deployable image
+    """Bring up deployable image.
+
     Usage: inv image.up
     """
     c.run("docker-compose up -d --remove-orphans")
@@ -61,8 +59,8 @@ def up(c):
 
 @invoke.task()
 def shell(c, name, local=False):
-    """
-    Shell into a running container.
+    """Shell into a running container.
+
     :param c: Invoke context
     :param name: The name of the running container
     :param local: If true will connect to a local instance, default is to a connect to a heroku app instance.
@@ -79,7 +77,8 @@ def shell(c, name, local=False):
 
 @invoke.task()
 def stop(c):
-    """Stops deployable image
+    """Stop deployable image.
+
     Usage: inv image.stop
     """
     c.run("docker-compose stop", warn=True)

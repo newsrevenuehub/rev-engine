@@ -40,9 +40,9 @@ fake = Faker()
 PAGE_DATA_EXTRA_ITEMS = {"foo": "bar", "id": "123", "created": "never"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_valid():
-    """Minimally valid page creation data
+    """Minimally valid page creation data.
 
     Note that a request made using this data could still fail if the requesting user does not have the right user
     type or permissions
@@ -54,53 +54,54 @@ def page_creation_data_valid():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_invalid_because_out_of_pages(page_creation_data_valid, live_donation_page):
-    assert (org := live_donation_page.revenue_program.organization).plan_name == Plans.FREE
+    org = live_donation_page.revenue_program.organization
+    assert org.plan_name == Plans.FREE
     assert DonationPage.objects.filter(revenue_program__organization=org).count() == 1
     return page_creation_data_valid | {"revenue_program": live_donation_page.revenue_program.id}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_valid_empty_name(page_creation_data_valid):
     return page_creation_data_valid | {"name": ""}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_valid_no_name(page_creation_data_valid):
     data = {**page_creation_data_valid}
     del data["name"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_invalid_untracked_locale(page_creation_data_valid):
     return page_creation_data_valid | {"locale": "fr"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_non_unique_slug_for_rp(page_creation_data_valid, live_donation_page):
     live_donation_page.revenue_program_id = page_creation_data_valid["revenue_program"]
     live_donation_page.save()
     return page_creation_data_valid | {"slug": live_donation_page.slug}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_data_with_invalid_slug_spaces():
     return {"slug": "some invalid slug"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_data_with_invalid_slug_invalid_chars():
     return {"slug": "!"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_data_with_invalid_slug_empty_string():
     return {"slug": ""}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_data_with_invalid_slug_too_long():
     return {"slug": "x" * (DonationPage._meta.get_field("slug").max_length + 1)}
 
@@ -118,7 +119,7 @@ def page_creation_data_with_invalid_slug(page_creation_data_valid, request):
     return page_creation_data_valid | request.getfixturevalue(request.param)
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_update_data_invalid_non_unique_slug_for_rp(live_donation_page):
     data = {"slug": (slug := live_donation_page.slug)}
     live_donation_page.slug = live_donation_page.slug[::-1]
@@ -139,76 +140,74 @@ def page_update_data_with_invalid_slug(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_update_data_with_invalid_locale():
     return {"locale": "fr"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_name_too_long(page_creation_data_valid):
     return page_creation_data_valid | {
         "name": "".join(random.choice(string.ascii_lowercase) for i in range(PAGE_NAME_MAX_LENGTH + 1))
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_heading_too_long(page_creation_data_valid):
     return page_creation_data_valid | {
         "heading": "".join(random.choice(string.ascii_lowercase) for i in range(PAGE_HEADING_MAX_LENGTH + 1))
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_extra_keys(page_creation_data_valid):
     return page_creation_data_valid | PAGE_DATA_EXTRA_ITEMS
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_missing_rp(page_creation_data_valid):
     data = {**page_creation_data_valid}
     del data["revenue_program"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_blank_rp(page_creation_data_valid):
     return page_creation_data_valid | {"revenue_program": ""}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_non_existent_rp(page_creation_data_valid):
     RevenueProgram.objects.filter(pk=page_creation_data_valid["revenue_program"]).delete()
     return page_creation_data_valid
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_with_published_but_slug_empty(page_creation_data_valid):
-    data = {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00", "slug": ""}}
-    return data
+    return {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00", "slug": ""}}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_invalid_with_published_but_no_slug_field(page_creation_data_valid):
     assert "slug" not in page_creation_data_valid
-    data = {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00"}}
-    return data
+    return {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00"}}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_with_unpermitted_sidebar_elements(page_creation_data_valid):
     org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
     assert org.plan_name == Plans.FREE
     return page_creation_data_valid | {"sidebar_elements": [{"type": x} for x in PlusPlan.sidebar_elements]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_creation_data_with_unpermitted_elements(page_creation_data_valid):
     org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
     assert org.plan_name == Plans.FREE
     return page_creation_data_valid | {"elements": [{"type": x} for x in PlusPlan.page_elements]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_valid_data():
     return {
         "name": fake.company(),
@@ -224,27 +223,27 @@ def jpg_img():
     return img
 
 
-@pytest.fixture
+@pytest.fixture()
 def header_logo():
     return SimpleUploadedFile("header_logo.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture
+@pytest.fixture()
 def header_bg_image():
     return SimpleUploadedFile("header_bg_image.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture
+@pytest.fixture()
 def graphic():
     return SimpleUploadedFile("graphic.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture
+@pytest.fixture()
 def page_screenshot():
     return SimpleUploadedFile("screenshot.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_data_with_image_fields(patch_page_valid_data, header_logo, header_bg_image, graphic):
     return patch_page_valid_data | {
         "header_logo": header_logo,
@@ -253,65 +252,65 @@ def patch_page_data_with_image_fields(patch_page_valid_data, header_logo, header
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_valid_data_extra_keys(patch_page_valid_data):
     return patch_page_valid_data | PAGE_DATA_EXTRA_ITEMS
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_unowned_style(patch_page_valid_data):
     style = StyleFactory(revenue_program=RevenueProgramFactory(name="unique-to-patch-page-unowned-style"))
     return patch_page_valid_data | {"styles": style.pk}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_unfound_style(patch_page_valid_data):
     unfound_pk = "999999"
     assert not Style.objects.filter(pk=unfound_pk).exists()
     return patch_page_valid_data | {"styles": unfound_pk}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_unowned_rp(patch_page_valid_data):
     name = "unique-to-patch-page-unowned-rp"
     rp = RevenueProgramFactory(name=name, organization=OrganizationFactory(name=name))
     return patch_page_valid_data | {"revenue_program": rp.pk}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_unfound_rp(patch_page_valid_data):
     unfound_pk = "999999"
     assert not RevenueProgram.objects.filter(pk=unfound_pk).exists()
     return patch_page_valid_data | {"revenue_program": unfound_pk}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_poorly_formed_elements(patch_page_valid_data):
     return patch_page_valid_data | {"elements": ["foo", True, None]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_poorly_formed_sidebar_elements(patch_page_valid_data):
     return patch_page_valid_data | {"sidebar_elements": ["foo", True, None]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_unpermitted_elements(patch_page_valid_data, live_donation_page):
     unpermitted_free_plan_elements = set(PlusPlan.page_elements).difference(FreePlan.page_elements)
     live_donation_page.revenue_program.organization.plan_name = Plans.FREE
     live_donation_page.revenue_program.organization.save()
-    return patch_page_valid_data | {"elements": [{"type": [x for x in unpermitted_free_plan_elements]}]}
+    return patch_page_valid_data | {"elements": [{"type": list(unpermitted_free_plan_elements)}]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_unpermitted_sidebar_elements(patch_page_valid_data, live_donation_page):
     unpermitted_free_plan_elements = set(PlusPlan.sidebar_elements).difference(FreePlan.sidebar_elements)
     live_donation_page.revenue_program.organization.plan_name = Plans.FREE
     live_donation_page.revenue_program.organization.save()
-    return patch_page_valid_data | {"sidebar_elements": [{"type": [x for x in unpermitted_free_plan_elements]}]}
+    return patch_page_valid_data | {"sidebar_elements": [{"type": list(unpermitted_free_plan_elements)}]}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_when_publishing_and_no_slug_param(patch_page_valid_data, live_donation_page):
     live_donation_page.published_date = None
     live_donation_page.slug = None
@@ -320,7 +319,7 @@ def patch_page_when_publishing_and_no_slug_param(patch_page_valid_data, live_don
     return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_page_when_publishing_and_empty_slug_param(patch_page_valid_data, live_donation_page):
     live_donation_page.published_date = None
     live_donation_page.slug = None
@@ -328,7 +327,7 @@ def patch_page_when_publishing_and_empty_slug_param(patch_page_valid_data, live_
     return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00", "slug": ""}
 
 
-@pytest.fixture
+@pytest.fixture()
 def live_donation_page_with_styles(live_donation_page):
     styles = StyleFactory(revenue_program=live_donation_page.revenue_program)
     live_donation_page.styles = styles
@@ -348,17 +347,17 @@ def unexpected_user(request):
     return request.getfixturevalue(request.param) if request.param else None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestPageViewSet:
     @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "superuser", "rp_user"])
     def user(self, request):
         return request.getfixturevalue(request.param)
 
     def test_create_page_when_expected_user_and_valid_data(self, user, page_creation_data_valid, api_client):
-        """Show that permitted users providing valid data can create a page
+        """Show that permitted users providing valid data can create a page.
 
-        Note that in the parametrization setup above, we provide a lambda function that gets called with user fixture and a revenue program pk. This is used
-        to guarantee the user has access to the referenced revenue program.
+        Note that in the parametrization setup above, we provide a lambda function that gets called with user fixture
+        and a revenue program pk. This is used to guarantee the user has access to the referenced revenue program.
         """
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             rp = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"])
@@ -385,11 +384,11 @@ class TestPageViewSet:
         return request.getfixturevalue(request.param)
 
     @pytest.fixture(params=["json", "multipart"])
-    @pytest.mark.parametrize("data_format", ("json", "multipart"))
-    def test_create_page_when_valid_data_no_page_name_provided(
+    @pytest.mark.parametrize("data_format", ["json", "multipart"])
+    def test_create_page_when_valid_data_no_page_name_provided(  # noqa: PT004 @njh unsure why fixture and not parametrize
         self, create_page_case, data_format, api_client, hub_admin_user
     ):
-        """Show behavior of page creation with falsy page name
+        """Show behavior of page creation with falsy page name.
 
         We expect the page to be named after the rp.
         """
@@ -439,14 +438,15 @@ class TestPageViewSet:
         return request.getfixturevalue(request.param[0]), request.param[1]
 
     def test_create_page_when_invalid_data(self, create_page_invalid_data_case, hub_admin_user, api_client):
-        """Show the behavior of a variety of similarly scoped validation behaviors
+        """Show the behavior of a variety of similarly scoped validation behaviors.
 
-        Ideally, we'd also include tests like `test_create_page_when_invalid_because_org_not_own_rp` as a parametrized case above,
-        but in order to guarantee the "not owned" state of the referenced revenue program, we need to refer to combinations of fixtures
-        with enough complexity to make them not ideal candidates for capturing that logic in a parametrized function that takes fixtures as lambda args.
+        Ideally, we'd also include tests like `test_create_page_when_invalid_because_org_not_own_rp` as a parametrized
+        case above, but in order to guarantee the "not owned" state of the referenced revenue program, we need to refer
+        to combinations of fixtures with enough complexity to make them not ideal candidates for capturing that logic in
+        a parametrized function that takes fixtures as lambda args.
 
-        In practice, it's much easier to have "simple" validation cases parametrized as above, and then handle the unique complexity
-        around ownership of referred-to data in separate test functions.
+        In practice, it's much easier to have "simple" validation cases parametrized as above, and then handle the
+        unique complexity around ownership of referred-to data in separate test functions.
         """
         data, expected_response = create_page_invalid_data_case
         api_client.force_authenticate(hub_admin_user)
@@ -462,7 +462,7 @@ class TestPageViewSet:
     def test_create_page_when_invalid_because_org_not_own_rp(
         self, org_and_rp_user, page_creation_data_valid, api_client
     ):
-        """Show the behavior when a user tries to create a page for a revenue program that doesn't belong to them"""
+        """Show the behavior when a user tries to create a page for a revenue program that doesn't belong to them."""
         user = org_and_rp_user
         api_client.force_authenticate(user)
         rp = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"])
@@ -476,7 +476,7 @@ class TestPageViewSet:
     def test_create_page_when_invalid_because_rp_not_exist(
         self, hub_admin_user, page_creation_invalid_non_existent_rp, api_client
     ):
-        """Show the behavior when a user tries to create a page refering to a missing revenue program"""
+        """Show the behavior when a user tries to create a page refering to a missing revenue program."""
         api_client.force_authenticate(hub_admin_user)
         assert not RevenueProgram.objects.filter(pk=page_creation_invalid_non_existent_rp["revenue_program"]).exists()
         response = api_client.post(
@@ -492,7 +492,7 @@ class TestPageViewSet:
     def test_create_page_when_invalid_because_org_not_own_style(
         self, org_and_rp_user, style, page_creation_data_valid, api_client
     ):
-        """Show the behavior when a user tries to create a page refering to an unowned style"""
+        """Show the behavior when a user tries to create a page refering to an unowned style."""
         user = org_and_rp_user
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
         data = page_creation_data_valid | {"styles": style.id}
@@ -503,7 +503,7 @@ class TestPageViewSet:
     def test_create_page_when_invalid_because_style_not_exist(
         self, org_and_rp_user, style, page_creation_data_valid, api_client
     ):
-        """Show the behavior when a user tries to create a page refering to a non-existent style"""
+        """Show the behavior when a user tries to create a page refering to a non-existent style."""
         user = org_and_rp_user
         style_id = style.id
         style.delete()
@@ -513,7 +513,7 @@ class TestPageViewSet:
         )
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
-    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    @pytest.mark.parametrize("plan", [Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value])
     def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         data = {
@@ -531,10 +531,10 @@ class TestPageViewSet:
         }
 
     # NB we don't test on plus plan because it is meant to have unlimited pages (published or otherwise)
-    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("plan", [Plans.FREE.value, Plans.CORE.value])
     def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
-        for i in range((limit := rp.organization.plan.publish_limit)):
+        for i in range(limit := rp.organization.plan.publish_limit):
             DonationPageFactory(
                 revenue_program=rp,
                 published_date=timezone.now() if i + 1 <= rp.organization.plan.publish_limit else None,
@@ -554,7 +554,7 @@ class TestPageViewSet:
         }
 
     def test_create_page_when_invalid_slug(self, hub_admin_user, page_creation_data_with_invalid_slug, api_client):
-        """Show the behavior when a user tries to create a page with an invalid slug"""
+        """Show the behavior when a user tries to create a page with an invalid slug."""
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(
             reverse("donationpage-list"), data=page_creation_data_with_invalid_slug, format="json"
@@ -573,7 +573,6 @@ class TestPageViewSet:
         assert "locale" in response.json()
 
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
-        """"""
         assert serialized_data == json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
 
     @pytest.fixture(
@@ -595,8 +594,8 @@ class TestPageViewSet:
             DonationPageFactory()
             query = DonationPage.objects.all()
             assert query.count()
-            for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("donationpage-detail", args=(id,)))
+            for id_ in query.values_list("id", flat=True):
+                response = api_client.get(reverse("donationpage-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_200_OK
                 assert response.json() == json.loads(
                     json.dumps(
@@ -613,21 +612,20 @@ class TestPageViewSet:
             unpermitted = DonationPage.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
-            for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("donationpage-detail", args=(id,)))
+            for id_ in query.values_list("id", flat=True):
+                response = api_client.get(reverse("donationpage-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_200_OK
                 assert response.json() == json.loads(
                     json.dumps(
                         DonationPageFullDetailSerializer(DonationPage.objects.get(pk=response.json()["id"])).data
                     )
                 )
-
                 self.assert_retrieved_page_detail_looks_right(
                     response.json(), DonationPage.objects.get(pk=response.json()["id"])
                 )
-            for id in unpermitted.values_list("id", flat=True):
+            for id_ in unpermitted.values_list("id", flat=True):
                 assert (
-                    api_client.get(reverse("donationpage-detail", args=(id,))).status_code == status.HTTP_404_NOT_FOUND
+                    api_client.get(reverse("donationpage-detail", args=(id_,))).status_code == status.HTTP_404_NOT_FOUND
                 )
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
@@ -635,7 +633,7 @@ class TestPageViewSet:
             assert spy.call_count == DonationPage.objects.count()
 
     def test_retrieve_when_unauthorized_user(self, unexpected_user, live_donation_page, api_client):
-        """Show behavior when an unauthorized user tries to access
+        """Show behavior when an unauthorized user tries to access.
 
         By "unauthorized" we mean both unauthenticated users and authenticated users
         that don't have the right user type
@@ -661,7 +659,7 @@ class TestPageViewSet:
         )
 
     def test_list_when_expected_user(self, expected_user, api_client, live_donation_page, mocker):
-        """Show that expected users see all the pages they should see and none they shouldn't when listing"""
+        """Show that expected users see all the pages they should see and none they shouldn't when listing."""
         user = expected_user
         # ensure there will be pages that org admin and rp admin won't be able to access, but that superuser should be able to
         # access
@@ -674,9 +672,10 @@ class TestPageViewSet:
             assert query.count()
             response = api_client.get(reverse("donationpage-list"))
             assert response.status_code == status.HTTP_200_OK
-            assert len(pages := response.json()) == query.count()
-            assert set([x["id"] for x in pages]) == set(list(query.values_list("id", flat=True)))
-            for x in response.json():
+            pages = response.json()
+            assert len(pages) == query.count()
+            assert {x["id"] for x in pages} == set(query.values_list("id", flat=True))
+            for x in pages:
                 self.assert_page_list_item_looks_right(x)
         else:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
@@ -687,16 +686,17 @@ class TestPageViewSet:
             assert query.count()
             assert unpermitted.count()
             response = api_client.get(reverse("donationpage-list"))
-            assert len(pages := response.json()) == query.count()
-            assert set([x["id"] for x in pages]) == set(list(query.values_list("id", flat=True)))
-            for x in response.json():
+            pages = response.json()
+            assert len(pages) == query.count()
+            assert {x["id"] for x in pages} == set(query.values_list("id", flat=True))
+            for x in pages:
                 self.assert_page_list_item_looks_right(x)
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
 
     def test_list_when_unauthorized_user(self, unexpected_user, api_client):
-        """Show behavior when unauthorized users try to list pages
+        """Show behavior when unauthorized users try to list pages.
 
         By "unauthorized" we mean both unauthenticated users and authenticated users that don't have the right user type
         """
@@ -716,11 +716,11 @@ class TestPageViewSet:
 
     @pytest.mark.parametrize(
         "plan",
-        (
+        [
             Plans.FREE.value,
             Plans.CORE.value,
             Plans.PLUS.value,
-        ),
+        ],
     )
     def test_patch_when_expected_user_with_valid_data(
         self, plan, patch_page_valid_data, hub_admin_user, api_client, mocker
@@ -769,7 +769,7 @@ class TestPageViewSet:
     def test_patch_when_expected_user_with_valid_data_with_extra_keys(
         self, expected_user, patch_page_valid_data_extra_keys, live_donation_page, api_client
     ):
-        """Show behavior when extra fields are provided in otherwise valid data
+        """Show behavior when extra fields are provided in otherwise valid data.
 
         In this case, the request can succeed, but the problematic fields are disregarded.
         """
@@ -790,7 +790,7 @@ class TestPageViewSet:
     def test_patch_when_expected_user_unowned_page(
         self, org_and_rp_user, patch_page_valid_data, live_donation_page, api_client, mocker
     ):
-        """Show behavior when an expected user tries to patch an unowned page"""
+        """Show behavior when an expected user tries to patch an unowned page."""
         assert live_donation_page not in org_and_rp_user.roleassignment.revenue_programs.all()
         assert live_donation_page.revenue_program.organization != org_and_rp_user.roleassignment.organization
         last_modified = live_donation_page.modified
@@ -825,7 +825,7 @@ class TestPageViewSet:
     def test_patch_when_expected_user_with_invalid_data(
         self, org_and_rp_user, invalid_data_case, api_client, live_donation_page
     ):
-        """Show expected users can patch"""
+        """Show expected users can patch."""
         data, error_key = invalid_data_case
         api_client.force_authenticate(org_and_rp_user)
         if not org_and_rp_user.is_superuser:
@@ -836,7 +836,7 @@ class TestPageViewSet:
         assert list(response.json().keys()) == [error_key]
 
     def test_patch_when_unauthorized_user(self, unexpected_user, live_donation_page, patch_page_valid_data, api_client):
-        """Show behavior when an unauthorized user tries to patch a donation page"""
+        """Show behavior when an unauthorized user tries to patch a donation page."""
         api_client.force_authenticate(unexpected_user)
         last_modified = live_donation_page.modified
         assert api_client.patch(
@@ -859,7 +859,7 @@ class TestPageViewSet:
             "thank_you_redirect": ["This organization's plan does not enable assigning a custom thank you URL"]
         }
 
-    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    @pytest.mark.parametrize("plan", [Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value])
     def test_patch_when_at_published_limit_and_try_to_publish(
         self, plan, live_donation_page, hub_admin_user, api_client
     ):
@@ -886,7 +886,10 @@ class TestPageViewSet:
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert response.json()["non_field_errors"] == [
-                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+                (
+                    f"Your organization has reached its limit of {rp.organization.plan.publish_limit}"
+                    f" published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+                )
             ]
 
     def test_patch_when_invalid_slug_data(
@@ -1007,7 +1010,7 @@ class TestPageViewSet:
             )
         )
 
-    @pytest.mark.parametrize("make_query", (lambda page: {}, lambda page: {"page": page.slug}))
+    @pytest.mark.parametrize("make_query", [lambda page: {}, lambda page: {"page": page.slug}])
     def test_live_detail_page_missing_rp_query_param(self, make_query, live_donation_page, api_client):
         url = reverse("donationpage-live-detail")
         response = api_client.get(url, make_query(live_donation_page), format="json")
@@ -1016,17 +1019,14 @@ class TestPageViewSet:
 
     @pytest.mark.parametrize(
         "query_params",
-        (
+        [
             {"revenue_program": "nothing-has-this-name", "page": "nothing-named-this"},
             {"revenue_program": "nothing-has-this-name"},
-        ),
+        ],
     )
     def test_live_detail_page_not_found_because_rp_not_found(self, query_params, api_client, live_donation_page):
         assert not DonationPage.objects.filter(
-            **{
-                "revenue_program__slug": query_params.get("revenue_program", None),
-                "slug": query_params.get("page", None),
-            }
+            revenue_program__slug=query_params.get("revenue_program", None), slug=query_params.get("page", None)
         ).exists()
         response = api_client.get(reverse("donationpage-live-detail"), query_params)
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -1149,7 +1149,7 @@ class TestPageViewSet:
         }
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_valid_data(live_donation_page):
     return {
         "name": fake.word(),
@@ -1163,62 +1163,62 @@ def create_style_valid_data(live_donation_page):
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_missing_radii(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["radii"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_missing_font(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["font"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_missing_font_sizes(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["fontSizes"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_missing_name(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["name"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_missing_revenue_program(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["revenue_program"]
     return data
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_revenue_program_null(create_style_valid_data):
     return create_style_valid_data | {"revenue_program": None}
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_style_revenue_program_blank(create_style_valid_data):
     return create_style_valid_data | {"revenue_program": ""}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_valid_data_rp_only(revenue_program):
     return {"revenue_program": revenue_program.id}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_valid_data_name_only():
     return {"name": "updated-style-name"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_valid_styles_data_only():
     return {
         "radii": [],
@@ -1227,12 +1227,12 @@ def patch_style_valid_styles_data_only():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_valid_styles_data_with_arbitrary_keys(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"foo": "bar"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_valid_data_all_keys(
     patch_style_valid_data_rp_only, patch_style_valid_data_name_only, patch_style_valid_styles_data_with_arbitrary_keys
 ):
@@ -1243,69 +1243,68 @@ def patch_style_valid_data_all_keys(
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_radii_is_text(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": "foo"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_radii_is_null(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": None}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_radii_is_number(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": 123}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_radii_is_unexpected_dict(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": {"foo": "bar"}}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_is_text(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": "foo"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_is_null(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": None}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_is_number(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": 123}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_is_list(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": []}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_sizes_is_text(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": "big"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_sizes_is_null(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": None}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_sizes_is_number(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": 123}
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_style_invalid_data_bad_font_sizes_is_dict(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": {}}
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestStyleViewSet:
-
     @pytest.fixture(
         params=[
             "superuser",
@@ -1318,7 +1317,7 @@ class TestStyleViewSet:
         return request.getfixturevalue(request.param)
 
     def test_create_style_when_expected_user_with_valid_data(self, user, api_client, create_style_valid_data):
-        """Show that expected users can create a style when provid valid data"""
+        """Show that expected users can create a style when provid valid data."""
         before_count = Style.objects.count()
         if not user.is_superuser:
             user.roleassignment.revenue_programs.add(
@@ -1352,18 +1351,18 @@ class TestStyleViewSet:
     def test_create_style_when_expected_user_but_not_own_rp(
         self, user_with_unowned_rp, create_style_valid_data, api_client
     ):
-        """Show behavior when expected user tries to create a style pointing to an unowned RP"""
+        """Show behavior when expected user tries to create a style pointing to an unowned RP."""
         api_client.force_authenticate(user_with_unowned_rp)
         assert (
-            not RevenueProgram.objects.get(pk=create_style_valid_data["revenue_program"])
-            in user_with_unowned_rp.roleassignment.revenue_programs.all()
+            RevenueProgram.objects.get(pk=create_style_valid_data["revenue_program"])
+            not in user_with_unowned_rp.roleassignment.revenue_programs.all()
         )
         response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": ["Not found"]}
 
     def test_create_style_when_unauthorized_user(self, unexpected_user, create_style_valid_data, api_client):
-        """Show behavior when an unauthorized user tries to create a style"""
+        """Show behavior when an unauthorized user tries to create a style."""
         api_client.force_authenticate(unexpected_user)
         response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
         assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
@@ -1401,7 +1400,7 @@ class TestStyleViewSet:
         return request.getfixturevalue(request.param[0]), request.param[1]
 
     def test_create_when_invalid_data(self, invalid_data_case, user, api_client):
-        """Show behavior when an expected user tries to create a style, with various sorts of invalid data"""
+        """Show behavior when an expected user tries to create a style, with various sorts of invalid data."""
         data, expected_response = invalid_data_case
         api_client.force_authenticate(user)
         if not user.is_superuser and data.get("revenue_program"):
@@ -1414,7 +1413,7 @@ class TestStyleViewSet:
         assert response.json() == expected_response
 
     def test_retrieve_when_expected_user(self, user, api_client, style, mocker):
-        """Show that expected users can retrieve styles they own and cannot those they don't"""
+        """Show that expected users can retrieve styles they own and cannot those they don't."""
         api_client.force_authenticate(user)
         # ensure some styles non-superusers can't retrieve
         StyleFactory.create_batch(size=3)
@@ -1448,13 +1447,13 @@ class TestStyleViewSet:
             assert spy.call_count == expect_spy_call_count
 
     def test_retrieve_when_unauthorized_user(self, unexpected_user, style, api_client):
-        """Show retrieve behavior when unauthorized user attempts"""
+        """Show retrieve behavior when unauthorized user attempts."""
         api_client.force_authenticate(unexpected_user)
         response = api_client.get(reverse("style-detail", args=(style.id,)))
         assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
     def test_list_when_expected_user(self, user, api_client, style, mocker):
-        """Test that expected users see styles they should and not see those they shouldn't when listing"""
+        """Test that expected users see styles they should and not see those they shouldn't when listing."""
         api_client.force_authenticate(user)
         # ensure some styles non-superusers can't retrieve
         StyleFactory.create_batch(size=3)
@@ -1485,7 +1484,7 @@ class TestStyleViewSet:
             assert spy.call_count == 2
 
     def test_list_when_unauthorized_user(self, unexpected_user, api_client):
-        """Show list behavior when an unauthorized user tries to access"""
+        """Show list behavior when an unauthorized user tries to access."""
         StyleFactory.create_batch(size=2)
         api_client.force_authenticate(unexpected_user)
         response = api_client.get(reverse("style-list"))
@@ -1502,9 +1501,9 @@ class TestStyleViewSet:
         return request.getfixturevalue(request.param)
 
     def test_update_style_when_expected_user_with_valid_data(self, user, valid_update_data, api_client, style, mocker):
-        """Show that expected users can update a style when providing valid data"""
+        """Show that expected users can update a style when providing valid data."""
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
+        if not user.is_superuser and user.roleassignment.role_type != Roles.HUB_ADMIN:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
         last_modified = style.modified
@@ -1524,10 +1523,10 @@ class TestStyleViewSet:
     def test_update_style_when_expected_user_updating_owned_rp(
         self, user, update_style_data, api_client, style, mocker
     ):
-        """Show that expected users can update a style when providing valid data"""
+        """Show that expected users can update a style when providing valid data."""
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         to_update_rp = RevenueProgram.objects.get(id=update_style_data["revenue_program"])
-        if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
+        if not user.is_superuser and user.roleassignment.role_type != Roles.HUB_ADMIN:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
             to_update_rp.organization = user.roleassignment.organization
@@ -1591,7 +1590,6 @@ class TestStyleViewSet:
     def test_update_style_when_unexpected_user(
         self, unexpected_user, patch_style_valid_data_all_keys, style, api_client
     ):
-
         api_client.force_authenticate(unexpected_user)
         response = api_client.patch(
             reverse("style-detail", args=(style.pk,)), data=patch_style_valid_data_all_keys, format="json"
@@ -1701,14 +1699,13 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@pytest.fixture
+@pytest.fixture()
 def font():
     return FontFactory()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestFontViewSet:
-
     def test_retrieve(self, org_user_free_plan, font, api_client):
         api_client.force_authenticate(org_user_free_plan)
         assert api_client.get(reverse("font-detail", args=(font.id,))).status_code == status.HTTP_200_OK

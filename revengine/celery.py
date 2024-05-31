@@ -21,4 +21,4 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 @app.task(bind=True)
 def debug_task(self):
-    print(f"Request: {self.request!r}")
+    print(f"Request: {self.request!r}")  # noqa: T201 print is used for debugging

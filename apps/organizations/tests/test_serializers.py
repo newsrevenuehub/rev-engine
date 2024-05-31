@@ -22,12 +22,12 @@ from conftest import make_mock_mailchimp_email_list
 faker = Faker()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_email_lists():
     return [make_mock_mailchimp_email_list()]
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_store():
     return MailchimpStore(
         id=faker.uuid4(),
@@ -52,7 +52,7 @@ def mailchimp_store():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_product():
     return MailchimpProduct(
         id=faker.uuid4(),
@@ -71,7 +71,7 @@ def mailchimp_product():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_segment():
     return MailchimpSegment(
         id=faker.uuid4(),
@@ -99,7 +99,7 @@ EXPECTED_ORGANIZATION_INLINE_SERIALIZER_FIELDS = {
 }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestOrganizationInlineSerializer:
     def test_has_right_fields(self, organization):
         assert (
@@ -108,7 +108,7 @@ class TestOrganizationInlineSerializer:
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestRevenueProgramSerializer:
     def test_has_right_fields_and_values(
         self,
@@ -133,7 +133,7 @@ class TestRevenueProgramSerializer:
         save_spy.assert_called_once_with(update_fields=set(data.keys()))
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestMailchimpRevenueProgramForSpaConfiguration:
     def test_has_right_fields_and_values(self, mc_connected_rp, mocker, mailchimp_email_list_from_api):
         mock_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
@@ -192,7 +192,7 @@ class TestMailchimpRevenueProgramForSpaConfiguration:
         assert serializer.validated_data["mailchimp_list_id"] is None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestMailchimpRevenueProgramForSwitchboard:
     def test_has_right_fields_and_values(
         self,

@@ -2,6 +2,7 @@ import datetime
 import itertools
 import json
 import logging
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Tuple
 from urllib.parse import urlparse
@@ -11,6 +12,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
 
 import backoff
+import sentry_sdk
 import stripe
 import tldextract
 from django_redis import get_redis_connection
@@ -78,17 +80,24 @@ TTL_WARNING_THRESHOLD_PERCENT = 0.75
 
 # We set up some custom logging for this module so we get timestamps, which are helpful
 # in running down timing/rate limiting issues we're facing when this code runs.
-logger = logging.getLogger(
-    f"{settings.DEFAULT_LOGGER}.{__name__}",
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+console_handler = logging.StreamHandler()
+
+new_formatter = logging.Formatter(
+    "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
-logger_handler = logging.StreamHandler()
-logger_handler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-)
-logger.addHandler(logger_handler)
+
+# Add the formatter to the handler
+console_handler.setFormatter(new_formatter)
+
+# Remove any existing handlers from the logger
+if logger.handlers:
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+
+# Add the handler to the logger
+logger.addHandler(console_handler)
 
 
 class OnBackoffDetails(BaseModel):
@@ -158,7 +167,7 @@ def upsert_payment_for_transaction(
     contribution: Contribution, transaction: stripe.BalanceTransaction, is_refund: bool = False
 ) -> Tuple[Payment | None, str | None]:
     """Upsert a payment object for a given stripe balance transaction and contribution"""
-    logger.debug(
+    logger.info(
         "Upserting payment for contribution %s and transaction %s",
         contribution.id,
         (getattr(transaction, "id", "<no transaction>")),
@@ -268,6 +277,7 @@ class StripeTransactionsImporter:
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
     retrieve_payment_method: bool = False
+    sentry_profiler: bool = False
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -610,6 +620,7 @@ class StripeTransactionsImporter:
 
     def get_charges_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached charges, if any for a given subscription id"""
+        logger.info("Getting charges for subscription %s", subscription_id)
         results = []
         invoices = self.get_invoices_for_subscription(subscription_id)
         for x in filter(lambda x: x.get("charge", None), invoices):
@@ -618,17 +629,11 @@ class StripeTransactionsImporter:
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id"""
+        logger.info("Getting refunds for charge %s", charge_id)
         results = []
 
         for key in self.redis.scan_iter(match=self.make_key(entity_name="RefundByChargeId", entity_id=f"{charge_id}*")):
             results.append(self.get_resource_from_cache(key))
-        return results
-
-    def get_refunds_for_subscription(self, subscription_id: str) -> list[dict]:
-        """Get cached refunds, if any for a given subscription id"""
-        results = []
-        for charge in self.get_charges_for_subscription(subscription_id):
-            results.extend(self.get_refunds_for_charge(charge["id"]))
         return results
 
     def get_or_create_contributor_from_customer(self, customer_id: str) -> Tuple[Contributor, str]:
@@ -705,6 +710,7 @@ class StripeTransactionsImporter:
 
     def get_successful_charge_for_payment_intent(self, payment_intent_id: str) -> dict | None:
         """Get single successful charge for a PI. If >1 successful, raises an error"""
+        logger.info("Getting successful charge for payment intent %s", payment_intent_id)
         successful = [x for x in self.get_charges_for_payment_intent(payment_intent_id) if x["status"] == "succeeded"]
         if len(successful) > 1:
             raise InvalidStripeTransactionDataError(
@@ -725,6 +731,7 @@ class StripeTransactionsImporter:
 
         For each charge and each refund associated with a contribution, we'll upsert a payment object
         """
+        logger.info("Upserting payments for contribution %s", contribution.id)
         if contribution.interval == ContributionInterval.ONE_TIME:
             pi = self.get_resource_from_cache(
                 self.make_key(entity_name="PaymentIntent", entity_id=contribution.provider_payment_id)
@@ -735,7 +742,7 @@ class StripeTransactionsImporter:
             refunds = self.get_refunds_for_charge(successful_charge["id"]) if successful_charge else []
         else:
             charges = self.get_charges_for_subscription(contribution.provider_subscription_id)
-            refunds = self.get_refunds_for_subscription(contribution.provider_subscription_id)
+            refunds = [x for x in [self.get_refunds_for_charge(charge["id"]) for charge in charges] if x]
         for entity, is_refund in itertools.chain(
             zip(charges, itertools.repeat(False)), zip(refunds, itertools.repeat(True))
         ):
@@ -753,7 +760,11 @@ class StripeTransactionsImporter:
                     entity_id=entity["balance_transaction"],
                 )
             )
-            payment, action = upsert_payment_for_transaction(contribution, balance_transaction, is_refund)
+            payment, action = upsert_payment_for_transaction(
+                contribution,
+                balance_transaction,
+                is_refund,
+            )
             if payment:
                 logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
             else:
@@ -881,7 +892,6 @@ class StripeTransactionsImporter:
             dont_update=["contribution_metadata", "_revenue_program", "donation_page"],
         )
 
-        logger.info("Upserting payments for %s %s", entity_name, stripe_entity["id"])
         self.upsert_payments_for_contribution(contribution)
         self.update_contribution_stats(contribution_action, contribution)
         self.update_contributor_stats(contributor_action, contributor)
@@ -960,19 +970,24 @@ class StripeTransactionsImporter:
 
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-        started = datetime.datetime.now(datetime.timezone.utc)
-        self.list_and_cache_required_stripe_resources()
-        self.log_memory_usage()
-        self.process_transactions_for_recurring_contributions()
-        self.process_transactions_for_one_time_contributions()
-        self.log_results()
-        self.clear_cache_for_account()
-        logger.info(
-            "Stripe import for account %s took %s",
-            self.stripe_account_id,
-            self.format_timedelta(datetime.datetime.now(datetime.timezone.utc) - started),
-        )
-        self.log_ttl_concerns(started)
+        with (
+            sentry_sdk.start_transaction(op="task", name="StripeTransactionsImporter.import_contributions_and_payments")
+            if self.sentry_profiler
+            else nullcontext()
+        ):
+            started = datetime.datetime.now(datetime.timezone.utc)
+            self.list_and_cache_required_stripe_resources()
+            self.log_memory_usage()
+            self.process_transactions_for_recurring_contributions()
+            self.process_transactions_for_one_time_contributions()
+            self.log_results()
+            self.clear_cache_for_account()
+            logger.info(
+                "Stripe import for account %s took %s",
+                self.stripe_account_id,
+                self.format_timedelta(datetime.datetime.now(datetime.timezone.utc) - started),
+            )
+            self.log_ttl_concerns(started)
 
     def log_results(self) -> None:
         """Log the results of the stripe import"""

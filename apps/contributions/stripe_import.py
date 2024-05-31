@@ -622,13 +622,17 @@ class StripeTransactionsImporter:
     def get_charges_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached charges, if any for a given subscription id."""
         logger.info("Getting charges for subscription %s", subscription_id)
-        results = []
-        invoices = self.get_invoices_for_subscription(subscription_id)
-        results = [
-            self.get_resource_from_cache(self.make_key(entity_name="Charge", entity_id=x["charge"]))
-            for x in filter(lambda x: x.get("charge", None), invoices)
-        ]
-        return list(filter(lambda x: bool(x), results))
+        return list(
+            filter(
+                bool,
+                (
+                    self.get_resource_from_cache(self.make_key(entity_name="Charge", entity_id=x["charge"]))
+                    for x in filter(
+                        lambda x: x.get("charge", None), self.get_invoices_for_subscription(subscription_id)
+                    )
+                ),
+            )
+        )
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id."""

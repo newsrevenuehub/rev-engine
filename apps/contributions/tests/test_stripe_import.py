@@ -528,7 +528,9 @@ class TestStripeTransactionsImporter:
             by_entity_name="payment_intent",
         )
         mock_get_pipeline.assert_called_once_with(entity_name=destination_name)
-        mock_redis.scan_iter.assert_called_once_with(match=instance.make_key(entity_name=f"{entity_name}_*"))
+        mock_redis.scan_iter.assert_called_once_with(
+            match=instance.make_key(entity_name=f"{entity_name}_*"), count=1000
+        )
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
         mock_get_pipeline.return_value.__enter__.return_value.set.assert_called_once_with(
@@ -617,7 +619,8 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
         assert instance.get_invoices_for_subscription((sub_id := "sub_1")) == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*")
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*"),
+            count=1000,
         )
 
     def test_get_charges_for_subscription(self, mocker):

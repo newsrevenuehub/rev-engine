@@ -749,7 +749,9 @@ class StripeTransactionsImporter:
             refunds = self.get_refunds_for_charge(successful_charge["id"]) if successful_charge else []
         else:
             charges = self.get_charges_for_subscription(contribution.provider_subscription_id)
-            refunds = [x for x in [self.get_refunds_for_charge(charge["id"]) for charge in charges] if x]
+            refunds = []
+            for charge in charges:
+                refunds.extend(self.get_refunds_for_charge(charge["id"]))
         for entity, is_refund in itertools.chain(
             zip(charges, itertools.repeat(False)), zip(refunds, itertools.repeat(True))
         ):

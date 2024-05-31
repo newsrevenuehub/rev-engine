@@ -610,9 +610,10 @@ class TestStripeTransactionsImporter:
         mock_redis.scan_iter.return_value = ["foo", "bar", "bizz"]
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
-        assert instance.get_invoices_for_subscription("sub_1") == results
+        assert instance.get_invoices_for_subscription(sub_id := "sub_1") == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="sub_1*"), count=1000
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*"),
+            count=1000,
         )
 
     def test_get_charges_for_subscription(self, mocker):
@@ -731,16 +732,22 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("pre_existing_payment_for_bt", [True, False])
     def test_upsert_payments_for_contribution(self, mocker, interval, pre_existing_payment_for_bt):
         # one has balance transaction, another does not so we go through both branches of code
-        refunds = [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}]
+        refunds = [
+            [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}],
+            [
+                {"id": "ref_3", "balance_transaction": "bt_3"},
+            ],
+        ]
         charge = {"balance_transaction": "bt_1", "id": "ch_1"}
         get_resource_from_cache_side_effects = []
         instance = StripeTransactionsImporter(stripe_account_id="test")
         if interval == ContributionInterval.ONE_TIME:
             mocker.patch.object(instance, "get_successful_charge_for_payment_intent")
             get_resource_from_cache_side_effects.append({"id": "pi_1"})
-            mocker.patch.object(instance, "get_refunds_for_charge", return_value=refunds)
+            mocker.patch.object(instance, "get_refunds_for_charge", return_value=[refunds[0][0]])
         else:
-            mocker.patch.object(instance, "get_charges_for_subscription", return_value=[charge])
+            # we want to return 2 charges to trigger two calls to get_refunds_for_charge
+            mocker.patch.object(instance, "get_charges_for_subscription", return_value=[charge, charge])
             mocker.patch.object(instance, "get_refunds_for_charge", side_effect=refunds)
         get_resource_from_cache_side_effects.append({"id": "bt_1"})
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=get_resource_from_cache_side_effects)

@@ -620,7 +620,9 @@ class StripeTransactionsImporter:
 
     def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached invoices, if any for a given subscription id."""
-        return [self.get_resource_from_cache(key) for key in self._invoice_by_sub_id_keys if subscription_id in key]
+        return [
+            self.get_resource_from_cache(key) for key in self._invoice_by_sub_id_keys if subscription_id in str(key)
+        ]
 
     def get_charges_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached charges, if any for a given subscription id."""
@@ -720,7 +722,9 @@ class StripeTransactionsImporter:
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[dict]:
         """Get charges for a payment intent from cache."""
         return [
-            self.get_resource_from_cache(k) for k in self._charge_by_payment_intent_id_keys if payment_intent_id in k
+            self.get_resource_from_cache(k)
+            for k in self._charge_by_payment_intent_id_keys
+            if payment_intent_id in str(k)
         ]
 
     def get_successful_charge_for_payment_intent(self, payment_intent_id: str) -> dict | None:

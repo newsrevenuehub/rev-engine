@@ -605,15 +605,16 @@ class TestStripeTransactionsImporter:
             assert instance.get_data_from_plan(plan) == expected_val
 
     def test_get_invoices_for_subscription(self, mocker):
+        sub_id = "sub_1"
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = ["foo", "bar", "bizz"]
+
+        mock_redis.scan_iter.return_value = [f"foo_{sub_id}", f"bar_{sub_id}", f"bizz_{sub_id}"]
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
-        assert instance.get_invoices_for_subscription(sub_id := "sub_1") == results
+        assert instance.get_invoices_for_subscription(sub_id) == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*"),
-            count=1000,
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="*")
         )
 
     def test_get_charges_for_subscription(self, mocker):
@@ -716,11 +717,12 @@ class TestStripeTransactionsImporter:
     def test_get_charges_for_payment_intent(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = ["foo", "bar"]
+        pi_id = "pi_1"
+        mock_redis.scan_iter.return_value = [f"foo_{pi_id}", f"bar_{pi_id}"]
         mocker.patch.object(
             instance, "get_resource_from_cache", side_effect=(charges := [{"id": "ch_1"}, {"id": "ch_2"}])
         )
-        assert instance.get_charges_for_payment_intent("pi_1") == charges
+        assert instance.get_charges_for_payment_intent(pi_id) == charges
 
     def test_get_refunds_for_payment_intent(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")

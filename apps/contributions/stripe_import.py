@@ -921,7 +921,8 @@ class StripeTransactionsImporter:
     def process_transactions_for_recurring_contributions(self) -> None:
         """Assemble data and ultimately upsert data for a recurring contribution."""
         logger.info("Processing transactions for recurring contributions")
-        for key in self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT):
+        for i, key in enumerate(self._subscription_keys):
+            logger.info("Processing subscription %s of %s for account %s", i + 1, key, self.stripe_account_id)
             subscription = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)
@@ -939,6 +940,12 @@ class StripeTransactionsImporter:
             self.subscriptions_processed += 1
 
     @cached_property
+    def _subscription_keys(self) -> list[str]:
+        return list(
+            self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT)
+        )
+
+    @cached_property
     def _payment_intent_keys(self) -> list[str]:
         return list(
             self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*"), count=REDIS_SCAN_ITER_COUNT)
@@ -951,7 +958,9 @@ class StripeTransactionsImporter:
         without referer and schema_version, we know ahead of time that all of the PIs we're looking at are for one-time contributions.
         """
         logger.info("Processing transactions for one-time contributions")
-        for key in self._payment_intent_keys:
+
+        for i, key in enumerate(self._payment_intent_keys):
+            logger.info("Processing payment intent %s of %s for account %s", i + 1, key, self.stripe_account_id)
             pi = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)
@@ -1001,6 +1010,12 @@ class StripeTransactionsImporter:
             started = datetime.datetime.now(datetime.timezone.utc)
             self.list_and_cache_required_stripe_resources()
             self.log_memory_usage()
+            logger.info(
+                "%s total contributions to process across %s subscriptions and %s one-time payment intents",
+                len(self._payment_intent_keys) + len(self._subscription_keys),
+                len(self._subscription_keys),
+                len(self._payment_intent_keys),
+            )
             self.process_transactions_for_recurring_contributions()
             self.process_transactions_for_one_time_contributions()
             self.log_results()

@@ -19,6 +19,7 @@ from apps.contributions.exceptions import (
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
     CACHE_KEY_PREFIX,
+    REDIS_SCAN_ITER_COUNT,
     STRIPE_API_BACKOFF_ARGS,
     TTL_WARNING_THRESHOLD_PERCENT,
     RedisCachePipeline,
@@ -614,7 +615,7 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
         assert instance.get_invoices_for_subscription(sub_id) == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="*")
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="*"), count=REDIS_SCAN_ITER_COUNT
         )
 
     def test_get_charges_for_subscription(self, mocker):
@@ -972,6 +973,14 @@ class TestStripeTransactionsImporter:
             mock_logger.assert_not_called()
 
     def test_import_contributions_and_payments(self, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter._subscription_keys",
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter._payment_intent_keys",
+            new_callable=mocker.PropertyMock,
+        )
         mock_list_cache = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_required_stripe_resources"
         )

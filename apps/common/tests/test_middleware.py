@@ -9,7 +9,7 @@ from apps.common.middleware import LogFourHundredsMiddleware
 
 class TestLogFourHundredsMiddleware:
     @pytest.mark.parametrize(
-        "logged, status_code, data",
+        ("logged", "status_code", "data"),
         [
             (False, "200", {}),
             (False, settings.MIDDLEWARE_LOGGING_CODES[0], {}),

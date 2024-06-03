@@ -1,4 +1,3 @@
-import os
 from dataclasses import asdict
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
@@ -30,7 +29,7 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.tests.factories import UserFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestMagicLink:
     def test_get_test_magic_link(self, mocker):
         user = UserFactory()
@@ -57,9 +56,8 @@ class TestMagicLink:
         assert expected == get_test_magic_link(user, revenue_program)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestMakeSendThankYouEmailData:
-
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution"])
     def contribution(self, request):
         return request.getfixturevalue(request.param)
@@ -106,14 +104,14 @@ class TestMakeSendThankYouEmailData:
             make_send_thank_you_email_data(ContributionFactory(one_time=True))
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestSendThankYouEmail:
     @pytest.mark.parametrize(
         "make_contribution_fn",
-        (
+        [
             lambda: ContributionFactory(one_time=True),
             lambda: ContributionFactory(monthly_subscription=True),
-        ),
+        ],
     )
     def test_happy_path(self, make_contribution_fn, mocker):
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
@@ -142,7 +140,7 @@ class TestSendThankYouEmail:
 
     @pytest.mark.parametrize(
         "default_style",
-        (False, True),
+        [False, True],
     )
     def test_contribution_confirmation_email_style(
         self, revenue_program: RevenueProgramFactory, default_style: bool, monkeypatch
@@ -175,7 +173,7 @@ class TestSendThankYouEmail:
         data = make_send_thank_you_email_data(contribution)
         send_thank_you_email(data)
 
-        default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+        default_logo = f"{settings.SITE_URL}/static/nre-logo-yellow.png"
         default_alt_text = "News Revenue Hub"
         custom_logo = 'src="/media/mock-logo"'
         custom_alt_text = 'alt="Mock-Alt-Text"'
@@ -197,15 +195,15 @@ class TestSendThankYouEmail:
             assert x not in mail.outbox[0].alternatives[0][0]
 
     @pytest.mark.parametrize(
-        "fiscal_status,has_tax_id",
-        (
+        ("fiscal_status", "has_tax_id"),
+        [
             (FiscalStatusChoices.NONPROFIT, True),
             (FiscalStatusChoices.NONPROFIT, False),
             (FiscalStatusChoices.FISCALLY_SPONSORED, True),
             (FiscalStatusChoices.FISCALLY_SPONSORED, False),
             (FiscalStatusChoices.FOR_PROFIT, True),
             (FiscalStatusChoices.FOR_PROFIT, False),
-        ),
+        ],
     )
     def test_template_conditionality_around_non_profit_and_fiscal_sponsor_and_tax_status(
         self, fiscal_status, has_tax_id, monkeypatch, mocker
@@ -233,7 +231,10 @@ class TestSendThankYouEmail:
         for_profit_expectation = f"Contributions to {rp.name} are not deductible as charitable donations."
         non_profit_has_tax_id_expectation = f"with a Federal Tax ID #{rp.tax_id}."
         non_profit_no_tax_id_expectation = f"{rp.name} is a 501(c)(3) nonprofit organization."
-        fiscal_sponsor_text = f"All contributions or gifts to {rp.name} are tax deductible through our fiscal sponsor {rp.fiscal_sponsor_name}."
+        fiscal_sponsor_text = (
+            f"All contributions or gifts to {rp.name} are tax deductible through our fiscal sponsor"
+            f" {rp.fiscal_sponsor_name}."
+        )
         fiscal_sponsor_has_tax_id_expectation = f"{rp.fiscal_sponsor_name}'s tax ID is {rp.tax_id}"
 
         if fiscal_status == FiscalStatusChoices.NONPROFIT and has_tax_id:
@@ -295,7 +296,7 @@ class TestTaskStripeContributions(TestCase):
     @patch("apps.emails.tasks.EmailMultiAlternatives")
     def test_task_pull_serialized_stripe_contributions_to_cache(self, email_message):
         data = {
-            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+            "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
         }
         send_templated_email_with_attachment(
             "to@to.com",
@@ -307,7 +308,7 @@ class TestTaskStripeContributions(TestCase):
             "contributions.csv",
         )
         calls = [
-            call().attach(filename="contributions.csv", content="data".encode("utf-8"), mimetype="text/csv"),
+            call().attach(filename="contributions.csv", content=b"data", mimetype="text/csv"),
             call().attach_alternative(render_to_string("nrh-contribution-csv-email-body.html", data), "text/html"),
             call().send(),
         ]
@@ -322,7 +323,7 @@ class TestTaskStripeContributions(TestCase):
 
     def test_export_csv_free_organization(self):
         data = {
-            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+            "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
             "show_upgrade_prompt": True,
         }
         send_templated_email_with_attachment(

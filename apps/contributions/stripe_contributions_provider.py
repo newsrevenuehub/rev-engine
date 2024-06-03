@@ -33,9 +33,9 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class StripePaymentIntent:
-    """
-    Wrapper on stripe payment_intent object to extract the required details in
-    apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+    """Wrapper on stripe payment_intent object.
+
+    Extract the required details in apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
 
     If there's no Invoice associated with a Payment Intent then it's a one-time payment.
     """
@@ -43,36 +43,37 @@ class StripePaymentIntent:
     CANCELABLE_STATUSES = ["trialing", "active", "past_due"]
     MODIFIABLE_STATUSES = ["incomplete", "trialing", "active", "past_due"]
 
-    DUMMY_CARD = AttrDict(**{"brand": None, "last4": None, "exp_month": None, "exp_year": None})
+    DUMMY_CARD = AttrDict(brand=None, last4=None, exp_month=None, exp_year=None)
 
     def __init__(self, payment_intent):
         self.payment_intent = payment_intent
 
     @property
     def payment_method(self) -> StripeObject | None:
-        # this is the most commonly expected path for NRE-generated PMs where the checkout process goes through the Stripe PaymentElement workflow
-        # in the spa, after having gone through the initial page that collects contribution data. In this scenario, the user's contribution has
-        # been approved by our system, and we have already created a payment intent. When the user completes the PaymentElement form, they are immediately
+        # this is the most commonly expected path for NRE-generated PMs where the checkout process goes through the
+        # Stripe PaymentElement workflow in the spa, after having gone through the initial page that collects
+        # contribution data. In this scenario, the user's contribution has been approved by our system, and we have
+        # already created a payment intent. When the user completes the PaymentElement form, they are immediately
         # charged. Our implementation of the PaymentElement will cause the payment method to appear on the payment intent.
         if self.payment_intent.payment_method and isinstance(self.payment_intent.payment_method, StripeObject):
             return self.payment_intent.payment_method
-        # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent. There may be other ways to end
-        # up in this state, but one is when instead of creating a payment intent we create a setup intent (which is case when a contribution exceeds threshold
-        # to be marked as "bad" by bad actor API when signing up for a recurring contribution). In this case, a payment intent only later gets created when
+        # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent.
+        # There may be other ways to end up in this state, but one is when instead of creating a payment intent we
+        # create a setup intent (which is case when a contribution exceeds threshold to be marked as "bad" by bad actor
+        # API when signing up for a recurring contribution). In this case, a payment intent only later gets created when
         # the setup intent is completed, and that does not result in the payment method automatically being attached to the pi.
-        elif (invoice := self.payment_intent.invoice) and isinstance(
+        if (invoice := self.payment_intent.invoice) and isinstance(
             invoice, StripeObject
         ):  # could be a string so that's why type check
             return (invoice.get("subscription", {}) or {}).get("default_payment_method", None)
         # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
         # payment intent, though it is available through this route. This probably has to do with how the original PI
         # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.
-        # In general, NRE-generated PIs will have a payment method attached, but for these legacy PIs this is not necessarily (or even usually
-        # the case)
-        elif getattr(self.payment_intent, "charges", None) and self.payment_intent.charges.total_count > 0:
+        # In general, NRE-generated PIs will have a payment method attached, but for these legacy PIs this is not
+        # necessarily (or even usually the case)
+        if getattr(self.payment_intent, "charges", None) and self.payment_intent.charges.total_count > 0:
             most_recent = max(self.payment_intent.charges.data, key=lambda x: x.created)
             return most_recent.payment_method_details
-
         return None
 
     @property
@@ -189,11 +190,13 @@ class StripePaymentIntent:
     # TODO: [DEV-3987] Fix StripePaymentIntent.refunded property
     @property
     def refunded(self):
-        """For a contribution to be considered as refunded either refunded flag will be set for full refunds
+        """Is contribution refunded.
+
+        For a contribution to be considered as refunded either refunded flag will be set for full refunds
         or amount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
         the status as refunded)
         https://stripe.com/docs/api/charges/object#charge_object-refunded
-        https://stripe.com/docs/api/charges/object#charge_object-amount_refunded
+        https://stripe.com/docs/api/charges/object#charge_object-amount_refunded.
         """
         if "refunded" in self.payment_intent:
             return self.payment_intent.refunded
@@ -216,13 +219,14 @@ class StripeContributionsProvider:
 
     @cached_property
     def customers(self):
-        """
-        Cached Property.
-        Gets all the customers associated with an email for a given stripe account
+        """Cached Property.
 
-        Returns:
-        --------
+        Gets all the customers associated with an email for a given stripe account.
+
+        Returns
+        -------
         List: List of customer ids starting with cus_.
+
         """
         customers_response = stripe.Customer.search(
             query=f"email:'{self.email_id}'",
@@ -232,10 +236,9 @@ class StripeContributionsProvider:
         return [customer.id for customer in customers_response.auto_paging_iter()]
 
     def generate_chunked_customers_query(self):
-        """
-        Generates customer query in specified format in accordance with Stripe search API.
-        Maximum number of customers can be provided is 10.
-        https://stripe.com/docs/search.
+        """Generate customer query in specified format in accordance with Stripe search API.
+
+        Maximum number of customers can be provided is 10. https://stripe.com/docs/search.
         """
         for i in range(0, len(self.customers), MAX_STRIPE_CUSTOMERS_LIMIT):
             chunk = self.customers[i : i + MAX_STRIPE_CUSTOMERS_LIMIT]
@@ -257,7 +260,7 @@ class StripeContributionsProvider:
         return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
-        """Gets all the uninvoiced subscriptions for a given customer id (for a given connected Stripe account)"""
+        """All the uninvoiced subscriptions for a given customer id (for a given connected Stripe account)."""
         logger.info(
             "Fetching uninvoiced active subscriptions for stripe customer id %s and stripe account %s",
             customer_id,
@@ -277,7 +280,7 @@ class StripeContributionsProvider:
         return returned_subs
 
     def fetch_uninvoiced_subscriptions_for_contributor(self) -> list[stripe.Subscription]:
-        """Gets all the uninvoiced subscriptions for a given contributor (for a given connected Stripe account)
+        """All the uninvoiced subscriptions for a given contributor (for a given connected Stripe account).
 
         Note there is a distinction between a revengine contributor and a Stripe customer. A revengine contributor
         has a unique email address (for a given RP) and can have more than one Stripe customer associated with it,
@@ -295,7 +298,7 @@ class StripeContributionsProvider:
         return subs
 
     def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
-        """Gets the ContributionInterval from a stripe.Subscription object."""
+        """ContributionInterval from a stripe.Subscription object."""
         # NB: we have encountered one case of a "planless" subscription in the wild, hence the conditionality
         # below around .plan. See DEV-4663 for more detail
         if not subscription.plan:
@@ -303,7 +306,7 @@ class StripeContributionsProvider:
         return StripeTransactionsImporter.get_interval_from_plan(subscription.plan)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
-        """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.
+        """Cast a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.
 
         The primary use case for this is retrieving subscriptions that have been imported into revengine from legacy system.
         Those subscriptions get imported via Switchboard, and have a future date for billing anchor, and no proration behavior, as the
@@ -313,7 +316,7 @@ class StripeContributionsProvider:
         logger.debug("Casting subscription %s to a portal contribution", subscription.id)
         try:
             card = subscription.default_payment_method.card or AttrDict(
-                **{"brand": None, "last4": None, "exp_month": None, "exp_year": None}
+                brand=None, last4=None, exp_month=None, exp_year=None
             )
             return StripePiAsPortalContribution(
                 amount=subscription.plan.amount,
@@ -356,20 +359,19 @@ class ContributionsCacheProvider:
         self.key = f"{email_id}-payment-intents-{self.stripe_account_id}".lower()
 
     def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict[str, dict]:
-        """Serializes the stripe.PaymentIntent object into json."""
+        """Serialize the stripe.PaymentIntent object into json."""
         data = {}
         for pi in payment_intents:
             try:
                 serialized_obj = self.serializer(instance=self.converter(pi))
                 data[pi.id] = serialized_obj.data
-            except (ContributionIgnorableError, InvalidMetadataError) as ex:
-                logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)
+            except (ContributionIgnorableError, InvalidMetadataError) as exc:
+                logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=exc)
         return data
 
     def convert_uninvoiced_subs_into_contributions(
         self, subscriptions: list[stripe.Subscription]
     ) -> list[StripePiAsPortalContribution]:
-        """ """
         logger.debug("Converting %s subscriptions to portal contributions", len(subscriptions))
         converted = []
         provider = StripeContributionsProvider(self.email_id, self.stripe_account_id)
@@ -387,8 +389,9 @@ class ContributionsCacheProvider:
         return converted
 
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
-        """Upsert uninvoiced subscriptions into the cache as though they were "normal" contributions (that always have a payment intent
-        associated with them).
+        """Upsert uninvoiced subscriptions into the cache as though they were "normal" contributions.
+
+        That always have a payment intent associated with them.
         """
         data = {x.id: dict(x) for x in subscriptions}
         cached_data = json.loads(self.cache.get(self.key) or "{}")
@@ -401,7 +404,7 @@ class ContributionsCacheProvider:
         self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def upsert(self, contributions):
-        """Serialized and Upserts contributions data to cache."""
+        """Serialize and Upsert contributions data to cache."""
         data = self.serialize(contributions)
         # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
         # from a Connect webhook they do have this field) they get added here:
@@ -434,7 +437,7 @@ class SubscriptionsCacheProvider:
         self.key = f"{email_id}-subscriptions-{self.stripe_account_id}".lower()
 
     def serialize(self, subscriptions):
-        """Serializes the stripe.Subscription object into json."""
+        """Serialize the stripe.Subscription object into json."""
         data = {}
         for subscription in subscriptions:
             try:
@@ -442,12 +445,12 @@ class SubscriptionsCacheProvider:
                 data[subscription.id] = serialized_obj.data
             # Note: I don't think there's a way to reach this path, as we are not initializing the serializer with data
             # and then calling .is_valid(exception=True), but not changing for now.
-            except exceptions.ValidationError as ex:
-                logger.warning("Unable to process Subscription [%s] due to [%s]", subscription.id, type(ex))
+            except exceptions.ValidationError as exc:
+                logger.warning("Unable to process Subscription [%s] due to [%s]", subscription.id, type(exc))
         return data
 
     def upsert(self, subscriptions: list[stripe.Subscription]):
-        """Serialized and Upserts subscriptions data to cache."""
+        """Serialize and Upsert subscriptions data to cache."""
         data = self.serialize(subscriptions)
         # Since the Stripe objects themselves don't have a field indicating the Stripe Account they came
         # from (when they come from a Connect webhook they do have this field)
@@ -460,7 +463,7 @@ class SubscriptionsCacheProvider:
         self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
-        """Gets the subscription data from cache for a specefic email and stripe account id combo."""
+        """Subscription data from cache for a specefic email and stripe account id combo."""
         data = self.cache.get(self.key)
         if not data:
             return []

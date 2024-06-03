@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name="show_connected_to_slack",
             field=models.BooleanField(
                 default=False,
-                help_text="Indicates Slack integration status, designed for manual operation by staff members when connected to the Hub’s Slack",
+                help_text="Indicates Slack integration status, designed for manual operation by staff members when connected to the Hub’s Slack",  # noqa: RUF001, RUF003 the "’"
                 verbose_name="Show connected to Slack",
             ),
         ),

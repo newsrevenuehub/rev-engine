@@ -14,7 +14,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 @receiver(post_save, sender=User)
 def user_post_save_handler(sender, instance, created, **kwargs) -> None:
-    """We publish a message whenever user is added for the first time"""
+    """We publish a message whenever user is added for the first time."""
     if not created:
         logger.debug("user_post_save_handler: Existing user modified, will not send to Google Cloud")
         return

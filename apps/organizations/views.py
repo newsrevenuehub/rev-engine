@@ -1,5 +1,4 @@
 import logging
-import os
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -58,7 +57,7 @@ class OrganizationViewSet(
     viewsets.GenericViewSet,
     FilterForSuperUserOrRoleAssignmentUserMixin,
 ):
-    """Organizations exposed through API
+    """Organizations exposed through API.
 
     Only superusers and users with roles can access. Queryset is filtered by user.
     """
@@ -98,7 +97,7 @@ class OrganizationViewSet(
             logger.exception(
                 "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
             )
-            raise APIException(code=status.HTTP_400_BAD_REQUEST)
+            raise APIException(code=status.HTTP_400_BAD_REQUEST) from None
 
     @classmethod
     def is_upgrade_from_free_to_core(cls, event: stripe.Event, org: Organization) -> bool:
@@ -125,8 +124,7 @@ class OrganizationViewSet(
         if missing := [k for k, v in conditions.items() if not v]:
             logger.info("The following conditions were not met: %s. Returning false", missing)
             return False
-        else:
-            return True
+        return True
 
     @staticmethod
     def generate_integrations_management_url(org: Organization) -> str:
@@ -143,11 +141,11 @@ class OrganizationViewSet(
             .distinct("user__email")
         ):
             context = {
-                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                "plus_icon": os.path.join(settings.SITE_URL, "static", "plus-icon.png"),
-                "mail_icon": os.path.join(settings.SITE_URL, "static", "mail-icon.png"),
-                "paint_icon": os.path.join(settings.SITE_URL, "static", "paint-icon.png"),
-                "check_icon": os.path.join(settings.SITE_URL, "static", "check-icon.png"),
+                "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
+                "plus_icon": f"{settings.SITE_URL}/static/plus-icon.png",
+                "mail_icon": f"{settings.SITE_URL}/static/mail-icon.png",
+                "paint_icon": f"{settings.SITE_URL}/static/paint-icon.png",
+                "check_icon": f"{settings.SITE_URL}/static/check-icon.png",
                 "mailchimp_integration_url": cls.generate_integrations_management_url(org),
                 "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
             }
@@ -239,7 +237,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
     )
     def mailchimp(self, request, pk=None):
-        """Return the mailchimp data for the revenue program with the given pk
+        """Return the mailchimp data for the revenue program with the given pk.
 
         The primary consumer of this data at time of this comment is Switchboard API.
         """
@@ -253,7 +251,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         serializer_class=serializers.MailchimpRevenueProgramForSpaConfiguration,
     )
     def mailchimp_configure(self, request, pk=None):
-        """Allow retrieval and update of mailchimp configuration for the revenue program with the given pk
+        """Allow retrieval and update of mailchimp configuration for the revenue program with the given pk.
 
         The primary consumer of this data at time of this comment is the RevEngine SPA.
         """
@@ -267,25 +265,23 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
 
 
 def get_stripe_account_link_return_url(request):
-    """This function exists purely to create a distinct return url when running locally to enable the full...
+    """Exists purely to create a distinct return URL when running locally.
 
-    flow spanning SPA and backend and off-site Stripe form completion to be traversed.
+    This enables the full flow spanning SPA and backend and off-site Stripe form completion to be traversed.
     """
-    reversed = reverse("index")
+    reversed_url = reverse("index")
     if settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL:
-        return f"{settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL}{reversed}"
-    else:
-        return request.build_absolute_uri(reversed)
+        return f"{settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL}{reversed_url}"
+    return request.build_absolute_uri(reversed_url)
 
 
 @reversion.create_revision()
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):
-    """This endpoint facilitates multiple round trips between the SPA and Stripe's Account Link configuration which happens
-    off-site.
+    """Facilitate multiple round trips between the SPA and Stripe's Account Link configuration.
 
-    The flow through this view is like this:
+    Which happens off-site. The flow through this view is like this:
 
     1. The client makes a request providing a revenue program id.
     2. Retrieve the RP's payment provider.
@@ -297,11 +293,13 @@ def handle_stripe_account_link(request, rp_pk):
         a. If they are (they won't be when account is first created), we update the payment provider's stripe_verified value to True.
         We return a response with `requiresVerification` set to `False`.
         b. If charges are not enabled we keep going.
-    5. The Stripe account data tells us why the account is disabled. That reason will contain one of two prefixes: 'pending_verification' or `past_due`.
-        a. If `pending_verification`, there's nothing to be done except wait. We send a response indicating that the Stripe connect process
-        has started and that we're blocked by pending verification next steps to be processed on Stripe's end.
-        b. If `past_due`, there are next steps for the user to do on Stripe's site. In this case, we create a new Stripe Account Link and send that URL
-        back in the response.
+    5. The Stripe account data tells us why the account is disabled. That reason will contain one of two prefixes:
+       'pending_verification' or `past_due`.
+        a. If `pending_verification`, there's nothing to be done except wait. We send a response indicating that the
+        Stripe connect process has started and that we're blocked by pending verification next steps to be processed on
+        Stripe's end.
+        b. If `past_due`, there are next steps for the user to do on Stripe's site. In this case, we create a new Stripe
+        Account Link and send that URL back in the response.
 
 
     In testing, we've commonly had to make 3 or more round trips between the SPA and Stripe pivoting between the two via this endpoint.
@@ -312,20 +310,16 @@ def handle_stripe_account_link(request, rp_pk):
     # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
-            (
-                "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does "
-                "not have access."
-            ),
+            "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does"
+            " not have access.",
             rp_pk,
             request.user.id,
         )
         raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
     if not (payment_provider := revenue_program.payment_provider):
         logger.warning(
-            (
-                "[handle_stripe_account_link] was asked to handle RP with ID %s , "
-                "but that RP does not have a payment provider."
-            ),
+            "[handle_stripe_account_link] was asked to handle RP with ID %s,"
+            " but that RP does not have a payment provider.",
             rp_pk,
         )
         return Response(
@@ -403,7 +397,8 @@ def handle_stripe_account_link(request, rp_pk):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def send_test_email(request):
-    """This endpoint sends test emails to the user so that they can see what it looks like.
+    """Send test email to user so that they can see what it looks like.
+
     Available email types are:
 
     1. receipt: this is the email that is sent to the user when they make a payment
@@ -416,17 +411,14 @@ def send_test_email(request):
     email_name = serializer.validated_data["email_name"]
 
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    if not request.user.is_superuser:
-        if not request.user.roleassignment.can_access_rp(revenue_program):
-            logger.warning(
-                (
-                    "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does "
-                    "not have access."
-                ),
-                rp_pk,
-                request.user.id,
-            )
-            return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
+    if not request.user.is_superuser and not request.user.roleassignment.can_access_rp(revenue_program):
+        logger.warning(
+            "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does"
+            " not have access.",
+            rp_pk,
+            request.user.id,
+        )
+        return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if email_name not in ["receipt", "reminder", "magic_link"]:
         raise ValidationError({"email_name": [f"Invalid email name: {email_name}"]})
@@ -449,7 +441,7 @@ def send_test_email(request):
             data = make_send_test_magic_link_email_data(request.user, revenue_program)
 
             if data["style"]["is_default_logo"]:
-                data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
+                data["style"]["logo_url"] = f"{settings.SITE_URL}/static/nre-logo-white.png"
 
             send_templated_email.delay(
                 request.user.email,
@@ -464,7 +456,6 @@ def send_test_email(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp, IsOrgAdmin])
 def handle_mailchimp_oauth_success(request):
-    """"""
     logger.info("handle_mailchimp_oauth_success called with request data %s", request.data)
     serializer = MailchimpOauthSuccessSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -474,16 +465,15 @@ def handle_mailchimp_oauth_success(request):
         "id", flat=True
     ):
         logger.warning(
-            (
-                "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program "
-                "with ID %s by user with email %s"
-            ),
+            "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program"
+            " with ID %s by user with email %s",
             rp_id,
             request.user.email,
         )
         return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
     logger.info(
-        "handle_mailchimp_oauth_success asyncronously exchanging Oauth code for server prefix and access token for revenue program with ID %s",
+        "handle_mailchimp_oauth_success asyncronously exchanging Oauth code for server prefix and access"
+        " token for revenue program with ID %s",
         rp_id,
     )
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay(

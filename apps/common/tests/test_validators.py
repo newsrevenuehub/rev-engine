@@ -25,9 +25,8 @@ class TestValidateFkReferenceOwnership:
         ],
     )
     def test_bad_has_default_access_fn(self, fn):
-        with pytest.raises(serializers.ValidationError) as e:
+        with pytest.raises(serializers.ValidationError, match="unexpected signature"):
             ValidateFkReferenceOwnership("", self.model, fn)
-            assert "unexpected signature" in str(e)
 
     def test_model_not_implement_filtered_by_role_assignment(self, monkeypatch):
         monkeypatch.setattr(Contribution.objects, "filtered_by_role_assignment", None)
@@ -40,9 +39,8 @@ class TestValidateFkReferenceOwnership:
         serializer = mock.Mock(
             model=mock.Mock(__name__="NoModel"), context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=None)))
         )
-        with pytest.raises(serializers.ValidationError) as e:
+        with pytest.raises(serializers.ValidationError, match="relationship of requesting user to request"):
             t(value, serializer)
-        assert "relationship of requesting user to request" in str(e)
 
     def test_no_roleassignment(self):
         t = ValidateFkReferenceOwnership("", self.model, lambda user, role_assignment: False)
@@ -51,11 +49,10 @@ class TestValidateFkReferenceOwnership:
         serializer = mock.Mock(
             model=mock.Mock(__name__="NoModel"), context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=user)))
         )
-        with pytest.raises(serializers.ValidationError) as e:
+        with pytest.raises(serializers.ValidationError, match="relationship of requesting user to request"):
             t(value, serializer)
-        assert "relationship of requesting user to request" in str(e)
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db()
     def test_no_ownership(self, org_user_free_plan):
         dp = DonationPageFactory()
         value = {"id": dp}
@@ -64,11 +61,10 @@ class TestValidateFkReferenceOwnership:
             model=mock.Mock(__name__="NoModel"),
             context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=org_user_free_plan))),
         )
-        with pytest.raises(serializers.ValidationError) as e:
+        with pytest.raises(serializers.ValidationError, match="Not found"):
             t(value, serializer)
-        assert "Not found" in str(e)
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db()
     def test_has_ownership(self, org_user_free_plan, live_donation_page):
         live_donation_page.revenue_program.organization = org_user_free_plan.roleassignment.organization
         live_donation_page.revenue_program.save()

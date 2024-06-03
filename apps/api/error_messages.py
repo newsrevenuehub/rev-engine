@@ -1,6 +1,4 @@
-"""
-Set error messages here, either for import or set them directly on field defaults.
-"""
+"""Set error messages here, either for import or set them directly on field defaults."""
 
 from rest_framework import serializers
 

@@ -42,7 +42,7 @@ def make_valid_page_data(**kwargs):
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestDonationPageAdmin:
     def test_get_form(self, live_donation_page):
         request = RequestFactory().get(reverse("admin:pages_donationpage_changelist"))
@@ -50,7 +50,7 @@ class TestDonationPageAdmin:
         assert issubclass(admin.get_form(request), django.forms.models.ModelForm)
         assert issubclass(admin.get_form(request, obj=live_donation_page), django.forms.models.ModelForm)
 
-    @pytest.mark.parametrize("plan", (FreePlan, CorePlan, PlusPlan))
+    @pytest.mark.parametrize("plan", [FreePlan, CorePlan, PlusPlan])
     def test_thank_you_redirect_when_not_allowed_by_org_plan(self, plan, admin_client):
         rp = RevenueProgramFactory(organization__plan_name=plan.name)
         query = DonationPage.objects.filter(revenue_program__organization=rp.organization)
@@ -73,7 +73,7 @@ class TestDonationPageAdmin:
             )
             assert soup.body.find(text=lambda t: expected in t.text)
 
-    @pytest.mark.parametrize("plan", (FreePlan, CorePlan, PlusPlan))
+    @pytest.mark.parametrize("plan", [FreePlan, CorePlan, PlusPlan])
     def test_add_page_when_already_at_plan_limit(self, plan, admin_client):
         rp = RevenueProgramFactory(organization__plan_name=plan.name)
         DonationPageFactory.create_batch(plan.page_limit, revenue_program=rp)

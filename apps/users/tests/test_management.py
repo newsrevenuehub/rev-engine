@@ -21,7 +21,7 @@ class _MockHerokuApp:
 
 
 class TestBootstrapReviewApp(TestCase):
-    """Test that bootstrap review app calls different functions as expected
+    """Test that bootstrap review app calls different functions as expected.
 
     # NB, in general we're trying to avoid `TestCase` and only do pytest-based tests.
     # However, in this case, I had trouble getting settings vars to have expected

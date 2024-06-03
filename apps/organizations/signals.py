@@ -45,7 +45,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
 
 @receiver(post_save, sender=RevenueProgram)
 def create_default_social_meta(sender, instance: RevenueProgram, created: bool, **kwargs) -> None:
-    """Create default social meta for RP"""
+    """Create default social meta for RP."""
     logger.debug("called on rp %s", instance.id)
     if not created:
         logger.debug("Not creating default social meta for RP %s because it is not new", instance.id)
@@ -61,7 +61,7 @@ def create_default_social_meta(sender, instance: RevenueProgram, created: bool, 
 
 @receiver(post_delete, sender=RevenueProgram)
 def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kwargs) -> None:
-    """When an RP is deleted, we delete the mailchimp_access_token_secret, if there is one"""
+    """When an RP is deleted, we delete the mailchimp_access_token_secret, if there is one."""
     logger.debug("hand handle_delete_rp_mailchimp_access_token_secret on rp %s", instance.id)
     if instance.mailchimp_access_token:
         logger.info(
@@ -74,9 +74,9 @@ def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kw
 
 
 def get_page_to_be_set_as_default(rp) -> DonationPage:
-    """Return the page to be set as default donation page for an RP"""
+    """Return the page to be set as default donation page for an RP."""
     logger.debug("get_page_to_be_set_as_default called on rp %s", rp.id)
-    match (count := rp.donationpage_set.count()):
+    match count := rp.donationpage_set.count():
         case 0:
             return None
         case 1:
@@ -90,7 +90,7 @@ def get_page_to_be_set_as_default(rp) -> DonationPage:
 def handle_set_default_donation_page_on_select_core_plan(
     sender, instance: Organization, created: bool, **kwargs
 ) -> None:
-    """Under certain conditions, set the default_donation_page of an RP of the sending org
+    """Under certain conditions, set the default_donation_page of an RP of the sending org.
 
     Under the following conditions the default donation page will be set when saving an org:
 

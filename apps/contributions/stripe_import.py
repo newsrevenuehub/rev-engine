@@ -922,7 +922,12 @@ class StripeTransactionsImporter:
         """Assemble data and ultimately upsert data for a recurring contribution."""
         logger.info("Processing transactions for recurring contributions")
         for i, key in enumerate(self._subscription_keys):
-            logger.info("Processing subscription %s of %s for account %s", i + 1, key, self.stripe_account_id)
+            logger.info(
+                "Processing subscription %s of %s for account %s",
+                i + 1,
+                len(self._subscription_keys),
+                self.stripe_account_id,
+            )
             subscription = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)
@@ -960,7 +965,12 @@ class StripeTransactionsImporter:
         logger.info("Processing transactions for one-time contributions")
 
         for i, key in enumerate(self._payment_intent_keys):
-            logger.info("Processing payment intent %s of %s for account %s", i + 1, key, self.stripe_account_id)
+            logger.info(
+                "Processing payment intent %s of %s for account %s",
+                i + 1,
+                len(self._payment_intent_keys),
+                self.stripe_account_id,
+            )
             pi = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)

@@ -43,7 +43,16 @@ describe('Settings Integration Page', () => {
     expect(screen.getByText('Connect News Revenue Engine to the tools you use every day.')).toBeInTheDocument();
   });
 
-  test.each(['Stripe', 'Slack', 'Mailchimp', 'Salesforce'])('should render %p integration card', (title) => {
+  test.each([
+    'Stripe',
+    'Slack',
+    'Mailchimp',
+    'Salesforce',
+    'Eventbrite',
+    'Digestbuilder',
+    'Google Analytics',
+    'Newspack'
+  ])('should render %p integration card', (title) => {
     tree();
     expect(screen.getByText(title)).toBeVisible();
   });

@@ -1,10 +1,6 @@
 import HeaderSection from 'components/common/HeaderSection';
-import { DigestbuilderIntegrationCard } from 'components/common/IntegrationCard/DigestbuilderIntegrationCard';
-import { EventbriteIntegrationCard } from 'components/common/IntegrationCard/EventbriteIntegrationCard';
-import { GoogleAnalyticsIntegrationCard } from 'components/common/IntegrationCard/GoogleAnalyticsIntegrationCard';
+import { CustomIntegrationCard } from 'components/common/IntegrationCard/CustomIntegrationCard';
 import { MailchimpIntegrationCard } from 'components/common/IntegrationCard/MailchimpIntegrationCard';
-import { NewspackIntegrationCard } from 'components/common/IntegrationCard/NewspackIntegrationCard';
-import { SalesforceIntegrationCard } from 'components/common/IntegrationCard/SalesforceIntegrationCard';
 import { SlackIntegrationCard } from 'components/common/IntegrationCard/SlackIntegrationCard';
 import { StripeIntegrationCard } from 'components/common/IntegrationCard/StripeIntegrationCard';
 import SubheaderSection from 'components/common/SubheaderSection';
@@ -22,11 +18,9 @@ const Integration = () => {
       </Content>
       <SubheaderSection title="Custom Features" subtitle="Contact Support to enable custom integrations." />
       <Content>
-        <SalesforceIntegrationCard />
-        <EventbriteIntegrationCard />
-        <DigestbuilderIntegrationCard />
-        <GoogleAnalyticsIntegrationCard />
-        <NewspackIntegrationCard />
+        {(['salesforce', 'eventbrite', 'digestbuilder', 'ga', 'newspack'] as const).map((type) => (
+          <CustomIntegrationCard key={type} type={type} />
+        ))}
       </Content>
     </Wrapper>
   );

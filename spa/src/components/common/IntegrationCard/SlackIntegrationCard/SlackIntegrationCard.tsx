@@ -1,7 +1,7 @@
 import SlackLogo from 'assets/images/slack.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
-
+import { Link } from 'components/base';
 import IntegrationCard from '../IntegrationCard';
 
 export function SlackIntegrationCard() {
@@ -23,9 +23,9 @@ export function SlackIntegrationCard() {
       toggleConnectedTooltipMessage={
         <>
           Connected to Slack. Contact{' '}
-          <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+          <Link href={HELP_URL} target="_blank">
             Support
-          </a>{' '}
+          </Link>{' '}
           to disconnect.
         </>
       }

@@ -5,6 +5,7 @@ import logging
 from collections.abc import Callable, Iterable
 from contextlib import nullcontext
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any
 from urllib.parse import urlparse
 
@@ -609,14 +610,18 @@ class StripeTransactionsImporter:
             "interval": cls.get_interval_from_plan(plan),
         }
 
+    @cached_property
+    def _invoice_by_sub_id_keys(self) -> list[str]:
+        return list(
+            self.redis.scan_iter(
+                match=self.make_key(entity_name="InvoiceBySubId", entity_id="*"), count=REDIS_SCAN_ITER_COUNT
+            )
+        )
+
     def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached invoices, if any for a given subscription id."""
         return [
-            self.get_resource_from_cache(key)
-            for key in self.redis.scan_iter(
-                match=self.make_key(entity_name="InvoiceBySubId", entity_id=f"{subscription_id}*"),
-                count=REDIS_SCAN_ITER_COUNT,
-            )
+            self.get_resource_from_cache(key) for key in self._invoice_by_sub_id_keys if subscription_id in str(key)
         ]
 
     def get_charges_for_subscription(self, subscription_id: str) -> list[dict]:
@@ -634,15 +639,18 @@ class StripeTransactionsImporter:
             )
         )
 
+    @cached_property
+    def _refund_by_charge_id_keys(self) -> list[str]:
+        return list(
+            self.redis.scan_iter(
+                match=self.make_key(entity_name="RefundByChargeId", entity_id="*"), count=REDIS_SCAN_ITER_COUNT
+            )
+        )
+
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id."""
         logger.info("Getting refunds for charge %s", charge_id)
-        return [
-            self.get_resource_from_cache(key)
-            for key in self.redis.scan_iter(
-                match=self.make_key(entity_name="RefundByChargeId", entity_id=f"{charge_id}*")
-            )
-        ]
+        return [self.get_resource_from_cache(key) for key in self._refund_by_charge_id_keys]
 
     def get_or_create_contributor_from_customer(self, customer_id: str) -> tuple[Contributor, str]:
         """Get or create a contributor from a stripe customer id."""
@@ -703,16 +711,21 @@ class StripeTransactionsImporter:
             case _:
                 logger.warning("Unexpected action %s for payment %s", action, getattr(payment, "id", "<no payment>"))
 
+    @cached_property
+    def _charge_by_payment_intent_id_keys(self) -> list[str]:
+        return list(
+            self.redis.scan_iter(
+                match=self.make_key(entity_name="ChargeByPaymentIntentId", entity_id="*"), count=REDIS_SCAN_ITER_COUNT
+            )
+        )
+
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[dict]:
         """Get charges for a payment intent from cache."""
-        charges = []
-        for key in self.redis.scan_iter(
-            match=self.make_key(entity_name="ChargeByPaymentIntentId", entity_id=f"{payment_intent_id}*"),
-            count=REDIS_SCAN_ITER_COUNT,
-        ):
-            charge = self.get_resource_from_cache(key)
-            charges.append(charge)
-        return charges
+        return [
+            self.get_resource_from_cache(k)
+            for k in self._charge_by_payment_intent_id_keys
+            if payment_intent_id in str(k)
+        ]
 
     def get_successful_charge_for_payment_intent(self, payment_intent_id: str) -> dict | None:
         """Get single successful charge for a PI. If >1 successful, raises an error."""
@@ -908,7 +921,13 @@ class StripeTransactionsImporter:
     def process_transactions_for_recurring_contributions(self) -> None:
         """Assemble data and ultimately upsert data for a recurring contribution."""
         logger.info("Processing transactions for recurring contributions")
-        for key in self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT):
+        for i, key in enumerate(self._subscription_keys):
+            logger.info(
+                "Processing subscription %s of %s for account %s",
+                i + 1,
+                len(self._subscription_keys),
+                self.stripe_account_id,
+            )
             subscription = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)
@@ -925,6 +944,18 @@ class StripeTransactionsImporter:
             )
             self.subscriptions_processed += 1
 
+    @cached_property
+    def _subscription_keys(self) -> list[str]:
+        return list(
+            self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT)
+        )
+
+    @cached_property
+    def _payment_intent_keys(self) -> list[str]:
+        return list(
+            self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*"), count=REDIS_SCAN_ITER_COUNT)
+        )
+
     def process_transactions_for_one_time_contributions(self) -> None:
         """Process transactions for one-time contributions.
 
@@ -932,9 +963,14 @@ class StripeTransactionsImporter:
         without referer and schema_version, we know ahead of time that all of the PIs we're looking at are for one-time contributions.
         """
         logger.info("Processing transactions for one-time contributions")
-        for key in self.redis.scan_iter(
-            match=self.make_key(entity_name="PaymentIntent_*"), count=REDIS_SCAN_ITER_COUNT
-        ):
+
+        for i, key in enumerate(self._payment_intent_keys):
+            logger.info(
+                "Processing payment intent %s of %s for account %s",
+                i + 1,
+                len(self._payment_intent_keys),
+                self.stripe_account_id,
+            )
             pi = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)
@@ -984,6 +1020,12 @@ class StripeTransactionsImporter:
             started = datetime.datetime.now(datetime.timezone.utc)
             self.list_and_cache_required_stripe_resources()
             self.log_memory_usage()
+            logger.info(
+                "%s total contributions to process across %s subscriptions and %s one-time payment intents",
+                len(self._payment_intent_keys) + len(self._subscription_keys),
+                len(self._subscription_keys),
+                len(self._payment_intent_keys),
+            )
             self.process_transactions_for_recurring_contributions()
             self.process_transactions_for_one_time_contributions()
             self.log_results()
@@ -1073,49 +1115,41 @@ class StripeTransactionsImporter:
 
     def log_memory_usage(self):
         """Log memory usage for a given stripe account."""
-        num_subs_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT))
-        )
-        num_pis_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*"), count=REDIS_SCAN_ITER_COUNT))
-        )
-        num_invoices_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="Invoice_*"), count=REDIS_SCAN_ITER_COUNT))
-        )
-        num_charges_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="Charge_*"), count=REDIS_SCAN_ITER_COUNT))
-        )
-        num_refunds_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="Refund_*"), count=REDIS_SCAN_ITER_COUNT))
-        )
-        num_customers_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="Customer_*"), count=REDIS_SCAN_ITER_COUNT))
-        )
-        num_bts_in_cache = len(
-            list(
-                self.redis.scan_iter(
-                    match=self.make_key(entity_name="BalanceTransaction_*"), count=REDIS_SCAN_ITER_COUNT
-                )
-            )
-        )
-
         logger.info(
-            "With %s cached subscriptions,"
-            " %s cached payment intents,"
-            " %s cached invoices,"
-            " %s cached charges,"
-            " %s cached refunds,"
-            " %s cached customers,"
-            " and %s cached balance transactions,"
-            " Redis memory usage for transactions"
-            " import for stripe account %s is: %s",
-            num_subs_in_cache,
-            num_pis_in_cache,
-            num_invoices_in_cache,
-            num_charges_in_cache,
-            num_refunds_in_cache,
-            num_customers_in_cache,
-            num_bts_in_cache,
+            (
+                "With %s cached subscriptions, "
+                "%s cached payment intents, "
+                "%s cached invoices, "
+                "%s cached charges, "
+                "%s cached refunds, "
+                "%s cached customers, "
+                "and %s cached balance transactions, "
+                "Redis memory usage for transactions "
+                "import for stripe account %s is: %s"
+            ),
+            len(
+                list(
+                    self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT)
+                )
+            ),
+            len(
+                list(
+                    self.redis.scan_iter(
+                        match=self.make_key(entity_name="PaymentIntent_*"), count=REDIS_SCAN_ITER_COUNT
+                    )
+                )
+            ),
+            len(list(self.redis.scan_iter(match=self.make_key(entity_name="Invoice_*"), count=REDIS_SCAN_ITER_COUNT))),
+            len(list(self.redis.scan_iter(match=self.make_key(entity_name="Charge_*"), count=REDIS_SCAN_ITER_COUNT))),
+            len(list(self.redis.scan_iter(match=self.make_key(entity_name="Refund_*"), count=REDIS_SCAN_ITER_COUNT))),
+            len(list(self.redis.scan_iter(match=self.make_key(entity_name="Customer_*"), count=REDIS_SCAN_ITER_COUNT))),
+            len(
+                list(
+                    self.redis.scan_iter(
+                        match=self.make_key(entity_name="BalanceTransaction_*"), count=REDIS_SCAN_ITER_COUNT
+                    )
+                )
+            ),
             self.stripe_account_id,
             self.convert_bytes(self.get_redis_memory_usage()),
         )

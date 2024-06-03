@@ -902,16 +902,10 @@ class StripeTransactionsImporter:
         self.update_contributor_stats(contributor_action, contributor)
         return contribution, contribution_action
 
-    @cached_property
-    def _subscription_keys(self) -> list[str]:
-        return list(
-            self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT)
-        )
-
     def process_transactions_for_recurring_contributions(self) -> None:
         """Assemble data and ultimately upsert data for a recurring contribution."""
         logger.info("Processing transactions for recurring contributions")
-        for key in self._subscription_keys:
+        for key in self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT):
             subscription = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)

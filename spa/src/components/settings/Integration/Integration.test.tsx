@@ -49,7 +49,7 @@ describe('Settings Integration Page', () => {
     'Mailchimp',
     'Salesforce',
     'Eventbrite',
-    'Digestbuilder',
+    'digestbuilder',
     'Google Analytics',
     'Newspack'
   ])('should render %p integration card', (title) => {

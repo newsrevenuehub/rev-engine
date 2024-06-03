@@ -13,7 +13,7 @@ from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
 from apps.users.urls import api_urlpatterns as users_urlpatterns
-
+from apps.e2e.urls import urlpatterns as e2e_urlpatterns
 
 urlpatterns = [
     path("v1/", include(users_urlpatterns)),

@@ -904,7 +904,9 @@ class StripeTransactionsImporter:
 
     @cached_property
     def _subscription_keys(self) -> list[str]:
-        return list(self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*")))
+        return list(
+            self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*"), count=REDIS_SCAN_ITER_COUNT)
+        )
 
     def process_transactions_for_recurring_contributions(self) -> None:
         """Assemble data and ultimately upsert data for a recurring contribution."""
@@ -1088,8 +1090,8 @@ class StripeTransactionsImporter:
                 "Redis memory usage for transactions "
                 "import for stripe account %s is: %s"
             ),
-            len(self._subscription_keys),
-            len(self._payment_intent_keys),
+            len(list(self.redis.scan_iter(match=self.make_key(entity_name="Subscription_*")))),
+            len(list(self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*")))),
             len(list(self.redis.scan_iter(match=self.make_key(entity_name="Invoice_*")))),
             len(list(self.redis.scan_iter(match=self.make_key(entity_name="Charge_*")))),
             len(list(self.redis.scan_iter(match=self.make_key(entity_name="Refund_*")))),

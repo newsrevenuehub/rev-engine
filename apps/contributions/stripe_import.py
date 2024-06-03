@@ -84,14 +84,23 @@ TTL_WARNING_THRESHOLD_PERCENT = 0.75
 # We set up some custom logging for this module so we get timestamps, which are helpful
 # in running down timing/rate limiting issues we're facing when this code runs.
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+console_handler = logging.StreamHandler()
+
+new_formatter = logging.Formatter(
+    "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+# Add the formatter to the handler
+console_handler.setFormatter(new_formatter)
+
+# Remove any existing handlers from the logger
 if logger.handlers:
     for handler in logger.handlers:
-        handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
+        logger.removeHandler(handler)
+
+# Add the handler to the logger
+logger.addHandler(console_handler)
 
 
 class OnBackoffDetails(BaseModel):

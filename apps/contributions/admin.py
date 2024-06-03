@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.template.defaultfilters import linebreaksbr
 from django.utils.html import format_html
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
@@ -121,14 +122,14 @@ class ContributionAdmin(RevEngineBaseAdmin):
     )
 
     list_display = (
-        "formatted_amount",
+        "annotated_formatted_amount",
+        "interval",
         "revenue_program",
-        "contributor",
         "contributor_name",
         "donation_page",
-        "interval",
         "status",
         "bad_actor_score",
+        "bad_actor_suspicions",
         "created",
         "modified",
     )
@@ -261,6 +262,13 @@ class ContributionAdmin(RevEngineBaseAdmin):
             )
         return "-"
 
+    def annotated_formatted_amount(self, instance):
+        if instance.amount <= 400:
+            return f"{instance.formatted_amount} ⚠️"
+        return instance.formatted_amount
+
+    annotated_formatted_amount.short_description = "Amount"
+
     def bad_actor_response_pretty(self, instance):
         """Render bad_actor_response field with pretty formatting."""
         return prettify_json_field(instance.bad_actor_response)
@@ -283,7 +291,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         """Render revenue_program field with pretty formatting."""
         return instance.revenue_program.name
 
-    revenue_program.short_description = "Revenue program (property, not FK)"
+    revenue_program.short_description = "Revenue program"
 
     def contributor_name(self, instance):
         """Pull name out of bad actor response if possible. We don't store it locally anywhere else."""
@@ -295,7 +303,25 @@ class ContributionAdmin(RevEngineBaseAdmin):
             return "unknown"
         for item in instance.bad_actor_response["items"]:
             if item["label"] == "name":
-                return item["value"]
-        return "unknown"
+                return linebreaksbr(f"{instance.contributor}\n{item['value']}")
+        return f"{instance.contributor}\nunknown name"
 
-    contributor_name.short_description = "Contributor name"
+    contributor_name.short_description = "Contributor"
+
+    def bad_actor_suspicions(self, instance):
+        suspicions = []
+
+        if (
+            not isinstance(instance.bad_actor_response, dict)
+            or "items" not in instance.bad_actor_response
+            or not isinstance(instance.bad_actor_response["items"], list)
+        ):
+            return "-"
+        for item in instance.bad_actor_response["items"]:
+            try:
+                if int(item["judgment"]) > 2 and item["label"] != "Clearbit risk/score":
+                    suspicions.append(item["label"])
+            except ValueError:
+                # Not everything in bad actor response is a score.
+                pass
+        return suspicions

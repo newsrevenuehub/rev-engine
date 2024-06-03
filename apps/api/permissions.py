@@ -177,3 +177,17 @@ class IsSwitchboardAccount(permissions.BasePermission):
             and request.user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL
             and settings.SWITCHBOARD_ACCOUNT_EMAIL
         )
+
+
+class IsE2EUser(permissions.BasePermission):
+    """
+    Permission to lock down access to the e2e account
+    """
+
+    def has_permission(self, request, view) -> bool:
+        logger.debug("Checking if user is e2e account")
+        return bool(
+            request.user.is_authenticated
+            and request.user.email == settings.E2E_ACCOUNT_EMAIL
+            and settings.E2E_ACCOUNT_EMAIL
+        )

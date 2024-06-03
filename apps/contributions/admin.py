@@ -124,6 +124,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "formatted_amount",
         "revenue_program",
         "contributor",
+        "contributor_name",
         "donation_page",
         "interval",
         "status",
@@ -283,3 +284,18 @@ class ContributionAdmin(RevEngineBaseAdmin):
         return instance.revenue_program.name
 
     revenue_program.short_description = "Revenue program (property, not FK)"
+
+    def contributor_name(self, instance):
+        """Pull name out of bad actor response if possible. We don't store it locally anywhere else."""
+        if (
+            not isinstance(instance.bad_actor_response, dict)
+            or "items" not in instance.bad_actor_response
+            or not isinstance(instance.bad_actor_response["items"], list)
+        ):
+            return "unknown"
+        for item in instance.bad_actor_response["items"]:
+            if item["label"] == "name":
+                return item["value"]
+        return "unknown"
+
+    contributor_name.short_description = "Contributor name"

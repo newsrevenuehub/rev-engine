@@ -206,6 +206,26 @@ class ContributionAdminTest(TestCase):
         """
         assert isinstance(self.contribution_admin, CompareVersionAdmin)
 
+    def test_contributor_name_when_present(self):
+        contribution = ContributionFactory(bad_actor_response={"items": [{"label": "name", "value": "test-name"}]})
+        assert self.contribution_admin.contributor_name(contribution) == "test-name"
+
+    def test_contributor_name_when_not_present(self):
+        contribution = ContributionFactory(bad_actor_response={"items": []})
+        assert self.contribution_admin.contributor_name(contribution) == "unknown"
+
+    def test_contributor_name_when_bad_actor_malformed(self):
+        contribution = ContributionFactory(bad_actor_response={"bad": {}})
+        assert self.contribution_admin.contributor_name(contribution) == "unknown"
+
+    def test_contributor_name_when_bad_actor_items_malformed(self):
+        contribution = ContributionFactory(bad_actor_response={"items": {}})
+        assert self.contribution_admin.contributor_name(contribution) == "unknown"
+
+    def test_contributor_name_when_bad_actor_null(self):
+        contribution = ContributionFactory(bad_actor_response=None)
+        assert self.contribution_admin.contributor_name(contribution) == "unknown"
+
 
 # eventually we should move all tests from ContributionAdminTest above to this pytest-based test,
 # but initially we're adding so we get minimal test coverage for inline payment admin on contribution model

@@ -41,49 +41,44 @@ class AdminSelectOptionsTest(TestCase):
 
     def test_does_not_respond_to_non_get_methods(self):
         response = self.client.post(reverse("admin-select-options"))
-        self.assertEqual(response.status_code, 405)
+        assert response.status_code == 405
 
         response = self.client.patch(reverse("admin-select-options"))
-        self.assertEqual(response.status_code, 405)
+        assert response.status_code == 405
 
         response = self.client.put(reverse("admin-select-options"))
-        self.assertEqual(response.status_code, 405)
+        assert response.status_code == 405
 
         response = self.client.delete(reverse("admin-select-options"))
-        self.assertEqual(response.status_code, 405)
+        assert response.status_code == 405
 
     def test_cannot_be_accessed_by_non_staff(self):
         not_staff = user_model.objects.create(email="notstaff@test.com", password="testing")
         response = self._make_request_to_view(user=not_staff)
         # Should redirect...
-        self.assertEqual(response.status_code, 302)
+        assert response.status_code == 302
         # ... to admin login
-        self.assertIn(reverse("admin:login"), response.url)
+        assert reverse("admin:login") in response.url
 
     def test_disallowed_parent_model_name_raises_error(self):
         parent_model_name = "bad_name"
-        self.assertNotIn(parent_model_name, SAFE_ADMIN_SELECT_PARENTS)
-        with self.assertRaises(ValueError) as v_error:
+        assert parent_model_name not in SAFE_ADMIN_SELECT_PARENTS
+        with pytest.raises(ValueError, match="Parent model not accepted"):
             self._make_request_to_view(parentModel=parent_model_name)
-
-        self.assertEqual(str(v_error.exception), "Parent model not accepted")
 
     def test_disallowed_accessor_method_raises_error(self):
         parent_model_name = SAFE_ADMIN_SELECT_PARENTS[0]
         accessor_method = "naughty_method"
-        self.assertIn(parent_model_name, SAFE_ADMIN_SELECT_PARENTS)
-        self.assertNotIn(accessor_method, SAFE_ADMIN_SELECT_ACCESSOR_METHODS)
-
-        with self.assertRaises(ValueError) as v_error:
+        assert parent_model_name in SAFE_ADMIN_SELECT_PARENTS
+        assert accessor_method not in SAFE_ADMIN_SELECT_ACCESSOR_METHODS
+        with pytest.raises(ValueError, match="Accessor method not accepted"):
             self._make_request_to_view(parentModel=parent_model_name, accessorMethod=accessor_method)
-
-        self.assertEqual(str(v_error.exception), "Accessor method not accepted")
 
     def test_returns_options_if_successful(self):
         parent_model_name = SAFE_ADMIN_SELECT_PARENTS[1]
         accessor_method = SAFE_ADMIN_SELECT_ACCESSOR_METHODS[0]
-        self.assertIn(parent_model_name, SAFE_ADMIN_SELECT_PARENTS)
-        self.assertIn(accessor_method, SAFE_ADMIN_SELECT_ACCESSOR_METHODS)
+        assert parent_model_name in SAFE_ADMIN_SELECT_PARENTS
+        assert accessor_method in SAFE_ADMIN_SELECT_ACCESSOR_METHODS
 
         org = OrganizationFactory()
         revenue_program = RevenueProgramFactory(organization=org)
@@ -97,11 +92,11 @@ class AdminSelectOptionsTest(TestCase):
         option1 = next(o for o in options if o[1] == style1.pk)
         option2 = next(o for o in options if o[1] == style2.pk)
 
-        self.assertEqual(option1[0], style1.name)
-        self.assertEqual(option2[0], style2.name)
+        assert option1[0] == style1.name
+        assert option2[0] == style2.name
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestFilterForSuperUserOrRoleAssignmentUserMixin:
     @pytest.fixture(params=["superuser", "org_user_free_plan", "user_no_role_assignment"])
     def user(self, request):

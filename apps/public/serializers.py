@@ -4,9 +4,7 @@ from apps.organizations.models import Benefit, BenefitLevel, PaymentProvider, Re
 
 
 class BenefitSerializer(serializers.ModelSerializer):
-    """
-    NOTE: PUBLIC API
-    """
+    """NOTE: PUBLIC API."""
 
     class Meta:
         model = Benefit
@@ -17,9 +15,7 @@ class BenefitSerializer(serializers.ModelSerializer):
 
 
 class BenefitLevelSerializer(serializers.ModelSerializer):
-    """
-    NOTE: PUBLIC API
-    """
+    """NOTE: PUBLIC API."""
 
     benefits = BenefitSerializer(many=True)
 
@@ -43,9 +39,7 @@ class PublicPaymentProviderSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramDetailSerializer(serializers.ModelSerializer):
-    """
-    NOTE: PUBLIC API
-    """
+    """NOTE: PUBLIC API."""
 
     organization = serializers.StringRelatedField()
     benefit_levels = BenefitLevelSerializer(source="benefitlevel_set", many=True)
@@ -57,9 +51,7 @@ class RevenueProgramDetailSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramListSerializer(serializers.HyperlinkedModelSerializer):
-    """
-    NOTE: PUBLIC API
-    """
+    """NOTE: PUBLIC API."""
 
     organization = serializers.StringRelatedField()
     payment_provider = PublicPaymentProviderSerializer()

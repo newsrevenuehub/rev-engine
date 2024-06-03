@@ -33,14 +33,14 @@ def test_get_secret_manager_client(
 
 
 def make_my_object(secret_provider: GoogleCloudSecretProvider):
-    """Helper function to create a dummy class with a secret provider
+    """Create a dummy class with a secret provider, helper function.
 
     We need to dynamically create MyObject in each test so that we have a chance
     to mock the secret provider's client.
     """
 
     class MyObject:
-        """Just a dummy class to test the secret provider"""
+        """Just a dummy class to test the secret provider."""
 
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
@@ -51,8 +51,8 @@ def make_my_object(secret_provider: GoogleCloudSecretProvider):
     return MyObject
 
 
-@pytest.mark.django_db
-@pytest.mark.usefixtures("valid_gs_credentials")
+@pytest.mark.django_db()
+@pytest.mark.usefixtures("_valid_gs_credentials")
 class TestGoogleCloudSecretProvider:
     @pytest.mark.parametrize("enabled", [True, False])
     def test_get_happy_path(self, enabled, settings, mocker):
@@ -108,7 +108,8 @@ class TestGoogleCloudSecretProvider:
         mock_client.return_value.access_secret_version.side_effect = PermissionDenied("No way.")
         MyObject = make_my_object(GoogleCloudSecretProvider)
         with pytest.raises(SecretProviderException):
-            MyObject(**{MODEL_ATTR: "something"}).val
+            MyObject(**{MODEL_ATTR: "something"}).val  # noqa: B018 Ruff doesn't understand this is a property
+            # and accessing it has side effects we are testing.
         logger_spy.assert_called_once_with(
             "GoogleCloudSecretProvider.get_secret cannot access secret version for secret %s with path %s because permission denied",
             secret_name,

@@ -76,9 +76,9 @@ class StyleListSerializer(StyleInlineSerializer):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()
 
     def to_internal_value(self, data):
-        """
-        Data comes in as a dict with name and styles flattened. We need
-        to stick styles in its own value and pull out name.
+        """Stick styles in its own value and pull out name.
+
+        Data comes in as a dict with name and styles flattened.
         """
         # ensure we don't mutate passed dict
         data = {**data}
@@ -91,7 +91,7 @@ class StyleListSerializer(StyleInlineSerializer):
         return super().to_internal_value(synthesized)
 
     def validate_revenue_program(self, value):
-        """Ensure that there is a revenue program provided if this is a create request (which will be case if no instance)
+        """Ensure that there is a revenue program provided if this is a create request (which will be case if no instance).
 
         The revenue_program field needs to be optional vis-a-vis patch requests, but required for post. Alternatively, we could
         create separate serializers for two methods, but there's required overlap around validation, so using single serializer
@@ -102,7 +102,7 @@ class StyleListSerializer(StyleInlineSerializer):
         return value
 
     def _validate_style_limit(self, data):
-        """Ensure that adding a style would not push parent org over its style limit
+        """Ensure that adding a style would not push parent org over its style limit.
 
         NB: The `_` prefix on this method name is here to make clear that this method is not
         automatically called as part of validating some `style_limit` field, via DRF's conventions
@@ -191,7 +191,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return asdict(obj.revenue_program.organization.plan)
 
     def create(self, validated_data):
-        """Create a name on the fly for page if one not provided in validated data"""
+        """Create a name on the fly for page if one not provided in validated data."""
         if not validated_data.get("name"):
             rp = validated_data.get("revenue_program")
             if not DonationPage.objects.filter(name=rp.name).exists():
@@ -207,12 +207,12 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         if "styles_pk" in validated_data:
             pk = validated_data["styles_pk"]
             if pk is None:
-                setattr(instance, "styles", None)
+                instance.styles = None
             else:
                 try:
-                    setattr(instance, "styles", Style.objects.get(pk=pk))
+                    instance.styles = Style.objects.get(pk=pk)
                 except Style.DoesNotExist:
-                    raise serializers.ValidationError({"styles_pk": "Could not find Style with provided pk."})
+                    raise serializers.ValidationError({"styles_pk": "Could not find Style with provided pk."}) from None
         return super().update(instance, validated_data)
 
     def get_revenue_program_is_nonprofit(self, obj):
@@ -242,7 +242,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def validate_slug(self, value):
-        """If value is string, ensure slug is not empty string and not in deny list
+        """If value is string, ensure slug is not empty string and not in deny list.
 
         NB: There are some oddities around the validation flow for the slug field here to note.
 
@@ -253,11 +253,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         Second, we don't get the benefit of the validators kwarg on the SlugField here, which means that we don't get the denylist
         validation that is defined on the model field.
 
-        Third, to make matters somewhat confusing, we DO get the benefit of the max_length validation that is defined internally in
-        the models.SlugField. In other words, if a slug is sent in request data that exceeds max length of 50 from models.SlugField,
-        that will raise a validation error before this method is ever called. This is evidenced in our `page_creation_data_with_invalid_slug`
-        test fixture in apps/pages/tests_views.py where among othercases, we test that a slug that exceeds 50 chars will raise a validation
-        error.
+        Third, to make matters somewhat confusing, we DO get the benefit of the max_length validation that is defined
+        internally in the models.SlugField. In other words, if a slug is sent in request data that exceeds max length of
+        50 from models.SlugField, that will raise a validation error before this method is ever called. This is
+        evidenced in our `page_creation_data_with_invalid_slug` test fixture in apps/pages/tests_views.py where among
+        othercases, we test that a slug that exceeds 50 chars will raise a validation error.
         """
         logger.debug("Validating slug with value %s", value)
         if isinstance(value, str):
@@ -265,9 +265,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("This field may not be blank.")
             try:
                 validate_slug_against_denylist(value)
-            except DjangoValidationError:
+            except DjangoValidationError as exc:
                 # we do this so can consistently have DRF validation errors coming from this serializer
-                raise serializers.ValidationError(GENERIC_SLUG_DENIED_MSG)
+                raise serializers.ValidationError(GENERIC_SLUG_DENIED_MSG) from exc
         return value
 
     def validate_thank_you_redirect(self, value):
@@ -287,7 +287,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return value
 
     def validate_page_limit(self, data):
-        """Ensure that adding a page would not push parent org over its page limit
+        """Ensure that adding a page would not push parent org over its page limit.
 
         NB: page_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
@@ -298,7 +298,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             revenue_program__organization=(org := data["revenue_program"].organization),
         ).count() + 1 > (pl := org.plan.page_limit):
             logger.debug(
-                "DonationPageFullDetailSerializer.validate_page_limit raising ValidationError because org (%s) has reached limit of %s page{%s}",
+                "DonationPageFullDetailSerializer.validate_page_limit raising ValidationError because org (%s)"
+                " has reached limit of %s page{%s}",
                 org.id,
                 pl,
                 "s" if pl > 1 else "",
@@ -308,7 +309,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             )
 
     def validate_publish_limit(self, data):
-        """Ensure that publishing a page would not push parent org over its publish limit
+        """Ensure that publishing a page would not push parent org over its publish limit.
 
         NB: publish_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
@@ -334,7 +335,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             revenue_program__organization=org,
         ).count() + offset > (pl := org.plan.publish_limit):
             logger.debug(
-                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit",
+                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s)"
+                " has reached its publish limit",
                 org.id,
             )
             raise serializers.ValidationError(
@@ -346,23 +348,23 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             )
 
     def validate_page_element_permissions(self, data):
-        """Ensure that requested page elements are permitted by the organization's plan"""
+        """Ensure that requested page elements are permitted by the organization's plan."""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
         if any(x.get("type", None) is None for x in data.get("elements", [])):
             raise serializers.ValidationError({"page_elements": "Something is wrong with the provided page elements"})
-        if prohibited := set(
+        if prohibited := {
             x["type"] for x in data.get("elements", []) if x["type"] not in rp.organization.plan.page_elements
-        ).difference(set(rp.organization.plan.page_elements)):
+        }.difference(set(rp.organization.plan.page_elements)):
             raise serializers.ValidationError(
                 {"page_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
 
     def validate_sidebar_element_permissions(self, data):
-        """Ensure that requested sidebar elements are permitted by the organization's plan"""
+        """Ensure that requested sidebar elements are permitted by the organization's plan."""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
-        if prohibited := set(
+        if prohibited := {
             elem["type"] for elem in data.get("sidebar_elements", []) if elem.get("type", None)
-        ).difference(set(rp.organization.plan.sidebar_elements)):
+        }.difference(set(rp.organization.plan.sidebar_elements)):
             raise serializers.ValidationError(
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
@@ -372,7 +374,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return not self.instance or not self.instance.id
 
     def ensure_slug_for_publication(self, data) -> None:
-        """Ensure that a page will have a slug"""
+        """Ensure that a page will have a slug."""
         logger.debug("Ensuring slug for data: %s", data)
         in_data = "slug" in data
         sent_slug = data.get("slug", None)
@@ -389,7 +391,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise validation_error
 
     def ensure_slug_is_unique_for_rp(self, data) -> None:
-        """Ensure that a slug is unique for a given revenue program
+        """Ensure that a slug is unique for a given revenue program.
 
         NB: We are not using a UniqueTogetherValidator for this because that validator
         requires that the fields are truthy, and we allow nulls for slug. A given RP can
@@ -403,10 +405,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         Also, at point that this method runs, `validate_slug` will have already run, which means if the slug is in data and is a string,
         it will have a min-length of 1 and will not violate the denylist.
 
-        For not entirely understood reasons, we get the field-level validations that are inherent to the models.SlugField for free here, which
-        means that max length (default of 50) will also have been enforced at this point (the reason this is somewhat mysterious is that we
-        don't get the field level validations specified with the `validators=[...]` argument on the SlugField) There's more context for this
-        in doc string for `validate_slug` above.
+        For not entirely understood reasons, we get the field-level validations that are inherent to the
+        models.SlugField for free here, which means that max length (default of 50) will also have been enforced at this
+        point (the reason this is somewhat mysterious is that we don't get the field level validations specified with
+        the `validators=[...]` argument on the SlugField) There's more context for this in doc string for
+        `validate_slug` above.
         """
         logger.debug("Ensuring slug is unique for rp for data: %s", data)
         if "slug" not in data:
@@ -437,7 +440,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return data
 
     def filter_page_elements_by_plan_permitted(self, instance):
-        """Only return page elements that are permitted by related org's plan"""
+        """Only return page elements that are permitted by related org's plan."""
         return [
             elem
             for elem in instance.elements
@@ -446,7 +449,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         ]
 
     def filter_sidebar_elements_by_plan_permitted(self, instance):
-        """Only return sidebar elements that are permitted by related org's plan"""
+        """Only return sidebar elements that are permitted by related org's plan."""
         return [
             elem
             for elem in instance.sidebar_elements
@@ -455,7 +458,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        """When representing a donation page, we filter out any page or sidebar elements not permitted by org plan"""
+        """When representing a donation page, we filter out any page or sidebar elements not permitted by org plan."""
         data = super().to_representation(instance)
         data["elements"] = self.filter_page_elements_by_plan_permitted(instance)
         data["sidebar_elements"] = self.filter_sidebar_elements_by_plan_permitted(instance)
@@ -473,7 +476,7 @@ _DONATION_PAGE_LIST_FIELDS = (
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
-    """Expected usage is representing lists of donation pages in api/v1/pages/
+    """Expected usage is representing lists of donation pages in api/v1/pages/.
 
     The primary consumer of this page at time of this comment is the SPA, and specifically
     the pages list view in the org dashboard.

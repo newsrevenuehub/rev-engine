@@ -50,9 +50,7 @@ REVENGINE_MIN_AMOUNT = 100
 
 
 class ContributionSerializer(serializers.ModelSerializer):
-    """
-    Used when organizations are viewing a Contribution
-    """
+    """Used when organizations are viewing a Contribution."""
 
     contributor_email = serializers.StringRelatedField(read_only=True, source="contributor")
 
@@ -64,9 +62,10 @@ class ContributionSerializer(serializers.ModelSerializer):
     revenue_program = RevenueProgramSerializer(read_only=True)
 
     def get_auto_accepted_on(self, obj):
-        """
-        Note that this value is not read when making the actual auto-accept determination, where `flagged_date` is used and the math re-calculated.
-        This is just to improve front-end visibility of the "deadline" for examining flagged contributions.
+        """Note.
+
+        This value is not read when making the actual auto-accept determination, where `flagged_date` is used and the
+        math re-calculated. This is just to improve front-end visibility of the "deadline" for examining flagged contributions.
         """
         if obj.flagged_date:
             return obj.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
@@ -209,9 +208,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
     def convert_amount_to_cents(self, amount):
-        """
-        Stripe stores payment amounts in cents.
-        """
+        """Stripe stores payment amounts in cents."""
         return int(float(amount) * 100)
 
     def to_internal_value(self, data):
@@ -224,20 +221,21 @@ class AbstractPaymentSerializer(serializers.Serializer):
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):
-    """This is the base serializer for the `CreateOneTimePaymentSerializer` and `CreateRecurringPaymentSerializer`.
+    """Base serializer for the `CreateOneTimePaymentSerializer` and `CreateRecurringPaymentSerializer`.
 
-    This base serializer contains extensive field level validation and several methods for causing side effects like the creation
-    of NRE and Stripe entities.
+    This base serializer contains extensive field level validation and several methods for causing side effects like the
+    creation of NRE and Stripe entities.
 
-    NB: This serializer accomodates a handful of fields that are conditionally requirable, meaning that an org can configure a contribution
-    page to include/not include and require/not require those fields. In the field definitions below, the definitions for `phone`, `reason_for_giving`,
-    and `reason_other` are involved in this logic. These fields are unique in that we pass `default=''`. We do this because we want to guarantee that
-    there will always be keys for `reason_other`, `reason_for_giving`, and `phone` in the instantiated serializer's initial data, even if those fields
-    were not sent in the request data. This allows us to avoid writing code to deal with the case of, say, `phone` is conditionally required, but no key/value
-    pair is provided in the request data.
+    NB: This serializer accomodates a handful of fields that are conditionally requirable, meaning that an org can
+    configure a contribution page to include/not include and require/not require those fields. In the field definitions
+    below, the definitions for `phone`, `reason_for_giving`, and `reason_other` are involved in this logic. These fields
+    are unique in that we pass `default=''`. We do this because we want to guarantee that there will always be keys for
+    `reason_other`, `reason_for_giving`, and `phone` in the instantiated serializer's initial data, even if those fields
+    were not sent in the request data. This allows us to avoid writing code to deal with the case of, say, `phone` is
+    conditionally required, but no key/value pair is provided in the request data.
 
-    Additionally, we have default values for "honoree" and "in_memory_of" to guarantee there are keys for those parameters to assist in validating
-    `tribute_type`.
+    Additionally, we have default values for "honoree" and "in_memory_of" to guarantee there are keys for those
+    parameters to assist in validating `tribute_type`.
     """
 
     amount = StripeAmountField(
@@ -300,25 +298,25 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     uuid = serializers.CharField(read_only=True)
 
     def validate_tribute_type(self, value):
-        """Ensure there are no unexpected values for tribute_type"""
+        """Ensure there are no unexpected values for tribute_type."""
         if value and value not in ("type_in_memory_of", "type_honoree"):
             raise serializers.ValidationError(GENERIC_UNEXPECTED_VALUE)
         return value
 
     def validate_honoree(self, value):
-        """If tribute_type is `type_honoree` but no value has been provided for `honoree`, it's invalid"""
+        """If tribute_type is `type_honoree` but no value has been provided for `honoree`, it's invalid."""
         if self.initial_data.get("tribute_type", None) == "type_honoree" and not value:
             raise serializers.ValidationError(GENERIC_BLANK)
         return value
 
     def validate_in_memory_of(self, value):
-        """If tribute_type is `type_in_memory_of` but no value has been provided for `honoree`, it's invalid"""
+        """If tribute_type is `type_in_memory_of` but no value has been provided for `honoree`, it's invalid."""
         if self.initial_data.get("tribute_type", None) == "type_in_memory_of" and not value:
             raise serializers.ValidationError(GENERIC_BLANK)
         return value
 
     def validate_reason_other(self, value):
-        """Guarantee there's a value if `reason_for_giving` is 'Other'"""
+        """Guarantee there's a value if `reason_for_giving` is 'Other'."""
         if self.initial_data.get("reason_for_giving") == "Other" and not value:
             raise serializers.ValidationError(GENERIC_BLANK)
         return value
@@ -344,17 +342,14 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 # reason_for_giving because that field was not in the request data. If that happens and the SPA has included
                 # `reason_other` as an entry in the request data, that means that the page has configured to require a reason_for_giving,
                 # but a dropdown of preset choices has not been configured.
-                "reason_for_giving" not in self.initial_data.keys()
-                and "reason_other" in self.initial_data.keys()
-                and reason_other,
+                "reason_for_giving" not in self.initial_data and "reason_other" in self.initial_data and reason_other,
             ]
         ):
             return reason_other
-        else:
-            return reason_for_giving
+        return reason_for_giving
 
     def do_conditional_validation(self, data):
-        """Handle validation of conditionally requirable fields"""
+        """Handle validation of conditionally requirable fields."""
         errors = {}
         for element in [x for x in data["page"].elements if len(x.get("requiredFields", []))]:
             for field in element["requiredFields"]:
@@ -365,7 +360,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             raise serializers.ValidationError(errors)
 
     def validate(self, data):
-        """Validate any fields whose "is_required" behavior is determined dynamically by the org
+        """Validate any fields whose "is_required" behavior is determined dynamically by the org.
 
         Some fields are statically (aka, always) required and we can specify that by setting `required=True` on the field definition
         (or by not setting at all, because required is True by default).
@@ -391,7 +386,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         return data
 
     def get_bad_actor_score(self, data):
-        """Based on validated data, make a request to bad actor API and return its response"""
+        """Based on validated data, make a request to bad actor API and return its response."""
         data = data | {
             # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
             # but BadActorSerializer wants to pk, so we reformat here.
@@ -411,15 +406,15 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             return None
 
     def should_reject(self, bad_actor_score):
-        """Determine if bad actor score should lead to contribution being rejected"""
+        """Determine if bad actor score should lead to contribution being rejected."""
         return bad_actor_score == settings.BAD_ACTOR_REJECT_SCORE
 
     def should_flag(self, bad_actor_score):
-        """Determine if bad actor score should lead to contribution being flagged"""
+        """Determine if bad actor score should lead to contribution being flagged."""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
     def build_contribution(self, contributor, validated_data, bad_actor_response=None):
-        """Create an NRE contribution using validated data"""
+        """Create an NRE contribution using validated data."""
         contribution_data = {
             "amount": validated_data["amount"],
             "interval": validated_data["interval"],
@@ -440,7 +435,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         return Contribution(**contribution_data)
 
     def generate_stripe_metadata(self, contribution: Contribution) -> StripePaymentMetadataSchemaV1_4:
-        """Generate Stripe metadata for a contribution based on validated data"""
+        """Generate Stripe metadata for a contribution based on validated data."""
         logger.info("Generating stripe metadata for contribution %s", contribution.id)
         return StripePaymentMetadataSchemaV1_4(
             agreed_to_pay_fees=self.validated_data["agreed_to_pay_fees"],
@@ -465,7 +460,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
-    """Serializer to enable creating a contribution + one-time payment"""
+    """Serializer to enable creating a contribution + one-time payment."""
 
     def create(self, validated_data):
         """Create a one-time contribution...
@@ -512,16 +507,17 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             contribution.save()
             logger.exception(
-                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
+                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe"
+                " customer for contributor with id %s",
                 contributor.id,
             )
-            raise GenericPaymentError()
+            raise GenericPaymentError() from None
 
         try:
             contribution.contribution_metadata = self.generate_stripe_metadata(contribution).model_dump(mode="json")
         except ValueError:
             logger.exception("Unable to create valid Stripe metadata")
-            raise APIException("Cannot authorize contribution")
+            raise APIException("Cannot authorize contribution") from None
 
         try:
             logger.info("`CreateOneTimePaymentSerializer.create` is attempting to create a Stripe payment intent")
@@ -534,18 +530,20 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
         except StripeError:
             logger.exception(
-                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
+                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment"
+                " intent for contribution with id %s",
                 contribution.id,
             )
             logger.info(
-                "`CreateOneTimePaymentSerializer.create` is saving a new contribution after encountering a Stripe error attempting to create a Stripe Payment intent "
+                "`CreateOneTimePaymentSerializer.create` is saving a new contribution after encountering a Stripe error"
+                " attempting to create a Stripe Payment intent"
             )
             contribution.save()
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` created a contribution with id %s",
                 contribution.id,
             )
-            raise GenericPaymentError()
+            raise GenericPaymentError() from None
 
         contribution.provider_payment_id = payment_intent.id
         contribution.payment_provider_data = dict(payment_intent) | {"client_secret": None}
@@ -562,7 +560,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
 
 class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
-    """Serializer to enable creating a contribution + recurring payment"""
+    """Serializer to enable creating a contribution + recurring payment."""
 
     interval = serializers.ChoiceField(
         choices=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY], write_only=True
@@ -607,7 +605,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             contribution.contribution_metadata = self.generate_stripe_metadata(contribution).model_dump(mode="json")
         except ValueError:
             logger.exception("Unable to create valid Stripe metadata")
-            raise APIException("Cannot authorize contribution")
+            raise APIException("Cannot authorize contribution") from None
 
         try:
             logger.info(
@@ -621,21 +619,20 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             )
         except StripeError:
             logger.exception(
-                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer for contributor with id %s",
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer"
+                " for contributor with id %s",
                 contributor.id,
             )
             logger.info(
-                (
-                    "`CreateRecurringPaymentSerializer.create` is saving a new contribution for contributor with ID %s "
-                    "after encountering an error creating a Stripe customer"
-                ),
+                "`CreateRecurringPaymentSerializer.create` is saving a new contribution for contributor with ID %s "
+                "after encountering an error creating a Stripe customer",
                 contributor.id,
             )
             contribution.save()
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` created a new contribution with ID %s", contribution.id
             )
-            raise GenericPaymentError()
+            raise GenericPaymentError() from None
 
         contribution.provider_customer_id = customer.id
 
@@ -648,7 +645,8 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 client_secret = setup_intent.client_secret
 
                 logger.info(
-                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe setup intent with ID %s for contribution with ID %s",
+                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe setup intent with ID %s"
+                    " for contribution with ID %s",
                     setup_intent.id,
                     contribution.id,
                 )
@@ -666,21 +664,21 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 client_secret = subscription.latest_invoice.payment_intent.client_secret
 
                 logger.info(
-                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe subscription with ID %s for contribution with ID %s",
+                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe subscription with ID %s"
+                    " for contribution with ID %s",
                     subscription.id,
                     contribution.id,
                 )
 
         except StripeError:
             logger.exception(
-                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret for contribution with id %s",
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret"
+                " for contribution with id %s",
                 contribution.id,
             )
             logger.info(
-                (
-                    "`CreateRecurringPaymentSerializer.create` is saving a new contribution for "
-                    "contributor with ID %s after encountering an error creating a Stripe %s"
-                ),
+                "`CreateRecurringPaymentSerializer.create` is saving a new contribution for "
+                "contributor with ID %s after encountering an error creating a Stripe %s",
                 contributor.id,
                 "setup intent" if contribution.status == ContributionStatus.FLAGGED else "subscription",
             )
@@ -688,7 +686,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` saved a new contribution with ID %s", contribution.id
             )
-            raise GenericPaymentError()
+            raise GenericPaymentError() from None
 
         logger.info("`CreateRecurringPaymentSerializer.create` is saving a new contribution")
         contribution.save()
@@ -701,25 +699,20 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
-    """
-    A Stripe one-time payment is a light-weight, low-state payment. It utilizes
-    Stripe's PaymentIntent for an ad-hoc contribution.
+    """A Stripe one-time payment is a light-weight, low-state payment.
+
+    It utilizes Stripe's PaymentIntent for an ad-hoc contribution.
     """
 
 
 class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
-    """
-    A Stripe recurring payment tracks payment information using a Stripe
-    PaymentMethod.
-    """
+    """A Stripe recurring payment tracks payment information using a Stripe PaymentMethod."""
 
     payment_method_id = serializers.CharField(max_length=255)
 
 
 class PaymentProviderContributionSerializer(serializers.Serializer):
-    """
-    Payments provider serializer, payment provider Eg: Stripe.
-    """
+    """Payments provider serializer, payment provider Eg: Stripe."""
 
     # id will be payment intent object id in our case, which will start with ch_ and doesn't exceed 255 chars
     # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
@@ -752,9 +745,7 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
 
 
 class SubscriptionsSerializer(serializers.Serializer):
-    """
-    Serializer for Stripe Subscriptions
-    """
+    """Serializer for Stripe Subscriptions."""
 
     id = serializers.SerializerMethodField()
     is_modifiable = serializers.SerializerMethodField()
@@ -894,7 +885,8 @@ class PortalContributionPaymentSerializer(serializers.ModelSerializer):
         read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
 
 
-PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
+PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = [
+    *PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS,
     "payments",
     "paid_fees",
     "canceled_at",
@@ -910,11 +902,10 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
 
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS + ["provider_payment_method_id"]
+        fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
     def update(self, instance, validated_data) -> Contribution:
-        """ """
         if validated_data:
             if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
                 instance.update_payment_method_for_subscription(
@@ -923,7 +914,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             for key, value in validated_data.items():
                 setattr(instance, key, value)
             with reversion.create_revision():
-                instance.save(update_fields=set(list(validated_data.keys()) + ["modified"]))
+                instance.save(update_fields={*validated_data.keys(), "modified"})
                 reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
         return instance
 
@@ -967,7 +958,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         return instance
 
     def validate_revenue_program(self, value: RevenueProgram) -> None:
-        """Ensure that the revenue program being set is from the same organization as the current revenue program
+        """Ensure that the revenue program being set is from the same organization as the current revenue program.
 
         Note that the actual model attribute here is `._revenue_program`.
         """

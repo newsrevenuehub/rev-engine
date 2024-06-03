@@ -19,6 +19,6 @@ def validate_contact_phone_number(value):
     try:
         phone_number = phonenumbers.parse(value)
     except phonenumbers.phonenumberutil.NumberParseException:
-        raise ValidationError(f"Unknown phone format: {value}")
+        raise ValidationError(f"Unknown phone format: {value}") from None
     if not phonenumbers.is_valid_number(phone_number):
         raise ValidationError(f"Invalid phone number: {value}")

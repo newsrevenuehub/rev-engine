@@ -8,10 +8,11 @@ register = template.Library()
 
 @register.inclusion_tag("admin_limited_select.html")
 def admin_limited_select(parent_model, child_model, parent_selector, child_selector, accessor_method):
-    """
-    When a user in DjangoAdmin makes a change to a dropdown for `parent_model`, as identified in the DOM by
-    the `parent_selector`, a request is made to get the values using `accessor_method` that should then populate the dropdown
-    for `child_model`, as identified by `child_selector`.
+    """Populate child_model dropdown based on the value of child_selector.
+
+    When a user in DjangoAdmin makes a change to a dropdown for `parent_model`, as identified in the DOM by the
+    `parent_selector`, a request is made to get the values using `accessor_method` that should then populate the
+    dropdown for `child_model`, as identified by `child_selector`.
 
     `parent_selector` and `child_selector` are used in javascript like so:
 
@@ -31,9 +32,8 @@ def admin_limited_select(parent_model, child_model, parent_selector, child_selec
 
     # Validate that the accessor_method exists on parent_model here to
     # catch misconfigurations early in implementation.
-    assert hasattr(
-        parent_model_class, accessor_method
-    ), f"Parent model {parent_model} missing expected property {accessor_method}"
+    if not hasattr(parent_model_class, accessor_method):
+        raise f"Parent model {parent_model} missing expected property {accessor_method}"
 
     return {
         "admin_select_url": reverse("admin-select-options"),

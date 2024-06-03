@@ -52,7 +52,7 @@ class RoleAssignmentFactory(DjangoModelFactory):
 
     @factory.post_generation
     def set_orguser(self, create, extracted, **kwargs):
-        """If RA has organization and this is creation, we create an OrganizationUser instance"""
+        """If RA has organization and this is creation, we create an OrganizationUser instance."""
         if create and self.organization:
             OrganizationUserFactory.create(user=self.user, organization=self.organization)
 
@@ -74,7 +74,7 @@ class UserFactory(DjangoModelFactory):
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
         password = kwargs.pop("password", None)
-        obj = super(UserFactory, cls)._create(model_class, *args, **kwargs)
+        obj = super()._create(model_class, *args, **kwargs)
         # ensure the raw password gets set after the initial save
         obj.set_password(password)
         obj.save()

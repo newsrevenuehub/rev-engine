@@ -9,16 +9,14 @@ from apps.contributions.bad_actor import BadActorAPIError, JSONDecodeError, make
 
 @override_settings(BAD_ACTOR_API_KEY=None)
 def test_bad_actor_throws_error_missing_key():
-    with pytest.raises(BadActorAPIError) as e:
+    with pytest.raises(BadActorAPIError, match="BAD_ACTOR_API_KEY not set"):
         make_bad_actor_request({})
-    assert "BAD_ACTOR_API_KEY not set" in str(e)
 
 
 @override_settings(BAD_ACTOR_API_URL=None)
 def test_bad_actor_throws_error_missing_url():
-    with pytest.raises(BadActorAPIError) as e:
+    with pytest.raises(BadActorAPIError, match="BAD_ACTOR_API_URL not set"):
         make_bad_actor_request({})
-    assert "BAD_ACTOR_API_URL not set" in str(e)
 
 
 @override_settings(BAD_ACTOR_API_URL="https://example.com")
@@ -35,9 +33,8 @@ def test_good_make_bad_actor_request(post):
 @mock.patch("requests.post")
 def test_badapi_make_bad_actor_request(post):
     post.return_value = mock.Mock(status_code=400, json=mock.Mock(return_value="mytestjson"))
-    with pytest.raises(BadActorAPIError) as e:
+    with pytest.raises(BadActorAPIError, match="mytestjson"):
         make_bad_actor_request({})
-    assert "mytestjson" in str(e)
 
 
 @override_settings(BAD_ACTOR_API_URL="https://example.com")
@@ -45,6 +42,5 @@ def test_badapi_make_bad_actor_request(post):
 @mock.patch("requests.post")
 def test_badjson_make_bad_actor_request(post):
     post.return_value = mock.Mock(status_code=400, json=mock.Mock(side_effect=JSONDecodeError("whoops", "[]", 0)))
-    with pytest.raises(BadActorAPIError) as e:
+    with pytest.raises(BadActorAPIError, match="malformed JSON"):
         make_bad_actor_request({})
-    assert "malformed JSON" in str(e)

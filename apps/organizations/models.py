@@ -1,9 +1,8 @@
 import logging
-import os
 import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
-from typing import List, Literal, Optional
+from typing import Literal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -54,7 +53,7 @@ RP_NAME_MAX_LENGTH = 255
 RP_SLUG_MAX_LENGTH = 63
 FISCAL_SPONSOR_NAME_MAX_LENGTH = 100
 
-CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
+CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES]
 
 TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
 
@@ -63,7 +62,7 @@ MAX_APPEND_ORG_NAME_ATTEMPTS = 99
 
 @dataclass(frozen=True)
 class Plan:
-    """Used for modeling Organization plans"""
+    """Used for modeling Organization plans."""
 
     name: str
     label: str
@@ -87,7 +86,7 @@ CorePlan = Plan(
     page_limit=5,
     publish_limit=2,
     style_limit=UNLIMITED_CEILING,
-    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    sidebar_elements=[*DEFAULT_PERMITTED_SIDEBAR_ELEMENTS, BENEFITS],
     page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS,
     custom_thank_you_page_enabled=True,
 )
@@ -100,8 +99,8 @@ PlusPlan = Plan(
     publish_limit=UNLIMITED_CEILING,
     style_limit=UNLIMITED_CEILING,
     custom_thank_you_page_enabled=True,
-    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
-    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+    sidebar_elements=[*DEFAULT_PERMITTED_SIDEBAR_ELEMENTS, BENEFITS],
+    page_elements=[*DEFAULT_PERMITTED_PAGE_ELEMENTS, SWAG],
 )
 
 
@@ -112,7 +111,7 @@ class Plans(models.TextChoices):
 
     @classmethod
     def get_plan(cls, name):
-        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan, cls.CORE.value: CorePlan}.get(name, None)
+        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan, cls.CORE.value: CorePlan}.get(name)
 
 
 class OrganizationQuerySet(models.QuerySet):
@@ -131,9 +130,7 @@ class OrganizationManager(models.Manager):
 
 
 class OrgNameNonUniqueError(Exception):
-    """Used when a unique name cannot be generated for an organization based on provided name"""
-
-    pass
+    """Used when a unique name cannot be generated for an organization based on provided name."""
 
 
 class Organization(IndexedTimeStampedModel):
@@ -147,7 +144,7 @@ class Organization(IndexedTimeStampedModel):
     show_connected_to_slack = models.BooleanField(
         verbose_name="Show connected to Slack",
         default=False,
-        help_text="Indicates Slack integration status, designed for manual operation by staff members when connected to the Hub’s Slack",
+        help_text="Indicates Slack integration status, designed for manual operation by staff members when connected to the Hub’s Slack",  # noqa: RUF001, RUF003 the "’"
     )
     show_connected_to_salesforce = models.BooleanField(
         verbose_name="Show connected to Salesforce",
@@ -192,7 +189,10 @@ class Organization(IndexedTimeStampedModel):
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
-        help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
+        help_text=(
+            "If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link,"
+            " are always sent via NRE regardless of this setting"
+        ),
     )
     stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
 
@@ -231,7 +231,7 @@ class Organization(IndexedTimeStampedModel):
 
     @classmethod
     def generate_unique_name(cls, name: str) -> str:
-        """Generate a unique organization name based on input name
+        """Generate a unique organization name based on input name.
 
         Note that this does not guarantee that the name will be otherwise valid in terms of max length.
         """
@@ -253,7 +253,7 @@ class Organization(IndexedTimeStampedModel):
         return normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
     def downgrade_to_free_plan(self):
-        """Downgrade an org to the free plan
+        """Downgrade an org to the free plan.
 
         We set `stripe_subscription_id` to None, change plan_name to FreePlan.name, and iterate over any RPs, calling
         `disable_mailchimp_integration` on each one.
@@ -319,10 +319,10 @@ class BenefitLevel(IndexedTimeStampedModel):
 
 
 class BenefitLevelBenefit(models.Model):
-    """
-    The through table for the M2M relationship BenefitLevel <--> Benefit,
-    including relationship metadata such as the order the Benefit shuold appear
-    in for that BenefitLevel
+    """Through table for the M2M relationship BenefitLevel <--> Benefit.
+
+    Including relationship metadata such as the order the Benefit shuold appear
+    in for that BenefitLevel.
     """
 
     benefit = models.ForeignKey(Benefit, on_delete=models.CASCADE)
@@ -337,7 +337,7 @@ class BenefitLevelBenefit(models.Model):
 
 
 class CountryChoices(models.TextChoices):
-    """Two-letter country codes
+    """Two-letter country codes.
 
     These are used in RevenueProgram for the country value. In turn, they get sent to Stripe
     in SPA when payment request is made.
@@ -348,10 +348,7 @@ class CountryChoices(models.TextChoices):
 
 
 class FiscalStatusChoices(models.TextChoices):
-    """
-
-    These are used in RevenueProgram to indicate the fiscal status of a record.
-    """
+    """These are used in RevenueProgram to indicate the fiscal status of a record."""
 
     FOR_PROFIT = "for-profit"
     NONPROFIT = "nonprofit"
@@ -360,7 +357,7 @@ class FiscalStatusChoices(models.TextChoices):
 
 @dataclass(frozen=True)
 class TransactionalEmailStyle:
-    """Used to model the default style characteristics for a given revenue program,
+    """Used to model the default style characteristics for a given revenue program,.
 
     though in theory, this need not be tied to a revenue program.
     """
@@ -376,7 +373,7 @@ class TransactionalEmailStyle:
 
 HubDefaultEmailStyle = TransactionalEmailStyle(
     is_default_logo=True,
-    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
+    logo_url=f"{settings.SITE_URL}/static/nre-logo-yellow.png",
     logo_alt_text="News Revenue Hub",
     header_color=None,
     header_font=None,
@@ -411,7 +408,7 @@ class MailchimpRateLimitError(Exception):
 # while also ensuring the two app data models are in sync (insofar as we human maintainers can ensure that).
 @dataclass(frozen=True)
 class MailchimpProductImage:
-    """An instance of a Mailchimp product image, as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp product image, as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str  # Unique identifier for the image
     product_id: str  # ID of the product this image belongs to
@@ -421,7 +418,7 @@ class MailchimpProductImage:
 
 @dataclass(frozen=True)
 class MailchimpProductVariant:
-    """An instance of a Mailchimp product variant, as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp product variant, as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str  # Unique identifier for the product variant
     product_id: str  # ID of the product this variant belongs to
@@ -430,12 +427,12 @@ class MailchimpProductVariant:
     sku: str  # Stock Keeping Unit (SKU) associated with the product variant
     price: float  # Price of the product variant
     inventory_quantity: int  # Available inventory for the product variant
-    image_url: Optional[str] = None  # URL of the product variant's image
+    image_url: str | None = None  # URL of the product variant's image
 
 
 @dataclass(frozen=True)
 class MailchimpProductLink:
-    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str  # Unique identifier for the link
     product_id: str  # ID of the product this link belongs to
@@ -445,7 +442,7 @@ class MailchimpProductLink:
 
 @dataclass(frozen=True)
 class MailchimpProduct:
-    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str
     currency_code: str
@@ -457,15 +454,15 @@ class MailchimpProduct:
     type: str
     vendor: str
     image_url: str
-    variants: List[MailchimpProductVariant]
-    images: List[MailchimpProductImage]
+    variants: list[MailchimpProductVariant]
+    images: list[MailchimpProductImage]
     published_at_foreign: str
-    _links: List[MailchimpProductLink]
+    _links: list[MailchimpProductLink]
 
 
 @dataclass(frozen=True)
 class MailchimpEmailList:
-    """An instance of a Mailchimp email list (aka audience), as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp email list (aka audience), as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str
     web_id: int
@@ -486,14 +483,14 @@ class MailchimpEmailList:
     double_optin: bool
     has_welcome: bool
     marketing_permissions: bool
-    modules: List
+    modules: list
     stats: dict
-    _links: List[dict]
+    _links: list[dict]
 
 
 @dataclass(frozen=True)
 class MailchimpStore:
-    """An instance of a Mailchimp store, as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp store, as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str
     list_id: str
@@ -513,12 +510,12 @@ class MailchimpStore:
     list_is_active: bool
     created_at: str
     updated_at: str
-    _links: List[dict]
+    _links: list[dict]
 
 
 @dataclass(frozen=True)
 class MailchimpSegment:
-    """An instance of a Mailchimp segment, as represented by the Mailchimp API and relayed by rev-engine"""
+    """An instance of a Mailchimp segment, as represented by the Mailchimp API and relayed by rev-engine."""
 
     id: str
     name: str
@@ -528,7 +525,7 @@ class MailchimpSegment:
     updated_at: str
     options: dict
     list_id: str
-    _links: List[dict]
+    _links: list[dict]
 
 
 class RevenueProgramManager(models.Manager):
@@ -541,7 +538,10 @@ class RevenueProgram(IndexedTimeStampedModel):
         max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
-        help_text="This will be used as the subdomain for contribution pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
+        help_text=(
+            "This will be used as the subdomain for contribution pages made under this revenue program. If left blank,"
+            " it will be derived from the Revenue Program name."
+        ),
         validators=[validate_slug_against_denylist],
     )
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
@@ -584,7 +584,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     # Strange, hopefully temporary, hacky bit to accommodate one ore two particular clients' needs
     allow_offer_nyt_comp = models.BooleanField(
         default=False,
-        help_text="Should page authors for this Revenue Program see the option to offer their contributors a comp subscription to the New York Times?",
+        help_text=(
+            "Should page authors for this Revenue Program see the option to offer their contributors a"
+            " comp subscription to the New York Times?"
+        ),
         verbose_name="Allow page editors to offer an NYT subscription",
     )
     country = models.CharField(
@@ -601,7 +604,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
-    # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request (potentially multiple times per request)
+    # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
@@ -625,11 +629,11 @@ class RevenueProgram(IndexedTimeStampedModel):
                 raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
             case _:
                 logger.error("Unexpected error from Mailchimp API. The error text is %s", exc.text, exc_info=exc)
-        return None
+        return
 
     @cached_property
     def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
-        """Alias for self.mailchimp_email_list
+        """Alias for self.mailchimp_email_list.
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
         and easily testable.
@@ -637,8 +641,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         return asdict(self.mailchimp_email_list) if self.mailchimp_email_list else None
 
     @cached_property
-    def available_mailchimp_email_lists(self) -> List[MailchimpEmailList]:
-        """Alias for self.mailchimp_email_lists
+    def available_mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+        """Alias for self.mailchimp_email_lists.
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
         and easily testable.
@@ -889,7 +893,6 @@ class RevenueProgram(IndexedTimeStampedModel):
             return self.handle_mailchimp_api_client_write_error(self.mailchimp_contributor_segment_name, error)
 
     def make_mailchimp_recurring_segment(self) -> MailchimpSegment:
-        """"""
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
             logger.error("No email list ID on RP %s", self.id)
@@ -922,7 +925,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_integration_connected(self):
-        """Determine mailchimp connection state for the revenue program"""
+        """Determine mailchimp connection state for the revenue program."""
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     def ensure_mailchimp_store(self) -> None:
@@ -1034,7 +1037,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_access_token_secret_name(self) -> str:
-        """This value will be used as the name of the secret in Google Cloud Secrets Manager"""
+        """Value used as the name of the secret in Google Cloud Secrets Manager."""
         return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_{settings.ENVIRONMENT}"
 
     @property
@@ -1049,25 +1052,18 @@ class RevenueProgram(IndexedTimeStampedModel):
         Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's characteristics.
         If the default page doesn't have a logo, we use the Hub's instead.
         """
-        if any(
-            [
-                self.organization.plan.name == "FREE",
-                not (page := self.default_donation_page),
-            ]
-        ):
+        if any((self.organization.plan.name == "FREE", not (page := self.default_donation_page))):
             return HubDefaultEmailStyle
-        else:
-            _style = AttrDict(page.styles.styles if page.styles else {})
-
-            return TransactionalEmailStyle(
-                is_default_logo=not page.header_logo,
-                logo_url=page.header_logo.url if page.header_logo else HubDefaultEmailStyle.logo_url,
-                logo_alt_text=page.header_logo_alt_text if page.header_logo else HubDefaultEmailStyle.logo_alt_text,
-                header_color=_style.colors.cstm_mainHeader or None,
-                header_font=_style.font.heading or None,
-                body_font=_style.font.body or None,
-                button_color=_style.colors.cstm_CTAs or None,
-            )
+        _style = AttrDict(page.styles.styles if page.styles else {})
+        return TransactionalEmailStyle(
+            is_default_logo=not page.header_logo,
+            logo_url=page.header_logo.url if page.header_logo else HubDefaultEmailStyle.logo_url,
+            logo_alt_text=page.header_logo_alt_text if page.header_logo else HubDefaultEmailStyle.logo_alt_text,
+            header_color=_style.colors.cstm_mainHeader or None,
+            header_font=_style.font.heading or None,
+            body_font=_style.font.body or None,
+            button_color=_style.colors.cstm_CTAs or None,
+        )
 
     # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
@@ -1095,10 +1091,8 @@ class RevenueProgram(IndexedTimeStampedModel):
             return [MailchimpEmailList(**x) for x in lists]
         except ApiClientError as exc:
             logger.exception(
-                (
-                    "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s. "
-                    "The error text is %s"
-                ),
+                "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s."
+                " The error text is %s",
                 self.id,
                 self.mailchimp_server_prefix,
                 exc.text,
@@ -1114,7 +1108,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         # Avoid state of a rev program's default page not being one of "its pages"
         if self.default_donation_page and self.default_donation_page.revenue_program != self:
             raise ValidationError(
-                f'Contribution page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
+                f'Contribution page "{self.default_donation_page}" is already associated with a revenue program,'
+                ' "{self.default_donation_page.revenue_program}"'
             )
         # Ensure no @ symbol on twitter_handle-- we'll add those later
         if self.twitter_handle and self.twitter_handle[0] == "@":
@@ -1123,15 +1118,14 @@ class RevenueProgram(IndexedTimeStampedModel):
         self.clean_fiscal_sponsor_name()
 
     def clean_fiscal_sponsor_name(self):
-        """Ensure a fiscally sponsored record has the fiscal sponsor name"""
+        """Ensure a fiscally sponsored record has the fiscal sponsor name."""
         if self.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED and not self.fiscal_sponsor_name:
             raise ValidationError("Please enter the fiscal sponsor name.")
-        elif self.fiscal_sponsor_name and self.fiscal_status != FiscalStatusChoices.FISCALLY_SPONSORED:
+        if self.fiscal_sponsor_name and self.fiscal_status != FiscalStatusChoices.FISCALLY_SPONSORED:
             raise ValidationError("Only fiscally sponsored Revenue Programs can have a fiscal sponsor name.")
 
     def stripe_create_apple_pay_domain(self):
-        """
-        Register an ApplePay domain with Apple (by proxy) for this RevenueProgram.
+        """Register an ApplePay domain with Apple (by proxy) for this RevenueProgram.
 
         NOTE: Cannot create ApplePay Domains using test key.
 
@@ -1147,12 +1141,12 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
-            except stripe.error.StripeError as ex:
+            except stripe.error.StripeError:
                 logger.exception(
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
                 )
-                raise ex
+                raise
 
     def disable_mailchimp_integration(self):
         """Disable mailchimp integration for this revenue program.
@@ -1198,7 +1192,7 @@ class PaymentProvider(IndexedTimeStampedModel):
         return f"Stripe Payment Provider acct:{self.stripe_account_id} product:{self.stripe_product_id}"
 
     def get_dependent_pages_with_publication_date(self):
-        """Retreieve live and future live contribution pages that rely on this payment provider"""
+        """Retreieve live and future live contribution pages that rely on this payment provider."""
         from apps.pages.models import DonationPage  # vs circular import
 
         return DonationPage.objects.filter(revenue_program__payment_provider=self, published_date__isnull=False)

@@ -15,21 +15,17 @@ class MagicLinkAuthenticationFailed(AuthenticationFailed):
 
 
 def enforce_csrf(request):
-    """
-    Enforce CSRF validation. From drf source, authentication.py
-    """
+    """Enforce CSRF validation. From drf source, authentication.py."""
     check = CSRFCheck()
     check.process_request(request)
     reason = check.process_view(request, None, (), {})
     if reason:
         # CSRF failed, bail with explicit error message
-        raise PermissionDenied("CSRF validation failed: %s" % reason)
+        raise PermissionDenied(f"CSRF validation failed: {reason}")
 
 
 class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
-    """
-    Override simplejwt's authenticate method to add cookie support
-    """
+    """Override simplejwt's authenticate method to add cookie support."""
 
     def token_is_contrib_long_token(self, token):
         return token.get("ctx", None) == LONG_TOKEN
@@ -47,10 +43,10 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
         return user, validated_token
 
     def authenticate(self, request):
-        """
-        Override JWTAuthentication authenticate method to:
-            1. Pull JWT out of cookie, rather than request body.
-            2. Enforce CSRF protection.
+        """Override JWTAuthentication authenticate method to.
+
+        1. Pull JWT out of cookie, rather than request body.
+        2. Enforce CSRF protection.
         """
         raw_token = request.COOKIES.get(settings.AUTH_COOKIE_KEY)
         if raw_token is None:
@@ -69,7 +65,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
             contributor_uuid = validated_token[settings.CONTRIBUTOR_ID_CLAIM]
             return Contributor.objects.get(uuid=contributor_uuid)
         except Contributor.DoesNotExist:
-            raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found")
+            raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found") from None
         except KeyError:
             # If there's no validated_token[settings.CONTRIBUTOR_ID_CLAIM], get normal user
             return super().get_user(validated_token)
@@ -81,9 +77,9 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
             contributor_uuid = validated_token[settings.CONTRIBUTOR_ID_CLAIM]
             return Contributor.objects.get(uuid=contributor_uuid)
         except KeyError:
-            raise MagicLinkAuthenticationFailed("Invalid token", code="missing_claim")
+            raise MagicLinkAuthenticationFailed("Invalid token", code="missing_claim") from None
         except Contributor.DoesNotExist:
-            raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found")
+            raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found") from None
 
     def ensure_valid_owner(self, email, contributor):
         if email != contributor.email:
@@ -93,7 +89,7 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
         try:
             validated_token = self.get_validated_token(token)
         except InvalidToken:
-            raise MagicLinkAuthenticationFailed("Invalid token", code="invalid_token")
+            raise MagicLinkAuthenticationFailed("Invalid token", code="invalid_token") from None
 
         contributor = self.get_user(validated_token)
 
@@ -111,9 +107,7 @@ class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
             raise MagicLinkAuthenticationFailed("Invalid token type", code="invalid_type")
 
     def authenticate(self, request):
-        """
-        Lots of repitition here, but we need to skip 'enforce_csrf' this time
-        """
+        """Lots of repitition here, but we need to skip 'enforce_csrf' this time."""
         raw_token = request.data.get("token", None)
         email = request.data.get("email", None)
 

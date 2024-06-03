@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Any, ClassVar, Literal, NamedTuple, Optional, Union
+from typing import Any, ClassVar, Literal, NamedTuple
 
 from django.conf import settings
 
@@ -37,9 +37,7 @@ class StripePiAsPortalContribution(BaseModel):
 
 
 class StripePiSearchResponse(BaseModel):
-    """
-    Wrapper for Stripe PaymentIntent search response as documented in Stripe API docs.
-
+    """Wrapper for Stripe PaymentIntent search response as documented in Stripe API docs.
 
     Its expected usage is converting the attrdict like Stripe object returned by .search to a StripePiSearchResponse.
 
@@ -73,13 +71,12 @@ class StripeEventData(NamedTuple):
 
 
 class StripeMetadataSchemaBase(pydantic.BaseModel):
-    """
+    """Schema.
 
-    This schema:
     - validates that all required fields are present
     - validates that extra fields are not present
     - provides default values for some optional fields
-    - normalizes boolean values
+    - normalizes boolean values.
     """
 
     schema_version: Literal["1.4"]
@@ -92,7 +89,7 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
-        """Normalize boolean values
+        """Normalize boolean values.
 
         Convert some known values to their boolean counterpart, while still allowing
         for a `None` value which indicates that the value was not provided.
@@ -109,7 +106,7 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 
     @pydantic.validator("*", pre=True, always=True)
     def truncate_strings(cls, v: Any) -> str | None:
-        """Truncate strings
+        """Truncate strings.
 
         This validator is responsible for ensuring that all string fields are no longer than
         METADATA_TEXT_MAX_LENGTH characters.
@@ -122,20 +119,20 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 class StripePaymentMetadataSchemaV1_0(StripeMetadataSchemaBase):
     schema_version: Literal["1.0"]
     source: Literal["rev-engine", "newspack"]
-    contributor_id: Optional[str] = None
+    contributor_id: str | None = None
     agreed_to_pay_fees: bool
     donor_selected_amount: float
-    reason_for_giving: Optional[str] = None
+    reason_for_giving: str | None = None
     referer: pydantic.HttpUrl
     revenue_program_id: str
     revenue_program_slug: str
-    sf_campaign_id: Optional[str] = None
-    comp_subscription: Optional[str] = None
-    honoree: Optional[str] = None
-    in_memory_of: Optional[str] = None
-    swag_opt_out: Optional[bool] = False
-    t_shirt_size: Optional[str] = None
-    company_name: Optional[str] = None
+    sf_campaign_id: str | None = None
+    comp_subscription: str | None = None
+    honoree: str | None = None
+    in_memory_of: str | None = None
+    swag_opt_out: bool | None = False
+    t_shirt_size: str | None = None
+    company_name: str | None = None
 
     class Config:
         extra = "forbid"
@@ -174,7 +171,7 @@ class StripePaymentMetadataSchemaV1_3(StripeMetadataSchemaBase):
 
 
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
-    """Schema used for generating metadata on Stripe payment intents and subscriptions"""
+    """Schema used for generating metadata on Stripe payment intents and subscriptions."""
 
     agreed_to_pay_fees: bool
     donor_selected_amount: float
@@ -182,15 +179,15 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     revenue_program_id: str
     revenue_program_slug: str
 
-    contributor_id: Optional[str] = None
-    comp_subscription: Optional[str] = None
-    company_name: Optional[str] = None
-    honoree: Optional[str] = None
-    in_memory_of: Optional[str] = None
-    reason_for_giving: Optional[str] = None
-    sf_campaign_id: Optional[str] = None
-    swag_choices: Optional[str] = None
-    swag_opt_out: Optional[bool] = False
+    contributor_id: str | None = None
+    comp_subscription: str | None = None
+    company_name: str | None = None
+    honoree: str | None = None
+    in_memory_of: str | None = None
+    reason_for_giving: str | None = None
+    sf_campaign_id: str | None = None
+    swag_choices: str | None = None
+    swag_opt_out: bool | None = False
     schema_version: Literal["1.4"]
 
     SWAG_CHOICES_DELIMITER: ClassVar[str] = ";"
@@ -201,7 +198,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
     def convert_id_to_string(cls, v: Any) -> str | None:
-        """Convert id to string
+        """Convert id to string.
 
         This validator is responsible for ensuring that the field is a string. These fields are naturally
         integers on their way in, but the metadata schema in Switchboard calls for them to be strings.
@@ -213,7 +210,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
     @classmethod
     def validate_booleans(cls, v: Any) -> bool | None:
-        """Validate booleans
+        """Validate booleans.
 
         This validator is responsible for ensuring that the agreed_to_pay_fees and swag_opt_out fields are valid.
         """
@@ -221,7 +218,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     @pydantic.validator("swag_choices")
     def validate_swag_choices(cls, v: Any) -> str | None:
-        """Validate swag_choices
+        """Validate swag_choices.
 
         This validator is responsible for ensuring that the swag_choices field is valid.
 
@@ -248,11 +245,11 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
     # 1.5 omits this field from 1.4, with which it otherwise shares a schema
     contributor_id: None = None
     # ID of the payment/subscription in the originating/external system
-    external_id: Optional[str] = None
+    external_id: str | None = None
     # Only would be on subscription, not payment intent. The Salesforce Recurring Donation ID, if any.
-    recurring_donation_id: Optional[str] = None
+    recurring_donation_id: str | None = None
     # 1.4 has this field, but it's required
-    referer: Optional[pydantic.HttpUrl] = None
+    referer: pydantic.HttpUrl | None = None
 
     class Config:
         # 1.5 omits this field from 1.4, with which it otherwise shares a schema. We default value to None above,
@@ -273,15 +270,15 @@ STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
 
 def cast_metadata_to_stripe_payment_metadata_schema(
     metadata: dict,
-) -> Union[StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5]:
+) -> StripePaymentMetadataSchemaV1_4 | StripePaymentMetadataSchemaV1_5:
     """Cast metadata to the appropriate schema based on the schema_version field."""
     if not metadata:
         raise InvalidMetadataError("Metadata is empty")
-    if (schema_version := metadata.get("schema_version", None)) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
+    if (schema_version := metadata.get("schema_version")) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
         raise InvalidMetadataError(f"Unknown schema version {schema_version}")
     schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]
     try:
         return schema_class(**metadata)
-    except pydantic.ValidationError as e:
+    except pydantic.ValidationError as exc:
         logger.debug("Metadata failed to validate against schema %s", schema_class)
-        raise InvalidMetadataError(str(e)) from e
+        raise InvalidMetadataError(str(exc)) from exc

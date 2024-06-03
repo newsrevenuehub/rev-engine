@@ -42,10 +42,8 @@ class DonationPageAdminForm(forms.ModelForm):
             org = self.instance.revenue_program.organization
         if self.cleaned_data["thank_you_redirect"] and not org.plan.custom_thank_you_page_enabled:
             raise ValidationError(
-                (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
-                    f"which does not get this feature."
-                )
+                f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
+                f"which does not get this feature."
             )
         return self.cleaned_data["thank_you_redirect"] or ""
 
@@ -57,11 +55,9 @@ class DonationPageAdminForm(forms.ModelForm):
             and models.DonationPage.objects.filter(revenue_program__organization=org).count() >= org.plan.page_limit
         ):
             raise ValidationError(
-                (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
-                    f"and is limited to {org.plan.page_limit} "
-                    f"page{'' if org.plan.page_limit == 1 else 's' }."
-                )
+                f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
+                f"and is limited to {org.plan.page_limit} "
+                f"page{'' if org.plan.page_limit == 1 else 's' }."
             )
 
     def validate_publish_limit(self):
@@ -74,11 +70,9 @@ class DonationPageAdminForm(forms.ModelForm):
             >= org.plan.publish_limit
         ):
             raise ValidationError(
-                (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
-                    f"and is limited to {org.plan.publish_limit} published "
-                    f"page{'' if org.plan.publish_limit == 1 else 's'}."
-                )
+                f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
+                f"and is limited to {org.plan.publish_limit} published "
+                f"page{'' if org.plan.publish_limit == 1 else 's'}."
             )
 
     def clean(self):
@@ -92,17 +86,15 @@ class DonationPageAdminForm(forms.ModelForm):
 class DonationPageAdmin(DonationPageAdminAbstract):
     form = DonationPageAdminForm
     fieldsets = (
+        (None, {"fields": ("revenue_program",)}),
+        (None, {"fields": ("published_date",)}),
+        (None, {"fields": ("locale",)}),
         (
-            (None, {"fields": ("revenue_program",)}),
-            (None, {"fields": ("published_date",)}),
-            (None, {"fields": ("locale",)}),
-            (
-                None,
-                {"fields": ("slug",)},
-            ),
-        )
-        + DonationPageAdminAbstract.fieldsets
-        + (("Latest screenshot", {"fields": ("page_screenshot",)}),)
+            None,
+            {"fields": ("slug",)},
+        ),
+        *DonationPageAdminAbstract.fieldsets,
+        ("Latest screenshot", {"fields": ("page_screenshot",)}),
     )
 
     list_display = (

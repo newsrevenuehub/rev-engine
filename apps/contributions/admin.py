@@ -288,14 +288,12 @@ class ContributionAdmin(RevEngineBaseAdmin):
     def contributor_name(self, instance):
         """Pull name out of bad actor response if possible. We don't store it locally anywhere else."""
         if (
-            not isinstance(instance.bad_actor_response, dict)
-            or "items" not in instance.bad_actor_response
-            or not isinstance(instance.bad_actor_response["items"], list)
+            isinstance(instance.bad_actor_response, dict)
+            and "items" in instance.bad_actor_response
+            and isinstance(instance.bad_actor_response["items"], list)
+            and (name := next((x["value"] for x in instance.bad_actor_response["items"] if x["label"] == "name"), None))
         ):
-            return "unknown"
-        for item in instance.bad_actor_response["items"]:
-            if item["label"] == "name":
-                return item["value"]
+            return name
         return "unknown"
 
     contributor_name.short_description = "Contributor name"

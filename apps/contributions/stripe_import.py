@@ -789,13 +789,13 @@ class StripeTransactionsImporter:
             )
             if payment:
                 logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+                self.update_payment_stats(action, payment)
             else:
                 logger.info(
                     "No payment created for contribution %s and balance transaction %s",
                     contribution.id,
                     balance_transaction["id"],
                 )
-            self.update_payment_stats(action, payment)
 
     def get_provider_payment_id_for_subscription(self, subscription: dict) -> str | None:
         """Get provider payment id for a subscription."""

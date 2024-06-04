@@ -1,10 +1,8 @@
+import os
 import time
 
 import stripe
 from playwright.sync_api import Page, expect
-
-
-import os
 
 
 ENVIRONMENT = os.environ["ENVIRONMENT"]

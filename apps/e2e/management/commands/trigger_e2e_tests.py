@@ -1,19 +1,18 @@
 from pathlib import Path
 
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
-from django.urls import reverse
-
-
-import requests
 
 from apps.e2e import TESTS
+from apps.e2e.tasks import do_ci_e2e_test_run
 
 
 class Command(BaseCommand):
-    """"""
+    """Trigger async run of E2E tests.
 
-    help = ""
+    Defaults to tests in `TESTS` dict.
+
+    Boolean flag to determine if results should be reported.
+    """
 
     @property
     def name(self):
@@ -25,7 +24,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
-        url = f"{settings.SITE_URL}{reverse('e2e:e2e-trigger-tests')}"
-        response = requests.post(url, data={"tests": options["tests"], "report_results": options["report_results"]})
-        response.raise_for_status()
+        do_ci_e2e_test_run.delay(tests=options["tests"], report_results=options["report_results"])
         self.stdout.write(self.style.SUCCESS("`{self.name}` is done"))

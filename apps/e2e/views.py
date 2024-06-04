@@ -2,13 +2,14 @@ import logging
 
 from django.conf import settings
 
-from rest_framework.views import APIView, Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.views import APIView, Response
 
 from apps.api.permissions import IsE2EUser
 from apps.e2e import TESTS
 from apps.e2e.tasks import do_ci_e2e_test_run
+
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 

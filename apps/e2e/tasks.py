@@ -1,16 +1,12 @@
+import subprocess
 from dataclasses import dataclass
 from enum import Enum
 
 from django.conf import settings
 
-from celery import Task, shared_task
+from celery import shared_task
 from celery.utils.log import get_task_logger
-import requests
-import subprocess
-
 from e2e import TESTS
-
-from sentry_sdk import configure_scope
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -21,7 +17,7 @@ class TestOutcome(Enum):
     FAILED = "failed"
 
 
-@dataclass()
+@dataclass(frozen=True)
 class E2ETest:
 
     name: str
@@ -31,34 +27,37 @@ class E2ETest:
         if self.name not in TESTS:
             raise ValueError(f"Test {self.name} not found in available tests")
 
-    def run(self):
+    def run(self) -> None:
         try:
-            result = subprocess.run(["pytest", TESTS[self.name]], capture_output=True, text=True)
-        except Exception as e:
-            logger.error(f"Test {self.name} failed with uncaught error: {e}")
+            result = subprocess.run(["pytest", TESTS[self.name]], capture_output=True, text=True, check=False)
+        except Exception:  # BLE001
+            logger.exception("Test %s failed with uncaught error", self.name)
             self.outcome = TestOutcome.FAILED
         else:
             if result.returncode == 0:
-                logger.info(f"Test {self.name} passed")
+                logger.info("Test %s passed", self.name)
                 self.outcome = TestOutcome.PASSED
             else:
-                logger.warning(f"Test {self.name} failed with output: {result.stdout}")
+                logger.warning("Test %s failed with output: %s", self.name, result.stdout)
                 self.outcome = TestOutcome.FAILED
 
 
 def report_results_to_github(tests: list[dict[str:TestOutcome]], url: str):
-    # this is just a placeholder for now
+    #
+    #
     pass
 
 
 @shared_task
 def do_ci_e2e_test_run(
     tests: list,
+    report_results: bool = False,
 ):
-    logger.info(f"Running tests {tests}")
+    logger.info("Running tests %s", tests)
     test_results = {}
-    for test in tests:
-        test_instance = E2ETest(test)
-        test_instance.run()
-        test_results[test] = test_instance.outcome.value
-    report_results_to_github(test_results, settings.GITHUB_ACTIONS_API_URL)
+    for _test in tests:
+        test = E2ETest(_test)
+        test.run()
+        test_results[_test] = test.outcome.value
+    if report_results:
+        report_results_to_github(test_results, settings.GITHUB_ACTIONS_API_URL)

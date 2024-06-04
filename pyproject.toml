@@ -51,6 +51,11 @@ mailchimp-marketing = "^3.0.80"
 newrelic = "^8.4.0"
 phonenumbers = "^8.13.34"
 psycopg2-binary = "^2"
+peewee = "^3.17.0"
+pytest-celery = "^0"  
+pytest-playwright = "^0.4.3"
+pytest-django = "*"
+pytest-mock = "*"
 pycountry = "^22.3.5"
 pydantic = "^2.2.0"
 pygments = "^2.13.0"
@@ -78,11 +83,7 @@ drf-yasg = "*" # Swagger generator
 factory_boy = "*"
 ipython = "*"
 pre-commit = "*"
-pytest = "^7"  # temporarily pinned due to pytest-asyncio not support pytest 8 https://github.com/pytest-dev/pytest-asyncio/issues/737
-pytest-celery = "^0"
 pytest-cov = "*"
-pytest-django = "*"
-pytest-mock = "*"
 pytest-ruff = "*"
 pytest-xdist = "*"
 pyyaml = "*"
@@ -145,11 +146,6 @@ quote-style = "double"
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Option", ]
-
-[tool.poetry.group.dev.dependencies]
-pytest-celery = "^0"
-peewee = "^3.17.0"
-pytest-playwright = "^0.4.3"
 
 [tool.ruff.lint.isort]
 section-order = ["future", "standard-library", "django", "third-party", "first-party", "local-folder"]

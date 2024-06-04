@@ -19,6 +19,7 @@ from apps.contributions.exceptions import (
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
     CACHE_KEY_PREFIX,
+    REDIS_SCAN_ITER_COUNT,
     STRIPE_API_BACKOFF_ARGS,
     TTL_WARNING_THRESHOLD_PERCENT,
     RedisCachePipeline,
@@ -605,14 +606,16 @@ class TestStripeTransactionsImporter:
             assert instance.get_data_from_plan(plan) == expected_val
 
     def test_get_invoices_for_subscription(self, mocker):
+        sub_id = "sub_1"
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = ["foo", "bar", "bizz"]
+
+        mock_redis.scan_iter.return_value = [f"foo_{sub_id}", f"bar_{sub_id}", f"bizz_{sub_id}"]
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
-        assert instance.get_invoices_for_subscription("sub_1") == results
+        assert instance.get_invoices_for_subscription(sub_id) == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="sub_1*"), count=1000
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="*"), count=REDIS_SCAN_ITER_COUNT
         )
 
     def test_get_charges_for_subscription(self, mocker):
@@ -715,11 +718,12 @@ class TestStripeTransactionsImporter:
     def test_get_charges_for_payment_intent(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = ["foo", "bar"]
+        pi_id = "pi_1"
+        mock_redis.scan_iter.return_value = [f"foo_{pi_id}", f"bar_{pi_id}"]
         mocker.patch.object(
             instance, "get_resource_from_cache", side_effect=(charges := [{"id": "ch_1"}, {"id": "ch_2"}])
         )
-        assert instance.get_charges_for_payment_intent("pi_1") == charges
+        assert instance.get_charges_for_payment_intent(pi_id) == charges
 
     def test_get_refunds_for_payment_intent(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -731,16 +735,22 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("pre_existing_payment_for_bt", [True, False])
     def test_upsert_payments_for_contribution(self, mocker, interval, pre_existing_payment_for_bt):
         # one has balance transaction, another does not so we go through both branches of code
-        refunds = [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}]
+        refunds = [
+            [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}],
+            [
+                {"id": "ref_3", "balance_transaction": "bt_3"},
+            ],
+        ]
         charge = {"balance_transaction": "bt_1", "id": "ch_1"}
         get_resource_from_cache_side_effects = []
         instance = StripeTransactionsImporter(stripe_account_id="test")
         if interval == ContributionInterval.ONE_TIME:
             mocker.patch.object(instance, "get_successful_charge_for_payment_intent")
             get_resource_from_cache_side_effects.append({"id": "pi_1"})
-            mocker.patch.object(instance, "get_refunds_for_charge", return_value=refunds)
+            mocker.patch.object(instance, "get_refunds_for_charge", return_value=[refunds[0][0]])
         else:
-            mocker.patch.object(instance, "get_charges_for_subscription", return_value=[charge])
+            # we want to return 2 charges to trigger two calls to get_refunds_for_charge
+            mocker.patch.object(instance, "get_charges_for_subscription", return_value=[charge, charge])
             mocker.patch.object(instance, "get_refunds_for_charge", side_effect=refunds)
         get_resource_from_cache_side_effects.append({"id": "bt_1"})
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=get_resource_from_cache_side_effects)
@@ -963,6 +973,14 @@ class TestStripeTransactionsImporter:
             mock_logger.assert_not_called()
 
     def test_import_contributions_and_payments(self, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter._subscription_keys",
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter._payment_intent_keys",
+            new_callable=mocker.PropertyMock,
+        )
         mock_list_cache = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_required_stripe_resources"
         )

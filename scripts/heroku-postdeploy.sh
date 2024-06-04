@@ -25,3 +25,4 @@ pg_dump --format=custom ${REVIEW_APP_SOURCE_DATABASE_URL} | pg_restore --clean -
 # we drop all the tables before restoring from staging (see reason above), which means that any new migrations get whomped. So we run migrations again here.
 python manage.py migrate --noinput
 python manage.py bootstrap-review-app
+python manage.py trigger_e2e_tests 

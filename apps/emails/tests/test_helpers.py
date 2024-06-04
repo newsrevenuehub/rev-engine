@@ -1,7 +1,7 @@
 import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
-import pytz
 
 from apps.emails.helpers import convert_to_timezone_formatted
 
@@ -19,7 +19,7 @@ def test_convert_to_timezone_formatted(timezone, fmt, is_UTC, expect):
     test_date = datetime.datetime(2022, 12, 6)  # noqa: DTZ001 point of helper is to add tz
 
     if is_UTC:
-        test_date = test_date.replace(tzinfo=pytz.UTC)
+        test_date = test_date.replace(tzinfo=ZoneInfo("UTC"))
     assert test_date.strftime("%m-%d-%y %H:%M %Z") == "12-06-22 00:00" + " UTC" if is_UTC else " "
 
     tz_date = (

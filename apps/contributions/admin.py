@@ -121,10 +121,10 @@ class ContributionAdmin(RevEngineBaseAdmin):
     )
 
     list_display = (
-        "formatted_amount",
-        "revenue_program",
-        "contributor",
+        "retitled_formatted_amount",
+        "email",
         "contributor_name",
+        "revenue_program",
         "donation_page",
         "interval",
         "status",
@@ -241,6 +241,18 @@ class ContributionAdmin(RevEngineBaseAdmin):
                 messages.ERROR,
             )
 
+    def email(self, instance):
+        return instance.contributor
+
+    # The song and dance here is because there's already a model field named
+    # "amount", but we want the formatted amount field, just with a shorter
+    # title.
+
+    def retitled_formatted_amount(self, instance):
+        return instance.formatted_amount
+
+    retitled_formatted_amount.short_description = "Amount"
+
     def provider_payment_link(self, request):
         return self._generate_stripe_connect_link("payments", request.provider_payment_id, request.stripe_account_id)
 
@@ -283,7 +295,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         """Render revenue_program field with pretty formatting."""
         return instance.revenue_program.name
 
-    revenue_program.short_description = "Revenue program (property, not FK)"
+    revenue_program.short_description = "RP"
 
     def contributor_name(self, instance):
         """Pull name out of bad actor response if possible. We don't store it locally anywhere else."""
@@ -296,4 +308,4 @@ class ContributionAdmin(RevEngineBaseAdmin):
             return name
         return "unknown"
 
-    contributor_name.short_description = "Contributor name"
+    contributor_name.short_description = "Name"

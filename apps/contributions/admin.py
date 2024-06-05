@@ -273,24 +273,22 @@ class ContributionAdmin(RevEngineBaseAdmin):
             )
         return "-"
 
+    @admin.display(description="Bad actor response")
     def bad_actor_response_pretty(self, instance):
         """Render bad_actor_response field with pretty formatting."""
         return prettify_json_field(instance.bad_actor_response)
 
-    bad_actor_response_pretty.short_description = "Bad actor response"
-
+    @admin.display(description="Payment provider data")
     def payment_provider_data_pretty(self, instance):
         """Render payment_provider_data field with pretty formatting."""
         return prettify_json_field(instance.payment_provider_data)
 
-    payment_provider_data_pretty.short_description = "Payment provider data"
-
+    @admin.display(description="Provider payment method details")
     def provider_payment_method_details_pretty(self, instance):
         """Render provider_payment_method_details field with pretty formatting."""
         return prettify_json_field(instance.provider_payment_method_details)
 
-    provider_payment_method_details_pretty.short_description = "Provider payment method details"
-
+    @admin.display(description="Revenue program (property, not FK)")
     def revenue_program(self, instance):
         """Render revenue_program field with pretty formatting."""
         return instance.revenue_program.name

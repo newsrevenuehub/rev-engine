@@ -27,7 +27,6 @@ from apps.api.permissions import (
     HasRoleAssignment,
     IsContributor,
     IsContributorOwningContribution,
-    IsHubAdmin,
     IsSwitchboardAccount,
     UserIsRequestedContributor,
 )
@@ -41,7 +40,6 @@ from apps.contributions.models import (
     ContributionStatusError,
     Contributor,
 )
-from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     StripePiAsPortalContribution,
@@ -295,23 +293,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, Contributor):
             return serializers.PaymentProviderContributionSerializer
         return serializers.ContributionSerializer
-
-    # only superusers and hub admins have permission
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])
-    def process_flagged(self, request, pk=None):
-        reject = request.data.get("reject", None)
-        if reject is None:
-            return Response(data={"detail": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            contribution = Contribution.objects.get(pk=pk)
-            contribution.process_flagged_payment(reject=reject)
-        except Contribution.DoesNotExist:
-            return Response({"detail": "Could not find contribution"}, status=status.HTTP_404_NOT_FOUND)
-        except PaymentProviderError as pp_error:
-            return Response({"detail": str(pp_error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
     @action(
         methods=["post"],

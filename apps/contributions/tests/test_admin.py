@@ -4,8 +4,6 @@ from pathlib import Path
 from unittest import mock
 
 from django.contrib.admin.sites import AdminSite
-from django.contrib.auth import get_user_model
-from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -20,13 +18,6 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.organizations.models import PaymentProvider
-from apps.organizations.tests.factories import (
-    OrganizationFactory,
-    PaymentProviderFactory,
-    RevenueProgramFactory,
-)
-from apps.pages.tests.factories import DonationPageFactory
 
 
 @pytest.mark.django_db()
@@ -212,89 +203,6 @@ class TestPaymentAdmin:
         assert response.status_code == 200
 
 
-class ContributionAdminTest(TestCase):
-    def setUp(self):
-        self.factory = RequestFactory()
-        user_model = get_user_model()
-        self.user = user_model.objects.create_superuser(email="test@test.com", password="testing")
-        self.contribution_admin = ContributionAdmin(Contribution, AdminSite())
-
-        self.organization = OrganizationFactory()
-        payment_provider = PaymentProviderFactory()
-        revenue_program = RevenueProgramFactory(organization=self.organization, payment_provider=payment_provider)
-        self.donation_page = DonationPageFactory(revenue_program=revenue_program)
-
-        self.contrib_score_2 = ContributionFactory(
-            status=ContributionStatus.FLAGGED,
-            bad_actor_score=2,
-            donation_page=self.donation_page,
-            payment_provider_used=PaymentProvider.STRIPE_LABEL,
-        )
-        self.contrib_score_4 = ContributionFactory(
-            status=ContributionStatus.FLAGGED,
-            bad_actor_score=4,
-            donation_page=self.donation_page,
-            payment_provider_used=PaymentProvider.STRIPE_LABEL,
-        )
-
-    def test_provider_payment_link(self):
-        contribution = ContributionFactory(provider_payment_id="pi_1234")
-        assert (
-            self.contribution_admin.provider_payment_link(contribution) == f"<a href='"
-            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/"
-            f"{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
-        )
-
-    def test_provider_subscription_link(self):
-        contribution = ContributionFactory(provider_subscription_id="sub_1234")
-        assert (
-            self.contribution_admin.provider_subscription_link(contribution) == f"<a href='"
-            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/"
-            f"{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
-        )
-
-    def test_provider_customer_link(self):
-        contribution = ContributionFactory(provider_customer_id="cus_1234")
-        assert (
-            self.contribution_admin.provider_customer_link(contribution) == f"<a href='"
-            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/"
-            f"{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
-        )
-
-    def test_links_not_available(self):
-        contribution = ContributionFactory(
-            provider_customer_id=None, provider_subscription_id=None, provider_payment_id=None
-        )
-        assert self.contribution_admin.provider_customer_link(contribution) == "-"
-        assert self.contribution_admin.provider_payment_link(contribution) == "-"
-        assert self.contribution_admin.provider_subscription_link(contribution) == "-"
-
-    def test_bad_actor_response_pretty(self):
-        with Path("apps/contributions/tests/fixtures/bad-actor-response.json").open() as f:
-            contribution = ContributionFactory(bad_actor_response=json.load(f))
-        output = self.contribution_admin.bad_actor_response_pretty(contribution)
-        assert isinstance(output, str)
-        assert len(output)
-
-    def test_provider_payment_method_details_pretty(self):
-        with Path("apps/contributions/tests/fixtures/provider-payment-method-details.json").open() as f:
-            contribution = ContributionFactory(provider_payment_method_details=json.load(f))
-        output = self.contribution_admin.provider_payment_method_details_pretty(contribution)
-        assert isinstance(output, str)
-        assert len(output)
-
-    def test_will_create_revisions_from_admin_actions(self, *args, **kwargs):
-        """We treat CompareVersionAdmin as a blackbox that should be depended on to consistently produce.
-
-        revisions when admin users create, save, and delete from the admin. In other parts of the app, we
-        do more to ensure that revisions are created, but in the admin, we should be able to rely on
-        CompareVersionAdmin to do the right thing.
-        """
-        assert isinstance(self.contribution_admin, CompareVersionAdmin)
-
-
-# eventually we should move all tests from ContributionAdminTest above to this pytest-based test,
-# but initially we're adding so we get minimal test coverage for inline payment admin on contribution model
 @pytest.mark.django_db()
 class TestContributionAdmin:
     def test_views_stand_up(self, client, admin_user):
@@ -312,3 +220,62 @@ class TestContributionAdmin:
             ).status_code
             == 200
         )
+
+    @pytest.fixture()
+    def admin(self):
+        return ContributionAdmin(Contribution, AdminSite())
+
+    def test_provider_payment_link(self, admin):
+        contribution = ContributionFactory(provider_payment_id="pi_1234")
+        assert (
+            admin.provider_payment_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/"
+            f"{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
+        )
+
+    def test_provider_subscription_link(self, admin):
+        contribution = ContributionFactory(provider_subscription_id="sub_1234")
+        assert (
+            admin.provider_subscription_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/"
+            f"{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
+        )
+
+    def test_provider_customer_link(self, admin):
+        contribution = ContributionFactory(provider_customer_id="cus_1234")
+        assert (
+            admin.provider_customer_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/"
+            f"{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
+        )
+
+    def test_links_not_available(self, admin):
+        contribution = ContributionFactory(
+            provider_customer_id=None, provider_subscription_id=None, provider_payment_id=None
+        )
+        assert admin.provider_customer_link(contribution) == "-"
+        assert admin.provider_payment_link(contribution) == "-"
+        assert admin.provider_subscription_link(contribution) == "-"
+
+    def test_bad_actor_response_pretty(self, admin):
+        with Path("apps/contributions/tests/fixtures/bad-actor-response.json").open() as f:
+            contribution = ContributionFactory(bad_actor_response=json.load(f))
+        output = admin.bad_actor_response_pretty(contribution)
+        assert isinstance(output, str)
+        assert len(output)
+
+    def test_provider_payment_method_details_pretty(self, admin):
+        with Path("apps/contributions/tests/fixtures/provider-payment-method-details.json").open() as f:
+            contribution = ContributionFactory(provider_payment_method_details=json.load(f))
+        output = admin.provider_payment_method_details_pretty(contribution)
+        assert isinstance(output, str)
+        assert len(output)
+
+    def test_will_create_revisions_from_admin_actions(self, admin, *args, **kwargs):
+        """We treat CompareVersionAdmin as a blackbox that should be depended on to consistently produce.
+
+        revisions when admin users create, save, and delete from the admin. In other parts of the app, we
+        do more to ensure that revisions are created, but in the admin, we should be able to rely on
+        CompareVersionAdmin to do the right thing.
+        """
+        assert isinstance(admin, CompareVersionAdmin)

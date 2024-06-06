@@ -566,6 +566,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         ContributionStatus.FLAGGED,
         ContributionStatus.PROCESSING,
         ContributionStatus.REJECTED,
+        ContributionStatus.ABANDONED,
     ]
     # NB: This view is about returning contributor.contributions and never returns contributors, but
     # we need to set a queryset to satisfy DRF's viewset machinery

@@ -86,7 +86,17 @@ class ContributionAdmin(RevEngineBaseAdmin):
                 )
             },
         ),
-        ("Relations", {"fields": ("contributor", "donation_page")}),
+        (
+            "Relations",
+            {
+                "fields": ("contributor", "donation_page", "_revenue_program"),
+                "description": (
+                    "Note: a contribution can have a foreign key to donation page OR revenue program, but not both. "
+                    "Additionally, there is a `revenue program` property exposed further down that is populated by either "
+                    "`._revenue_program` or by `.donation_page.revenue_program`"
+                ),
+            },
+        ),
         ("Bad Actor", {"fields": ("bad_actor_score", "bad_actor_response_pretty")}),
         (
             "Provider",
@@ -123,7 +133,6 @@ class ContributionAdmin(RevEngineBaseAdmin):
     )
 
     list_filter = (
-        "donation_page__revenue_program",
         "interval",
         "donation_page__name",
         "status",
@@ -147,24 +156,26 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     readonly_fields = (
         "amount",
-        "currency",
-        "reason",
-        "interval",
-        "contributor",
-        "donation_page",
-        "revenue_program",
-        "bad_actor_score",
         "bad_actor_response_pretty",
-        "status",
-        "payment_provider_used",
-        "provider_payment_link",
-        "provider_subscription_link",
-        "provider_customer_link",
-        "provider_payment_method_id",
-        "payment_provider_data_pretty",
+        "bad_actor_score",
+        "contribution_metadata",
+        "contributor",
+        "currency",
+        "donation_page",
         "flagged_date",
-        "provider_setup_intent_id",
+        "interval",
+        "payment_provider_data_pretty",
+        "payment_provider_used",
+        "provider_customer_link",
+        "provider_payment_link",
         "provider_payment_method_details_pretty",
+        "provider_payment_method_id",
+        "provider_setup_intent_id",
+        "provider_subscription_link",
+        "reason",
+        "_revenue_program",
+        "revenue_program",
+        "status",
     )
 
     actions = (
@@ -173,6 +184,12 @@ class ContributionAdmin(RevEngineBaseAdmin):
     )
 
     inlines = [PaymentInline]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):
@@ -245,15 +262,20 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     @admin.display(description="Bad actor response")
     def bad_actor_response_pretty(self, instance):
-        """Render bad_actor_response field with pretty formatting"""
+        """Render bad_actor_response field with pretty formatting."""
         return prettify_json_field(instance.bad_actor_response)
 
     @admin.display(description="Payment provider data")
     def payment_provider_data_pretty(self, instance):
-        """Render payment_provider_data field with pretty formatting"""
+        """Render payment_provider_data field with pretty formatting."""
         return prettify_json_field(instance.payment_provider_data)
 
     @admin.display(description="Provider payment method details")
     def provider_payment_method_details_pretty(self, instance):
-        """Render provider_payment_method_details field with pretty formatting"""
+        """Render provider_payment_method_details field with pretty formatting."""
         return prettify_json_field(instance.provider_payment_method_details)
+
+    @admin.display(description="Revenue program (property, not FK)")
+    def revenue_program(self, instance):
+        """Render revenue_program field with pretty formatting."""
+        return instance.revenue_program.name

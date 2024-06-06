@@ -1,19 +1,27 @@
+from django.db.utils import IntegrityError
+
 import pytest
 
 from apps.config.models import DenyListWord
+from apps.config.tests.factories import DenyListWordFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestDenyListWord:
-    text = "z0mg"
-
-    @pytest.fixture
+    @pytest.fixture()
     def word(self):
-        return DenyListWord(word=self.text)
+        return DenyListWordFactory()
 
-    def test_basics(self, word):
-        assert str(word) == self.text
+    @pytest.mark.parametrize("case", ["lower", "upper"])
+    def test_case_insensitive_uniqueness(self, word, case):
+        with pytest.raises(IntegrityError):
+            DenyListWord.objects.create(word=getattr(word.word, case)())
 
-    def test_case_sensitive(self, word):
-        assert word.word != (new_text := self.text.capitalize())
-        DenyListWord(word=new_text).save()
+    def test_retrieval_case_insensitivity(self, word):
+        word_lower = DenyListWord.objects.get(word=word.word.lower())
+        word_upper = DenyListWord.objects.get(word=word.word.upper())
+        assert word_lower == word_upper
+
+    def test_basics(self):
+        t = DenyListWord(word="z0mg")
+        assert str(t) == "z0mg"

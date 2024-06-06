@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 def migrate_relationship_to_socialmeta_model(apps, schema_editor):
-    """"""
     RevenueProgram = apps.get_model("organizations", "RevenueProgram")
     for rp in RevenueProgram.objects.filter(social_meta__isnull=False).all():
         rp.social_meta.revenue_program = rp

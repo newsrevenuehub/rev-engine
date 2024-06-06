@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from 'test-utils';
 import usePortal from 'hooks/usePortal';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
+import { usePortalContributorImpact } from 'hooks/usePortalContributorImpact';
 import ContributionsList from './ContributionsList';
 
 jest.mock('react-router-dom', () => ({
@@ -13,6 +14,8 @@ jest.mock('react-router-dom', () => ({
 }));
 jest.mock('hooks/usePortal');
 jest.mock('hooks/usePortalContributionList');
+jest.mock('hooks/usePortalContributorImpact');
+jest.mock('./ContactInfoPopover/ContactInfoPopover');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionsHeader/ContributionsHeader');
 jest.mock('./ContributionItem/ContributionItem');
@@ -30,12 +33,14 @@ function tree(context?: Partial<PortalAuthContextResult>) {
 describe('ContributionsList', () => {
   const usePortalMock = jest.mocked(usePortal);
   const useParamsMock = jest.mocked(useParams);
+  const usePortalContributorImpactMock = jest.mocked(usePortalContributorImpact);
   const usePortalContributionsListMock = jest.mocked(usePortalContributionList);
   let track: jest.SpyInstance;
 
   beforeEach(() => {
     useParamsMock.mockReturnValue({});
     usePortalMock.mockReturnValue({ page: { id: 'mock-page-id', revenue_program: { id: 'mock-rp-id' } } } as any);
+    usePortalContributorImpactMock.mockReturnValue({ impact: { total: 123000 } } as any);
     usePortalContributionsListMock.mockReturnValue({
       contributions: [],
       isError: false,
@@ -55,6 +60,18 @@ describe('ContributionsList', () => {
     expect(header).toBeInTheDocument();
     expect(header.dataset.defaultPage).toBe('mock-page-id');
     expect(header.dataset.rp).toBe('mock-rp-id');
+  });
+
+  it('shows Impact Tracker', () => {
+    tree();
+    expect(screen.getByText('Impact Tracker')).toBeInTheDocument();
+    expect(screen.getByText('$1,230.00')).toBeInTheDocument();
+  });
+
+  it('hides Impact Tracker when impact is loading', () => {
+    usePortalContributorImpactMock.mockReturnValue({ isLoading: true } as any);
+    tree();
+    expect(screen.queryByText('Impact Tracker')).not.toBeInTheDocument();
   });
 
   it('shows a Transactions heading', () => {
@@ -77,6 +94,13 @@ describe('ContributionsList', () => {
     });
     tree();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should render contact info popover', () => {
+    tree();
+    const contactInfoPopover = screen.getByTestId('mock-contact-info-popover');
+    expect(contactInfoPopover).toBeInTheDocument();
+    expect(contactInfoPopover.dataset.revenueprogram).toBe('{"id":"mock-rp-id"}');
   });
 
   describe('After contributions are fetched', () => {
@@ -208,6 +232,43 @@ describe('ContributionsList', () => {
 
       await waitFor(() => {
         expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering},-created` });
+      });
+    });
+  });
+
+  describe("Filtering contributions (Tabs: by 'All', 'Recurring', or 'One-time')", () => {
+    it('should show all contributions by default', () => {
+      tree();
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+    });
+
+    it('should show all contributions when moving to "All" tab', async () => {
+      tree();
+
+      userEvent.click(screen.getByRole('tab', { name: 'Recurring' }));
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+          ordering: '-created',
+          interval: 'recurring'
+        });
+      });
+      userEvent.click(screen.getByRole('tab', { name: 'All' }));
+
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+      });
+    });
+
+    it.each([
+      ['Recurring', 'recurring'],
+      ['One-time', 'one_time']
+    ])('should show %s contributions when selected', async (tab, interval) => {
+      tree();
+
+      userEvent.click(screen.getByRole('tab', { name: tab }));
+
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created', interval });
       });
     });
   });

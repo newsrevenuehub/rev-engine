@@ -2,7 +2,7 @@ from rest_framework import permissions
 
 
 class UserOwnsUser(permissions.BasePermission):
-    """Determine if user object for which request is made corresponds to requesting user"""
+    """Determine if user object for which request is made corresponds to requesting user."""
 
     message = "You don't have permission to access this instance"
 
@@ -23,7 +23,7 @@ def user_email_is_verified(request) -> bool:
 
 
 class UserIsAllowedToUpdate(permissions.BasePermission):
-    """Determine if update is permissible"""
+    """Determine if update is permissible."""
 
     message = "You must verify this email address to update your user"
 
@@ -37,7 +37,7 @@ class UserIsAllowedToUpdate(permissions.BasePermission):
 
 
 class UserHasAcceptedTermsOfService(permissions.BasePermission):
-    """Determine if user has accepted terms of service"""
+    """Determine if user has accepted terms of service."""
 
     message = "Please accept terms of service."
 

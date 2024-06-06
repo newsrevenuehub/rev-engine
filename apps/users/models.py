@@ -90,7 +90,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     @property
     def active_flags(self) -> models.QuerySet:
-        """Return set of distinct flags this user gets by virtue of their role, role assignment, or lack thereof"""
+        """Return set of distinct flags this user gets by virtue of their role, role assignment, or lack thereof."""
         Flag = get_waffle_flag_model()
         return (
             Flag.objects.filter(models.Q(superusers=True) | models.Q(everyone=True) | models.Q(users__in=[self]))
@@ -102,7 +102,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def permitted_organizations(
         self,
     ) -> models.QuerySet["organizations.Organization"]:
-        """All the orgs a user is permitted to see based on being a superuser or else on their role assignment, if any"""
+        """All the orgs a user is permitted to see based on being a superuser or else on their role assignment, if any."""
         from apps.organizations.models import Organization
 
         if self.is_superuser:
@@ -119,8 +119,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     @property
     def permitted_revenue_programs(self) -> models.QuerySet["organizations.RevenueProgram"]:
-        """All the revenue programs a user is permitted to see based on being a superuser or else on their role assignment, if any"""
-
+        """All the revenue programs a user is permitted to see based on being a superuser or else on their role assignment, if any."""
         from apps.organizations.models import RevenueProgram
 
         if self.is_superuser:
@@ -144,10 +143,12 @@ class OrganizationUser(models.Model):
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     is_owner = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"{self.organization} - {self.user}"
+
 
 class RoleAssignment(models.Model):
-    """The central entity used for determining view and object-level permissions accross the API layer
-
+    """The central entity used for determining view and object-level permissions accross the API layer.
 
     API resources use role assignnments to do things like limit queryset results to only objects owned by
     a user's organization (for instance).
@@ -170,7 +171,7 @@ class RoleAssignment(models.Model):
 
     # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
     def can_access_rp(self, revenue_program):
-        """Determine if role assignment grants basic acess to a given revenue program
+        """Determine if role assignment grants basic acess to a given revenue program.
 
         Note that this is a "dumb" notion of having access. It doesn't distinguish between
         read and write. It's used to show that a user should be able to
@@ -187,6 +188,4 @@ class RoleAssignment(models.Model):
 
 
 class UnexpectedRoleType(Exception):
-    """For signalling an unexpected value for `role_assignment.role_type`"""
-
-    pass
+    """For signalling an unexpected value for `role_assignment.role_type`."""

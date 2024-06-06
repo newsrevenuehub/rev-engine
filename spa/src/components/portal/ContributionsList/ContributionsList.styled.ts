@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import PortalPage from '../PortalPage';
+import { Tabs as BaseTabs } from 'components/base';
 
 export const List = styled.div<{ $detailVisible: boolean }>`
   align-self: self-start;
@@ -40,6 +41,7 @@ export const Layout = styled.div`
   gap: 25px 20px;
   grid-template-areas:
     'header _'
+    'tracker _'
     'legend _'
     'list detail';
   grid-template-columns: 1fr 1fr;
@@ -58,7 +60,17 @@ export const Detail = styled.div`
   grid-area: detail;
 `;
 
+export const Impact = styled.div`
+  grid-area: tracker;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    margin-bottom: 40px;
+    padding: 0 20px;
+  }
+`;
+
 export const Legend = styled.div<{ $detailVisible: boolean }>`
+  position: relative;
   grid-area: legend;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -66,6 +78,11 @@ export const Legend = styled.div<{ $detailVisible: boolean }>`
     padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
   }
+`;
+
+export const Tabs = styled(BaseTabs)`
+  margin-top: 20px;
+  margin-bottom: 17px;
 `;
 
 export const Loading = styled.div`
@@ -84,4 +101,10 @@ export const Subhead = styled.h2`
 export const Description = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   line-height: 120%;
+`;
+
+export const ContactInfoWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;

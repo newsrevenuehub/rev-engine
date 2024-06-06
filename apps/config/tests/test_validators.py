@@ -1,35 +1,23 @@
-from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.db.utils import IntegrityError
 
+import pytest
+
+from apps.config.models import DenyListWord
 from apps.config.tests.factories import DenyListWordFactory
-from apps.config.validators import (
-    GENERIC_SLUG_DENIED_MSG,
-    SLUG_DENIED_CODE,
-    validate_slug_against_denylist,
-)
 
 
-class DenyListValidationTest(TestCase):
-    def setUp(self):
-        dlw = DenyListWordFactory()
-        self.bad_word = dlw.word
+@pytest.mark.django_db()
+class TestDenylistValidation:
+    @pytest.fixture()
+    def word(self):
+        return DenyListWordFactory()
 
-    def test_bad_word_raises_validation_error(self):
-        with self.assertRaises(ValidationError) as v_error:
-            validate_slug_against_denylist(self.bad_word)
+    @pytest.mark.parametrize("case", ["lower", "upper"])
+    def test_case_insensitive_uniqueness(self, word, case):
+        with pytest.raises(IntegrityError):
+            DenyListWord.objects.create(word=getattr(word.word, case)())
 
-        self.assertEqual(v_error.exception.message, GENERIC_SLUG_DENIED_MSG)
-        self.assertEqual(v_error.exception.code, SLUG_DENIED_CODE)
-
-    def test_good_word_passes_validation(self):
-        good_word = "flowers"
-        self.assertNotEqual(good_word, self.bad_word)
-
-        self.assertIsNone(validate_slug_against_denylist(good_word))
-
-    def test_validates_case_insensitive(self):
-        with self.assertRaises(ValidationError) as v_error:
-            validate_slug_against_denylist(self.bad_word.upper())
-
-        self.assertEqual(v_error.exception.message, GENERIC_SLUG_DENIED_MSG)
-        self.assertEqual(v_error.exception.code, SLUG_DENIED_CODE)
+    def test_retrieval_case_insensitivity(self, word):
+        word_lower = DenyListWord.objects.get(word=word.word.lower())
+        word_upper = DenyListWord.objects.get(word=word.word.upper())
+        assert word_lower == word_upper

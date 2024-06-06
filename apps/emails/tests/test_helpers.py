@@ -7,7 +7,7 @@ from apps.emails.helpers import convert_to_timezone_formatted
 
 
 @pytest.mark.parametrize(
-    "timezone, fmt, is_UTC, expect",
+    ("timezone", "fmt", "is_UTC", "expect"),
     [
         ("America/New_York", "%d/%m/%Y %H:%M %Z", False, "05/12/2022 19:00 EST"),
         ("America/New_York", None, False, "12-05-22 19:00 EST"),

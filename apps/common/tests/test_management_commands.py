@@ -11,16 +11,14 @@ class TestCreateStripeWebhooks:
 
         call_command(
             "create_stripe_webhooks",
-            **{
-                "live": live,
-                "url_contributions": url_contributions,
-                "url_upgrades": url_upgrades,
-                "stdout": out,
-            },
+            live=live,
+            url_contributions=url_contributions,
+            url_upgrades=url_upgrades,
+            stdout=out,
         )
         return out
 
-    @pytest.mark.parametrize("live", (True, False))
+    @pytest.mark.parametrize("live", [True, False])
     def test_live_flag(self, live: bool, mocker, settings):
         mock_webhook_create = mocker.patch("stripe.WebhookEndpoint.create")
         mock_webhook_retrieve = mocker.patch("stripe.WebhookEndpoint.list")
@@ -50,7 +48,7 @@ class TestCreateStripeWebhooks:
         settings.STRIPE_TEST_CONTRIBUTIONS_SECRET_KEY = "test_key"
         settings.STRIPE_TEST_UPGRADES_SECRET_KEY = "test_key_other"
         self.run_command(
-            **{
+            **{  # noqa: PIE804 we broke ruff https://github.com/astral-sh/ruff/issues/11371
                 "live": False,
                 "url_contributions": (url_contributions := "http://custom.com"),
                 "url_upgrades": (url_upgrades := "http://bespoke.com"),

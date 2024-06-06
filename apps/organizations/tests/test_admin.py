@@ -146,6 +146,7 @@ def test_show_expected_fields_on_rp_pages(admin_client):
         assert soup.select_one(".field-name") is not None
         assert soup.select_one(".field-slug") is not None
         assert soup.find("input", {"name": "contact_email"}) is not None
+        assert soup.find("input", {"name": "contact_phone"}) is not None
         assert soup.select_one(".field-organization") is not None
         assert soup.select_one(".field-default_donation_page") is not None
         assert soup.select_one(".field-country") is not None
@@ -164,13 +165,13 @@ def test_show_expected_fields_on_rp_pages(admin_client):
         assert soup.find("input", {"name": "allow_offer_nyt_comp"})
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestOrganizationAdmin:
-    @pytest.fixture
+    @pytest.fixture()
     def model_admin(self):
         return OrganizationAdmin(Organization, AdminSite())
 
-    @pytest.fixture
+    @pytest.fixture()
     def slug_change_for_existing(self, organization_on_core_plan_with_mailchimp_set_up):
         return {
             "name": organization_on_core_plan_with_mailchimp_set_up.name,
@@ -179,7 +180,7 @@ class TestOrganizationAdmin:
             "slug": "new-slug",
         }
 
-    @pytest.fixture
+    @pytest.fixture()
     def no_changes_for_existing(self, organization_on_core_plan_with_mailchimp_set_up):
         return {
             "name": organization_on_core_plan_with_mailchimp_set_up.name,
@@ -188,7 +189,7 @@ class TestOrganizationAdmin:
             "slug": organization_on_core_plan_with_mailchimp_set_up.slug,
         }
 
-    @pytest.fixture
+    @pytest.fixture()
     def new_data(self):
         return {
             "name": "some name",

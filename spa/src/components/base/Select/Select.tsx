@@ -1,9 +1,10 @@
 import styled from 'styled-components';
 import MenuItem from '../MenuItem/MenuItem';
 import { ReactNode, forwardRef } from 'react';
-import TextField, { TextFieldProps } from '../TextField/TextField';
+import TextField from '../TextField/TextField';
+import { OutlinedTextFieldProps } from '@material-ui/core';
 
-export type SelectProps = TextFieldProps & {
+export type SelectProps = Omit<OutlinedTextFieldProps, 'variant'> & {
   options: Array<{ label: ReactNode; value: string | number; selectedLabel?: string | null }>;
 };
 
@@ -22,6 +23,10 @@ const StyledSelect = styled(TextField)`
       #selected-label {
         display: block;
       }
+    }
+
+    .NreSelectFocused .NreSelectNotchedOutline {
+      border-color: #00bfdf;
     }
   }
 `;
@@ -46,8 +51,13 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
     <StyledSelect
       select
       variant="outlined"
-      // As a select no InputProps are needed, so we override TextField's default to avoid console errors
-      InputProps={{}}
+      // Override focused border color so that no custom style is applied
+      InputProps={{
+        classes: {
+          notchedOutline: 'NreSelectNotchedOutline',
+          focused: 'NreSelectFocused'
+        }
+      }}
       SelectProps={{ classes: { selectMenu: 'NreSelectMenu' } }}
       ref={ref}
       {...other}

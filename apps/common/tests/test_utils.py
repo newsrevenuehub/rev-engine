@@ -29,6 +29,7 @@ from apps.common.utils import (
     upsert_cloudflare_cnames,
     upsert_with_diff_check,
 )
+from apps.pages.tests.factories import DonationPageFactory
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50
@@ -104,13 +105,13 @@ custom_map = {"custom.test.org": "test-rp-slug"}
 
 
 @pytest.mark.parametrize(
-    "hostmap,request_host,expected",
-    (
+    ("hostmap", "request_host", "expected"),
+    [
         ({}, f"my-subby{test_domain}", "my-subby"),
         ({}, "test.org", None),
         (custom_map, f"rp-slug{test_domain}", "rp-slug"),
         (custom_map, "custom.test.org", "test-rp-slug"),
-    ),
+    ],
 )
 def test_get_subdomain_from_request(hostmap, request_host, expected, settings):
     request = RequestFactory().get("/")
@@ -128,9 +129,8 @@ class TestMigrations(TestCase):
     migrate_to = None
 
     def setUp(self):
-        assert (
-            self.migrate_from and self.migrate_to
-        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(type(self).__name__)
+        assert self.migrate_from, f"TestCase '{type(self).__name__}' must define migrate_from property"
+        assert self.migrate_to, f"TestCase '{type(self).__name__}' must define migrate_to property"
 
         self.migrate_from = [
             (
@@ -164,7 +164,7 @@ class TestMigrations(TestCase):
 
 
 @pytest.mark.parametrize(
-    "branch_name,expected", (("dev-1234", "dev-1234"), ("dev-1234-foo", "dev-1234"), ("rando", None))
+    ("branch_name", "expected"), [("dev-1234", "dev-1234"), ("dev-1234-foo", "dev-1234"), ("rando", None)]
 )
 def test_extract_ticket_id_from_branch_name(branch_name: str, expected: str, mocker):
     logger_spy = mocker.spy(logger, "warning")
@@ -323,8 +323,8 @@ def test_ip_in_cf_connecting_header():
 
 
 @pytest.mark.parametrize(
-    "enable_pubsub,gcloud_project,expected",
-    ((True, "project", True), (False, "project", False), (True, None, False), (False, None, False), (True, "", False)),
+    ("enable_pubsub", "gcloud_project", "expected"),
+    [(True, "project", True), (False, "project", False), (True, None, False), (False, None, False), (True, "", False)],
 )
 def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expected, monkeypatch):
     monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", enable_pubsub)
@@ -332,7 +332,7 @@ def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expec
     assert google_cloud_pub_sub_is_configured() == expected
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class Test_upsert_with_diff_check:
     from apps.contributions.models import Contribution
 
@@ -342,36 +342,36 @@ class Test_upsert_with_diff_check:
 
     model = Contribution
 
-    @pytest.fixture
+    @pytest.fixture()
     def instance(self):
         from apps.contributions.tests.factories import ContributionFactory
 
         return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
 
-    @pytest.fixture
+    @pytest.fixture()
     def instance_is_none(self):
         return None
 
-    @pytest.fixture
+    @pytest.fixture()
     def update_data(self):
-        return {"amount": self.UPDATE_AMOUNT}
+        return {"amount": self.UPDATE_AMOUNT, "donation_page": DonationPageFactory()}
 
-    @pytest.fixture
+    @pytest.fixture()
     def unique_identifier(self):
         return {"provider_payment_id": self.PROVIDER_PAYMENT_ID}
 
-    @pytest.fixture
+    @pytest.fixture()
     def instance_needs_update(self, instance):
         return instance
 
-    @pytest.fixture
+    @pytest.fixture()
     def instance_not_need_update(self, instance, update_data):
         for field, value in update_data.items():
             setattr(instance, field, value)
         instance.save()
         return instance
 
-    @pytest.fixture
+    @pytest.fixture()
     def instance_only_needs_amount_update(self, instance, update_data):
         for field, value in update_data.items():
             if field != "amount":

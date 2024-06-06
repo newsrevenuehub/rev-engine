@@ -13,7 +13,7 @@ PAGE_TOPIC = "page-topic"
 
 
 @pytest.mark.parametrize(
-    "gcloud_configured,topic",
+    ("gcloud_configured", "topic"),
     [
         (False, None),
         (True, None),
@@ -22,7 +22,7 @@ PAGE_TOPIC = "page-topic"
     ],
 )
 @patch("apps.pages.signals.Publisher")
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_donation_page_page_published_handler(publisher, gcloud_configured, topic, monkeypatch):
     monkeypatch.setattr("apps.pages.signals.settings.PAGE_PUBLISHED_TOPIC", topic)
     publisher_instance = MagicMock()

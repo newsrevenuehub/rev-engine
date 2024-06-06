@@ -6,8 +6,8 @@ from django.db import migrations, models
 def populate_null_sidebar_elements_with_default_empty_list(apps, schema_editor):
     DonationPage = apps.get_model("pages", "DonationPage")
     Template = apps.get_model("pages", "Template")
-    DonationPage.objects.filter(sidebar_elements__isnull=True).update(sidebar_elements=list())
-    Template.objects.filter(sidebar_elements__isnull=True).update(sidebar_elements=list())
+    DonationPage.objects.filter(sidebar_elements__isnull=True).update(sidebar_elements=[])
+    Template.objects.filter(sidebar_elements__isnull=True).update(sidebar_elements=[])
 
 
 class Migration(migrations.Migration):

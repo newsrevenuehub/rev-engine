@@ -5,8 +5,7 @@ from apps.common.tests.test_resources import AbstractTestCase
 
 # TODO: [DEV-3409] Retire RevEngineApiAbstractTestCase
 class RevEngineApiAbstractTestCase(AbstractTestCase):
-    """A set custom test assertions for testing the API, with a view of distinct user types
-    and role assignments.
+    """A set custom test assertions for testing the API, with a view of distinct user types and role assignments.
 
     Note that it's the responsibility of any sub-classing test case to call `super().setUp()` if
     it overrides `.setUp`.
@@ -15,7 +14,7 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
     """
 
     def setUp(self):
-        """Set up the domain models"""
+        """Set up the domain models."""
         super().setUp()
         self.set_up_domain_model()
 
@@ -23,58 +22,58 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
         if user is not None:
             self.client.force_authenticate(user=user)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status)
+        assert response.status_code == status
         if json is not None:
-            self.assertEqual(response.json(), json)
+            assert response.json() == json
         return response
 
     def assert_unauthed_cannot_get(self, url, status=status.HTTP_401_UNAUTHORIZED):
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status)
+        assert response.status_code == status
         return response
 
     def assert_unauthed_can_get(self, url):
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
         return response
 
     def assert_unauthed_cannot_delete(self, url):
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         return response
 
     def assert_unauthed_cannot_patch(self, url, data=None):
         data = data if data is not None else {}
         response = self.client.patch(url, data=data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         return response
 
     def assert_unauthed_cannot_put(self, url, data=None):
         data = data if data is not None else {}
         response = self.client.put(url, data=data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         return response
 
     def assert_user_can_get(self, url, user):
         self.client.force_authenticate(user=user)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
         return response
 
     def assert_user_cannot_get(self, url, user, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, expected_status_code)
+        assert response.status_code == expected_status_code
         return response
 
     def assert_user_can_list(
         self, url, user, expected_count, assert_item=None, assert_all=None, results_are_flat=False
     ):
         response = self.assert_user_can_get(url, user)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
         results_count = response.json()["count"] if not results_are_flat else len(response.json())
         results = response.json()["results"] if not results_are_flat else response.json()
-        self.assertEqual(results_count, expected_count)
+        assert results_count == expected_count
         if assert_item:
             for item in results:
                 assert_item(item)
@@ -86,44 +85,44 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
         data = data if data is not None else {}
         self.client.force_authenticate(user=user)
         response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        assert response.status_code == status.HTTP_201_CREATED
         return response
 
     def assert_user_cannot_post(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user)
         response = self.client.post(url, data=data, format="json")
-        self.assertEqual(response.status_code, expected_status_code)
+        assert response.status_code == expected_status_code
         return response
 
     def assert_user_can_patch(self, url, user, data=None):
         data = data if data is not None else {}
         self.client.force_authenticate(user=user)
         response = self.client.patch(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
         return response
 
     def assert_user_cannot_patch(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
         response = self.client.patch(url, data, format="json")
-        self.assertEqual(response.status_code, expected_status_code)
+        assert response.status_code == expected_status_code
         return response
 
     def assert_user_cannot_put(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
         response = self.client.put(url, data, format="json")
-        self.assertEqual(response.status_code, expected_status_code)
+        assert response.status_code == expected_status_code
         return response
 
     def assert_user_can_delete(self, url, user):
         self.client.force_authenticate(user=user)
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
         return response
 
     def assert_user_cannot_delete(self, url, user, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, expected_status_code)
+        assert response.status_code == expected_status_code
         return response
 
     def assert_user_cannot_post_because_not_implemented(self, url, user, data=None):

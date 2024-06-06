@@ -19,7 +19,7 @@ class SecretProvider:
     def __init__(self, version_id: str = "latest", *args, **kwargs) -> None:
         self.version_id = version_id
 
-    def __get__(self, obj, type=None) -> object:  # pragma: no cover
+    def __get__(self, obj, type_=None) -> object:  # pragma: no cover
         raise NotImplementedError("Subclasses of SecretProviderSecret should implement __get__ but does not")
 
     def __set__(self, obj, value) -> None:  # pragma: no cover
@@ -65,7 +65,7 @@ class GoogleCloudSecretProvider(SecretProvider):
     def get_secret_version_path(self, obj) -> str:
         return f"{self.get_secret_path(obj)}/versions/{self.version_id}"
 
-    def __get__(self, obj, type=None) -> str | None:
+    def __get__(self, obj, type_=None) -> str | None:
         logger.info("GoogleCloudSecretProvider retrieving secret %s", (secret_name := self.get_secret_name(obj)))
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             logger.info("GoogleCloudSecretProvider not enabled")
@@ -93,7 +93,7 @@ class GoogleCloudSecretProvider(SecretProvider):
                 secret_name,
                 secret_version_path,
             )
-            raise SecretProviderException("Permission denied")
+            raise SecretProviderException("Permission denied") from None
 
         return secret.payload.data.decode("UTF-8") if secret else None
 
@@ -108,7 +108,7 @@ class GoogleCloudSecretProvider(SecretProvider):
             logger.warning(
                 "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
             )
-            return None
+            return
         try:
             secret = client.get_secret(request={"name": (secret_path := self.get_secret_path(obj))})
         except NotFound:
@@ -132,14 +132,14 @@ class GoogleCloudSecretProvider(SecretProvider):
                     secret_name,
                     secret_path,
                 )
-                raise SecretProviderException("Permission denied")
+                raise SecretProviderException("Permission denied") from None
         except PermissionDenied:
             logger.exception(
                 "GoogleCloudSecretProvider cannot check for existing secret %s at path %s because permission denied",
                 secret_name,
                 secret_path,
             )
-            raise SecretProviderException("Permission denied")
+            raise SecretProviderException("Permission denied") from None
 
         if secret:
             try:
@@ -150,13 +150,14 @@ class GoogleCloudSecretProvider(SecretProvider):
                         "payload": {"data": value.encode("UTF-8")},
                     }
                 )
-                return
             except PermissionDenied:
                 logger.exception(
                     "`GoogleCloudSecretProvider cannot add secret version for secret %s because permission denied",
                     secret_name,
                 )
-                raise SecretProviderException("Permission denied")
+                raise SecretProviderException("Permission denied") from None
+            else:
+                return
         else:
             logger.warning("GoogleCloudSecretProvider failed to create secret %s", secret_name)
 
@@ -174,7 +175,7 @@ class GoogleCloudSecretProvider(SecretProvider):
             logger.warning(
                 "GoogleCloudSecretProvider cannot delete secret %s because client is not initialized", secret_name
             )
-            return None
+            return
         try:
             client.delete_secret(request={"name": (secret_path := self.get_secret_path(obj))})
             logger.info("GoogleCloudSecretProvider deleted secret %s", secret_name)
@@ -187,4 +188,4 @@ class GoogleCloudSecretProvider(SecretProvider):
             return
         except PermissionDenied:
             logger.exception("GoogleCloudSecretProvider cannot delete secret %s because permission denied", secret_name)
-            raise SecretProviderException("Permission denied")
+            raise SecretProviderException("Permission denied") from None

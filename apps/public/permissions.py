@@ -2,7 +2,7 @@ from rest_framework import permissions
 
 
 class IsActiveSuperUser(permissions.BasePermission):
-    """User has permission if they are active and a superuser"""
+    """User has permission if they are active and a superuser."""
 
     def has_permission(self, request, *args):
         return all(

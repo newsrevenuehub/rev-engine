@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from enum import Enum
-from typing import List, Literal, TypedDict, Union
+from typing import Literal, TypedDict
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -106,14 +106,14 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
     try:
         customer = stripe.Customer.retrieve(
             contribution.provider_customer_id,
-            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
         )
-    except StripeError:
+    except StripeError as exc:
         logger.exception(
             "make_send_thank_you_email_data: Something went wrong retrieving Stripe customer for contribution with id %s",
             contribution.id,
         )
-        raise EmailTaskException("Cannot get required data from Stripe")
+        raise EmailTaskException("Cannot get required data from Stripe") from exc
 
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
@@ -130,7 +130,7 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
         magic_link=Contributor.create_magic_link(contribution),
         non_profit=contribution.revenue_program.non_profit,
         rp_name=contribution.revenue_program.name,
-        style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+        style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
         show_upgrade_prompt=False,
     )
@@ -192,8 +192,7 @@ def get_test_magic_link(user, revenue_program) -> str:
     serializer.update_short_lived_token(contributor)
     token = serializer.validated_data["access"]
     domain = construct_rp_domain(serializer.validated_data.get("subdomain", ""), None)
-    magic_link = f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(user.email)}"
-    return magic_link
+    return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(user.email)}"
 
 
 @shared_task(
@@ -204,7 +203,7 @@ def get_test_magic_link(user, revenue_program) -> str:
     autoretry_for=(AnymailAPIError,),
 )
 def send_thank_you_email(data: SendContributionEmailData) -> None:
-    """Retrieve Stripe customer and send thank you email for a contribution"""
+    """Retrieve Stripe customer and send thank you email for a contribution."""
     logger.info("send_thank_you_email: Attempting to send thank you email with the following template data %s", data)
     with configure_scope() as scope:
         scope.user = {"email": (to := data["contributor_email"])}
@@ -225,7 +224,7 @@ def send_thank_you_email(data: SendContributionEmailData) -> None:
     autoretry_for=(AnymailAPIError,),
 )
 def send_templated_email_with_attachment(
-    to: Union[str, List[str]],
+    to: str | list[str],
     subject: str,
     message_as_text: str,
     message_as_html: str,
@@ -236,7 +235,7 @@ def send_templated_email_with_attachment(
 ):
     with configure_scope() as scope:
         scope.user = {"email": to}
-        if not isinstance(to, (tuple, list)):
+        if not isinstance(to, tuple | list):
             to = (to,)
         mail = EmailMultiAlternatives(subject=subject, body=message_as_text, from_email=from_email, to=to)
         mail.attach(

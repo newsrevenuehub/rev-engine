@@ -31,7 +31,7 @@ from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestContributionSerializer:
     def test_has_expected_fields(self, one_time_contribution):
         expected_fields = [
@@ -58,10 +58,10 @@ class TestContributionSerializer:
 
     @pytest.mark.parametrize(
         "make_serializer_object_fn",
-        (
+        [
             lambda: Mock(flagged_date=timezone.now()),
             lambda: Mock(flagged_date=None),
-        ),
+        ],
     )
     def test_get_auto_accepted_on(self, make_serializer_object_fn):
         obj = make_serializer_object_fn()
@@ -72,24 +72,24 @@ class TestContributionSerializer:
         )
 
     @pytest.mark.parametrize(
-        "make_serializer_object_fn,expected",
-        (
+        ("make_serializer_object_fn", "expected"),
+        [
             (lambda: Mock(payment_provider_used=None), ""),
             (lambda: Mock(payment_provider_used=Mock(title=lambda: "something")), "something"),
-        ),
+        ],
     )
     def test_get_formatted_payment_provider_used(self, make_serializer_object_fn, expected):
         assert ContributionSerializer().get_formatted_payment_provider_used(make_serializer_object_fn()) == expected
 
     @pytest.mark.parametrize(
-        "make_serializer_object_fn,expected",
-        (
+        ("make_serializer_object_fn", "expected"),
+        [
             (lambda: Mock(provider_payment_id=None), ""),
             (
                 lambda: Mock(provider_payment_id="<some-provider-payment-id>"),
                 "<some-resource-url>/<some-provider-payment-id>",
             ),
-        ),
+        ],
     )
     def test_get_provider_payment_url(self, make_serializer_object_fn, expected, monkeypatch):
         resource_url = "<some-resource-url>"
@@ -100,14 +100,14 @@ class TestContributionSerializer:
         assert ContributionSerializer().get_provider_payment_url(make_serializer_object_fn()) == expected
 
     @pytest.mark.parametrize(
-        "make_serializer_object_fn,expected",
-        (
+        ("make_serializer_object_fn", "expected"),
+        [
             (lambda: Mock(provider_subscription_id=None), ""),
             (
                 lambda: Mock(provider_subscription_id="<some-provider-subscription-id>"),
                 "<some-resource-url>/<some-provider-subscription-id>",
             ),
-        ),
+        ],
     )
     def test_get_provider_subscription_url(self, make_serializer_object_fn, expected, monkeypatch):
         resource_url = "<some-resource-url>"
@@ -118,14 +118,13 @@ class TestContributionSerializer:
         assert ContributionSerializer().get_provider_subscription_url(make_serializer_object_fn()) == expected
 
     @pytest.mark.parametrize(
-        "make_serializer_object,expected",
-        (
-            # (lambda: Mock(provider_customer_id=None), ""),
+        ("make_serializer_object", "expected"),
+        [
             (
                 Mock(provider_customer_id="<some-provider-customer-id>"),
                 "<some-resource-url>/<some-provider-customer-id>",
             ),
-        ),
+        ],
     )
     def test_get_provider_customer_url(self, make_serializer_object, expected, mocker, monkeypatch):
         resource_url = "<some-resource-url>"
@@ -137,7 +136,7 @@ class TestContributionSerializer:
         assert ContributionSerializer().get_provider_customer_url(make_serializer_object) == expected
 
     def test__get_base_provider_url_when_payment_provider_used_not_stripe(self, mocker):
-        """Here to get otherwise un-run object code running in tests"""
+        """Here to get otherwise un-run object code running in tests."""
 
         class Klass:
             payment_provider_used = "not-stripe"
@@ -145,7 +144,7 @@ class TestContributionSerializer:
         assert ContributionSerializer()._get_base_provider_url(Klass()) is None
 
     def test__get_resource_url_when_no_provider_url(self, mocker):
-        """Here to get otherwise un-run object code running in tests"""
+        """Here to get otherwise un-run object code running in tests."""
         mocker.patch("apps.contributions.serializers.ContributionSerializer._get_base_provider_url", return_value=None)
         assert ContributionSerializer()._get_resource_url(None, None) == ""
 
@@ -155,14 +154,14 @@ class TestAbstractPaymentSerializer:
         assert serializers.AbstractPaymentSerializer().convert_amount_to_cents("1.2") == 120
 
     @pytest.mark.parametrize(
-        "data,expected_amount",
-        (
+        ("data", "expected_amount"),
+        [
             ({"amount": "1.2"}, 120),
             ({"amount": None}, None),
             ({"amount": "0.0"}, 0),
             ({"amount": "0"}, 0),
             ({"amount": "0.00"}, 0),
-        ),
+        ],
     )
     def test_to_internal_value(self, data, expected_amount, mocker):
         mock_super_to_internal_val = mocker.patch("rest_framework.serializers.Serializer.to_internal_value")
@@ -170,15 +169,14 @@ class TestAbstractPaymentSerializer:
         mock_super_to_internal_val.assert_called_once_with({"amount": expected_amount})
 
     def test_validates_amount_min_max(self):
-        assert (
-            amount := serializers.AbstractPaymentSerializer().fields["amount"]
-        ).min_value == serializers.REVENGINE_MIN_AMOUNT
+        amount = serializers.AbstractPaymentSerializer().fields["amount"]
+        assert amount.min_value == serializers.REVENGINE_MIN_AMOUNT
         assert amount.max_value == serializers.STRIPE_MAX_AMOUNT
         assert {"max_value", "min_value"}.issubset(set(amount.error_messages.keys()))
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page_with_conditionally_required_phone_element():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -195,7 +193,7 @@ def donation_page_with_conditionally_required_phone_element():
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page_with_conditionally_required_reason_for_giving_element_no_presets():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -215,7 +213,7 @@ PRESET_REASONS = ["one", "two", "three"]
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page_with_conditionally_required_reason_for_giving_element_and_presets():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -237,7 +235,7 @@ def donation_page_with_conditionally_required_reason_for_giving_element_and_pres
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page_with_unrequired_reason_for_giving_element_and_presets():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -259,7 +257,7 @@ def donation_page_with_unrequired_reason_for_giving_element_and_presets():
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page_with_ask_honoree():
     page = DonationPageFactory()
     conditionally_included_elements = [
@@ -281,7 +279,7 @@ def donation_page_with_ask_honoree():
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page_with_ask_in_memory():
     page = DonationPageFactory()
     conditionally_included_elements = [
@@ -312,7 +310,7 @@ def get_donation_page_fixture(
     donation_page_with_ask_honoree=None,
     donation_page_with_ask_in_memory=None,
 ):
-    """Convenience function to accomplish choosing donation page fixture via pytest.mark.parametrize
+    """Choose donation page fixture via pytest.mark.parametrize convience function.
 
     Fixtures cannot be directly passed to pytest.mark.parametrize, but in some of our tests,
     it's quite convenient to be able to make page fixture choice parametrizable. Pytest fixtures have to be passed
@@ -324,16 +322,16 @@ def get_donation_page_fixture(
     return {
         "donation_page": donation_page,
         "donation_page_with_conditionally_required_phone_element": donation_page_with_conditionally_required_phone_element,
-        "donation_page_with_conditionally_required_reason_for_giving_element_no_presets": donation_page_with_conditionally_required_reason_for_giving_element_no_presets,
-        "donation_page_with_conditionally_required_reason_for_giving_element_and_presets": donation_page_with_conditionally_required_reason_for_giving_element_and_presets,
-        "donation_page_with_unrequired_reason_for_giving_element_and_presets": donation_page_with_unrequired_reason_for_giving_element_and_presets,
+        "donation_page_with_conditionally_required_reason_for_giving_element_no_presets": donation_page_with_conditionally_required_reason_for_giving_element_no_presets,  # noqa E501 black formats it this way
+        "donation_page_with_conditionally_required_reason_for_giving_element_and_presets": donation_page_with_conditionally_required_reason_for_giving_element_and_presets,  # noqa E501 black formats it this way
+        "donation_page_with_unrequired_reason_for_giving_element_and_presets": donation_page_with_unrequired_reason_for_giving_element_and_presets,  # noqa E501 black formats it this way
         "donation_page_with_ask_honoree": donation_page_with_ask_honoree,
         "donation_page_with_ask_in_memory": donation_page_with_ask_in_memory,
     }[requested_fixture]
 
 
 class MockBadActorResponseObjectNotBad:
-    """Used in tests below to simulate response returned by make_bad_actor_request
+    """Used in tests below to simulate response returned by make_bad_actor_request.
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
@@ -346,7 +344,7 @@ class MockBadActorResponseObjectNotBad:
 
 
 class MockBadActorResponseObjectBad:
-    """Used in tests below to simulate response returned by make_bad_actor_request
+    """Used in tests below to simulate response returned by make_bad_actor_request.
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
@@ -359,7 +357,7 @@ class MockBadActorResponseObjectBad:
 
 
 class MockBadActorResponseObjectSuperBad:
-    """Used in tests below to simulate response returned by make_bad_actor_request
+    """Used in tests below to simulate response returned by make_bad_actor_request.
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
@@ -372,8 +370,7 @@ class MockBadActorResponseObjectSuperBad:
 
 
 def mock_get_bad_actor(*args, **kwargs):
-    response = kwargs.get("response", MockBadActorResponseObjectNotBad)
-    return response
+    return kwargs.get("response", MockBadActorResponseObjectNotBad)
 
 
 def mock_get_bad_actor_raise_exception(*args, **kwargs):
@@ -388,15 +385,14 @@ def mock_create_stripe_customer_with_exception(*args, **kwargs):
     raise stripe.error.APIError("Something horrible has happened")
 
 
-@pytest.fixture
+@pytest.fixture()
 def valid_swag_choices_string():
     choice_1_raw = f"t-shirt{StripePaymentMetadataSchemaV1_4.SWAG_SUB_CHOICE_DELIMITER}small"
     choice_2_raw = f"hat{StripePaymentMetadataSchemaV1_4.SWAG_SUB_CHOICE_DELIMITER}huge"
-    choices_raw = f"{choice_1_raw}{StripePaymentMetadataSchemaV1_4.SWAG_CHOICES_DELIMITER}{choice_2_raw}"
-    return choices_raw
+    return f"{choice_1_raw}{StripePaymentMetadataSchemaV1_4.SWAG_CHOICES_DELIMITER}{choice_2_raw}"
 
 
-@pytest.fixture
+@pytest.fixture()
 def invalid_swag_choices_string_exceed_max_length(valid_swag_choices_string, settings):
     assert settings.METADATA_MAX_SWAG_CHOICES_LENGTH
     invalid_string = ""
@@ -405,12 +401,12 @@ def invalid_swag_choices_string_exceed_max_length(valid_swag_choices_string, set
     return invalid_string
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestBaseCreatePaymentSerializer:
     serializer_class = serializers.BaseCreatePaymentSerializer
 
     @pytest.mark.parametrize(
-        "input_data,requested_page,expect_valid",
+        ("input_data", "requested_page", "expect_valid"),
         [
             ({"reason_for_giving": "Other", "reason_other": ""}, "donation_page", False),
             (
@@ -490,11 +486,11 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=data)
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["reason_other"])
+            assert set(serializer.errors.keys()) == {"reason_other"}
             assert serializer.errors["reason_other"][0] == GENERIC_BLANK
 
     @pytest.mark.parametrize(
-        "input_data,requested_page,expect_valid,error_msg",
+        ("input_data", "requested_page", "expect_valid", "error_msg"),
         [
             ({}, "donation_page", True, None),
             (
@@ -574,7 +570,7 @@ class TestBaseCreatePaymentSerializer:
         donation_page_with_conditionally_required_reason_for_giving_element_and_presets,
         donation_page_with_unrequired_reason_for_giving_element_and_presets,
     ):
-        """Test logic around reason_for_giving validation"""
+        """Test logic around reason_for_giving validation."""
         data = minimally_valid_contribution_form_data | input_data
         data["page"] = get_donation_page_fixture(
             requested_page,
@@ -592,11 +588,11 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["reason_for_giving"])
+            assert set(serializer.errors.keys()) == {"reason_for_giving"}
             assert serializer.errors["reason_for_giving"][0] == error_msg
 
     @pytest.mark.parametrize(
-        "input_data,requested_page,expect_valid",
+        ("input_data", "requested_page", "expect_valid"),
         [
             ({"phone": ""}, "donation_page", True),
             ({"phone": "something"}, "donation_page", True),
@@ -631,11 +627,11 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["phone"])
+            assert set(serializer.errors.keys()) == {"phone"}
             assert serializer.errors["phone"][0] == GENERIC_BLANK
 
     @pytest.mark.parametrize(
-        "input_data,expect_valid",
+        ("input_data", "expect_valid"),
         [
             ({"tribute_type": "unexpected"}, False),
             ({"tribute_type": "type_honoree", "honoree": "Someone"}, True),
@@ -647,11 +643,11 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["tribute_type"])
+            assert set(serializer.errors.keys()) == {"tribute_type"}
             assert serializer.errors["tribute_type"][0] == GENERIC_UNEXPECTED_VALUE
 
     @pytest.mark.parametrize(
-        "input_data,expect_valid",
+        ("input_data", "expect_valid"),
         [
             ({}, True),
             ({"tribute_type": "type_honoree", "honoree": ""}, False),
@@ -659,16 +655,16 @@ class TestBaseCreatePaymentSerializer:
         ],
     )
     def test_validate_honoree(self, input_data, expect_valid, minimally_valid_contribution_form_data):
-        """Show `honoree` cannot be blank when `tribute_type` is `type_honoree`"""
+        """Show `honoree` cannot be blank when `tribute_type` is `type_honoree`."""
         data = minimally_valid_contribution_form_data | input_data
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["honoree"])
+            assert set(serializer.errors.keys()) == {"honoree"}
             assert serializer.errors["honoree"][0] == GENERIC_BLANK
 
     @pytest.mark.parametrize(
-        "input_data,expect_valid",
+        ("input_data", "expect_valid"),
         [
             ({}, True),
             ({"tribute_type": "type_in_memory_of", "in_memory_of": ""}, False),
@@ -677,16 +673,16 @@ class TestBaseCreatePaymentSerializer:
         ],
     )
     def test_validate_in_memory_of(self, input_data, expect_valid, minimally_valid_contribution_form_data):
-        """Show `in_memory_of` cannot be blank when `tribute_type` is `type_in_memory_of`"""
+        """Show `in_memory_of` cannot be blank when `tribute_type` is `type_in_memory_of`."""
         data = minimally_valid_contribution_form_data | input_data
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["in_memory_of"])
+            assert set(serializer.errors.keys()) == {"in_memory_of"}
             assert serializer.errors["in_memory_of"][0] == GENERIC_BLANK
 
     @pytest.mark.parametrize(
-        "input_data,expected_resolved_value",
+        ("input_data", "expected_resolved_value"),
         [
             ({"reason_for_giving": "Other", "reason_other": "My reason"}, "My reason"),
             ({"reason_for_giving": PRESET_REASONS[0]}, PRESET_REASONS[0]),
@@ -716,7 +712,7 @@ class TestBaseCreatePaymentSerializer:
         assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
     def test_get_bad_actor_score_happy_path(self, minimally_valid_contribution_form_data, monkeypatch):
-        """Show that calling `get_bad_actor_score` returns response data
+        """Show that calling `get_bad_actor_score` returns response data.
 
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
         HTTP referer in the request, so that's why we set in request factory below.
@@ -729,7 +725,7 @@ class TestBaseCreatePaymentSerializer:
         assert bad_actor_data == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
 
     def test_get_bad_actor_score_when_data_invalid(self, minimally_valid_contribution_form_data, monkeypatch):
-        """Show if the bad actor serialier data is invalid no exception is raise, but method returns None
+        """Show if the bad actor serialier data is invalid no exception is raise, but method returns None.
 
         We achieve an invalid state by omitting http referer from the request context
         """
@@ -741,7 +737,7 @@ class TestBaseCreatePaymentSerializer:
         assert bad_actor_data is None
 
     def test_get_bad_actor_score_when_bad_actor_api_error(self, minimally_valid_contribution_form_data, monkeypatch):
-        """Show if call to `make_bad_actor_request` in `get_bad_actor_score` results in BadActorAPIError, the
+        """Show if call to `make_bad_actor_request` in `get_bad_actor_score` results in BadActorAPIError, the.
 
         method call still succeeds, returning None.
         """
@@ -753,7 +749,7 @@ class TestBaseCreatePaymentSerializer:
         assert bad_actor_data is None
 
     @pytest.mark.parametrize(
-        "score,should_flag",
+        ("score", "should_flag"),
         [
             (settings.BAD_ACTOR_REJECT_SCORE, False),
             (settings.BAD_ACTOR_FLAG_SCORE, True),
@@ -764,7 +760,7 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data)
         assert serializer.should_flag(score) is should_flag
 
-    @pytest.mark.parametrize("interval", (ContributionInterval.MONTHLY, ContributionInterval.YEARLY))
+    @pytest.mark.parametrize("interval", [ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
     def test_build_contribution_happy_path(self, interval, minimally_valid_contribution_form_data, mocker):
         minimally_valid_contribution_form_data["interval"] = interval.value
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1}
@@ -885,8 +881,8 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.source == "rev-engine"
         assert metadata.contributor_id == str(contribution.contributor.id)
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
-        assert metadata.revenue_program_id == str(contribution.donation_page.revenue_program_id)
-        assert metadata.revenue_program_slug == contribution.donation_page.revenue_program.slug
+        assert metadata.revenue_program_id == str(contribution.revenue_program.id)
+        assert metadata.revenue_program_slug == contribution.revenue_program.slug
         assert (
             metadata.swag_opt_out is False
         )  # not provided in form data, this is default via default def in serializer field def
@@ -902,7 +898,7 @@ class TestBaseCreatePaymentSerializer:
             assert getattr(metadata, x) is None
 
 
-@pytest.fixture
+@pytest.fixture()
 def valid_stripe_metadata_v1_4_data():
     return {
         "agreed_to_pay_fees": True,
@@ -920,7 +916,7 @@ def valid_stripe_metadata_v1_4_data():
 class TestStripePaymentMetadataSchemaV1_4:
     @pytest.mark.parametrize(
         "value",
-        (
+        [
             "",
             "foo:bar",
             "foo:bar;bizz:bang",
@@ -935,7 +931,7 @@ class TestStripePaymentMetadataSchemaV1_4:
             # the following cases are unexpected, but allowed for now so adding to make clear they get through
             ";",
             ";foo:bar",
-        ),
+        ],
     )
     def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
         instance = StripePaymentMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
@@ -943,7 +939,7 @@ class TestStripePaymentMetadataSchemaV1_4:
 
     @pytest.mark.parametrize(
         "value",
-        (
+        [
             ":",
             ":bar",
             ":bar;",
@@ -956,7 +952,7 @@ class TestStripePaymentMetadataSchemaV1_4:
             "f oo",
             "fo'o:bar",
             "foo:bar\n",
-        ),
+        ],
     )
     def test_with_invalid_swag_choices_value(self, value, valid_stripe_metadata_v1_4_data):
         with pytest.raises(pydantic.ValidationError):
@@ -986,19 +982,19 @@ class TestStripePaymentMetadataSchemaV1_4:
         assert instance.contributor_id is None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestCreateOneTimePaymentSerializer:
     serializer_class = serializers.CreateOneTimePaymentSerializer
 
     def test_is_subclass_of_BaseCreatePaymentSerializer(self):
-        """Prove that CreateOneTimePaymentSerializer is a subclass of BaseCreatePaymentSerializer
+        """Prove that CreateOneTimePaymentSerializer is a subclass of BaseCreatePaymentSerializer.
 
         This is so the testing of the parent class' behavior accrues to the child.
         """
         assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
     def test_happy_path(self, monkeypatch, minimally_valid_contribution_form_data, mocker):
-        """Demonstrate happy path when of `.create`
+        """Demonstrate happy path when of `.create`.
 
         Namely, it should:
 
@@ -1039,7 +1035,7 @@ class TestCreateOneTimePaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["client_secret", "uuid", "email_hash"])
+        assert set(result.keys()) == {"client_secret", "uuid", "email_hash"}
         assert result["client_secret"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_contribution_form_data["email"]).exists()
         contribution = Contribution.objects.get(uuid=result["uuid"])
@@ -1059,7 +1055,7 @@ class TestCreateOneTimePaymentSerializer:
     def test_when_stripe_errors_creating_payment_intent(
         self, minimally_valid_contribution_form_data, monkeypatch, mocker
     ):
-        """Demonstrate `.create` when there's a Stripe error when creating payment intent
+        """Demonstrate `.create` when there's a Stripe error when creating payment intent.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
         be raised.
@@ -1107,7 +1103,7 @@ class TestCreateOneTimePaymentSerializer:
         save_spy.assert_called_once()
 
     def test_when_stripe_errors_creating_customer(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
-        """Demonstrate `.create` when there's a Stripe error when creating customer
+        """Demonstrate `.create` when there's a Stripe error when creating customer.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
         be raised.
@@ -1148,7 +1144,7 @@ class TestCreateOneTimePaymentSerializer:
         save_spy.assert_called_once()
 
     def test_when_contribution_is_flagged(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
-        """Demonstrate `.create` when the contribution gets flagged
+        """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor, contribution, and Stripe entities should still be created as in happy path, but the `capture_method` on
         the PaymentIntent should be "manual"
@@ -1184,7 +1180,7 @@ class TestCreateOneTimePaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["client_secret", "email_hash", "uuid"])
+        assert set(result.keys()) == {"client_secret", "email_hash", "uuid"}
         assert result["client_secret"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_contribution_form_data["email"]).exists()
         contribution = Contribution.objects.get(uuid=result["uuid"])
@@ -1209,18 +1205,17 @@ class TestCreateOneTimePaymentSerializer:
             "currency": contribution.currency,
             "customer": contribution.provider_customer_id,
             "statement_descriptor_suffix": None,
-            "stripe_account": contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            "stripe_account": contribution.revenue_program.payment_provider.stripe_account_id,
             "capture_method": "manual",
         }
         save_spy.assert_called_once()
 
     def test_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
-        """Demonstrate `.create` when the contribution gets flagged
+        """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
         a Stripe payment intent should not be created.
         """
-
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
@@ -1270,12 +1265,12 @@ class TestCreateOneTimePaymentSerializer:
             serializer.create(serializer.validated_data)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestCreateRecurringPaymentSerializer:
     serializer_class = serializers.CreateRecurringPaymentSerializer
 
     def test_is_subclass_of_BaseCreatePaymentSerializer(self):
-        """Prove that CreateRecurringPaymentSerializer is a subclass of BaseCreatePaymentSerializer
+        """Prove that CreateRecurringPaymentSerializer is a subclass of BaseCreatePaymentSerializer.
 
         This is so the testing of the parent class' behavior accrues to the child.
         """
@@ -1283,7 +1278,7 @@ class TestCreateRecurringPaymentSerializer:
 
     @pytest.mark.parametrize("interval", ["month", "year"])
     def test_create_happy_path(self, monkeypatch, minimally_valid_contribution_form_data, interval, mocker):
-        """Demonstrate happy path when of `.create`
+        """Demonstrate happy path when of `.create`.
 
         Namely, it should:
 
@@ -1294,7 +1289,6 @@ class TestCreateRecurringPaymentSerializer:
         - create a Stripe Customer
         - create a Stripe Subscription
         """
-
         # ensure we have right contribution_metadata, and that right method gets called
         save_spy = mocker.spy(Contribution, "save")
 
@@ -1330,7 +1324,7 @@ class TestCreateRecurringPaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["client_secret", "email_hash", "uuid"])
+        assert set(result.keys()) == {"client_secret", "email_hash", "uuid"}
         assert result["client_secret"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_contribution_form_data["email"]).exists()
         contribution = Contribution.objects.get(uuid=result["uuid"])
@@ -1347,7 +1341,7 @@ class TestCreateRecurringPaymentSerializer:
     def test_create_when_stripe_errors_creating_subscription(
         self, minimally_valid_contribution_form_data, monkeypatch, mocker
     ):
-        """Demonstrate `.create` when there's a Stripe error when creating subscription
+        """Demonstrate `.create` when there's a Stripe error when creating subscription.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
         be raised, and no Stripe subscription created.
@@ -1388,12 +1382,11 @@ class TestCreateRecurringPaymentSerializer:
     def test_create_when_stripe_errors_creating_customer(
         self, monkeypatch, minimally_valid_contribution_form_data, mocker
     ):
-        """Demonstrate `.create` when there's a Stripe error when creating customer
+        """Demonstrate `.create` when there's a Stripe error when creating customer.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
         be raised.
         """
-
         save_spy = mocker.spy(Contribution, "save")
         data = minimally_valid_contribution_form_data | {"interval": "month"}
         contribution_count = Contribution.objects.count()
@@ -1576,7 +1569,7 @@ class SubscriptionsSerializer(TestCase):
     def test_returned_fields(self):
         data = self.serializer(self.subscription).data
         for field in self.expected_fields:
-            self.assertIn(field, data)
+            assert field in data
 
     def test_card_brand(self):
         data = self.serializer(self.subscription).data
@@ -1623,16 +1616,18 @@ class SubscriptionsSerializer(TestCase):
         self.subscription.plan.interval_count = 1
         data = self.serializer(self.subscription).data
         assert data["interval"] == ContributionInterval.YEARLY
+        self.subscription.plan.interval_count = 2
         with pytest.raises(ValidationError):
-            self.subscription.plan.interval_count = 2
-            data = self.serializer(self.subscription).data
+            self.serializer(self.subscription).data  # noqa: B018 Ruff doesn't understand this is
+            # a property and accessing it has side effects we are testing.
 
     def test_revenue_program_slug(self):
         data = self.serializer(self.subscription).data
         assert data["revenue_program_slug"] == "foo"
+        del self.subscription.metadata
         with pytest.raises(ValidationError):
-            del self.subscription.metadata
-            data = self.serializer(self.subscription).data
+            self.serializer(self.subscription).data  # noqa: B018 Ruff doesn't understand this is
+            # a property and accessing it has side effects we are testing.
 
     def test_amount(self):
         data = self.serializer(self.subscription).data
@@ -1649,8 +1644,8 @@ class SubscriptionsSerializer(TestCase):
 
 class TestStripeMetadataSchemaBase:
     @pytest.mark.parametrize(
-        "value, expected",
-        (
+        ("value", "expected"),
+        [
             (True, True),
             (False, False),
             (None, None),
@@ -1675,25 +1670,25 @@ class TestStripeMetadataSchemaBase:
             ("yEs", True),
             (" false ", False),
             (" true ", True),
-        ),
+        ],
     )
     def test_normalize_boolean_happy_path(self, value, expected):
         assert StripeMetadataSchemaBase.normalize_boolean(value) == expected
 
-    @pytest.mark.parametrize("value", (0, 1, 2, "0", "1", "cats", [], ["True"]))
+    @pytest.mark.parametrize("value", [0, 1, 2, "0", "1", "cats", [], ["True"]])
     def test_normalize_boolean_when_value_is_not_valid_type(self, value):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Value must be a boolean, None, or castable string"):
             StripeMetadataSchemaBase.normalize_boolean(value)
 
 
 class TestPortalContributionBaseSerializer:
     @pytest.mark.parametrize(
-        "method, kwargs",
-        (
+        ("method", "kwargs"),
+        [
             ("create", {"validated_data": {}}),
             ("delete", {"instance": None}),
             ("update", {"instance": None, "validated_data": {}}),
-        ),
+        ],
     )
     def test_unsupported_methods(self, method, kwargs):
         with pytest.raises(NotImplementedError):

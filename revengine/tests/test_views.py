@@ -25,7 +25,11 @@ def test_spa_revenue_program_does_not_exist(logger_info, client):
 
 
 def test_read_apple_developer_merchant_id(client):
-    with mock.patch("revengine.views.open", mock.mock_open(read_data="squeeeee!")):
+    # File is not in the location this function expects, at least in DEV environment.
+    #  actual   ./revengine/static/apple-developer-merchantid-domain-association
+    #  expected ./public/static/apple-developer-merchantid-domain-association
+    # mocking open hides this issue. TODO @njh: not sure if on purpose.
+    with mock.patch("pathlib.Path.open", mock.mock_open(read_data="squeeeee!")):
         response = client.get(reverse("apple_dev_merchantid_domain"))
         assert response.status_code == 200
 
@@ -38,7 +42,7 @@ def _assert_500_page(soup):
 
 
 def test_custom_500(client):
-    """Test that custom 500 page is as expected"""
+    """Test that custom 500 page is as expected."""
     client.raise_request_exception = True
     response = client.get(reverse("dummy-500"))
     assert response.status_code == 500
@@ -46,7 +50,7 @@ def test_custom_500(client):
 
 
 def test_cloudflare_500_page(client):
-    """Test that the custom 500 page we expose to Cloudflare is as expected"""
+    """Test that the custom 500 page we expose to Cloudflare is as expected."""
     response = client.get(reverse("cloudflare-500"))
     assert response.status_code == 200
     soup = bs4(response.content, "html.parser")
@@ -59,8 +63,10 @@ def test_cloudflare_500_page(client):
 
 @pytest.mark.django_db()
 def test_react_app_view_get_context_data_with_social_meta(mocker):
-    """Show that react app view works with social meta"""
-    """ - RP without Social Meta is no longer possible as Social Meta is created automatically in RP's post_save - """
+    """Show that react app view works with social meta.
+
+    RP without Social Meta is no longer possible as Social Meta is created automatically in RP's post_save.
+    """
     rp_sans_socialmeta = RevenueProgramFactory()
     assert SocialMeta.objects.filter(revenue_program=rp_sans_socialmeta).exists()
     factory = RequestFactory()

@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -29,6 +28,7 @@ from apps.api.permissions import (
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
+    IsSwitchboardAccount,
     UserIsRequestedContributor,
 )
 from apps.contributions import serializers
@@ -164,10 +164,9 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
     def get_serializer_class(self):
         if (interval := self.request.data["interval"]) == ContributionInterval.ONE_TIME:
             return serializers.CreateOneTimePaymentSerializer
-        elif interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
+        if interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
             return serializers.CreateRecurringPaymentSerializer
-        else:
-            raise ValidationError({"interval": "The provided value for interval is not permitted"})
+        raise ValidationError({"interval": "The provided value for interval is not permitted"})
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -180,10 +179,8 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
         contribution = self.get_object()
         if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
-                (
-                    "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s. "
-                    "contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s"
-                ),
+                "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s."
+                " contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s",
                 ContributionStatus.PROCESSING.label,
                 ContributionStatus.FLAGGED.label,
                 contribution.id,
@@ -217,7 +214,7 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
 @api_view(["PATCH"])
 @permission_classes([])
 def payment_success(request, uuid=None):
-    """This view is used by the SPA after a Stripe payment has been submitted to Stripe from front end.
+    """SPA sends after a Stripe payment has been submitted to Stripe from front end.
 
     We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
     and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
@@ -235,7 +232,7 @@ def payment_success(request, uuid=None):
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
-    """Contributions API resource
+    """Contributions API resource.
 
     NB: There are bespoke actions on this viewset that override the default permission classes set here.
     """
@@ -257,8 +254,8 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend]
 
-    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet | List[StripePiAsPortalContribution]:
-        """Return the right results to the right user
+    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet | list[StripePiAsPortalContribution]:
+        """Return the right results to the right user.
 
         Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
         query to Stripe will happen in background, and this will return an empty list).
@@ -266,28 +263,26 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         ra = getattr(user, "get_role_assignment", lambda: None)()
         if isinstance(user, Contributor):
             return self.filter_queryset_for_contributor(user)
-        elif user.is_anonymous:
+        if user.is_anonymous:
             return self.model.objects.none()
-        elif user.is_superuser:
+        if user.is_superuser:
             return self.model.objects.all()
-        elif ra:
+        if ra:
             return self.model.objects.filtered_by_role_assignment(ra)
-        else:
-            logger.warning("Encountered unexpected user")
-            raise ApiConfigurationError
+        logger.warning("Encountered unexpected user")
+        raise ApiConfigurationError
 
     def get_queryset(self):
         return self.filter_queryset_for_user(self.request.user)
 
-    def filter_queryset_for_contributor(self, contributor) -> List[StripePiAsPortalContribution]:
-        """ """
+    def filter_queryset_for_contributor(self, contributor) -> list[StripePiAsPortalContribution]:
         if (rp_slug := self.request.GET.get("rp", None)) is None:
             raise ParseError("rp not supplied")
         rp = get_object_or_404(RevenueProgram, slug=rp_slug)
         return self.model.objects.filter_queryset_for_contributor(contributor, rp)
 
     def filter_queryset(self, queryset):
-        """Remove filter backend if user is a contributor
+        """Remove filter backend if user is a contributor.
 
         We need to do this because for contributor users we return a list of dicts representing
         contributions, and not a normal Django queryset.
@@ -326,6 +321,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def email_contributions(self, request):
         """Endpoint to send contributions as a csv file to the user request.
+
         Any user who has role and authenticated will be able to call the endpoint.
         Contributor will not be able to access this endpoint as it's being integrated with the Contribution Dashboard
         as contributors will be able to access only Contributor Portal via magic link.
@@ -360,13 +356,13 @@ class SubscriptionsViewSet(viewsets.ViewSet):
     serializer_class = serializers.SubscriptionsSerializer
 
     @staticmethod
-    def _fetch_subscriptions(request: Request) -> List[StripePiAsPortalContribution]:
+    def _fetch_subscriptions(request: Request) -> list[StripePiAsPortalContribution]:
         revenue_program_slug = request.query_params.get("revenue_program_slug")
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         except RevenueProgram.DoesNotExist:
             logger.warning("Revenue program not found for slug %s", revenue_program_slug)
-            raise Http404("Revenue program not found")
+            raise Http404("Revenue program not found") from None
         cache_provider = SubscriptionsCacheProvider(request.user.email, revenue_program.stripe_account_id)
         subscriptions = cache_provider.load()
         if not subscriptions:
@@ -520,7 +516,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscription: stripe.Subscription,
         payment_intent: stripe.PaymentIntent | None = None,
     ) -> None:
-        """Used to update respective caches after a subscription is updated or canceled."""
+        """Update respective caches after a subscription is updated or canceled."""
         logger.info(
             "Updating caches for subscription %s and payment intent %s",
             subscription.id,
@@ -539,7 +535,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
     @staticmethod
     def update_uninvoiced_subscription_in_cache(email: str, stripe_account_id: str, subscription: stripe.Subscription):
-        """Used to update respective caches after a subscription is updated or canceled."""
+        """Update respective caches after a subscription is updated or canceled."""
         logger.info("Updating caches for subscription %s", subscription.id)
         sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
         sub_cache_provider.upsert([subscription])
@@ -548,7 +544,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
     def _re_retrieve_pi_and_insert_pi_and_sub_into_cache(
         cls, subscription: stripe.Subscription, email: str, stripe_account_id: str
     ) -> None:
-        """Used to re-retrieve PI and insert into cache after a subscription is updated or canceled."""
+        """Re-retrieve PI and insert into cache after a subscription is updated or canceled."""
         logger.info("Called for subscription %s", subscription.id)
         pi_id = subscription.latest_invoice.payment_intent if subscription.latest_invoice else None
         pi = (
@@ -568,8 +564,17 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         )
 
 
+class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """Viewset for switchboard to update contributions."""
+
+    permission_classes = [IsSwitchboardAccount]
+    http_method_names = ["patch"]
+    queryset = Contribution.objects.all()
+    serializer_class = serializers.SwitchboardContributionSerializer
+
+
 class PortalContributorsViewSet(viewsets.GenericViewSet):
-    """This viewset is meant to furnish contributions data to the (new) contributor portal"""
+    """Furnish contributions data to the (new) contributor portal."""
 
     permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
 
@@ -586,14 +591,14 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     # we need to set a queryset to satisfy DRF's viewset machinery
     queryset = Contributor.objects.all()
 
-    def exclude_hidden_statuses(self, queryset):
+    def exclude_hidden_statuses(self, queryset: QuerySet[Contribution]):
         return queryset.exclude(status__in=self.HIDDEN_STATUSES)
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
         try:
             contributor = Contributor.objects.get(pk=contributor_id)
         except Contributor.DoesNotExist:
-            raise NotFound(detail="Contributor not found", code=status.HTTP_404_NOT_FOUND)
+            raise NotFound(detail="Contributor not found", code=status.HTTP_404_NOT_FOUND) from None
         self.check_object_permissions(request, contributor)
         return contributor
 
@@ -621,19 +626,53 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     @action(
         methods=["get"],
+        url_path="impact",
+        url_name="impact",
+        detail=True,
+    )
+    def contributor_impact(self, request, pk=None):
+        """Endpoint that returns the sum of all contributions for a given contributor."""
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+
+        rp = request.query_params.get("revenue_program", None)
+
+        impact = contributor.get_impact([rp] if rp else None)
+
+        return Response(impact, status=status.HTTP_200_OK)
+
+    @action(
+        methods=["get"],
         url_path="contributions",
         url_name="contributions-list",
         detail=True,
         serializer_class=serializers.PortalContributionListSerializer,
     )
     def contributions_list(self, request, pk=None):
-        """Endpoint to get all contributions for a given contributor"""
+        """Endpoint to get all contributions for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         qs = PortalContributionFilter().filter_queryset(
             request, self.exclude_hidden_statuses(contributor.contribution_set)
         )
         qs = self.handle_ordering(qs, request)
         return self.paginate_results(qs, request)
+
+    @action(
+        methods=["post"],
+        url_path="contributions/(?P<contribution_id>[^/.]+)/send-receipt",
+        url_name="contribution-receipt",
+        detail=True,
+        serializer_class=serializers.PortalContributionDetailSerializer,
+    )
+    def send_contribution_receipt(self, request, pk=None, contribution_id=None) -> Response:
+        """Endpoint to send a contribution receipt email for a given contribution."""
+        logger.info("send receipt with contribution_id %s", contribution_id)
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        try:
+            contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
+        except Contribution.DoesNotExist:
+            return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
+        contribution.handle_thank_you_email()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=["get", "patch", "delete"],
@@ -643,7 +682,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         serializer_class=serializers.PortalContributionDetailSerializer,
     )
     def contribution_detail(self, request, pk=None, contribution_id=None) -> Response:
-        """Endpoint to get or update a contribution for a given contributor"""
+        """Endpoint to get or update a contribution for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
             contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
@@ -688,7 +727,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         try:
             stripe.Subscription.delete(
                 contribution.provider_subscription_id,
-                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError:
             logger.exception(

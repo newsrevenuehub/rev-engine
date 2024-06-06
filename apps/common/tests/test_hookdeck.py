@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from django.urls import reverse
 
@@ -26,94 +27,94 @@ from apps.common.hookdeck import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def upsert_connection_response():
-    with open("apps/common/tests/fixtures/hookdeck-upsert-connection-success.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-upsert-connection-success.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def upsert_archived_connection_response():
-    with open("apps/common/tests/fixtures/hookdeck-upsert-connection-when-archived.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-upsert-connection-when-archived.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def upsert_destination_response():
-    with open("apps/common/tests/fixtures/hookdeck-upsert-destination-success.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-upsert-destination-success.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def upsert_archived_destination_response():
-    with open("apps/common/tests/fixtures/hookdeck-upsert-destination-when-archived.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-upsert-destination-when-archived.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def retrieve_connection_response():
-    with open("apps/common/tests/fixtures/hookdeck-retrieve-connection.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-retrieve-connection.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def retrieve_destination_response():
-    with open("apps/common/tests/fixtures/hookdeck-retrieve-destination.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-retrieve-destination.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def retrieve_source_response():
-    with open("apps/common/tests/fixtures/hookdeck-retrieve-source.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-retrieve-source.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def search_connections_response():
-    with open("apps/common/tests/fixtures/hookdeck-search-connections.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-search-connections.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def search_destinations_response():
-    with open("apps/common/tests/fixtures/hookdeck-search-destinations.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-search-destinations.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def search_sources_response():
-    with open("apps/common/tests/fixtures/hookdeck-search-sources.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-search-sources.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def search_no_results_response():
-    with open("apps/common/tests/fixtures/hookdeck-search-no-results.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-search-no-results.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def archive_connection_response():
-    with open("apps/common/tests/fixtures/hookdeck-archive-connection.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-archive-connection.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def archive_destination_response():
-    with open("apps/common/tests/fixtures/hookdeck-archive-destination.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-archive-destination.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def unarchive_destination_response():
-    with open("apps/common/tests/fixtures/hookdeck-unarchive-destination.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-unarchive-destination.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def unarchive_connection_response():
-    with open("apps/common/tests/fixtures/hookdeck-unarchive-connection.json") as fl:
-        return json.load(fl)
+    with Path("apps/common/tests/fixtures/hookdeck-unarchive-connection.json").open() as f:
+        return json.load(f)
 
 
 @pytest.fixture(
@@ -185,7 +186,7 @@ def test_upsert_auto_unarchive(upsert_auto_unarchive_case):
         assert result["archived_at"] == response_data["archived_at"]
 
 
-@pytest.mark.parametrize("entity_type", ("connection", "destination"))
+@pytest.mark.parametrize("entity_type", ["connection", "destination"])
 def test_upsert_when_hookdeck_not_200(entity_type):
     responses.add(
         responses.PUT,
@@ -256,23 +257,23 @@ def test_retrieve_happy_path(retrieve_happy_path_case):
 
 
 @responses.activate
-@pytest.mark.parametrize("entity_type", ("connection", "destination"))
+@pytest.mark.parametrize("entity_type", ["connection", "destination"])
 def test_retrieve_when_hookdeck_not_200(entity_type):
-    id = "<my-id>"
+    id_ = "<my-id>"
     responses.add(
         responses.GET,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{id}",
+        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{id_}",
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
     with pytest.raises(HookDeckIntegrationError):
-        retrieve(entity_type, id)
+        retrieve(entity_type, id_)
 
 
 @responses.activate
-@pytest.mark.parametrize("has_results", (True, False))
+@pytest.mark.parametrize("has_results", [True, False])
 def test_search_connections(has_results):
     params = {
-        "id": "<some-id>",
+        "id_": "<some-id>",
         "name": "my-connection",
         "full_name": "my-source-name-my-connection-name",
         "source_id": "<some-source-id>",
@@ -283,8 +284,8 @@ def test_search_connections(has_results):
         if has_results
         else "apps/common/tests/fixtures/hookdeck-search-no-results.json"
     )
-    with open(fixture_path) as fl:
-        fixture = json.load(fl)
+    with Path(fixture_path).open() as f:
+        fixture = json.load(f)
 
     responses.add(responses.GET, f"{CONNECTIONS_URL}", json=fixture)
     result = search_connections(**params)
@@ -325,12 +326,12 @@ def test_search_functionality(search_functionality_case):
 
 @responses.activate
 @pytest.mark.parametrize(
-    "search_fn,resource_url",
-    (
+    ("search_fn", "resource_url"),
+    [
         (search_connections, CONNECTIONS_URL),
         (search_destinations, DESTINATIONS_URL),
         (search_sources, SOURCES_URL),
-    ),
+    ],
 )
 def test_search_functionality_when_hookdeck_non_200(search_fn, resource_url):
     responses.add(responses.GET, resource_url, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -363,21 +364,21 @@ def test_archive(archive_happy_path_case):
 
 @responses.activate
 @pytest.mark.parametrize(
-    "entity_type,resource_url",
-    (
+    ("entity_type", "resource_url"),
+    [
         ("connection", CONNECTIONS_URL),
         ("destination", DESTINATIONS_URL),
-    ),
+    ],
 )
 def test_archive_when_hookdeck_non_200(entity_type, resource_url):
-    id = "my-id"
+    id_ = "my-id"
     responses.add(
         responses.PUT,
-        f"{resource_url}/{id}/archive",
+        f"{resource_url}/{id_}/archive",
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
     with pytest.raises(HookDeckIntegrationError):
-        assert archive(entity_type, id)
+        assert archive(entity_type, id_)
 
 
 @pytest.fixture(
@@ -405,21 +406,21 @@ def test_unarchive(unarchive_happy_path_case):
 
 @responses.activate
 @pytest.mark.parametrize(
-    "entity_type,resource_url",
-    (
+    ("entity_type", "resource_url"),
+    [
         ("connection", CONNECTIONS_URL),
         ("destination", DESTINATIONS_URL),
-    ),
+    ],
 )
 def test_unarchive_when_hookdeck_non_200(entity_type, resource_url):
-    id = "my-id"
+    id_ = "my-id"
     responses.add(
         responses.PUT,
-        f"{resource_url}/{id}/unarchive",
+        f"{resource_url}/{id_}/unarchive",
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
     with pytest.raises(HookDeckIntegrationError):
-        assert unarchive(entity_type, id)
+        assert unarchive(entity_type, id_)
 
 
 def test_bootstrap(mocker, settings):
@@ -496,8 +497,8 @@ class TestTearDown:
         assert mock_search_destinations.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
         assert mock_search_connections.call_count == 2
 
-        mock_search_connections.call_args_list[0] == mocker.call(name=f"{ticket_name}-stripe-contributions")
-        mock_search_connections.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
+        assert mock_search_connections.call_args_list[0] == mocker.call(name=f"{ticket_name}-stripe-contributions")
+        assert mock_search_connections.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
         assert mock_archive.call_count == 4
         assert mock_archive.call_args_list[0] == mocker.call("connection", "<connection-1-id>")
         assert mock_archive.call_args_list[1] == mocker.call("connection", "<connection-2-id>")

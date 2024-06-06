@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("contributions", "0008_DEV-4032_payment_transaction_time"),
     ]

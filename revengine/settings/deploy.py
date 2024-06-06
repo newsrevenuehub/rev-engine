@@ -24,7 +24,7 @@ ANYMAIL = {
     "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
 }
 
-EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()
+EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
@@ -49,35 +49,15 @@ STORAGES = {
 
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
-TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
-STATICFILES_DIRS = [os.path.join(PROJECT_DIR, "static"), str(FRONTEND_BUILD_DIR / "static")]
+TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, str(PROJECT_DIR / "templates")]
+STATICFILES_DIRS = [PROJECT_DIR / "static", str(FRONTEND_BUILD_DIR / "static")]
 
 ### HTTPS
 
 CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
 
-### Performance optimizations
-CACHE_HOST = REDIS_URL
-CONNECTION_POOL_KWARGS = {}
-if CACHE_HOST.startswith("rediss"):
-    import ssl
 
-    # See: https://github.com/mirumee/saleor/issues/6926
-    CONNECTION_POOL_KWARGS = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
-    }
-
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{CACHE_HOST}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-        },
-    }
-}
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 # Use template caching on deployed servers
@@ -136,7 +116,7 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         send_default_pii=SENTRY_ENABLE_PII,
         environment=ENVIRONMENT,
         # https://docs.sentry.io/platforms/python/configuration/sampling/#setting-a-uniform-sample-rate
-        traces_sample_rate=1.0,  # TODO: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
+        traces_sample_rate=1.0,  # TODO @njh: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
         profiles_sample_rate=SENTRY_PROFILING_SAMPLE_RATE,
     )
     ignore_logger("django.security.DisallowedHost")

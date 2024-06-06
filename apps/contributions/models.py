@@ -40,6 +40,9 @@ from revengine.settings.base import CurrencyDict
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+CONTRIBUTION_ABANDONED_THRESHOLD = datetime.timedelta(minutes=60 * 8)
+
+
 class ContributionIntervalError(Exception):
     pass
 
@@ -175,6 +178,17 @@ class ContributionQuerySet(models.QuerySet):
             case _:
                 return self.none()
 
+    def unmarked_abandoned_carts(self) -> models.QuerySet:
+        """Return contributions that have been abandoned.
+
+        We define abandoned as contributions that have been flagged or are in processing state for more than 24 hours.
+        """
+        return self.filter(
+            status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING],
+            created__lt=datetime.datetime.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
+            provider_payment_method_id__isnull=True,
+        )
+
 
 class ContributionManager(models.Manager):
     pass
@@ -188,7 +202,6 @@ class Contribution(IndexedTimeStampedModel):
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
-    payment_provider_data = models.JSONField(null=True)
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
@@ -367,6 +380,12 @@ class Contribution(IndexedTimeStampedModel):
     def expanded_bad_actor_score(self):
         return None if self.bad_actor_score is None else self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
+    @property
+    def is_unmarked_abandoned_cart(self) -> bool:
+        return self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING) and (
+            self.created < datetime.datetime.now() - CONTRIBUTION_ABANDONED_THRESHOLD
+        )
+
     def get_currency_dict(self) -> CurrencyDict:
         """Return code (i.e. USD) and symbol (i.e. $) for this contribution."""
         try:
@@ -388,9 +407,10 @@ class Contribution(IndexedTimeStampedModel):
         return manager_class(contribution=self)
 
     def process_flagged_payment(self, reject=False):
+        from apps.contributions.payment_managers import StripePaymentManager
+
         logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
-        payment_manager = self.get_payment_manager_instance()
-        payment_manager.complete_payment(reject=reject)
+        StripePaymentManager(contribution=self).complete_payment(reject=reject)
         logger.info("Contribution.process_flagged_payment - processing for contribution %s complete", self.pk)
 
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
@@ -624,6 +644,22 @@ class Contribution(IndexedTimeStampedModel):
             "recurring-contribution-email-reminder",
             next_charge_date,
         )
+
+    @property
+    def stripe_customer(self) -> stripe.Customer | None:
+        if not self.provider_customer_id:
+            return None
+        try:
+            return stripe.Customer.retrieve(self.provider_customer_id, stripe_account=self.stripe_account_id)
+        except stripe.error.StripeError:
+            logger.exception(
+                "`Contribution.stripe_customer` encountered a Stripe error trying to retrieve stripe customer"
+                " with ID %s and stripe account ID %s for contribution with ID %s",
+                self.provider_customer_id,
+                self.stripe_account_id,
+                self.id,
+            )
+            return None
 
     @property
     def stripe_setup_intent(self) -> stripe.SetupIntent | None:

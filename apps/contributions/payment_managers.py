@@ -174,38 +174,56 @@ class StripePaymentManager(PaymentManager):
         update_data = {}
         si = self.contribution.stripe_setup_intent
         pm = self.contribution.fetch_stripe_payment_method(self.contribution.provider_payment_method_id)
-        # If we're rejecting, the critical thing is to change the status to rejected.
-        try:
-            if reject:
-                update_data["status"] = ContributionStatus.REJECTED
-                if pm:
-                    logger.info(
-                        "StripePaymentManager.complete_recurring_payment detaching Stripe PM %s for contribution %s",
+        if reject:
+            # If we're rejecting, the critical thing is to change the status to rejected.
+            update_data["status"] = ContributionStatus.REJECTED
+            if pm:
+                logger.info(
+                    "StripePaymentManager.complete_recurring_payment detaching Stripe PM %s for contribution %s",
+                    pm.id,
+                    self.contribution.id,
+                )
+                try:
+                    pm.detach()
+                except stripe.error.StripeError:
+                    # In this case we want to log exception but otherwise carry on by letting update data get saved because payment method
+                    # is not critical to the rejection process.
+                    logger.exception(
+                        "`StripePaymentManager.complete_recurring_payment` error detaching payment method %s for contribution %s",
                         pm.id,
                         self.contribution.id,
                     )
-                    pm.detach()
-            # if accept but we can't get SI, there's nothing more we can do.
-            elif not si:
-                logger.error(
-                    "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"
-                    " with ID %s and setup intent ID %s",
-                    self.contribution.id,
-                    self.contribution.provider_setup_intent_id,
-                )
-                raise PaymentProviderError("Cannot retrieve payment data")
-            else:
-                logger.info(
-                    "StripePaymentManager.complete_recurring_payment creating Stripe subscription for setupintent %s and contribution %s",
-                    si.id,
-                    self.contribution.id,
-                )
+        # if accept but we can't get SI, there's nothing more we can do. We don't want to update status, and we raise error.
+        elif not si:
+            logger.error(
+                "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"
+                " with ID %s and setup intent ID %s",
+                self.contribution.id,
+                self.contribution.provider_setup_intent_id,
+            )
+            raise PaymentProviderError("Cannot retrieve payment data")
+        # otherwise we're in "happy path" and we can create a subscription
+        else:
+            logger.info(
+                "StripePaymentManager.complete_recurring_payment creating Stripe subscription for setupintent %s and contribution %s",
+                si.id,
+                self.contribution.id,
+            )
+            try:
                 subscription = self.contribution.create_stripe_subscription(
                     off_session=True,
                     error_if_incomplete=True,
                     default_payment_method=si.payment_method,
                     metadata=si.metadata,
                 )
+            except stripe.error.StripeError as exc:
+                logger.exception(
+                    "`StripePaymentManager.complete_recurring_payment` raised StripeError for setupintent %s and contribution %s",
+                    si.id,
+                    self.contribution.id,
+                )
+                raise PaymentProviderError("Cannot create subscription") from exc
+            else:
                 update_data.update(
                     {
                         "status": ContributionStatus.PAID,
@@ -213,18 +231,13 @@ class StripePaymentManager(PaymentManager):
                         "provider_payment_id": subscription.latest_invoice.payment_intent.id,
                     }
                 )
-        except stripe.error.StripeError as exc:
-            message = exc.error.message if exc.error else "Could not complete payment"
-            logger.exception("`StripePaymentManager.complete_recurring_payment` raised StripeError")
-            raise PaymentProviderError(message) from exc
-        finally:
-            if update_data:
-                for key, value in update_data.items():
-                    setattr(self.contribution, key, value)
-                with reversion.create_revision():
-                    reversion.set_comment("`StripePaymentManager.complete_recurring_payment` completed contribution")
-                    self.contribution.save(update_fields=set(update_data.keys()).union({"modified"}))
-                    logger.info(
-                        "StripePaymentManager.complete_recurring_payment updated contribution with id %s",
-                        self.contribution.id,
-                    )
+        if update_data:
+            for key, value in update_data.items():
+                setattr(self.contribution, key, value)
+            with reversion.create_revision():
+                reversion.set_comment("`StripePaymentManager.complete_recurring_payment` completed contribution")
+                self.contribution.save(update_fields=set(update_data.keys()).union({"modified"}))
+                logger.info(
+                    "StripePaymentManager.complete_recurring_payment updated contribution with id %s",
+                    self.contribution.id,
+                )

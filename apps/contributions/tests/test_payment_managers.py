@@ -128,8 +128,7 @@ class TestStripePaymentManager:
         mock_pm.return_value.detach.side_effect = stripe.error.StripeError("uh oh")
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
-        with pytest.raises(PaymentProviderError):
-            spm.complete_payment(reject=True)
+        spm.complete_payment(reject=True)
         save_spy.assert_called_once()
 
     def test_complete_payment_when_recurring_and_not_reject_and_not_si(self, mocker):

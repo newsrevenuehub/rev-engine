@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -6,12 +7,13 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 import pytest
 from reversion_compare.admin import CompareVersionAdmin
 
 import apps
-from apps.contributions.admin import ContributionAdmin
+from apps.contributions.admin import ContributionAdmin, QuarantineQueue
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import (
     ContributionFactory,
@@ -32,16 +34,56 @@ class TestQuarantineAdmin:
 
     @pytest.fixture()
     def flagged_one_time_contribution(self):
-        return ContributionFactory(one_time=True, flagged=True)
+        return ContributionFactory(
+            one_time=True,
+            flagged=True,
+            bad_actor_response={
+                "items": [
+                    {"label": "name", "value": "John Doe"},
+                    {"label": "address", "value": "123 Main St"},
+                ]
+            },
+            contribution_metadata={"reason": "some reason"},
+        )
 
     @pytest.fixture()
     def flagged_recurring_contribution(self):
-        return ContributionFactory(monthly_subscription=True, flagged=True)
+        return ContributionFactory(
+            monthly_subscription=True,
+            flagged=True,
+            last_payment_date=timezone.now() - timedelta(days=30),
+            bad_actor_response={"items": []},
+            contribution_metadata={},
+            provider_customer_id=None,
+            # doing this so have one with flagged date and one not
+            flagged_date=None,
+        )
+
+    @pytest.fixture(autouse=True)
+    def _stripe_customer_retrieve(self, mocker):
+        mocker.patch("stripe.Customer.retrieve", return_value=mock.Mock(address=mocker.Mock(postal_code="12345")))
 
     @pytest.mark.parametrize("process_error", [True, False])
+    @pytest.mark.parametrize("has_bad_actor_response", [True, False])
+    @pytest.mark.parametrize("no_longer_flagged", [True, False])
     def test_accept_flagged_contribution(
-        self, flagged_one_time_contribution, flagged_recurring_contribution, client, admin_user, mocker, process_error
+        self,
+        flagged_one_time_contribution,
+        flagged_recurring_contribution,
+        client,
+        admin_user,
+        mocker,
+        process_error,
+        has_bad_actor_response,
+        no_longer_flagged,
     ):
+        if no_longer_flagged:
+            flagged_one_time_contribution.status = ContributionStatus.PAID
+            flagged_one_time_contribution.save()
+        if not has_bad_actor_response:
+            for x in [flagged_one_time_contribution, flagged_recurring_contribution]:
+                x.bad_actor_response = None
+                x.save()
         if process_error:
             mocker.patch(
                 "apps.contributions.models.Contribution.process_flagged_payment",
@@ -81,7 +123,7 @@ class TestQuarantineAdmin:
             assert flagged_recurring_contribution.status == ContributionStatus.PAID
             assert flagged_recurring_contribution.provider_subscription_id == sub_id
             assert flagged_recurring_contribution.provider_payment_id == pi_id
-            assert mock_pi_retrieve.call_count == 1
+            assert mock_pi_retrieve.call_count == (1 if not no_longer_flagged else 0)
             assert mock_si_retrieve.call_count == 1
             assert mock_pm_retrieve.call_count == 1
             assert mock_subscription_create.call_count == 1
@@ -124,6 +166,17 @@ class TestQuarantineAdmin:
             assert mock_si_retrieve.call_count == 1
             assert mock_pm_retrieve.call_count == 1
             assert mock_pm_retrieve.return_value.detach.call_count == 1
+
+    def test_get_page_stands_up(self, client, admin_user):
+        client.force_login(admin_user)
+        assert client.get(reverse("admin:contributions_quarantine_changelist"), follow=True).status_code == 200
+
+    def test__process_flagged_payment_edge_case(self, mocker):
+        admin = QuarantineQueue(Contribution, AdminSite())
+        admin._process_flagged_payment(
+            request=mocker.Mock(),
+            queryset=[ContributionFactory(status=ContributionStatus.PAID)],
+        )
 
 
 @pytest.mark.django_db()

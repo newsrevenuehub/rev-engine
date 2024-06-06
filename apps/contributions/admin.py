@@ -243,7 +243,7 @@ class QuarantineQueue(admin.ModelAdmin):
         "name",
         "email",
         "address",
-        "reason",
+        "_reason",
         "rp",
     ]
 
@@ -272,23 +272,23 @@ class QuarantineQueue(admin.ModelAdmin):
 
     def name(self, obj):
         if obj.bad_actor_response:
-            return next(x for x in obj.bad_actor_response["items"] if x["label"] == "name").get("value")
+            return next((x for x in obj.bad_actor_response["items"] if x["label"] == "name"), {}).get("value")
 
     def email(self, obj):
         return obj.contributor.email
 
     def address(self, obj):
         if obj.bad_actor_response:
-            return next(x for x in obj.bad_actor_response["items"] if x["label"] == "address").get("value")
-
-    def postal_code(self, obj):
-        return obj.stripe_customer.address.postal_code if obj.stripe_customer else None
+            return next((x for x in obj.bad_actor_response["items"] if x["label"] == "address"), {}).get("value")
 
     def rp(self, obj):
         return obj.revenue_program.name
 
-    def reason(self, obj):
+    # unclear why, but using "reason" as method name seems to cause data to not appear. This onl
+    def _reason(self, obj):
         return obj.contribution_metadata.get("reason")
+
+    _reason.short_description = "Reason"
 
     def get_queryset(self, request):
         # does this want an index?

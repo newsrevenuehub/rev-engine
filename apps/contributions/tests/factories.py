@@ -34,12 +34,6 @@ class ContributorFactory(DjangoModelFactory):
     email = factory.Sequence(lambda n: f"{fake.user_name()}-{n}@{fake.domain_name()}")
 
 
-def _get_flagged_date(bad_actor_score, created_at):
-    if bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE:
-        return created_at + datetime.timedelta(hours=1)
-    return None
-
-
 def _get_status(bad_actor_score):
     if bad_actor_score == settings.BAD_ACTOR_REJECT_SCORE:
         return models.ContributionStatus.REJECTED
@@ -131,7 +125,7 @@ class ContributionFactory(DjangoModelFactory):
         )
         flagged = factory.Trait(
             status=models.ContributionStatus.FLAGGED,
-            flagged_date=factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created)),
+            flagged_date=factory.LazyAttribute(lambda o: o.created + datetime.timedelta(hours=1)),
             provider_setup_intent_id=factory.LazyAttribute(
                 lambda o: None if o.interval == models.ContributionInterval.ONE_TIME else f"seti_{_random_stripe_str()}"
             ),

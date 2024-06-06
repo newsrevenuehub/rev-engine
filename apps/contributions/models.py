@@ -15,6 +15,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
 
 import reversion
@@ -383,7 +384,7 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def is_unmarked_abandoned_cart(self) -> bool:
         return self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING) and (
-            self.created < datetime.datetime.now() - CONTRIBUTION_ABANDONED_THRESHOLD
+            self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD
         )
 
     def get_currency_dict(self) -> CurrencyDict:
@@ -405,13 +406,6 @@ class Contribution(IndexedTimeStampedModel):
 
         manager_class = PaymentManager.get_subclass(self)
         return manager_class(contribution=self)
-
-    def process_flagged_payment(self, reject=False):
-        from apps.contributions.payment_managers import StripePaymentManager
-
-        logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
-        StripePaymentManager(contribution=self).complete_payment(reject=reject)
-        logger.info("Contribution.process_flagged_payment - processing for contribution %s complete", self.pk)
 
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
         if not provider_payment_method_id:
@@ -653,7 +647,6 @@ class Contribution(IndexedTimeStampedModel):
                 self.stripe_account_id,
                 self.id,
             )
-            return None
 
     @property
     def stripe_setup_intent(self) -> stripe.SetupIntent | None:

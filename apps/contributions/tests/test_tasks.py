@@ -448,3 +448,15 @@ def test_mark_abandoned_carts_as_abandoned(abandoned_exists, unmarked_abandoned_
         for contribution in unmarked_abandoned_contributions:
             contribution.refresh_from_db()
             assert contribution.status == ContributionStatus.ABANDONED
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize("payment_provider_error", [True, False])
+def test_auto_accept_flagged_contributions(payment_provider_error, mocker):
+    ContributionFactory(flagged=True)
+    mock_ping_healthchecks = mocker.patch("apps.contributions.tasks.ping_healthchecks")
+    mock_complete_payment = mocker.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
+    if payment_provider_error:
+        mock_complete_payment.side_effect = PaymentProviderError("Uh oh")
+    contribution_tasks.auto_accept_flagged_contributions()
+    assert mock_ping_healthchecks.called

@@ -1810,6 +1810,30 @@ class TestContributionModel:
         else:
             ContributionFactory(donation_page=page, _revenue_program=rp)
 
+    def test_is_unmarked_abandoned_cart(self, unmarked_abandoned_contributions, one_time_contribution):
+        assert unmarked_abandoned_contributions[0].is_unmarked_abandoned_cart
+        assert not one_time_contribution.is_unmarked_abandoned_cart
+
+    def test_stripe_customer_when_no_customer_id(self):
+        contribution = ContributionFactory(provider_customer_id=None)
+        assert contribution.stripe_customer is None
+
+    def test_stripe_customer_when_error_on_retrieve(self, mocker):
+        contribution = ContributionFactory(provider_customer_id="something")
+        mock_retrieve = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError("uh oh"))
+        assert contribution.stripe_customer is None
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+
+    def test_stripe_customer_when_retrieve_success(self, mocker):
+        contribution = ContributionFactory(provider_customer_id="something")
+        mock_retrieve = mocker.patch("stripe.Customer.retrieve", return_value=(retrieved := "something"))
+        assert contribution.stripe_customer == retrieved
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+
 
 @pytest.mark.django_db()
 class TestContributionQuerySetMethods:

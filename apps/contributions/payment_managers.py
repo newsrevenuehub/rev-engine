@@ -114,7 +114,7 @@ class StripePaymentManager(PaymentManager):
                 case (_, False, _):
                     # maybe have an additional check that it's older than a certain amount -- don't want edge case
                     logger.warning(
-                        "One-time contribution %s is flagged and has no provider_payment_id..", self.contribution.id
+                        "One-time contribution %s is flagged and has no provider_payment_id.", self.contribution.id
                     )
                     update_data["status"] = ContributionStatus.REJECTED
 

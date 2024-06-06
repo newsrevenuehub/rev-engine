@@ -82,12 +82,6 @@ class ContributionFactory(DjangoModelFactory):
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
 
     @factory.lazy_attribute
-    def last_payment_date(self):
-        if self.bad_actor_score >= settings.BAD_ACTOR_REJECT_SCORE:
-            return None
-        return self.created + datetime.timedelta(hours=1)
-
-    @factory.lazy_attribute
     def contribution_metadata(self):
         return StripePaymentMetadataSchemaV1_4(
             contributor_id=self.contributor.id if self.contributor else None,

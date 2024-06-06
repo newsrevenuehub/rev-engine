@@ -130,6 +130,8 @@ class TestStripePaymentManager:
         spm = StripePaymentManager(contribution=contribution)
         spm.complete_payment(reject=True)
         save_spy.assert_called_once()
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.REJECTED
 
     def test_complete_payment_when_recurring_and_not_reject_and_not_si(self, mocker):
         contribution = ContributionFactory(monthly_subscription=True, flagged=True)

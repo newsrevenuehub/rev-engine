@@ -155,6 +155,7 @@ class StripePaymentManager(PaymentManager):
 
         except stripe.error.StripeError as exc:
             message = exc.error.message if exc.error else "Could not complete payment"
+            logger.exception("`StripePaymentManager.complete_one_time_payment` raised StripeError")
             raise PaymentProviderError(message) from exc
 
         finally:
@@ -172,7 +173,7 @@ class StripePaymentManager(PaymentManager):
     def complete_recurring_payment(self, reject=False) -> None:
         update_data = {}
         si = self.contribution.stripe_setup_intent
-        pm = self.contribution.fetch_stripe_payment_method()
+        pm = self.contribution.fetch_stripe_payment_method(self.contribution.provider_payment_method_id)
         # If we're rejecting, the critical thing is to change the status to rejected.
         try:
             if reject:
@@ -214,6 +215,7 @@ class StripePaymentManager(PaymentManager):
                 )
         except stripe.error.StripeError as exc:
             message = exc.error.message if exc.error else "Could not complete payment"
+            logger.exception("`StripePaymentManager.complete_recurring_payment` raised StripeError")
             raise PaymentProviderError(message) from exc
         finally:
             if update_data:

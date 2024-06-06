@@ -430,18 +430,15 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self, mocker):
         contribution = ContributionFactory(provider_payment_method_id=None)
-        logger_spy = mocker.spy(logger, "warning")
         assert contribution.fetch_stripe_payment_method() is None
-        logger_spy.assert_called_once_with(
-            "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
-            "on contribution with ID %s",
-            contribution.id,
-        )
 
     def test_fetch_stripe_payment_method_happy_path(self, one_time_contribution, mocker):
         return_value = AttrDict({"key": "val"})
         mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", return_value=return_value)
-        assert one_time_contribution.fetch_stripe_payment_method() == return_value
+        assert (
+            one_time_contribution.fetch_stripe_payment_method(one_time_contribution.provider_payment_method_id)
+            == return_value
+        )
         mock_retrieve_pm.assert_called_once_with(
             one_time_contribution.provider_payment_method_id,
             stripe_account=one_time_contribution.revenue_program.payment_provider.stripe_account_id,
@@ -449,7 +446,9 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_stripe_error(self, one_time_contribution, mocker):
         mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", side_effect=stripe.error.StripeError("error"))
-        assert one_time_contribution.fetch_stripe_payment_method() is None
+        assert (
+            one_time_contribution.fetch_stripe_payment_method(one_time_contribution.provider_payment_method_id) is None
+        )
         mock_retrieve_pm.assert_called_once_with(
             one_time_contribution.provider_payment_method_id,
             stripe_account=one_time_contribution.revenue_program.payment_provider.stripe_account_id,

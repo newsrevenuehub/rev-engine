@@ -414,17 +414,11 @@ class Contribution(IndexedTimeStampedModel):
         logger.info("Contribution.process_flagged_payment - processing for contribution %s complete", self.pk)
 
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
-        pm_id = provider_payment_method_id or self.provider_payment_method_id
-        if not pm_id:
-            logger.warning(
-                "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id"
-                " on contribution with ID %s",
-                self.id,
-            )
+        if not provider_payment_method_id:
             return None
         try:
             return stripe.PaymentMethod.retrieve(
-                pm_id,
+                provider_payment_method_id,
                 stripe_account=self.revenue_program.payment_provider.stripe_account_id,
             )
         except StripeError:
@@ -959,7 +953,9 @@ class Contribution(IndexedTimeStampedModel):
                 "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
                 contribution.id,
             )
-            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
+            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method(
+                contribution.provider_payment_method_id
+            )
             if dry_run:
                 updated += 1
                 continue

@@ -261,7 +261,6 @@ class QuarantineQueue(admin.ModelAdmin):
         return False
 
     def hours_in_queue(self, obj) -> int | None:
-        # edge case around flagged date null
         if not obj.flagged_date:
             return None
         return (timezone.now() - obj.flagged_date).days

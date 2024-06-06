@@ -1,0 +1,65 @@
+{
+    "id": "evt_fake",
+    "object": "event",
+    "account": "acct_fake",
+    "api_version": "2020-08-27",
+    "created": 1717631229,
+    "data": {
+        "object": {
+            "id": "pm_fake",
+            "object": "payment_method",
+            "allow_redisplay": "unspecified",
+            "billing_details": {
+                "address": {
+                    "city": "Quezon City",
+                    "country": "PH",
+                    "line1": "Contribution",
+                    "line2": "",
+                    "postal_code": "321",
+                    "state": "Metro Manila"
+                },
+                "email": "foo@fundjournalism.org",
+                "name": "Foo Bar",
+                "phone": null
+            },
+            "card": {
+                "brand": "visa",
+                "checks": {
+                    "address_line1_check": "pass",
+                    "address_postal_code_check": "pass",
+                    "cvc_check": "pass"
+                },
+                "country": "US",
+                "display_brand": "visa",
+                "exp_month": 6,
+                "exp_year": 2066,
+                "fingerprint": "fake",
+                "funding": "credit",
+                "generated_from": null,
+                "last4": "4242",
+                "networks": {
+                    "available": [
+                        "visa"
+                    ],
+                    "preferred": null
+                },
+                "three_d_secure_usage": {
+                    "supported": true
+                },
+                "wallet": null
+            },
+            "created": 1717631228,
+            "customer": "cus_fake",
+            "livemode": false,
+            "metadata": {},
+            "type": "card"
+        }
+    },
+    "livemode": false,
+    "pending_webhooks": 1,
+    "request": {
+        "id": "req_fake",
+        "idempotency_key": "4aadb07b-fake"
+    },
+    "type": "payment_method.attached"
+}

@@ -99,89 +99,93 @@ class StripePaymentManager(PaymentManager):
         elif self.contribution.interval:
             self.complete_recurring_payment(reject)
 
-    def complete_one_time_payment(self, reject=False):
+    def complete_one_time_payment(self, reject=False) -> None:
         revenue_program = self.contribution.revenue_program
         update_data = {}
-        if not (pi := self.contribution.stripe_payment_intent):
-            logger.error(
-                "`StripePaymentManager.complete_one_time_payment` cannot retrieve a payment intent for contribution with ID %s",
-                self.contribution.id,
-            )
-            raise PaymentProviderError("Cannot retrieve payment data")
-        if reject:
-            try:
-                logger.info(
-                    "StripePaymentManager.complete_one_time_payment canceling Stripe PI %s for contribution %s",
-                    pi.id,
-                    self.contribution.pk,
-                )
-                pi.cancel(
-                    self.contribution.provider_payment_id,
-                    stripe_account=revenue_program.payment_provider.stripe_account_id,
-                    cancellation_reason="fraudulent",
-                )
-                # we rely on Stripe webhook for payment_intent.canceled that updates status on contribution
-                update_data["status"] = ContributionStatus.REJECTED
-            except stripe.error.StripeError:
-                logger.exception(
-                    "`StripePaymentManager.complete_one_time_payment` canceling Stripe  PI %s for contribution %s",
-                    self.contribution.provider_payment_id,
-                    self.contribution.pk,
-                )
-                raise PaymentProviderError("Cannot cancel payment intent") from None
-        else:
-            try:
-                logger.info("StripePaymentManager.complete_one_time_payment capturing Stripe PI %s", pi.id)
-                pi.capture(
-                    self.contribution.provider_payment_id,
-                    stripe_account=revenue_program.payment_provider.stripe_account_id,
-                )
-                update_data["status"] = ContributionStatus.PAID
-            except stripe.error.StripeError:
-                logger.exception(
-                    "`StripePaymentManager.complete_one_time_payment` error capturing payment intent for id (%s}",
-                    self.contribution.pk,
-                )
-                raise PaymentProviderError("Something went wrong with Stripe") from None
-        if update_data:
-            with reversion.create_revision():
-                for key, value in update_data.items():
-                    setattr(self.contribution, key, value)
-                reversion.set_comment("`StripePaymentManager.complete_one_time_payment` completed contribution")
-                self.contribution.save(update_fields=set(update_data.keys()).union({"modified"}))
-                logger.info(
-                    "StripePaymentManager.complete_one_time_payment updated contribution with id %s",
-                    self.contribution.id,
-                )
+        try:
+            match (
+                reject,
+                bool(self.contribution.provider_payment_id),
+                bool(pi := self.contribution.stripe_payment_intent),
+            ):
+                # if there's no provider_payment_id and it's one-time flagged, something went wrong, as it
+                # shouldn't be possible to get in this state via checkout flow. We mainly cover this edge
+                # case out of defensive stance rather than specific knowledge of it happening.
+                case (_, False, _):
+                    # maybe have an additional check that it's older than a certain amount -- don't want edge case
+                    logger.warning(
+                        "One-time contribution %s is flagged and has no provider_payment_id..", self.contribution.id
+                    )
+                    update_data["status"] = ContributionStatus.REJECTED
 
-    def complete_recurring_payment(self, reject=False):
+                # in this case, we warn, but don't update status because inability to retrieve PI is not an inherent reason to reject
+                case (False, True, False):
+                    logger.warning(
+                        "Unable to retrieve payment intent for contribution with ID %s", self.contribution.id
+                    )
+                    raise PaymentProviderError(
+                        f"Cannot retrieve payment intent {self.contribution.provider_payment_id} for contribution {self.contribution.id}"
+                    )
+
+                # we're accepting the payment
+                case (False, True, True):
+                    logger.info("StripePaymentManager.complete_one_time_payment capturing Stripe PI %s", pi.id)
+                    pi.capture(
+                        self.contribution.provider_payment_id,
+                        stripe_account=revenue_program.payment_provider.stripe_account_id,
+                    )
+                    # we only want to update the status after we've succeeded at capturing the payment
+                    update_data["status"] = ContributionStatus.PAID
+
+                # if we're rejecting
+                case (True, True, True):
+                    logger.info(
+                        "StripePaymentManager.complete_one_time_payment canceling Stripe PI %s for contribution %s",
+                        pi.id,
+                        self.contribution.pk,
+                    )
+                    pi.cancel(
+                        self.contribution.provider_payment_id,
+                        stripe_account=revenue_program.payment_provider.stripe_account_id,
+                        cancellation_reason="fraudulent",
+                    )
+                    # should we also try to detach a PM?
+                    # we only want to update the status if the payment was successfully canceled
+                    update_data["status"] = ContributionStatus.REJECTED
+
+        except stripe.error.StripeError as exc:
+            message = exc.error.message if exc.error else "Could not complete payment"
+            raise PaymentProviderError(message) from exc
+
+        finally:
+            if update_data:
+                with reversion.create_revision():
+                    for key, value in update_data.items():
+                        setattr(self.contribution, key, value)
+                    reversion.set_comment("`StripePaymentManager.complete_one_time_payment` updated contribution")
+                    self.contribution.save(update_fields=set(update_data.keys()).union({"modified"}))
+                    logger.info(
+                        "StripePaymentManager.complete_one_time_payment updated contribution with id %s",
+                        self.contribution.id,
+                    )
+
+    def complete_recurring_payment(self, reject=False) -> None:
         update_data = {}
         si = self.contribution.stripe_setup_intent
         pm = self.contribution.fetch_stripe_payment_method()
-        if reject:
-            if not pm:
-                logger.error(
-                    "`StripePaymentManager.complete_recurring_payment` cannot locate a payment method for contribution with ID %s",
-                    self.contribution.id,
-                )
-                raise PaymentProviderError("Cannot retrieve payment data")
-            try:
-                logger.info(
-                    "StripePaymentManager.complete_recurring_payment detaching Stripe PM %s for contribution %s",
-                    pm.id,
-                    self.contribution.id,
-                )
-                pm.detach()
+        # If we're rejecting, the critical thing is to change the status to rejected.
+        try:
+            if reject:
                 update_data["status"] = ContributionStatus.REJECTED
-            except stripe.error.StripeError:
-                logger.exception(
-                    "`StripePaymentManager.complete_recurring_payment` error detaching payment method for contribution with ID %s",
-                    self.contribution.id,
-                )
-                raise PaymentProviderError("Cannot retrieve payment data") from None
-
-        else:
-            if not si:
+                if pm:
+                    logger.info(
+                        "StripePaymentManager.complete_recurring_payment detaching Stripe PM %s for contribution %s",
+                        pm.id,
+                        self.contribution.id,
+                    )
+                    pm.detach()
+            # if accept but we can't get SI, there's nothing more we can do.
+            elif not si:
                 logger.error(
                     "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"
                     " with ID %s and setup intent ID %s",
@@ -189,7 +193,7 @@ class StripePaymentManager(PaymentManager):
                     self.contribution.provider_setup_intent_id,
                 )
                 raise PaymentProviderError("Cannot retrieve payment data")
-            try:
+            else:
                 logger.info(
                     "StripePaymentManager.complete_recurring_payment creating Stripe subscription for setupintent %s and contribution %s",
                     si.id,
@@ -204,28 +208,21 @@ class StripePaymentManager(PaymentManager):
                 update_data.update(
                     {
                         "status": ContributionStatus.PAID,
-                        # we conver to a dict because Stripe returns a dict/object type of data structure that we don't have
-                        # an off-the-shelf way of mimicing in our tests at present. We use AttrDict in places to get some of
-                        # the behavior, but in some cases, attrdict has different behaviors than needed and falls flat.
-                        # In this case, in our tests, we pass mocked subscriptions as AttrDicts, but for some reason save fails
-                        # if we don't explicitly convert to a dict
-                        "payment_provider_data": dict(subscription),
                         "provider_subscription_id": subscription.id,
                         "provider_payment_id": subscription.latest_invoice.payment_intent.id,
                     }
                 )
-            except stripe.error.StripeError as exc:
-                message = exc.error.message if exc.error else "Could not complete payment"
-                raise PaymentProviderError(message) from exc
-
-        if update_data:
-            for key, value in update_data.items():
-                setattr(self.contribution, key, value)
-            with reversion.create_revision():
-                reversion.set_comment("`StripePaymentManager.complete_recurring_payment` completed contribution")
-                self.contribution.save(update_fields=set(update_data.keys()).union({"modified"}))
-                logger.info(
-                    "StripePaymentManager.complete_recurring_payment updated contribution with id %s",
-                    self.contribution.id,
-                )
-                return
+        except stripe.error.StripeError as exc:
+            message = exc.error.message if exc.error else "Could not complete payment"
+            raise PaymentProviderError(message) from exc
+        finally:
+            if update_data:
+                for key, value in update_data.items():
+                    setattr(self.contribution, key, value)
+                with reversion.create_revision():
+                    reversion.set_comment("`StripePaymentManager.complete_recurring_payment` completed contribution")
+                    self.contribution.save(update_fields=set(update_data.keys()).union({"modified"}))
+                    logger.info(
+                        "StripePaymentManager.complete_recurring_payment updated contribution with id %s",
+                        self.contribution.id,
+                    )

@@ -70,11 +70,10 @@ class TestStripePaymentManager:
             else:
                 mock_sub_create.assert_called_once()
                 assert contribution.provider_subscription_id == mock_sub_create.return_value.id
-                assert contribution.payment_provider_data == dict(mock_sub_create.return_value)
                 assert contribution.provider_payment_id == mock_sub_create.return_value.latest_invoice.payment_intent.id
         expected_update_fields = {"status", "modified"}
         if not reject and contribution.interval != ContributionInterval.ONE_TIME:
-            expected_update_fields.update({"provider_subscription_id", "payment_provider_data", "provider_payment_id"})
+            expected_update_fields.update({"provider_subscription_id", "provider_payment_id"})
         save_spy.assert_called_once_with(
             contribution,
             update_fields=expected_update_fields,
@@ -118,21 +117,20 @@ class TestStripePaymentManager:
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=None)
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
-        with pytest.raises(PaymentProviderError):
-            spm.complete_payment(reject=True)
-        save_spy.assert_not_called()
+        spm.complete_payment(reject=True)
+        save_spy.assert_called_once()
 
     def test_complete_payment_when_recurring_and_reject_and_detach_fails(self, mocker):
         contribution = ContributionFactory(monthly_subscription=True, flagged=True)
         mock_si = mocker.patch("stripe.SetupIntent.retrieve")
         mock_si.return_value.payment_method = "pm_123"
         mock_pm = mocker.patch("stripe.PaymentMethod.retrieve")
-        mock_pm.return_value.detach.side_effect = stripe.error.StripeError
+        mock_pm.return_value.detach.side_effect = stripe.error.StripeError("uh oh")
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
             spm.complete_payment(reject=True)
-        save_spy.assert_not_called()
+        save_spy.assert_called_once()
 
     def test_complete_payment_when_recurring_and_not_reject_and_not_si(self, mocker):
         contribution = ContributionFactory(monthly_subscription=True, flagged=True)

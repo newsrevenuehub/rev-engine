@@ -142,7 +142,7 @@ class StripeWebhookProcessor:
         if not self.webhook_live_mode_agrees_with_environment:
             logger.warning("Received webhook in wrong mode; ignoring")
             return
-        if not self.contribution:
+        if not self.contribution and self.event_type != "payment_method.attached":
             raise Contribution.DoesNotExist("No contribution found")
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)
@@ -176,7 +176,7 @@ class StripeWebhookProcessor:
                     provider_payment_method_details=dict(pm),
                 )
                 reversion.set_comment(
-                    "`StripeWebhookProcessor.handle_payment_method_attached` updated %s contributions", updated
+                    f"`StripeWebhookProcessor.handle_payment_method_attached` updated {updated} contributions"
                 )
             logger.info("Updated %s contributions with payment method %s", updated, pm.id)
 

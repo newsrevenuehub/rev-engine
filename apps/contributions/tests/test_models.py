@@ -1920,6 +1920,14 @@ class TestContributionQuerySetMethods:
         assert len(results) == 1
         assert results[0].id == paid.id
 
+    @pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
+    def test_unmarked_abandoned_carts(self, unmarked_abandoned_contributions):
+        """Show that this method returns the expected results."""
+        assert unmarked_abandoned_contributions
+        assert set(Contribution.objects.unmarked_abandoned_carts().values_list("id", flat=True)) == {
+            c.id for c in unmarked_abandoned_contributions
+        }
+
 
 @pytest.fixture()
 def charge_refunded_one_time_event():

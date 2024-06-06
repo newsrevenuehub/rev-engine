@@ -1070,6 +1070,12 @@ def payment_intent_succeeded_one_time_event(_suppress_stripe_webhook_sig_verific
 
 
 @pytest.fixture()
+def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
+    with Path("apps/contributions/tests/fixtures/payment-method-attached-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
 def payment_intent_succeeded_subscription_creation_event(_suppress_stripe_webhook_sig_verification):
     with Path(
         "apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json"

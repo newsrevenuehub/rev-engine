@@ -546,7 +546,6 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             raise GenericPaymentError() from None
 
         contribution.provider_payment_id = payment_intent.id
-        contribution.payment_provider_data = dict(payment_intent) | {"client_secret": None}
         logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution")
 
         contribution.save()
@@ -658,7 +657,6 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 )
                 subscription = contribution.create_stripe_subscription(metadata=contribution.contribution_metadata)
 
-                contribution.payment_provider_data = dict(subscription)
                 contribution.provider_subscription_id = subscription.id
                 contribution.provider_payment_id = subscription.latest_invoice.payment_intent.id
                 client_secret = subscription.latest_invoice.payment_intent.client_secret

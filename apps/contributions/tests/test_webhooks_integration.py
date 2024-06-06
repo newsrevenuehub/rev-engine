@@ -67,20 +67,27 @@ def invoice_upcoming():
 
 
 @pytest.fixture()
-def _invoice_payment_succeeded():
-    # also set up the coresponding contribution in revengine
-    with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:
-        event_data = json.load(f)
-        ContributionFactory(
-            interval=ContributionInterval.YEARLY, provider_subscription_id=event_data["data"]["object"]["subscription"]
-        )
-
-
-@pytest.fixture()
 def charge_refunded():
     # also set up the corresponding contribution in revengine
     with Path("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json").open() as f:
         return json.load(f)
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize("pm_found", [True, False])
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
+def test_payment_method_attached(client, mocker, payment_method_attached_event, pm_found, payment_method):
+    ContributionFactory.create_batch(2, provider_customer_id=payment_method.customer)
+    header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+    mock_pm_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
+    mock_pm_retrieve.return_value = payment_method if pm_found else None
+    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
+    assert response.status_code == status.HTTP_200_OK
+    contributions = Contribution.objects.filter(provider_customer_id=payment_method.customer)
+    assert contributions.count() == 2
+    if pm_found:
+        assert all(c.provider_payment_method_id == payment_method.id for c in contributions)
+        assert all(c.provider_payment_method_details == payment_method.to_dict() for c in contributions)
 
 
 @pytest.mark.django_db()

@@ -210,7 +210,6 @@ def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, tra
 )
 def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
     logger.info("Processing Stripe webhook event with ID %s", raw_event_data["id"])
-
     processor = StripeWebhookProcessor(event=(event := StripeEventData(**raw_event_data)))
     try:
         processor.process()

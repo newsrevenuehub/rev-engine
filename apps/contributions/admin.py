@@ -274,7 +274,7 @@ class QuarantineQueue(admin.ModelAdmin):
             return next((x for x in obj.bad_actor_response["items"] if x["label"] == "name"), {}).get("value")
 
     def email(self, obj):
-        return obj.contributor.email
+        return obj.contributor.email if obj.contributor else None
 
     def address(self, obj):
         if obj.bad_actor_response:

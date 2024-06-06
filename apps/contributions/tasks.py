@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 import requests
+import reversion
 import stripe
 from celery import Task, shared_task
 from celery.utils.log import get_task_logger
@@ -47,27 +48,43 @@ def ping_healthchecks(check_name, healthcheck_url):
 
 
 @shared_task
+def mark_abandoned_carts_as_abandoned():
+    logger.info("Starting task, 'mark_abandoned_carts_as_abandoned'")
+    abandoned = Contribution.objects.unmarked_abandoned_carts()
+    logger.info("Found %s abandoned carts", abandoned.count())
+    if abandoned.exists():
+        with reversion.create_revision():
+            updated = abandoned.update(status=ContributionStatus.ABANDONED)
+            reversion.set_comment("`mark_abandoned_carts_as_abandoned` task marked as abandoned")
+            logger.info("Marked %s contributions carts as abandoned", updated)
+
+
+@shared_task
 def auto_accept_flagged_contributions():
     logger.info('Starting task, "auto_accept_flagged_contributions"')
     successful_captures = 0
     failed_captures = 0
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
-        status=ContributionStatus.FLAGGED, flagged_date__lte=now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
+        status=ContributionStatus.FLAGGED,
+        flagged_date__lte=now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA),
     )
-    logger.info("Found %s flagged contributions past auto-accept date", len(eligible_flagged_contributions))
+    logger.info(
+        "Found %s flagged contributions past auto-accept date that are eligible for auto-accept",
+        len(eligible_flagged_contributions),
+    )
 
     for contribution in eligible_flagged_contributions:
-        payment_intent = contribution.get_payment_manager_instance()
+        manager = contribution.get_payment_manager_instance()
         try:
-            payment_intent.complete_payment(reject=False)
+            manager.complete_payment(reject=False)
             successful_captures += 1
         except PaymentProviderError:
             failed_captures += 1
 
     logger.info("Successfully captured %s previously-held payments.", successful_captures)
     if failed_captures:
-        logger.warning("Failed to capture %s previously-held payments. Check logs for ids.", failed_captures)
+        logger.info("Failed to capture %s previously-held payments. Check logs for ids.", failed_captures)
 
     ping_healthchecks("auto_accept_flagged_contributions", settings.HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS)
     return successful_captures, failed_captures

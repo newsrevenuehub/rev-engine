@@ -429,3 +429,22 @@ def test_task_import_contributions_and_payments_for_stripe_account(mocker):
         retrieve_payment_method=False,
         sentry_profiler=False,
     )
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize("abandoned_exists", [True, False])
+@pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
+def test_mark_abandoned_carts_as_abandoned(abandoned_exists, unmarked_abandoned_contributions):
+    assert Contribution.objects.unmarked_abandoned_carts().exists()
+    prior_marked_abandoned = Contribution.objects.filter(status=ContributionStatus.ABANDONED).count()
+    if not abandoned_exists:
+        Contribution.objects.all().delete()
+    contribution_tasks.mark_abandoned_carts_as_abandoned()
+    if abandoned_exists:
+        assert not Contribution.objects.unmarked_abandoned_carts().exists()
+        assert Contribution.objects.filter(status=ContributionStatus.ABANDONED).count() == prior_marked_abandoned + len(
+            unmarked_abandoned_contributions
+        )
+        for contribution in unmarked_abandoned_contributions:
+            contribution.refresh_from_db()
+            assert contribution.status == ContributionStatus.ABANDONED

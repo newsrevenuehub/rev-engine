@@ -104,7 +104,6 @@ class TestPaymentIntentSucceeded:
             one_time=True,
             status=ContributionStatus.PROCESSING,
             last_payment_date=None,
-            payment_provider_data=None,
             provider_payment_id=payment_intent_for_one_time_contribution.id,
         )
         mock_send_thank_you = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
@@ -177,7 +176,7 @@ class TestPaymentIntentCanceled:
         spy = mocker.spy(Contribution, "save")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_canceled, **header)
-        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        spy.assert_called_once_with(contribution, update_fields={"status", "modified"})
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_payment_intent_canceled` updated contribution"
         )
@@ -217,7 +216,7 @@ class TestPaymentIntentPaymentFailed:
         spy = mocker.spy(Contribution, "save")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
-        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        spy.assert_called_once_with(contribution, update_fields={"status", "modified"})
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_payment_intent_failed` updated contribution"
         )
@@ -266,7 +265,6 @@ class TestCustomerSubscriptionUpdated:
         )
         expected_update_fields = {
             "modified",
-            "payment_provider_data",
             "provider_subscription_id",
             "provider_payment_method_id",
             "provider_payment_method_details",
@@ -317,7 +315,7 @@ class TestCustomerSubscriptionDeleted:
         email_spy = mocker.patch.object(Contribution, "send_recurring_contribution_canceled_email")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_deleted, **header)
-        save_spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        save_spy.assert_called_once_with(contribution, update_fields={"status", "modified"})
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution"
         )

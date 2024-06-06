@@ -29,6 +29,7 @@ from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
@@ -1145,3 +1146,34 @@ def payment_method(payment_method_data_factory):
     return stripe.PaymentMethod.construct_from(
         payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
     )
+
+
+@pytest.fixture()
+def not_unmarked_abandoned_contributions() -> list[Contribution]:
+    return [
+        ContributionFactory(**{param: True})
+        for param in [
+            "rejected",
+            "canceled",
+            "refunded",
+            "abandoned",
+            "annual_subscription",
+            "one_time",
+        ]
+    ]
+
+
+@pytest.fixture()
+def unmarked_abandoned_contributions() -> list[Contribution]:
+    return [
+        ContributionFactory(
+            **{
+                "unmarked_abandoned": True,
+                "one_time" if interval == ContributionInterval.ONE_TIME else "monthly_subscription": True,
+                "status": status,
+                "interval": interval,
+            }
+        )
+        for interval in [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
+        for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING]
+    ]

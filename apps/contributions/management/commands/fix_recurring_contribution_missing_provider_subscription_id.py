@@ -48,8 +48,17 @@ class Command(BaseCommand):
             if not getattr(intent, "invoice", None):
                 self.stdout.write(self.style.WARNING("Payment intent has no invoice, skipping"))
                 continue
+            # Right now we don't enforce uniqueness for contribution subscription IDs, so a manual check
+            # is needed here. Can be removed once DEV-4882 is done.
             if not getattr(intent.invoice, "subscription", None):
                 self.stdout.write(self.style.WARNING("Invoice has no subscription ID, skipping"))
+                continue
+            if Contribution.objects.filter(provider_subscription_id=intent.invoice.subscription).exists():
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Invoice has subscription ID {intent.invoice.subscription} but another contribution already is linked to it"
+                    )
+                )
                 continue
             with reversion.create_revision():
                 contribution.provider_subscription_id = intent.invoice.subscription

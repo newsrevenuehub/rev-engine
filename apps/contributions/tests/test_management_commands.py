@@ -322,6 +322,16 @@ class Test_fix_recurring_contribution_missing_provider_subscription_id:
         contribution.refresh_from_db()
         assert contribution.provider_subscription_id is None
 
+    def test_skips_when_intent_invoice_has_sub_linked_to_existing_contribution(self, contribution, mocker):
+        ContributionFactory(provider_subscription_id="existing-id")
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=mocker.Mock(invoice=mocker.Mock(subscription="existing-id")),
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
     def test_skips_when_intent_invoice_has_no_subscription(self, contribution, mocker):
         mocker.patch(
             "stripe.PaymentIntent.retrieve",

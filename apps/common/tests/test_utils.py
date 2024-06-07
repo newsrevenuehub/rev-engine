@@ -73,18 +73,21 @@ def test_custom_length_enforced():
 def setup_request(user, request):
     request.user = user
 
-    # Annotate a request object with a session
-    middleware = SessionMiddleware()
+    # Annotate a request object with a session.
+    # Note that we need to pass a callable to the middleware in Django 4.2. Here, we just have a dummy
+    # that returns the request object.
+    middleware = SessionMiddleware(get_response=(dummy := lambda request: request))
     middleware.process_request(request)
     request.session.save()
 
     # Annotate a request object with a message
-    middleware = MessageMiddleware()
+    middleware = MessageMiddleware(get_response=dummy)
     middleware.process_request(request)
     request.session.save()
 
     request.session["some"] = "some"
     request.session.save()
+    return request
 
 
 def generate_random_datetime(start, end):

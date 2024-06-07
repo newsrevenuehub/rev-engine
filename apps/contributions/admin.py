@@ -228,7 +228,7 @@ class Quarantine(Contribution):
 
 
 @admin.register(Quarantine)
-class QuarantineQueue(RevEngineBaseAdmin):
+class QuarantineQueue(admin.ModelAdmin):
     actions = (
         "accept_flagged_contribution",
         "reject_flagged_contribution",

@@ -298,6 +298,16 @@ class Test_fix_recurring_contribution_missing_provider_subscription_id:
         contribution.refresh_from_db()
         assert contribution.provider_subscription_id == "existing-id"
 
+    def test_skips_missing_stripe_account_id(self, contribution, mocker):
+        mocker.patch(
+            "apps.contributions.models.Contribution.stripe_account_id",
+            return_value=None,
+            new_callable=mocker.PropertyMock,
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
     def test_skips_missing_provider_payment_id(self, contribution):
         contribution.provider_payment_id = None
         contribution.save()

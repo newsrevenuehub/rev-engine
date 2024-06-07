@@ -30,6 +30,9 @@ class Command(BaseCommand):
             # payment intent -> invoice -> subscription
 
             self.stdout.write(self.style.HTTP_INFO(f"Investigating contribution ID {contribution.id}"))
+            if not contribution.stripe_account_id:
+                self.stdout.write(self.style.WARNING("Contribution has no Stripe account ID, skipping"))
+                continue
             if not contribution.provider_payment_id:
                 self.stdout.write(self.style.WARNING("Contribution has no provider payment intent ID, skipping"))
                 continue

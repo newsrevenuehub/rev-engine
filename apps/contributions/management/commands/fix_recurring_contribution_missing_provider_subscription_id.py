@@ -55,10 +55,9 @@ class Command(BaseCommand):
                 contribution.provider_subscription_id = intent.invoice.subscription
                 contribution.save(update_fields={"modified", "provider_subscription_id"})
                 reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_subscription_id command")
-            c_id = contribution.id
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Set subscription ID {contribution.provider_subscription_id} on contribution {c_id}"
+                    f"Set subscription ID {contribution.provider_subscription_id} on contribution {contribution.id}"
                 )
             )
             fixed += 1

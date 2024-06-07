@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.contrib import admin, messages
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.html import format_html
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
@@ -229,7 +228,7 @@ class Quarantine(Contribution):
 
 
 @admin.register(Quarantine)
-class QuarantineQueue(admin.ModelAdmin):
+class QuarantineQueue(RevEngineBaseAdmin):
     actions = (
         "accept_flagged_contribution",
         "reject_flagged_contribution",
@@ -237,7 +236,7 @@ class QuarantineQueue(admin.ModelAdmin):
 
     list_display = [
         "contribution",
-        "hours_in_queue",
+        "flagged_date",
         "amount",
         "interval",
         "name",
@@ -260,11 +259,6 @@ class QuarantineQueue(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def hours_in_queue(self, obj) -> int | None:
-        if not obj.flagged_date:
-            return None
-        return (timezone.now() - obj.flagged_date).days
-
     def contribution(self, obj):
         url = reverse("admin:contributions_contribution_change", args=[obj.id])
         return format_html('<a href="{}">{}</a>', url, obj.id)
@@ -283,20 +277,14 @@ class QuarantineQueue(admin.ModelAdmin):
     def rp(self, obj):
         return obj.revenue_program.name
 
-    # unclear why, but using "reason" as method name seems to cause data to not appear. This onl
+    # unclear why, but using "reason" as method name seems to cause data to not appear. This only happens with this field name.
     def _reason(self, obj):
-        return obj.contribution_metadata.get("reason")
+        return obj.contribution_metadata.get("reason") if obj.contribution_metadata else None
 
     _reason.short_description = "Reason"
 
     def get_queryset(self, request):
-        # does this want an index?
-        return (
-            super()
-            .get_queryset(request)
-            .filter(status=ContributionStatus.FLAGGED)
-            .exclude(id__in=Contribution.objects.unmarked_abandoned_carts())
-        )
+        return super().get_queryset(request).filter(status=ContributionStatus.FLAGGED)
 
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):

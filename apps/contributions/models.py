@@ -407,10 +407,9 @@ class Contribution(IndexedTimeStampedModel):
 
     def get_payment_manager_instance(self):
         """Select the correct payment manager for this Contribution, then instantiates it."""
-        from apps.contributions.payment_managers import PaymentManager
+        from apps.contributions.payment_managers import StripePaymentManager
 
-        manager_class = PaymentManager.get_subclass(self)
-        return manager_class(contribution=self)
+        return StripePaymentManager(contribution=self)
 
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
         if not provider_payment_method_id:

@@ -10,6 +10,7 @@ from apps.contributions.serializers import (
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
 )
+from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.organizations.models import PaymentProvider
 
 
@@ -55,16 +56,6 @@ class PaymentManager:
     def get_serializer_class(self, **kwargs):  # pragma: no cover Abstract method
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
-    def ensure_contribution(self):
-        if not self.contribution:
-            raise ValueError("Method requires PaymentManager to be instantiated with contribution instance")
-
-    @staticmethod
-    def get_subclass(contribution):
-        payment_provider_used = contribution.payment_provider_used
-        if payment_provider_used == PaymentProvider.STRIPE_LABEL:
-            return StripePaymentManager
-
 
 class StripePaymentManager(PaymentManager):
     payment_provider_name = PaymentProvider.STRIPE_LABEL
@@ -76,27 +67,10 @@ class StripePaymentManager(PaymentManager):
             return StripeOneTimePaymentSerializer
         return StripeRecurringPaymentSerializer
 
-    def attach_payment_method_to_customer(self, stripe_customer_id, org_stripe_account, payment_method_id=None):
-        try:
-            stripe.PaymentMethod.attach(
-                payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
-                customer=stripe_customer_id,
-                stripe_account=org_stripe_account,
-            )
-        except (stripe.error.StripeError, stripe.error.InvalidRequestError):
-            logger.exception(
-                "`StripePaymentManager.attach_payment_method_to_customer` resulted in a StripeError for stripe_customer_id"
-                " %s org_stripe_account %s payment_method_id %s",
-                stripe_customer_id,
-                org_stripe_account,
-                payment_method_id,
-            )
-            raise PaymentProviderError("Something went wrong with Stripe") from None
-
     def complete_payment(self, reject=False):
         if self.contribution.interval == ContributionInterval.ONE_TIME:
             self.complete_one_time_payment(reject)
-        elif self.contribution.interval:
+        else:
             self.complete_recurring_payment(reject)
 
     def _handle_one_time_acceptance(self, pi, update_data) -> dict:
@@ -107,11 +81,6 @@ class StripePaymentManager(PaymentManager):
             idempotency_key=self.contribution.uuid,
         )
         update_data["status"] = ContributionStatus.PAID
-        return update_data
-
-    def _handle_complete_one_time_when_no_provider_payment_id(self, update_data) -> dict:
-        logger.warning("One-time contribution %s is flagged and has no provider_payment_id.", self.contribution.id)
-        update_data["status"] = ContributionStatus.REJECTED
         return update_data
 
     def _handle_one_time_rejection(self, payment_intent, update_data) -> dict:
@@ -137,28 +106,24 @@ class StripePaymentManager(PaymentManager):
                 bool(self.contribution.provider_payment_id),
                 bool(pi := self.contribution.stripe_payment_intent),
             ):
-                # if there's no provider_payment_id and it's one-time flagged, something went wrong, as it
-                # shouldn't be possible to get in this state via checkout flow. We mainly cover this edge
-                # case out of defensive stance rather than specific knowledge of it happening.
-                case (True, False, _):
-                    update_data = self._handle_complete_one_time_when_no_provider_payment_id(update_data)
-                case (False, False, _):
-                    # what should we do in this case?
-                    pass
-                # in this case, we warn, but don't update status because inability to retrieve PI is not an inherent reason to reject
-                case (False, True, False):
-                    logger.warning(
-                        "Unable to retrieve payment intent for contribution with ID %s", self.contribution.id
+                # if no provider payment id or unretrievable payment intent,
+                #  we won't be able to cancel in case of reject or capture in case of accept, so raise error.
+                case (_, False, _) | (_, _, False):
+                    logger.error(
+                        "Cannot find payment intent for contribution %s. Cannot be %s",
+                        self.contribution.id,
+                        "rejected" if reject else "accepted",
                     )
-                    raise PaymentProviderError(
-                        f"Cannot retrieve payment intent {self.contribution.provider_payment_id} for contribution {self.contribution.id}"
-                    )
-                # we're accepting the payment
+                    raise PaymentProviderError(f"Contribution {self.contribution.id} has no provider_payment_id")
+                # if we're accepting and have payment intent
                 case (False, True, True):
                     update_data = self._handle_one_time_acceptance(pi, update_data)
-
-                # if we're rejecting
-                case (True, True, True):
+                # if we're rejecting and have payment intent
+                case (
+                    True,
+                    True,
+                    True,
+                ):  # pragma: no cover  This last case makes the set of cases exhaustive, but pytest cov doesn't see it.
                     update_data = self._handle_one_time_rejection(pi, update_data)
 
         except stripe.error.StripeError as exc:
@@ -214,20 +179,28 @@ class StripePaymentManager(PaymentManager):
             self.contribution.id,
         )
         self.contribution.refresh_from_db()
-        if (
-            self.contribution.status == ContributionStatus.FLAGGED
-            and not self.contribution.provider_subscription_id
-            and not Contribution.objects.filter(provider_subscription_id=subscription.id).exists()
-        ):
-            # stripe statuses are
-            # incomplete, incomplete_expired, trialing, active, past_due, canceled, unpaid, or paused.
-            update_data.update(
-                {
-                    "status": ContributionStatus.PAID,  ## need correct status here.
-                    "provider_subscription_id": subscription.id,
-                    "provider_payment_id": subscription.latest_invoice.payment_intent.id,
-                }
+        if (existing := Contribution.objects.filter(provider_subscription_id=subscription.id)).exists():
+            logger.error(
+                "StripePaymentManager.complete_recurring_payment found existing subscription %s for setupintent %s and contribution %s,"
+                "but another contribution already has this subscription.",
+                subscription.id,
+                setup_intent.id,
+                self.contribution.id,
             )
+            raise PaymentProviderError(
+                f"Subscription {subscription.id} already exists on contribution{'s' if existing.count() != 1 else ''} "
+                f"{existing.values_list('id', flat=True)}"
+            )
+        if self.contribution.status == ContributionStatus.FLAGGED:
+            update_data["status"] = StripeTransactionsImporter.get_status_for_subscription(subscription.status)
+            # this is tricky!
+            if not self.contribution.provider_subscription_id:
+                update_data.update(
+                    {
+                        "provider_subscription_id": subscription.id,
+                        "provider_payment_id": subscription.latest_invoice.payment_intent.id,
+                    }
+                )
         return update_data
 
     def _handle_recurring_rejection(self, update_data: dict, payment_method: stripe.PaymentMethod | None) -> dict:

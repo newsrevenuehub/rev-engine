@@ -20,7 +20,7 @@ class TestStripePaymentManager:
     def test_complete_payment(self, make_contribution_fn, reject, mocker):
         spm = StripePaymentManager(contribution=(contribution := make_contribution_fn()))
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
-        mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve")
+        mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict({"id": "si_id_123"}))
         mocker.patch("stripe.Subscription.list")
         mock_si_retrieve.return_value.payment_method = "pm_id_123"
         mock_si_retrieve.return_value.metadata = {"meta": "data"}
@@ -84,6 +84,13 @@ class TestStripePaymentManager:
         mock_create_revision.assert_called_once()
         mock_set_revision_comment.assert_called_once()
         assert contribution.status == ContributionStatus.REJECTED if reject else ContributionStatus.PAID
+
+    def test_complete_payment_when_one_time_and_no_provider_payment_id(self, mocker):
+        contribution = ContributionFactory(one_time=True, flagged=True, provider_payment_id=None)
+        spm = StripePaymentManager(contribution=contribution)
+        with pytest.raises(PaymentProviderError) as exc:
+            spm.complete_payment()
+        assert str(exc.value) == f"Contribution {contribution.id} has no provider_payment_id"
 
     def test_complete_payment_when_one_time_and_no_pi(self, mocker):
         contribution = ContributionFactory(one_time=True, flagged=True)
@@ -158,3 +165,59 @@ class TestStripePaymentManager:
             spm.complete_payment(reject=False)
         model_create_sub_spy.assert_called_once()
         save_spy.assert_not_called()
+
+    def test_complete_payment_when_recurring_and_accept_and_existing_subscription_with_provider_subscription_id(
+        self, mocker
+    ):
+        mocker.patch(
+            "stripe.SetupIntent.retrieve", return_value=(si := mocker.Mock(payment_method="pm_123", id="si_123"))
+        )
+        mock_sub_list = mocker.patch("stripe.Subscription.list")
+        mock_sub_list.return_value.auto_paging_iter.return_value = [
+            mocker.Mock(
+                payment_method=si.payment_method,
+                id=(sub_id := "sub_123"),
+                status="active",
+                latest_invoice=mocker.Mock(payment_intent=(mocker.Mock(id="pi_123"))),
+            )
+        ]
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
+        ContributionFactory(monthly_subscription=True, flagged=True, provider_subscription_id=sub_id)
+        spm = StripePaymentManager(contribution=contribution)
+        with pytest.raises(PaymentProviderError) as exc:
+            spm.complete_payment(reject=False)
+        assert f"Subscription {sub_id} already exists on contribution" in str(exc.value)
+
+    def test_complete_payment_when_recurring_and_accept_and_existing_subscription_with_si_pm(self, mocker):
+        mocker.patch(
+            "stripe.SetupIntent.retrieve", return_value=(si := mocker.Mock(payment_method="pm_123", id="si_123"))
+        )
+        mock_sub_list = mocker.patch("stripe.Subscription.list")
+        mock_sub_list.return_value.auto_paging_iter.return_value = [
+            mocker.Mock(
+                payment_method=si.payment_method,
+                id=(sub_id := "sub_123"),
+                status="active",
+                latest_invoice=mocker.Mock(payment_intent=(pi := mocker.Mock(id="pi_123"))),
+            )
+        ]
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
+        spm = StripePaymentManager(contribution=contribution)
+        spm.complete_payment(reject=False)
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id == sub_id
+        assert contribution.provider_payment_id == pi.id
+        assert contribution.status == ContributionStatus.PAID
+
+    def test_init_when_contribution_not_instance_contribution(self, mocker):
+        mocker.patch("apps.contributions.payment_managers.StripePaymentManager.get_serializer_class")
+        with pytest.raises(
+            ValueError, match="PaymentManager contribution argument expected an instance of Contribution."
+        ):
+            StripePaymentManager(contribution=True, data={})
+
+    def test_init_when_both_contribution_and_data(self):
+        with pytest.raises(
+            ValueError, match="PaymentManager must be initialized with either data or a contribution, not both"
+        ):
+            StripePaymentManager(contribution=ContributionFactory(), data={"something": "else"})

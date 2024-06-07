@@ -1,17 +1,17 @@
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
-import ContactInfoPopover, { ContactInfoPopoverProps } from './ContactInfoPopover';
+import DesktopContactInfoPopover, { DesktopContactInfoPopoverProps } from './DesktopContactInfoPopover';
 
 const revenueProgram = {
   contact_phone: '555-555-5555',
   contact_email: 'mock@email.com'
 } as any;
 
-function tree(props?: Partial<ContactInfoPopoverProps>) {
-  return render(<ContactInfoPopover revenueProgram={revenueProgram} {...props} />);
+function tree(props?: Partial<DesktopContactInfoPopoverProps>) {
+  return render(<DesktopContactInfoPopover revenueProgram={revenueProgram} {...props} />);
 }
 
-describe('ContactInfoPopover', () => {
+describe('DesktopContactInfoPopover', () => {
   it('shows a button', () => {
     tree();
     expect(screen.getByLabelText('Open contact info')).toBeEnabled();

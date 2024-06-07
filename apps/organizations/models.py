@@ -693,6 +693,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         ),
         validators=[validate_slug_against_denylist],
     )
+    contributor_portal_show_appeal = models.BooleanField(
+        default=True,
+        help_text="Should the Appeal message be shown on the contributor portal?",
+        verbose_name="Show Appeal in contributor portal",
+    )
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_phone = models.CharField(max_length=17, blank=True, validators=[validate_contact_phone_number])
     contact_email = models.EmailField(max_length=255, blank=True)

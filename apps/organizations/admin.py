@@ -216,6 +216,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
                     "contact_email",
                     "contact_phone",
                     "organization",
+                    "contributor_portal_show_appeal",
                     "default_donation_page",
                     "tax_id",
                     "country",

@@ -1,21 +1,4 @@
-import { IconButton } from 'components/base';
 import styled from 'styled-components';
-
-export const ContactInfoButton = styled(IconButton)`
-  && {
-    height: 28px;
-    width: 28px;
-    padding: 0;
-
-    svg {
-      fill: ${({ theme }) => theme.basePalette.greyscale.white};
-    }
-
-    @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-      right: 20px;
-    }
-  }
-`;
 
 export const TitleTypography = styled.p`
   && {
@@ -61,4 +44,15 @@ export const ContactRow = styled.div`
     height: 24px;
     width: 24px;
   }
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+export const LabelWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
 `;

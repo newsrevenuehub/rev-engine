@@ -5,14 +5,17 @@ import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
 import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import ContactInfoPopover from './ContactInfoPopover/ContactInfoPopover';
+import DesktopContactInfoPopover from './DesktopContactInfoPopover/DesktopContactInfoPopover';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionItem from './ContributionItem/ContributionItem';
 import { ContributionsHeader } from './ContributionsHeader';
 import {
   AlignPositionWrapper,
-  ContactInfoWrapper,
+  AppealWrapper,
+  InfoWrapper,
+  DesktopOnly,
+  MobileOnly,
   Detail,
   Impact,
   Layout,
@@ -26,6 +29,8 @@ import {
 } from './ContributionsList.styled';
 import ImpactTracker from './ImpactTracker/ImpactTracker';
 import NoContributions from './NoContributions';
+import Appeal from './Appeal';
+import MobileInfoMenu from './MobileInfoMenu/MobileInfoMenu';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -125,8 +130,11 @@ export function ContributionsList() {
   return (
     <StyledPortalPage>
       <Root>
-        <Layout>
+        <Layout $isDetailSelected={!!selectedContribution}>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
+          <AppealWrapper>
+            <Appeal slim={!!selectedContribution} revenueProgram={page?.revenue_program} />
+          </AppealWrapper>
           <Impact>
             <ImpactTracker contributorId={contributor?.id} />
           </Impact>
@@ -146,9 +154,14 @@ export function ContributionsList() {
               ))}
             </Tabs>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
-            <ContactInfoWrapper>
-              <ContactInfoPopover revenueProgram={page?.revenue_program} />
-            </ContactInfoWrapper>
+            <InfoWrapper>
+              <DesktopOnly>
+                <DesktopContactInfoPopover revenueProgram={page?.revenue_program} />
+              </DesktopOnly>
+              <MobileOnly>
+                <MobileInfoMenu revenueProgram={page?.revenue_program} />
+              </MobileOnly>
+            </InfoWrapper>
           </Legend>
           {content}
           {contributor && selectedContribution && (

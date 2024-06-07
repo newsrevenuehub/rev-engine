@@ -100,6 +100,7 @@ class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
             *_RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS,
             "contact_email",
             "contact_phone",
+            "contributor_portal_show_appeal",
             "facebook_pixel_id",
             "google_analytics_v3_domain",
             "google_analytics_v3_id",

@@ -311,6 +311,10 @@ export interface RevenueProgram {
    */
   contact_phone: string;
   /**
+   * Should Contributor Portal render Appeal section?
+   */
+  contributor_portal_show_appeal: boolean;
+  /**
    * ID used for Facebook analytics.
    */
   facebook_pixel_id: string | null;

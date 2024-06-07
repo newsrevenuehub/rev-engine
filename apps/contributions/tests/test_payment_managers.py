@@ -221,3 +221,11 @@ class TestStripePaymentManager:
             ValueError, match="PaymentManager must be initialized with either data or a contribution, not both"
         ):
             StripePaymentManager(contribution=ContributionFactory(), data={"something": "else"})
+
+    def test__handle_when_existing_subscription_with_si_pm_when_already_have_subscription(self, mocker):
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True, provider_subscription_id="sub_123")
+        spm = StripePaymentManager(contribution=contribution)
+        with pytest.raises(PaymentProviderError, match="Contribution already has a subscription"):
+            spm._handle_when_existing_subscription_with_si_pm(
+                subscription=mocker.Mock(id="sub_123"), setup_intent=mocker.Mock(), update_data={}
+            )

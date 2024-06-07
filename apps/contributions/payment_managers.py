@@ -196,8 +196,6 @@ class StripePaymentManager(PaymentManager):
             self.contribution.id,
         )
         self.contribution.refresh_from_db()
-        # if there's already a contribution with this subscription (i.e. if there's a contribution whose provider_payment_method
-        # id is the same ID as the setup intent's payment method id), something is wrong, so we log and raise an error.
         if (
             existing := Contribution.objects.filter(provider_subscription_id=subscription.id).exclude(
                 id=self.contribution.id
@@ -214,17 +212,18 @@ class StripePaymentManager(PaymentManager):
                 f"Subscription {subscription.id} already exists on contribution{'s' if existing.count() != 1 else ''} "
                 f"{existing.values_list('id', flat=True)}"
             )
-        # if there's not an existing contribution with this subscription,we update the contribution with the status from subscription
-        # and update its provider_subscription_id and provider_payment_id. if not set
-        if self.contribution.status == ContributionStatus.FLAGGED:
-            update_data["status"] = StripeTransactionsImporter.get_status_for_subscription(subscription.status)
-            if not self.contribution.provider_subscription_id:
-                update_data.update(
-                    {
-                        "provider_subscription_id": subscription.id,
-                        "provider_payment_id": subscription.latest_invoice.payment_intent.id,
-                    }
-                )
+        update_data["status"] = StripeTransactionsImporter.get_status_for_subscription(subscription.status)
+        if not self.contribution.provider_subscription_id:
+            update_data.update(
+                {
+                    "provider_subscription_id": subscription.id,
+                    "provider_payment_id": subscription.latest_invoice.payment_intent.id,
+                }
+            )
+        else:
+            logger.error("Contribution %s already has a subscription %s", self.contribution.id, subscription.id)
+            raise PaymentProviderError("Contribution already has a subscription")
+
         return update_data
 
     def _handle_recurring_rejection(self, update_data: dict, payment_method: stripe.PaymentMethod | None) -> dict:
@@ -272,7 +271,6 @@ class StripePaymentManager(PaymentManager):
         pm = self.contribution.fetch_stripe_payment_method(self.contribution.provider_payment_method_id)
         if reject:
             update_data = self._handle_recurring_rejection(update_data=update_data, payment_method=pm)
-        # if accept but we can't get SI, there's nothing more we can do. We don't want to update status, and we raise error.
         elif not si:
             logger.error(
                 "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"

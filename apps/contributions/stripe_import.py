@@ -650,7 +650,7 @@ class StripeTransactionsImporter:
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id."""
         logger.info("Getting refunds for charge %s", charge_id)
-        return [self.get_resource_from_cache(key) for key in self._refund_by_charge_id_keys]
+        return [self.get_resource_from_cache(key) for key in self._refund_by_charge_id_keys if charge_id in str(key)]
 
     def get_or_create_contributor_from_customer(self, customer_id: str) -> tuple[Contributor, str]:
         """Get or create a contributor from a stripe customer id."""

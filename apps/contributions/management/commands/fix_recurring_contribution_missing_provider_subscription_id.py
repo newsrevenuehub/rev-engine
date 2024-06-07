@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.core.management.base import BaseCommand
 
 import reversion
@@ -7,8 +9,12 @@ from apps.contributions.models import Contribution
 
 
 class Command(BaseCommand):
+    @property
+    def name(self):
+        return Path(__file__).name
+
     def handle(self, *args, **options):
-        self.stdout.write(self.style.HTTP_INFO("Running `fix_recurring_contribution_missing_provider_subscription_id`"))
+        self.stdout.write(self.style.HTTP_INFO(f"Running {self.name}"))
         contributions = Contribution.objects.recurring().filter(provider_subscription_id=None)
         if not contributions.exists():
             self.stdout.write(
@@ -56,4 +62,6 @@ class Command(BaseCommand):
                 )
             )
             fixed += 1
-        self.stdout.write(self.style.HTTP_INFO(f"Finished: {fixed} of {len(contributions)} contributions fixed"))
+        self.stdout.write(
+            self.style.HTTP_INFO(f"{self.name} finished: {fixed} of {len(contributions)} contributions fixed")
+        )

@@ -147,6 +147,7 @@ class StripePaymentManager(PaymentManager):
     def _handle_subscription_creation(
         self, setup_intent: stripe.SetupIntent, pm: stripe.PaymentMethod, update_data: dict
     ) -> dict:
+        """Try to create the subscription and if stripe error, raise a PaymentProviderError. Otherwise, update the contribution."""
         logger.info(
             "StripePaymentManager.complete_recurring_payment creating Stripe subscription for setupintent %s and contribution %s",
             setup_intent.id,
@@ -179,6 +180,14 @@ class StripePaymentManager(PaymentManager):
     def _handle_when_existing_subscription_with_si_pm(
         self, subscription: stripe.Subscription, setup_intent: stripe.SetupIntent, update_data: dict
     ) -> dict:
+        """Handle when there's an existing subscription with the same payment method as the setupintent.
+
+        In this case, we don't want to create a new subscription.
+
+        If the subscription is not already associated with a revengine contribution, we update the contribution with the subscription
+
+        If the subscription is already associated with another revengine contribution, we raise an error.
+        """
         logger.warning(
             "StripePaymentManager.complete_recurring_payment found existing subscription %s for setupintent %s and contribution %s."
             "Will not create an additional subscription.",
@@ -219,6 +228,11 @@ class StripePaymentManager(PaymentManager):
         return update_data
 
     def _handle_recurring_rejection(self, update_data: dict, payment_method: stripe.PaymentMethod | None) -> dict:
+        """Handle when we're rejecting a recurring payment.
+
+        If we're rejecting, we try to detach the payment method and update the contribution status to REJECTED. If detachment fails,
+        we still update the status to REJECTED.
+        """
         update_data["status"] = ContributionStatus.REJECTED
         if payment_method:
             logger.info(
@@ -283,6 +297,7 @@ class StripePaymentManager(PaymentManager):
         )
 
     def _handle_contribution_update(self, update_data: dict, caller=str) -> None:
+        """Update the contribution with the data in `update_data` and log the update."""
         if update_data:
             for key, value in update_data.items():
                 setattr(self.contribution, key, value)

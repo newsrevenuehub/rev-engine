@@ -186,7 +186,7 @@ class ContributionQuerySet(models.QuerySet):
         """
         return self.filter(
             status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING],
-            created__lt=datetime.datetime.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
+            created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
             provider_payment_method_id__isnull=True,
         )
 
@@ -474,6 +474,7 @@ class Contribution(IndexedTimeStampedModel):
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
+            idempotency_key=str(self.uuid),
         )
 
     def create_stripe_setup_intent(self, metadata):
@@ -481,10 +482,15 @@ class Contribution(IndexedTimeStampedModel):
             customer=self.provider_customer_id,
             stripe_account=self.stripe_account_id,
             metadata=metadata,
+            idempotency_key=str(self.uuid),
         )
 
     def create_stripe_subscription(
-        self, metadata=None, default_payment_method=None, off_session=False, error_if_incomplete=False
+        self,
+        metadata=None,
+        default_payment_method=None,
+        off_session=False,
+        error_if_incomplete=False,
     ):
         """Create a Stripe Subscription and attach its data to the contribution.
 
@@ -512,6 +518,7 @@ class Contribution(IndexedTimeStampedModel):
             payment_settings={"save_default_payment_method": "on_subscription"},
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
+            idempotency_key=str(self.uuid),
         )
 
     def cancel(self):
@@ -637,6 +644,15 @@ class Contribution(IndexedTimeStampedModel):
             "recurring-contribution-email-reminder",
             next_charge_date,
         )
+
+    @cached_property
+    def stripe_subscriptions_for_customer(self) -> list[stripe.Subscription]:
+        """Return all subscriptions for the customer associated with this contribution."""
+        if not self.provider_customer_id:
+            return []
+        return stripe.Subscription.list(
+            customer=self.provider_customer_id, stripe_account=self.stripe_account_id
+        ).auto_paging_iter()
 
     @property
     def stripe_customer(self) -> stripe.Customer | None:

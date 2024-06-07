@@ -21,6 +21,7 @@ class TestStripePaymentManager:
         spm = StripePaymentManager(contribution=(contribution := make_contribution_fn()))
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
         mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve")
+        mocker.patch("stripe.Subscription.list")
         mock_si_retrieve.return_value.payment_method = "pm_id_123"
         mock_si_retrieve.return_value.metadata = {"meta": "data"}
         mock_pm_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
@@ -55,7 +56,9 @@ class TestStripePaymentManager:
                 mock_pi_retrieve.return_value.capture.assert_called_once_with(
                     contribution.provider_payment_id,
                     stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
+                    idempotency_key=str(contribution.uuid),
                 )
+
         else:
             mock_si_retrieve.assert_called_once_with(
                 contribution.provider_setup_intent_id,
@@ -148,6 +151,7 @@ class TestStripePaymentManager:
         mocker.patch("stripe.SetupIntent.retrieve")
         mocker.patch("stripe.PaymentMethod.retrieve")
         mocker.patch("stripe.Subscription.create", side_effect=stripe.error.StripeError)
+        mocker.patch("stripe.Subscription.list")
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):

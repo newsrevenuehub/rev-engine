@@ -74,6 +74,7 @@ class StripePaymentManager(PaymentManager):
             self.complete_recurring_payment(reject)
 
     def _handle_one_time_acceptance(self, pi, update_data) -> dict:
+        """Capture the payment intent and update the contribution status to PAID."""
         logger.info("StripePaymentManager.complete_one_time_payment capturing Stripe PI %s", pi.id)
         pi.capture(
             self.contribution.provider_payment_id,
@@ -84,6 +85,7 @@ class StripePaymentManager(PaymentManager):
         return update_data
 
     def _handle_one_time_rejection(self, payment_intent, update_data) -> dict:
+        """Cancel the payment intent and update the contribution status to REJECTED."""
         logger.info(
             "StripePaymentManager.complete_one_time_payment canceling Stripe PI %s for contribution %s",
             payment_intent.id,
@@ -99,6 +101,12 @@ class StripePaymentManager(PaymentManager):
         return update_data
 
     def complete_one_time_payment(self, reject=False) -> None:
+        """Attempt to complete a one-time payment.
+
+        If we're approving and we can't get the payment intent we raise an error.
+        If we're approving and we can get the payment intent, we capture the payment intent and update contribution status to paid.
+        If we're rejecting, we cancel the payment intent.
+        """
         update_data = {}
         try:
             match (
@@ -179,7 +187,13 @@ class StripePaymentManager(PaymentManager):
             self.contribution.id,
         )
         self.contribution.refresh_from_db()
-        if (existing := Contribution.objects.filter(provider_subscription_id=subscription.id)).exists():
+        # if there's already a contribution with this subscription (i.e. if there's a contribution whose provider_payment_method
+        # id is the same ID as the setup intent's payment method id), something is wrong, so we log and raise an error.
+        if (
+            existing := Contribution.objects.filter(provider_subscription_id=subscription.id).exclude(
+                id=self.contribution.id
+            )
+        ).exists():
             logger.error(
                 "StripePaymentManager.complete_recurring_payment found existing subscription %s for setupintent %s and contribution %s,"
                 "but another contribution already has this subscription.",
@@ -191,9 +205,10 @@ class StripePaymentManager(PaymentManager):
                 f"Subscription {subscription.id} already exists on contribution{'s' if existing.count() != 1 else ''} "
                 f"{existing.values_list('id', flat=True)}"
             )
+        # if there's not an existing contribution with this subscription,we update the contribution with the status from subscription
+        # and update its provider_subscription_id and provider_payment_id. if not set
         if self.contribution.status == ContributionStatus.FLAGGED:
             update_data["status"] = StripeTransactionsImporter.get_status_for_subscription(subscription.status)
-            # this is tricky!
             if not self.contribution.provider_subscription_id:
                 update_data.update(
                     {
@@ -222,6 +237,22 @@ class StripePaymentManager(PaymentManager):
         return update_data
 
     def complete_recurring_payment(self, reject=False) -> None:
+        """Attempt to complete a recurring payment.
+
+        If we're rejecting, we try to detach the payment method and update the contribution status to REJECTED. If detachment fails,
+        we still update the status to REJECTED.
+
+        If we're accpeting and we can't get the setupintent, we raise an error.
+
+        If we're accepting and there's an existing subscription with the same payment method as the setupintent, and that subscription
+        is not associated with any other revengine contribution, we update the contribution with this subsription data and update status.
+
+        If we're accepting and there's an existing subscription with the same payment method as the setupintent, but that subscription
+        is already associated with another revengine contribution, we raise an error.
+
+        If we're accepting and it's the happy path, we create a stripe subscription using the payment method from the setup intent,
+        save back data and status on the contribution.
+        """
         update_data = {}
         si = self.contribution.stripe_setup_intent
         pm = self.contribution.fetch_stripe_payment_method(self.contribution.provider_payment_method_id)

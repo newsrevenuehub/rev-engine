@@ -1,10 +1,13 @@
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
+from django.db.models import Q
+from django.db.models.functions import Coalesce
 
 import reversion
 import stripe
 
+from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.models import Contribution
 
 
@@ -15,7 +18,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running {self.name}"))
-        contributions = Contribution.objects.recurring().filter(provider_subscription_id=None)
+        contributions = (
+            Contribution.objects.recurring()
+            .filter(provider_subscription_id=None)
+            .annotate(
+                stripe_account=Coalesce(
+                    "donation_page__revenue_program__payment_provider__stripe_account_id",
+                    "_revenue_program__payment_provider__stripe_account_id",
+                )
+            )
+        )
         if not contributions.exists():
             self.stdout.write(
                 self.style.HTTP_INFO("No recurring contributions with missing provider subscription ID found")
@@ -24,7 +36,18 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.HTTP_INFO(f"{len(contributions)} recurring contributions are missing provider subscription IDs")
         )
-        fixed = 0
+        accounts = get_stripe_accounts_and_their_connection_status(
+            contributions.values_list("stripe_account", flat=True).distinct()
+        )
+        retrievable_accounts = [k for k, v in accounts.items() if v]
+        contributions = contributions.filter(
+            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=retrievable_accounts)
+            | Q(_revenue_program__payment_provider__stripe_account_id__in=retrievable_accounts),
+        )
+        self.stdout.write(
+            self.style.HTTP_INFO(f"{len(contributions)} of these contributions are connected to active Stripe accounts")
+        )
+        fixed = []
         for contribution in contributions:
             # The general approach here is to find the subscription ID by walking through the Stripe data:
             # payment intent -> invoice -> subscription
@@ -63,16 +86,16 @@ class Command(BaseCommand):
                     )
                 )
                 continue
-            with reversion.create_revision():
-                contribution.provider_subscription_id = intent.invoice.subscription
-                contribution.save(update_fields={"modified", "provider_subscription_id"})
-                reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_subscription_id command")
+            contribution.provider_subscription_id = intent.invoice.subscription
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Set subscription ID {contribution.provider_subscription_id} on contribution {contribution.id}"
                 )
             )
-            fixed += 1
+            fixed.append(contribution)
+        with reversion.create_revision():
+            Contribution.objects.bulk_update(fixed, fields=["provider_subscription_id"])
+            reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_subscription_id command")
         self.stdout.write(
-            self.style.HTTP_INFO(f"{self.name} finished: {fixed} of {len(contributions)} contributions fixed")
+            self.style.HTTP_INFO(f"{self.name} finished: {len(fixed)} of {len(contributions)} contributions fixed")
         )

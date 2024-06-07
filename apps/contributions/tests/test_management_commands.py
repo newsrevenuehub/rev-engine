@@ -282,7 +282,18 @@ class Test_fix_recurring_contribution_missing_provider_subscription_id:
             provider_payment_id="test-payment-id", provider_subscription_id=None, monthly_subscription=True
         )
 
+    @pytest.fixture(autouse=True)
+    def _stripe_status_mock(self, contribution, mocker):
+        mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={contribution.stripe_account_id: True},
+        )
+
     def test_happy_path(self, contribution, mocker):
+        mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={contribution.stripe_account_id: True},
+        )
         mocker.patch(
             "stripe.PaymentIntent.retrieve",
             return_value=mocker.Mock(invoice=mocker.Mock(subscription="test-sub-id")),
@@ -300,9 +311,26 @@ class Test_fix_recurring_contribution_missing_provider_subscription_id:
 
     def test_skips_missing_stripe_account_id(self, contribution, mocker):
         mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={contribution.stripe_account_id: False},
+        )
+        mocker.patch(
             "apps.contributions.models.Contribution.stripe_account_id",
             return_value=None,
             new_callable=mocker.PropertyMock,
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+    def test_skips_disconnected_stripe_account(self, contribution, mocker):
+        mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={contribution.stripe_account_id: False},
+        )
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=mocker.Mock(invoice=mocker.Mock(subscription="test-sub-id")),
         )
         call_command("fix_recurring_contribution_missing_provider_subscription_id")
         contribution.refresh_from_db()

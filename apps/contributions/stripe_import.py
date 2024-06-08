@@ -650,7 +650,7 @@ class StripeTransactionsImporter:
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id."""
         logger.info("Getting refunds for charge %s", charge_id)
-        return [self.get_resource_from_cache(key) for key in self._refund_by_charge_id_keys]
+        return [self.get_resource_from_cache(key) for key in self._refund_by_charge_id_keys if charge_id in str(key)]
 
     def get_or_create_contributor_from_customer(self, customer_id: str) -> tuple[Contributor, str]:
         """Get or create a contributor from a stripe customer id."""
@@ -789,13 +789,13 @@ class StripeTransactionsImporter:
             )
             if payment:
                 logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+                self.update_payment_stats(action, payment)
             else:
                 logger.info(
                     "No payment created for contribution %s and balance transaction %s",
                     contribution.id,
                     balance_transaction["id"],
                 )
-            self.update_payment_stats(action, payment)
 
     def get_provider_payment_id_for_subscription(self, subscription: dict) -> str | None:
         """Get provider payment id for a subscription."""

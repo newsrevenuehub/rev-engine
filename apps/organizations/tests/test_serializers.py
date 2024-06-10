@@ -4,7 +4,12 @@ from random import choice
 import pytest
 from faker import Faker
 
-from apps.organizations.models import MailchimpProduct, MailchimpSegment, MailchimpStore
+from apps.organizations.models import (
+    MailchimpEmailList,
+    MailchimpProduct,
+    MailchimpSegment,
+    MailchimpStore,
+)
 from apps.organizations.serializers import (
     MailchimpRevenueProgramForSpaConfiguration,
     MailchimpRevenueProgramForSwitchboard,
@@ -135,9 +140,9 @@ class TestRevenueProgramSerializer:
 @pytest.mark.django_db()
 class TestMailchimpRevenueProgramForSpaConfiguration:
     def test_has_right_fields_and_values(self, mc_connected_rp, mocker, mailchimp_email_list_from_api):
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.get_list.return_value = mailchimp_email_list_from_api
-        mock_get_client.return_value.lists.get_all_lists.return_value = {"lists": [mailchimp_email_list_from_api]}
+        mock_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        mock_client.return_value.get_email_list.return_value = MailchimpEmailList(**mailchimp_email_list_from_api)
+        mock_client.return_value.lists.get_all_lists.return_value = {"lists": [mailchimp_email_list_from_api]}
         mc_connected_rp.mailchimp_list_id = mailchimp_email_list_from_api["id"]
         mc_connected_rp.save()
         serializer = MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp)
@@ -211,7 +216,7 @@ class TestMailchimpRevenueProgramForSwitchboard:
             new_callable=mocker.PropertyMock,
         )
         mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributor_segment",
             return_value=mailchimp_segment,
             new_callable=mocker.PropertyMock,
         )

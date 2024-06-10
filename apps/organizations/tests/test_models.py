@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, call
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -47,13 +47,13 @@ from apps.organizations.models import (
     Plans,
     PlusPlan,
     RevenueProgram,
+    RevenueProgramMailchimpClient,
     TransactionalEmailStyle,
     logger,
 )
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
     OrganizationFactory,
-    PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.defaults import (
@@ -324,6 +324,180 @@ def revenue_program_with_default_donation_page_but_no_transactional_email_style_
 
 
 @pytest.mark.django_db()
+class TestRevenueProgramMailchimpClient:
+    def test_errors_if_rp_disconnected(self, revenue_program):
+        with pytest.raises(MailchimpIntegrationError):
+            RevenueProgramMailchimpClient(revenue_program)
+
+    def test_create_product_happy_path(self, mc_connected_rp, mailchimp_product_from_api, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "add_store_product", return_value=mailchimp_product_from_api)
+        assert client.create_product("test-product-id", "test-product-name") == MailchimpProduct(
+            **mailchimp_product_from_api
+        )
+        client.ecommerce.add_store_product.assert_called_with(
+            mc_connected_rp.mailchimp_store_id,
+            {
+                "id": "test-product-id",
+                "title": "test-product-name",
+                "variants": [
+                    {
+                        "id": "test-product-id",
+                        "title": "test-product-name",
+                    }
+                ],
+            },
+        )
+
+    def test_create_product_api_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "add_store_product", side_effect=ApiClientError("test-error"))
+        with pytest.raises(MailchimpIntegrationError):
+            client.create_product("test-product-id", "test-product-name")
+
+    def test_create_segment_happy_path(self, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
+        test_options = {}
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.lists, "create_segment", return_value=mailchimp_contributor_segment_from_api)
+        assert client.create_segment("test-segment-name", test_options) == MailchimpSegment(
+            **mailchimp_contributor_segment_from_api
+        )
+        client.lists.create_segment.assert_called_with(
+            mc_connected_rp.mailchimp_list_id,
+            {"name": "test-segment-name", "options": test_options},
+        )
+
+    def test_create_segment_api_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.lists, "create_segment", side_effect=ApiClientError("test-error"))
+        with pytest.raises(MailchimpIntegrationError):
+            client.create_segment("test-segment-name", {})
+
+    def test_create_segment_list_unset(self, mc_connected_rp):
+        mc_connected_rp.mailchimp_list_id = None
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        with pytest.raises(MailchimpIntegrationError):
+            client.create_segment("test-segment-name", {})
+
+    def test_create_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.payment_provider",
+            return_value=MagicMock(currency="usd"),
+            new_callable=mocker.PropertyMock,
+        )
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "add_store", return_value=mailchimp_store_from_api)
+        assert client.create_store() == MailchimpStore(**mailchimp_store_from_api)
+        client.ecommerce.add_store.assert_called_with(
+            {
+                "id": mc_connected_rp.mailchimp_store_id,
+                "list_id": mc_connected_rp.mailchimp_list_id,
+                "name": mc_connected_rp.mailchimp_store_name,
+                "currency_code": mc_connected_rp.payment_provider.currency,
+            }
+        )
+
+    def test_create_store_list_unset(self, mc_connected_rp):
+        mc_connected_rp.mailchimp_list_id = None
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        with pytest.raises(MailchimpIntegrationError):
+            client.create_store()
+
+    def test_create_store_payment_provider_unset(self, mc_connected_rp):
+        mc_connected_rp.payment_provider = None
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        with pytest.raises(MailchimpIntegrationError):
+            client.create_store()
+
+    def test_create_store_api_error(self, mc_connected_rp, mocker):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.payment_provider",
+            return_value=MagicMock(currency="usd"),
+            new_callable=mocker.PropertyMock,
+        )
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "add_store", side_effect=ApiClientError("test-error"))
+        with pytest.raises(MailchimpIntegrationError):
+            client.create_store()
+
+    def test_get_email_list_happy_path(self, mc_connected_rp, mailchimp_email_list_from_api, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.lists, "get_list", return_value=mailchimp_email_list_from_api)
+        assert client.get_email_list() == MailchimpEmailList(**mailchimp_email_list_from_api)
+        client.lists.get_list.assert_called_with(mc_connected_rp.mailchimp_list_id)
+
+    def test_get_email_list_api_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.lists, "get_list", side_effect=ApiClientError("test-error"))
+        assert client.get_email_list() is None
+
+    def test_get_email_list_unset(self, mc_connected_rp):
+        mc_connected_rp.mailchimp_list_id = None
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        assert client.get_email_list() is None
+
+    def test_get_product_happy_path(self, mc_connected_rp, mailchimp_product_from_api, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "get_store_product", return_value=mailchimp_product_from_api)
+        assert client.get_product("test_id") == MailchimpProduct(**mailchimp_product_from_api)
+        client.ecommerce.get_store_product.assert_called_with(mc_connected_rp.mailchimp_store_id, "test_id")
+
+    def test_get_product_api_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "get_store_product", side_effect=ApiClientError("test-error"))
+        assert client.get_product("test_id") is None
+
+    def test_get_segment_happy_path(self, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.lists, "get_segment", return_value=mailchimp_contributor_segment_from_api)
+        assert client.get_segment(123) == MailchimpSegment(**mailchimp_contributor_segment_from_api)
+        client.lists.get_segment.assert_called_with(mc_connected_rp.mailchimp_list_id, 123)
+
+    def test_get_segment_api_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.lists, "get_segment", side_effect=ApiClientError("test-error"))
+        assert client.get_segment(123) is None
+
+    def test_get_segment_list_unset(self, mc_connected_rp, mocker):
+        mc_connected_rp.mailchimp_list_id = None
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        assert client.get_segment(123) is None
+
+    def test_get_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "get_store", return_value=mailchimp_store_from_api)
+        assert client.get_store() == MailchimpStore(**mailchimp_store_from_api)
+        client.ecommerce.get_store.assert_called_with(mc_connected_rp.mailchimp_store_id)
+
+    def test_get_store_api_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        mocker.patch.object(client.ecommerce, "get_store", side_effect=ApiClientError("test-error"))
+        assert client.get_store() is None
+
+    def test_handle_read_404_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        logger_spy = mocker.spy(logger, "debug")
+        client._handle_read_error("test-entity", ApiClientError("test-error", 404), "debug")
+        logger_spy.assert_called_with(
+            "Mailchimp %s not found for RP %s, returning None", "test-entity", mc_connected_rp.id
+        )
+
+    def test_handle_read_429_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        logger_spy = mocker.spy(logger, "warning")
+        with pytest.raises(MailchimpRateLimitError):
+            client._handle_read_error("test-entity", ApiClientError("test-error", 429))
+        logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
+
+    def test_handle_write_429_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        logger_spy = mocker.spy(logger, "warning")
+        with pytest.raises(MailchimpRateLimitError):
+            client._handle_write_error("test-entity", ApiClientError("test-error", 429))
+        logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
+
+
+@pytest.mark.django_db()
 class TestRevenueProgram:
     def test_basics(self):
         t = RevenueProgram()
@@ -413,14 +587,14 @@ class TestRevenueProgram:
         mock_get_client = mocker.patch("apps.common.secrets.get_secret_manager_client")
         mock_get_client.return_value.access_secret_version.return_value.payload.data = b"something"
         revenue_program = RevenueProgramFactory(mailchimp_server_prefix="something")
-        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         return_val = {"lists": [mailchimp_email_list_from_api]}
         mock_mc_client.return_value.lists.get_all_lists.return_value = return_val
         assert revenue_program.mailchimp_email_lists == [MailchimpEmailList(**mailchimp_email_list_from_api)]
 
     def test_mailchimp_email_lists_property_when_integration_not_connected(self, mocker, revenue_program, settings):
         logger_spy = mocker.spy(logger, "debug")
-        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
             return_value=False,
@@ -440,7 +614,7 @@ class TestRevenueProgram:
             return_value=True,
             new_callable=mocker.PropertyMock,
         )
-        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError(error_text := "Ruh roh")
         mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         log_spy = mocker.spy(logger, "exception")
@@ -675,255 +849,93 @@ class TestRevenueProgram:
         revenue_program = RevenueProgramFactory(mailchimp_server_prefix=mailchimp_server_prefix)
         assert revenue_program.mailchimp_integration_connected is expect_connected
 
-    def test_handle_mailchimp_api_client_read_error_when_404(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "debug")
-        assert (
-            revenue_program.handle_mailchimp_api_client_read_error(
-                "entity", ApiClientError("Not Found", status_code=404)
-            )
-            is None
-        )
-        logger_spy.assert_called_once_with(
-            "Mailchimp %s not found for RP %s, returning None", "entity", revenue_program.id
-        )
-
-    def test_handle_mailchimp_api_client_read_error_when_429(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "debug")
-        with pytest.raises(MailchimpRateLimitError):
-            revenue_program.handle_mailchimp_api_client_read_error(
-                "entity", ApiClientError("Slow down!", status_code=429)
-            )
-        logger_spy.assert_called_once_with(
-            "Mailchimp rate limit exceeded for RP %s, raising exception", revenue_program.id
-        )
-
-    def test_handle_mailchimp_api_client_read_error_when_unexpected(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "error")
-        exc = ApiClientError(error_text := "Slow down!", status_code=500)
-        assert revenue_program.handle_mailchimp_api_client_read_error("entity", exc) is None
-        logger_spy.assert_called_once_with(
-            "Unexpected error from Mailchimp API. The error text is %s", error_text, exc_info=exc
-        )
-
-    def test_mailchimp_store_when_api_client_error(self, mc_connected_rp, mocker):
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.ecommerce.get_store.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
-        )
-        mc_connected_rp.mailchimp_store  # noqa: B018 Ruff doesn't understand this is a property
-        # and accessing it has side effects we are testing.
-        mock_handle_error.assert_called_once_with("store", error)
-
     def test_mailchimp_store_when_not_connected(self, revenue_program):
         assert revenue_program.mailchimp_integration_connected is False
         assert revenue_program.mailchimp_store is None
 
     def test_mailchimp_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
         assert mc_connected_rp.mailchimp_integration_connected is True
-        mock_store_response = Mock()
-        mock_store_response.ecommerce.get_store.return_value = mailchimp_store_from_api
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_store_response,
-        )
-        assert mc_connected_rp.mailchimp_store == MailchimpStore(**mailchimp_store_from_api)
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_store.return_value = mailchimp_store_from_api
+        assert mc_connected_rp.mailchimp_store == mailchimp_store_from_api
 
     def test_mailchimp_store_when_not_found(self, mc_connected_rp, mocker):
         assert mc_connected_rp.mailchimp_integration_connected is True
-        mock_store_response = Mock()
-        mock_store_response.ecommerce.get_store.side_effect = ApiClientError("Not Found", status_code=404)
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_store_response,
-        )
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_store.return_value = None
         assert mc_connected_rp.mailchimp_store is None
 
-    def test_handle_mailchimp_api_client_write_error_when_429(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "debug")
-        with pytest.raises(MailchimpRateLimitError):
-            revenue_program.handle_mailchimp_api_client_write_error(
-                "entity", ApiClientError("Slow down!", status_code=429)
-            )
-        logger_spy.assert_called_once_with(
-            "Mailchimp rate limit exceeded for RP %s, raising exception", revenue_program.id
-        )
+    def test_ensure_mailchimp_store_doesnt_create_when_exists(self, mc_connected_rp, mocker):
+        assert mc_connected_rp.mailchimp_integration_connected is True
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        mc_connected_rp.ensure_mailchimp_store()
+        assert not patched_client.return_value.create_store.called
 
-    def test_handle_mailchimp_api_client_write_error_when_unexpected(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "error")
-        exc = ApiClientError(error_text := "Slow down!", status_code=500)
-        with pytest.raises(MailchimpIntegrationError):
-            revenue_program.handle_mailchimp_api_client_write_error(entity := "entity", exc)
-        logger_spy.assert_called_once_with(
-            "Error creating %s for RP %s. The error text is %s", entity, revenue_program.id, error_text, exc_info=exc
-        )
+    def test_ensure_mailchimp_store_creates_when_needed(self, revenue_program, mocker):
+        assert revenue_program.mailchimp_integration_connected is False
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        revenue_program.ensure_mailchimp_store()
+        assert patched_client.return_value.create_store.called
 
-    def test_make_mailchimp_store_when_api_client_error(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.payment_provider = PaymentProviderFactory()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.ecommerce.add_store.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
+    def test_ensure_mailchimp_entities_calls(self, revenue_program, mocker):
+        mocker.patch.object(revenue_program, "ensure_mailchimp_store")
+        mocker.patch.object(revenue_program, "ensure_mailchimp_contribution_product")
+        mocker.patch.object(revenue_program, "ensure_mailchimp_contributor_segment")
+        revenue_program.ensure_mailchimp_entities()
+        assert revenue_program.ensure_mailchimp_store.called
+        revenue_program.ensure_mailchimp_contribution_product.assert_has_calls(
+            [call("one_time"), call("recurring")], any_order=True
         )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_write_error"
+        revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
+            [
+                call(
+                    "all_contributors",
+                    {
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            }
+                        ],
+                    },
+                ),
+                call(
+                    "contributor",
+                    {
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            },
+                            {
+                                "field": "ecomm_prod",
+                                "op": "is",
+                                "value": revenue_program.mailchimp_one_time_contribution_product_name,
+                            },
+                        ],
+                    },
+                ),
+                call(
+                    "recurring_contributor",
+                    {
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            },
+                            {
+                                "field": "ecomm_prod",
+                                "op": "is",
+                                "value": revenue_program.mailchimp_recurring_contribution_product_name,
+                            },
+                        ],
+                    },
+                ),
+            ]
         )
-        mc_connected_rp.make_mailchimp_store()
-        mock_handle_error.assert_called_once_with("store", error)
-
-    def test_make_mailchimp_store_when_no_mailchimp_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        with pytest.raises(ValidationError):
-            mc_connected_rp.make_mailchimp_store()
-
-    def test_make_mailchimp_store_when_no_payment_provider(
-        self,
-        mc_connected_rp,
-    ):
-        mc_connected_rp.payment_provider = None
-        mc_connected_rp.save()
-        with pytest.raises(ValidationError):
-            mc_connected_rp.make_mailchimp_store()
-
-    def test_make_mailchimp_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
-        mock_client = Mock()
-        mock_client.ecommerce.add_store.return_value = mailchimp_store_from_api
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_client,
-        )
-        store = mc_connected_rp.make_mailchimp_store()
-        assert store == MailchimpStore(**mailchimp_store_from_api)
-
-    def test_mailchimp_one_time_contribution_product_when_no_mailchimp_email_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        assert mc_connected_rp.mailchimp_one_time_contribution_product is None
-
-    def test_mailchimp_recurring_contribution_product_when_no_mailchimp_email_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        assert mc_connected_rp.mailchimp_recurring_contribution_product is None
-
-    def test_mailchimp_one_time_contribution_product_happy_path(
-        self, mc_connected_rp, mailchimp_product_from_api, mocker
-    ):
-        mock_client = Mock()
-        mock_client.ecommerce.get_store_product.return_value = mailchimp_product_from_api
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_client,
-        )
-        product = mc_connected_rp.mailchimp_one_time_contribution_product
-        assert product == MailchimpProduct(**mailchimp_product_from_api)
-
-    def test_mailchimp_one_time_contribution_product_happy_path_when_not_found(self, mc_connected_rp, mocker):
-        mock_client = Mock()
-        mock_client.ecommerce.get_store_product.side_effect = ApiClientError("Not Found", status_code=404)
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_client,
-        )
-        assert mc_connected_rp.mailchimp_one_time_contribution_product is None
-
-    def test_mailchimp_one_time_contribution_product_when_api_error(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.ecommerce.get_store_product.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
-        )
-        mc_connected_rp.mailchimp_one_time_contribution_product  # noqa: B018 Ruff doesn't understand this is a property
-        # and accessing it has side effects we are testing.
-        mock_handle_error.assert_called_once_with("one-time contribution product", error)
-
-    def test_mailchimp_recurring_contribution_product_happy_path(
-        self, mc_connected_rp, mailchimp_product_from_api, mocker
-    ):
-        mock_client = Mock()
-        mock_client.ecommerce.get_store_product.return_value = mailchimp_product_from_api
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_client,
-        )
-        product = mc_connected_rp.mailchimp_recurring_contribution_product
-        assert product == MailchimpProduct(**mailchimp_product_from_api)
-
-    def test_mailchimp_recurring_contribution_product_happy_path_when_not_found(self, mc_connected_rp, mocker):
-        mock_client = Mock()
-        mock_client.ecommerce.get_store_product.side_effect = ApiClientError("Not Found", status_code=404)
-        mocker.patch.object(
-            mc_connected_rp,
-            "get_mailchimp_client",
-            return_value=mock_client,
-        )
-        assert mc_connected_rp.mailchimp_recurring_contribution_product is None
-
-    def test_mailchimp_recurring_contribution_product_when_api_error(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.ecommerce.get_store_product.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
-        )
-        mc_connected_rp.mailchimp_recurring_contribution_product  # noqa: B018 Ruff doesn't understand this is a property
-        # and accessing it has side effects we are testing.
-        mock_handle_error.assert_called_once_with("recurring contribution product", error)
-
-    def test_make_mailchimp_one_time_contribution_product_happy_path(
-        self, mc_connected_rp, mailchimp_product_from_api, mocker
-    ):
-        mock_client = Mock()
-        mock_client.ecommerce.add_store_product.return_value = mailchimp_product_from_api
-        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
-        product = mc_connected_rp.make_mailchimp_one_time_contribution_product()
-        assert product == MailchimpProduct(**mailchimp_product_from_api)
-
-    def test_make_mailchimp_recurring_contribution_product_happy_path(
-        self, mc_connected_rp, mailchimp_product_from_api, mocker
-    ):
-        mock_client = Mock()
-        mock_client.ecommerce.add_store_product.return_value = mailchimp_product_from_api
-        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
-        product = mc_connected_rp.make_mailchimp_recurring_contribution_product()
-        assert product == MailchimpProduct(**mailchimp_product_from_api)
-
-    def test_make_mailchimp_one_time_contribution_product_when_api_client_error(self, mc_connected_rp, mocker):
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.ecommerce.add_store_product.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_write_error"
-        )
-        mc_connected_rp.make_mailchimp_one_time_contribution_product()
-        mock_handle_error.assert_called_once_with(mc_connected_rp.mailchimp_one_time_contribution_product_id, error)
-
-    def test_make_mailchimp_recurring_contribution_product_when_api_client_error(self, mc_connected_rp, mocker):
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.ecommerce.add_store_product.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_write_error"
-        )
-        mc_connected_rp.make_mailchimp_recurring_contribution_product()
-        mock_handle_error.assert_called_once_with(mc_connected_rp.mailchimp_recurring_contribution_product_id, error)
 
     def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp):
         mc_connected_rp.mailchimp_list_id = None
@@ -931,298 +943,14 @@ class TestRevenueProgram:
         assert mc_connected_rp.mailchimp_email_list is None
 
     def test_mailchimp_email_list_happy_path(self, mc_connected_rp, mocker, mailchimp_email_list_from_api):
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.get_list.return_value = mailchimp_email_list_from_api
-        assert mc_connected_rp.mailchimp_email_list == MailchimpEmailList(**mailchimp_email_list_from_api)
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_email_list.return_value = mailchimp_email_list_from_api
+        assert mc_connected_rp.mailchimp_email_list == mailchimp_email_list_from_api
 
-    def test_mailchimp_email_list_when_api_error(self, mc_connected_rp, mocker):
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.get_list.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
-        )
-        mc_connected_rp.mailchimp_email_list  # noqa: B018 Ruff doesn't understand this is a property
-        # and accessing it has side effects we are testing.
-        mock_handle_error.assert_called_once_with("mailchimp email list", error, log_level_on_not_found="error")
-
-    def test_mailchimp_contributor_segment_when_no_mailchimp_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        assert mc_connected_rp.mailchimp_contributor_segment is None
-
-    def test_mailchimp_contributor_segment_when_no_mailchimp_contributor_segment_id(self, mc_connected_rp):
-        assert mc_connected_rp.mailchimp_contributor_segment_id is None
-        assert mc_connected_rp.mailchimp_contributor_segment is None
-
-    def test_mailchimp_contributor_segment_happy_path(
-        self, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker
-    ):
-        mc_connected_rp.mailchimp_contributor_segment_id = "something"
-        mc_connected_rp.save()
-        mock_client = Mock()
-        mock_client.lists.get_segment.return_value = mailchimp_contributor_segment_from_api
-        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
-        segment = mc_connected_rp.mailchimp_contributor_segment
-        assert segment == MailchimpSegment(**mailchimp_contributor_segment_from_api)
-
-    def test_mailchimp_contributor_segment_when_not_found(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_contributor_segment_id = "something"
-        mc_connected_rp.save()
-        mock_client = Mock()
-        mock_client.lists.get_segment.side_effect = ApiClientError("Not Found", status_code=404)
-        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
-        assert mc_connected_rp.mailchimp_contributor_segment is None
-
-    def test_mailchimp_contributor_segment_when_api_client_error(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.mailchimp_contributor_segment_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.get_segment.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
-        )
-        mc_connected_rp.mailchimp_contributor_segment  # noqa: B018 Ruff doesn't understand this is a property
-        # and accessing it has side effects we are testing.
-        mock_handle_error.assert_called_once_with("contributor segment", error)
-
-    def test_mailchimp_recurring_segment_happy_path(
-        self,
-        mc_connected_rp,
-        mocker,
-        mailchimp_recurring_contributor_segment_from_api,
-    ):
-        mc_connected_rp.mailchimp_recurring_contributor_segment_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.get_segment.return_value = mailchimp_recurring_contributor_segment_from_api
-        assert mc_connected_rp.mailchimp_recurring_segment == MailchimpSegment(
-            **mailchimp_recurring_contributor_segment_from_api
-        )
-
-    def test_mailchimp_recurring_segment_when_no_mailchimp_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        assert mc_connected_rp.mailchimp_recurring_segment is None
-
-    def test_mailchimp_recurring_contributor_segment_when_no_mailchimp_recurring_contributor_segment_id(
-        self, mc_connected_rp
-    ):
-        assert mc_connected_rp.mailchimp_recurring_contributor_segment_id is None
-        assert mc_connected_rp.mailchimp_recurring_segment is None
-
-    def test_mailchimp_recurring_contributor_segment_when_not_found(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_recurring_contributor_segment_id = "something"
-        mc_connected_rp.save()
-        mock_client = Mock()
-        mock_client.lists.get_segment.side_effect = ApiClientError("Not Found", status_code=404)
-        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
-        assert mc_connected_rp.mailchimp_recurring_segment is None
-
-    def test_mailchimp_recurring_segment_when_api_client_error(self, mc_connected_rp, mocker):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.mailchimp_recurring_contributor_segment_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.get_segment.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
-        )
-        mc_connected_rp.mailchimp_recurring_segment  # noqa: B018 Ruff doesn't understand this is a property
-        # and accessing it has side effects we are testing.
-        mock_handle_error.assert_called_once_with("recurring segment", error)
-
-    def test_make_mailchimp_contributor_segment_when_no_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        with pytest.raises(ValidationError):
-            mc_connected_rp.make_mailchimp_contributor_segment()
-
-    def test_make_mailchimp_recurring_segment_when_no_list_id(self, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = None
-        mc_connected_rp.save()
-        with pytest.raises(ValidationError):
-            mc_connected_rp.make_mailchimp_recurring_segment()
-
-    def test_make_mailchimp_contributor_segment_when_api_error(self, mocker, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.create_segment.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_write_error"
-        )
-        mc_connected_rp.make_mailchimp_contributor_segment()
-        mock_handle_error.assert_called_once_with(mc_connected_rp.mailchimp_contributor_segment_name, error)
-
-    def test_make_mailchimp_recurring_segment_when_api_error(self, mocker, mc_connected_rp):
-        mc_connected_rp.mailchimp_list_id = "something"
-        mc_connected_rp.save()
-        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
-        mock_get_client.return_value.lists.create_segment.side_effect = (
-            error := ApiClientError("Internal Server Error", status_code=500)
-        )
-        mock_handle_error = mocker.patch(
-            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_write_error"
-        )
-        mc_connected_rp.make_mailchimp_recurring_segment()
-        mock_handle_error.assert_called_once_with(mc_connected_rp.mailchimp_recurring_segment_name, error)
-
-    def test_make_mailchimp_contributor_segment_happy_path(
-        self, mocker, mc_connected_rp, mailchimp_contributor_segment_from_api
-    ):
-        mock_get_client = mocker.patch.object(mc_connected_rp, "get_mailchimp_client")
-        mock_get_client.return_value.lists.create_segment.return_value = mailchimp_contributor_segment_from_api
-        assert mc_connected_rp.make_mailchimp_contributor_segment() == MailchimpSegment(
-            **mailchimp_contributor_segment_from_api
-        )
-
-    def test_make_mailchimp_recurring_segment_happy_path(
-        self,
-        mocker,
-        mc_connected_rp,
-        mailchimp_recurring_contributor_segment_from_api,
-    ):
-        mock_get_client = mocker.patch.object(mc_connected_rp, "get_mailchimp_client")
-        mock_get_client.return_value.lists.create_segment.return_value = (
-            mailchimp_recurring_contributor_segment_from_api
-        )
-        assert mc_connected_rp.make_mailchimp_recurring_segment() == MailchimpSegment(
-            **mailchimp_recurring_contributor_segment_from_api
-        )
-
-    def test_get_mailchimp_client_when_integration_not_connected(self, mocker, revenue_program):
-        assert revenue_program.mailchimp_integration_connected is False
-        with pytest.raises(ValueError, match="Mailchimp integration not connected"):
-            revenue_program.get_mailchimp_client()
-
-    def test_ensure_mailchimp_store_when_no_store_exists(self, mc_connected_rp, mocker):
-        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", None)
-        mock_make_store = mocker.patch("apps.organizations.models.RevenueProgram.make_mailchimp_store")
-        mc_connected_rp.ensure_mailchimp_store()
-        mock_make_store.assert_called_once()
-
-    def test_when_store_already_exists(self, mocker, mc_connected_rp):
-        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", return_value="something-truthy")
-        logger_spy = mocker.spy(logger, "info")
-        mc_connected_rp.ensure_mailchimp_store()
-        logger_spy.assert_called_once_with("Store already exists for rp_id=[%s]", mc_connected_rp.id)
-
-    def test_ensure_mailchimp_one_time_contribution_product_when_no_product_exists(self, mc_connected_rp, mocker):
-        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product", None)
-        mock_make_product = mocker.patch(
-            "apps.organizations.models.RevenueProgram.make_mailchimp_one_time_contribution_product"
-        )
-        mc_connected_rp.ensure_mailchimp_one_time_contribution_product()
-        mock_make_product.assert_called_once()
-
-    def test_ensure_mailchimp_one_time_contribution_product_when_product_already_exists(self, mocker, mc_connected_rp):
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product",
-            return_value="something-truthy",
-        )
-        logger_spy = mocker.spy(logger, "info")
-        mc_connected_rp.ensure_mailchimp_one_time_contribution_product()
-        logger_spy.assert_called_once_with(
-            "One-time contribution product already exists for rp_id=[%s]", mc_connected_rp.id
-        )
-
-    def test_ensure_mailchimp_recurring_contribution_product_when_no_product_exists(self, mc_connected_rp, mocker):
-        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product", None)
-        mock_make_product = mocker.patch(
-            "apps.organizations.models.RevenueProgram.make_mailchimp_recurring_contribution_product",
-        )
-        mc_connected_rp.ensure_mailchimp_recurring_contribution_product()
-        mock_make_product.assert_called_once()
-
-    def test_ensure_mailchimp_recurring_contribution_product_when_product_already_exists(self, mocker, mc_connected_rp):
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product",
-            return_value="something-truthy",
-        )
-        logger_spy = mocker.spy(logger, "info")
-        mc_connected_rp.ensure_mailchimp_recurring_contribution_product()
-        logger_spy.assert_called_once_with(
-            "Recurring contribution product already exists for rp_id=[%s]", mc_connected_rp.id
-        )
-
-    def test_ensure_mailchimp_contributor_segment_when_no_existing_contributor_segment(self, mc_connected_rp, mocker):
-        save_spy = mocker.spy(RevenueProgram, "save")
-        mock_create_revision = mocker.patch("reversion.create_revision")
-        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
-        mock_set_comment = mocker.patch("reversion.set_comment")
-        my_id = "some-id"
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
-            return_value=None,
-            new_callable=mocker.PropertyMock,
-        )
-        mock_make_contributor_segment = mocker.patch(
-            "apps.organizations.models.RevenueProgram.make_mailchimp_contributor_segment",
-            return_value=Mock(id=my_id),
-        )
-        mc_connected_rp.ensure_mailchimp_contributor_segment()
-        mock_make_contributor_segment.assert_called_once()
-        save_spy.assert_called_once_with(
-            mc_connected_rp, update_fields={"mailchimp_contributor_segment_id", "modified"}
-        )
-        mock_create_revision.assert_called_once()
-        mock_set_comment.assert_called_once_with("ensure_mailchimp_contributor_segment updated contributor segment id")
-
-    def test_ensure_mailchimp_contributor_segment_when_contributor_segment_already_exists(
-        self, mc_connected_rp, mocker
-    ):
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
-            return_value="something-truthy",
-            new_callable=mocker.PropertyMock,
-        )
-        logger_spy = mocker.spy(logger, "info")
-        mc_connected_rp.ensure_mailchimp_contributor_segment()
-        logger_spy.assert_called_once_with("Segment already exists for rp_id=[%s]", mc_connected_rp.id)
-
-    def test_ensure_mailchimp_recurring_segment_when_no_existing_recurring_segment(self, mc_connected_rp, mocker):
-        my_id = "some-id"
-        mock_create_revision = mocker.patch("reversion.create_revision")
-        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
-        mock_set_comment = mocker.patch("reversion.set_comment")
-        save_spy = mocker.spy(RevenueProgram, "save")
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
-            return_value=None,
-            new_callable=mocker.PropertyMock,
-        )
-        mock_make_recurring_segment = mocker.patch(
-            "apps.organizations.models.RevenueProgram.make_mailchimp_recurring_segment",
-            return_value=Mock(id=my_id),
-        )
-        mc_connected_rp.ensure_mailchimp_recurring_segment()
-        mock_make_recurring_segment.assert_called_once()
-        save_spy.assert_called_once_with(
-            mc_connected_rp, update_fields={"mailchimp_recurring_contributor_segment_id", "modified"}
-        )
-        mock_create_revision.assert_called_once()
-        mock_set_comment.assert_called_once_with(
-            "ensure_mailchimp_recurring_segment updated recurring contributor segment id"
-        )
-
-    def test_ensure_mailchimp_recurring_segment_when_recurring_segment_already_exists(self, mc_connected_rp, mocker):
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
-            return_value="something-truthy",
-            new_callable=mocker.PropertyMock,
-        )
-        logger_spy = mocker.spy(logger, "info")
-        mc_connected_rp.ensure_mailchimp_recurring_segment()
-        logger_spy.assert_called_once_with("Segment already exists for rp_id=[%s]", mc_connected_rp.id)
+    def test_mailchimp_email_list_when_not_found(self, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_email_list.return_value = None
+        assert mc_connected_rp.mailchimp_email_list is None
 
     def test_publish_revenue_program_mailchimp_list_configuration_complete(self, revenue_program, mocker, settings):
         mock_publisher = mocker.patch("apps.organizations.models.Publisher")
@@ -1248,6 +976,130 @@ class TestRevenueProgram:
         )
         mock_reversion_set_comment.assert_called_once_with("disable_mailchimp_integration updated this RP")
         mock_delete_secret.assert_called_once()
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize(
+    "product_type",
+    (
+        ("one_time"),
+        ("recurring"),
+    ),
+)
+class TestRevenueProgramMailchimpProducts:
+    def test_property_happy_path(self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_product.return_value = mailchimp_product_from_api
+        product = getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product")
+        assert product == mailchimp_product_from_api
+        patched_client.return_value.get_product.assert_called_with(
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_id")
+        )
+
+    def test_property_when_no_list_id(self, product_type, mc_connected_rp):
+        mc_connected_rp.mailchimp_list_id = None
+        mc_connected_rp.save()
+        assert getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product") is None
+
+    def test_property_not_found(self, product_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_product.return_value = None
+        assert getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product") is None
+
+    def test_property_api_error_raises_exception(self, product_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_product.side_effect = MailchimpRateLimitError()
+        with pytest.raises(MailchimpRateLimitError):
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product")
+
+    def test_ensure_mailchimp_contribution_product_doesnt_create_when_exists(
+        self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker
+    ):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        mocker.patch.object(
+            mc_connected_rp, f"mailchimp_{product_type}_contribution_product", mailchimp_product_from_api
+        )
+        mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
+        assert not patched_client.return_value.create_product.called
+
+    def test_ensure_mailchimp_contribution_product_creates_when_needed(self, product_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_product.return_value = None
+        mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
+        patched_client.return_value.create_product.assert_called_with(
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_id"),
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_name"),
+        )
+
+    def test_ensure_mailchimp_contribution_product_handles_error(self, product_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_product.return_value = None
+        patched_client.return_value.create_product.side_effect = MailchimpIntegrationError("test-error")
+        mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize("segment_type", (("all_contributors"), ("contributor"), ("recurring_contributor")))
+class TestRevenueProgramMailchimpSegments:
+    def test_property_happy_path(self, segment_type, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+        mc_connected_rp.save()
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_segment.return_value = mailchimp_contributor_segment_from_api
+        segment = getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment")
+        patched_client.return_value.get_segment.assert_called_with("test-segment-id")
+        assert segment == mailchimp_contributor_segment_from_api
+
+    def test_property_when_no_list_id(self, segment_type, mc_connected_rp):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+        mc_connected_rp.mailchimp_list_id = None
+        mc_connected_rp.save()
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+
+    def test_property_when_no_segment_id(self, segment_type, mc_connected_rp):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
+        mc_connected_rp.save()
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+
+    def test_property_not_found(self, segment_type, mc_connected_rp, mocker):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+        mc_connected_rp.save()
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_segment.return_value = None
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+
+    def test_property_api_error_raises_exception(self, segment_type, mc_connected_rp, mocker):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+        mc_connected_rp.mailchimp_list_id = None
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_segment.side_effect = MailchimpRateLimitError()
+        with pytest.raises(MailchimpRateLimitError):
+            getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment")
+
+    def test_ensure_mailchimp_contributor_segment_doesnt_create_when_exists(
+        self, segment_type, mc_connected_rp, mocker
+    ):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, {})
+        assert not patched_client.return_value.create_product.called
+
+    def test_ensure_mailchimp_contributor_segment_creates_when_needed(self, segment_type, mc_connected_rp, mocker):
+        mock_options = {}
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_segment.return_value = None
+        patched_client.return_value.create_segment.return_value = MagicMock(id="test-new-id")
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, mock_options)
+        patched_client.return_value.create_segment.assert_called_with(
+            getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_name"), mock_options
+        )
+
+    def test_ensure_mailchimp_contributor_segment_handles_error(self, segment_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_segment.return_value = None
+        patched_client.return_value.create_segment.side_effect = MailchimpIntegrationError("test-error")
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, {})
 
 
 class TestPaymentProvider:

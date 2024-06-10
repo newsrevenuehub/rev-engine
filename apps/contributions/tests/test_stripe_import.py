@@ -632,9 +632,10 @@ class TestStripeTransactionsImporter:
     def test_get_refunds_for_charge(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = ["foo"]
-        mocker.patch.object(instance, "get_resource_from_cache", return_value=(refund := {"id": "ref_1"}))
-        assert instance.get_refunds_for_charge("ch_1") == [refund]
+        charge_id = "ch_1"
+        mock_redis.scan_iter.return_value = [f"foo_{charge_id}", "bar_some_other_id"]
+        mocker.patch.object(instance, "get_resource_from_cache", return_value=(refund := {"id": "ch_1"}))
+        assert instance.get_refunds_for_charge(charge_id) == [refund]
 
     def test_get_refunds_for_subscription(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")

@@ -2,6 +2,7 @@ import datetime
 import uuid
 from time import time
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -9,6 +10,7 @@ from django.core import mail
 from django.middleware import csrf
 from django.test import override_settings
 
+import dateutil.parser
 import jwt
 import pytest
 from bs4 import BeautifulSoup as bs4
@@ -91,9 +93,7 @@ KNOWN_PASSWORD = "myGreatAndSecurePassword7"
 
 @pytest.fixture()
 def org_user_with_pw(org_user_free_plan):
-    org_user_free_plan.accepted_terms_of_service = (
-        datetime.datetime.utcnow()  # noqa: DTZ003 test depends on naive, breaks test
-    )
+    org_user_free_plan.accepted_terms_of_service = datetime.datetime.now(tz=ZoneInfo("UTC"))
     org_user_free_plan.set_password(KNOWN_PASSWORD)
     org_user_free_plan.save()
     return org_user_free_plan
@@ -123,7 +123,7 @@ def user_no_role_assignment_with_pw(user_no_role_assignment):
 @pytest.fixture()
 def rp_user_with_pw(rp_user):
     rp_user.set_password(KNOWN_PASSWORD)
-    rp_user.accepted_terms_of_service = datetime.datetime.utcnow()  # noqa: DTZ003 test depends on naive, breaks test
+    rp_user.accepted_terms_of_service = datetime.datetime.now(tz=ZoneInfo("UTC"))
     rp_user.save()
     return rp_user
 
@@ -194,7 +194,7 @@ class TestTokenObtainPairCookieView:
         assert _user["email"] == user.email
         assert _user["id"] == str(user.id)
         if user.accepted_terms_of_service:
-            assert _user["accepted_terms_of_service"] == f"{user.accepted_terms_of_service.isoformat()}Z"
+            assert dateutil.parser.isoparse(_user["accepted_terms_of_service"]) == user.accepted_terms_of_service
         else:
             assert _user["accepted_terms_of_service"] is None
         assert _user["email_verified"] == user.email_verified

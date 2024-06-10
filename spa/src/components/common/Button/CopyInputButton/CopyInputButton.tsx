@@ -1,18 +1,27 @@
-import PropTypes from 'prop-types';
+import PropTypes, { InferProps } from 'prop-types';
 import CheckIcon from '@material-ui/icons/Check';
 import { useAlert } from 'react-alert';
 
-import { Title, Input, CopyButton } from './CopyInputButton.styled';
+import { Title, Wrapper, Input, CopyButton } from './CopyInputButton.styled';
+
+type CopyInputButtonProps = InferProps<typeof CopyInputButtonPropTypes>;
 
 /** The `dataTestId` prop gets attached to the child `CopyButton` component, not the Input. */
-const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTestId }) => {
+const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTestId }: CopyInputButtonProps) => {
   const alert = useAlert();
   const showCopied = copied === link;
   return (
     <div>
       <Title>{title}</Title>
-      <div style={{ display: 'flex' }}>
-        <Input aria-label={title} value={link} readOnly />
+      <Wrapper>
+        <Input
+          value={link}
+          inputProps={{
+            className: 'NreTextFieldInput',
+            'aria-label': title,
+            readOnly: true
+          }}
+        />
         <CopyButton
           data-testid={dataTestId}
           onClick={() => {
@@ -26,7 +35,7 @@ const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTe
             );
           }}
           aria-label={`${showCopied ? 'Copied' : 'Copy'} ${title}`}
-          copied={showCopied ? 'true' : undefined}
+          $copied={showCopied}
         >
           {showCopied ? (
             <>
@@ -36,13 +45,12 @@ const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTe
             'Copy'
           )}
         </CopyButton>
-      </div>
+      </Wrapper>
     </div>
   );
 };
 
-CopyInputButton.propTypes = {
-  className: PropTypes.string,
+const CopyInputButtonPropTypes = {
   title: PropTypes.string.isRequired,
   link: PropTypes.string.isRequired,
   copied: PropTypes.string.isRequired,
@@ -50,8 +58,6 @@ CopyInputButton.propTypes = {
   'data-testid': PropTypes.string
 };
 
-CopyInputButton.defaultProps = {
-  className: ''
-};
+CopyInputButton.propTypes = CopyInputButtonPropTypes;
 
 export default CopyInputButton;

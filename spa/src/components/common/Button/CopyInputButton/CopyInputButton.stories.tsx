@@ -1,3 +1,4 @@
+import { Meta, StoryFn } from '@storybook/react';
 import CopyInputButton from './CopyInputButton';
 
 export default {
@@ -8,10 +9,11 @@ export default {
       default: 'Header color'
     }
   }
-};
+} as Meta<typeof CopyInputButton>;
 
-export const Default = (args) => <CopyInputButton {...args} />;
+const Template: StoryFn<typeof CopyInputButton> = (args) => <CopyInputButton {...args} />;
 
+export const Default = Template.bind({});
 Default.args = {
   title: 'Contributor Page Link',
   link: 'www.page-link.com',
@@ -19,8 +21,7 @@ Default.args = {
   copied: ''
 };
 
-export const Copied = (args) => <CopyInputButton {...args} />;
-
+export const Copied = Template.bind({});
 Copied.args = {
   title: 'Contributor Page Link',
   link: 'www.page-link.com',

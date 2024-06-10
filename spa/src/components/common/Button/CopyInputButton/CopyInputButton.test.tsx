@@ -16,7 +16,7 @@ const mockClipboard = {
   writeText: jest.fn()
 };
 
-global.navigator.clipboard = mockClipboard;
+(global.navigator as any).clipboard = mockClipboard;
 
 describe('CopyInputButton', () => {
   it('should render input', () => {
@@ -32,7 +32,7 @@ describe('CopyInputButton', () => {
   });
 
   it('should call setCopied when button is clicked', async () => {
-    mockClipboard.writeText.mockResolvedValue();
+    mockClipboard.writeText.mockResolvedValue(undefined);
     render(<CopyInputButton {...props} />);
     fireEvent.click(screen.getByRole('button', { name: `Copy ${props.title}` }));
     await waitFor(() => {
@@ -41,7 +41,7 @@ describe('CopyInputButton', () => {
   });
 
   it('should copy link to clipboard', async () => {
-    mockClipboard.writeText.mockResolvedValue();
+    mockClipboard.writeText.mockResolvedValue(undefined);
     render(<CopyInputButton {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: `Copy ${props.title}` }));
@@ -49,7 +49,7 @@ describe('CopyInputButton', () => {
   });
 
   it('should show error message if link fail to clipboard', async () => {
-    mockClipboard.writeText.mockRejectedValue();
+    mockClipboard.writeText.mockRejectedValue(undefined);
     render(<CopyInputButton {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: `Copy ${props.title}` }));

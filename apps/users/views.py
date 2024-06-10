@@ -307,8 +307,8 @@ class UserViewset(
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
         serializer.save()
-        # @njh is this still how we want to hanle? I remember discussion, can't remember if there was action.
-        # TODO @BW: If email changed, unset email_verified and resend verification email. # noqa: TD003
+        # TODO @BW: If email changed, unset email_verified and resend verification email.
+        # https://news-revenue-hub.atlassian.net/browse/DEV-4890
 
     def list(self, request, *args, **kwargs):
         """Return the requesting user's serialized user instance, not a list."""

@@ -1,6 +1,3 @@
-# njh DEV-2034 is DONE. Not sure what "this" is referring to. Both BAD_ACTOR_... are used in the codebase.
-# Used in requests to bad actor api that don't involve actual contributions
-# TODO @BW: Remove this when https://news-revenue-hub.atlassian.net/browse/DEV-2034 is done # noqa: TD003
 BAD_ACTOR_FAKE_AMOUNT = 10
 BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE = "Something went wrong"
 EMAIL_VERIFICATION_EMAIL_SUBJECT = "Please verify your email address"

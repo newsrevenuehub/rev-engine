@@ -94,7 +94,7 @@ class Command(BaseCommand):
             )
             fixed.append(contribution)
         with reversion.create_revision():
-            Contribution.objects.bulk_update(fixed, fields=["provider_subscription_id"])
+            Contribution.objects.bulk_update(fixed, fields={"provider_subscription_id"})
             reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_subscription_id command")
         self.stdout.write(
             self.style.HTTP_INFO(f"{self.name} finished: {len(fixed)} of {len(contributions)} contributions fixed")

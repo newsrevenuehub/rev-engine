@@ -98,6 +98,8 @@ DEFAULT_FILE_STORAGE = env.str("DEFAULT_FILE_STORAGE", "django.core.files.storag
 
 # Google cloud
 GOOGLE_CLOUD_PROJECT = env.str("GOOGLE_CLOUD_PROJECT", "revenue-engine")
+# TODO @njh: Strings should have string defaults. Replace None with emptystring, "".
+# https://news-revenue-hub.atlassian.net/browse/DEV-4904
 GOOGLE_CLOUD_PROJECT_ID = env.str("GS_PROJECT_ID", None)
 #   Pub/Sub
 ENABLE_PUBSUB = env.bool("ENABLE_PUBSUB", False)
@@ -626,7 +628,7 @@ try:
     # Host map for client custom hostnames. This should be a JSON-encoded dictionary
     # of { "customhostname.org": "rp-slug" } values.
     HOST_MAP = env.json("HOST_MAP", "{}")
-except json.JSONDecodeError:
+except (json.JSONDecodeError, environs.EnvError, environs.EnvValidationError):
     logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
     HOST_MAP = {}
 

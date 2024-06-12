@@ -34,7 +34,9 @@ class Command(BaseCommand):
             )
             return
         self.stdout.write(
-            self.style.HTTP_INFO(f"{len(contributions)} recurring contributions are missing provider subscription IDs")
+            self.style.HTTP_INFO(
+                f"{len(contributions)} recurring contribution(s) are missing provider subscription IDs"
+            )
         )
         accounts = get_stripe_accounts_and_their_connection_status(
             contributions.values_list("stripe_account", flat=True).distinct()
@@ -76,10 +78,12 @@ class Command(BaseCommand):
             if not getattr(intent.invoice, "subscription", None):
                 self.stdout.write(self.style.WARNING("Invoice has no subscription ID, skipping"))
                 continue
-            if Contribution.objects.filter(provider_subscription_id=intent.invoice.subscription).exists():
+            existing = Contribution.objects.filter(provider_subscription_id=intent.invoice.subscription)
+            if existing.exists():
                 self.stdout.write(
                     self.style.ERROR(
-                        f"Invoice has subscription ID {intent.invoice.subscription} but another contribution already is linked to it"
+                        f"Invoice has subscription ID {intent.invoice.subscription} but {existing.count()} existing contribution(s) "
+                        f"already are linked to it: {', '.join([str(i) for i in existing.values_list('id', flat=True)])}"
                     )
                 )
                 continue
@@ -92,7 +96,7 @@ class Command(BaseCommand):
             fixed.append(contribution)
         with reversion.create_revision():
             Contribution.objects.bulk_update(fixed, fields={"provider_subscription_id"})
-            reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_subscription_id command")
+            reversion.set_comment(f"Updated by {self.name} command")
         self.stdout.write(
             self.style.HTTP_INFO(f"{self.name} finished: {len(fixed)} of {len(contributions)} contributions fixed")
         )

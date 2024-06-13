@@ -1001,6 +1001,10 @@ class TestRevenueProgramMailchimpProducts:
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product") is None
 
+    def test_property_when_disconnected(self, product_type, revenue_program):
+        assert not revenue_program.mailchimp_integration_connected
+        assert getattr(revenue_program, f"mailchimp_{product_type}_contribution_product") is None
+
     def test_property_not_found(self, product_type, mc_connected_rp, mocker):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = None
@@ -1055,6 +1059,10 @@ class TestRevenueProgramMailchimpSegments:
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+
+    def test_property_when_disconnected(self, segment_type, revenue_program):
+        assert not revenue_program.mailchimp_integration_connected
+        assert getattr(revenue_program, f"mailchimp_{segment_type}_segment") is None
 
     def test_property_when_no_segment_id(self, segment_type, mc_connected_rp):
         setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)

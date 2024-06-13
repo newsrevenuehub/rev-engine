@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen } from 'test-utils';
+import { act, fireEvent, render, screen, waitFor } from 'test-utils';
 import SignUpForm, { SignUpFormProps } from './SignUpForm';
 
 function tree(props?: Partial<SignUpFormProps>) {
@@ -15,77 +15,84 @@ describe('SignUpForm', () => {
     expect(screen.getByText('Password must be at least 8 characters long.')).toBeInTheDocument();
   });
 
-  it("doesn't submit if password is smaller than 8 chars", () => {
+  it("doesn't submit if password is smaller than 8 chars", async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: '1234567' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: '1234567' } });
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await act(() => Promise.resolve());
     expect(onSubmit).not.toBeCalled();
   });
 
-  it("doesn't submit if email and password are blank", () => {
+  it("doesn't submit if email and password are blank", async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await act(() => Promise.resolve());
     expect(onSubmit).not.toBeCalled();
   });
 
-  it("doesn't submit if email is valid but password is blank", () => {
+  it("doesn't submit if email is valid but password is blank", async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await act(() => Promise.resolve());
     expect(onSubmit).not.toBeCalled();
   });
 
-  it("doesn't submit if email is invalid, but password is valid and terms are selected", () => {
+  it("doesn't submit if email is invalid, but password is valid and terms are selected", async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
-    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test' } });
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await act(() => Promise.resolve());
     expect(onSubmit).not.toBeCalled();
   });
 
-  it("doesn't submit if email and password are set but invalid, and terms are selected", () => {
+  it("doesn't submit if email and password are set but invalid, and terms are selected", async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test' } });
-    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'foo' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'foo' } });
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await act(() => Promise.resolve());
     expect(onSubmit).not.toBeCalled();
   });
 
-  it("doesn't submit if email and password are valid, but terms aren't selected", () => {
+  it("doesn't submit if email and password are valid, but terms aren't selected", async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await act(() => Promise.resolve());
     expect(onSubmit).not.toBeCalled();
   });
 
-  it('submits if email and password are valid and terms are selected', () => {
+  it('submits if email and password are valid and terms are selected', async () => {
     const onSubmit = jest.fn();
 
     tree({ onSubmit });
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     fireEvent.click(screen.getByRole('checkbox'));
     expect(screen.getByRole('checkbox')).toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    await waitFor(() => expect(onSubmit).toBeCalled());
     expect(onSubmit.mock.calls).toEqual([['test@test.com', 'password123']]);
   });
 

@@ -3,6 +3,7 @@ import { Description, Title, Wrapper, TextWrapper, AppealButton } from './Appeal
 import { PORTAL } from 'routes';
 import { Link as RouterLink } from 'react-router-dom';
 import { RevenueProgram } from 'hooks/useContributionPage';
+import PortalAppealImage from 'assets/images/portal-appeal.png';
 
 const AppealLink = AppealButton as any;
 
@@ -17,8 +18,7 @@ const Appeal = ({ slim, inModal, revenueProgram }: AppealProps) => {
 
   return (
     <Wrapper data-testid="appeal" $slim={!!slim} $inModal={!!inModal}>
-      {/* TODO: waiting on design to provide image */}
-      {/* <img src="https://via.placeholder.com/150" alt="placeholder" /> */}
+      <img src={PortalAppealImage} alt="People holding hands" />
       <TextWrapper $slim={!!slim}>
         <Title $slim={!!slim}>We couldn’t do this important work without you</Title>
         <Description $hideText={!!slim}>

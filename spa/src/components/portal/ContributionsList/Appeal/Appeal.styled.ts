@@ -12,6 +12,7 @@ export const Wrapper = styled.div<{ $slim: boolean; $inModal: boolean }>`
 
   & > img {
     height: 300px;
+    object-fit: cover;
   }
 
   ${({ $inModal }) =>

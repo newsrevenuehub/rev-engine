@@ -3,11 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
 import { useRevenueProgram } from 'hooks/useRevenueProgram';
 import { useAlert } from 'react-alert';
+import { TextField } from 'components/base';
 
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 import ContributorPortal, { ContributorPortalProps } from './ContributorPortal';
 
+jest.mock('components/base/TextField/PhoneTextField', () => ({
+  PhoneTextField: (props: any) => <TextField {...props} />
+}));
 jest.mock('hooks/useRevenueProgram');
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
@@ -48,32 +52,6 @@ describe('ContributorPortal', () => {
     it('should render input', () => {
       tree();
       expect(screen.getByRole('textbox', { name: 'Phone Number' })).toHaveValue(revenueProgram.contact_phone);
-    });
-
-    it('should show error message when submitting with chars instead of numbers or allowed special chars', async () => {
-      tree();
-
-      await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
-        target: { value: 'invalid-phone' }
-      });
-      userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Please enter a valid phone number./i)).toBeInTheDocument();
-      });
-    });
-
-    it('should show error message when submitting more chars than accepted (max = 17)', async () => {
-      tree();
-
-      await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
-        target: { value: 'invalid-too-long-phone-number' }
-      });
-      userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/Phone number must be less than 17 characters./i)).toBeInTheDocument();
-      });
     });
 
     it('should allow submit if user typed numbers or allowed special chars', async () => {

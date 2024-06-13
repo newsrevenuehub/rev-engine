@@ -1,6 +1,6 @@
 import SaveIcon from '@material-design-icons/svg/outlined/save.svg?react';
 import { AxiosError } from 'axios';
-import { Button, TextField } from 'components/base';
+import { Button, TextField, PhoneTextField } from 'components/base';
 import Hero from 'components/common/Hero';
 import SuccessBanner from 'components/common/SuccessBanner';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
@@ -99,26 +99,12 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
             <Controller
               name="contact_phone"
               control={control}
-              rules={{
-                pattern: {
-                  // Regex to allow characters: 0-9, *, #, +, -, ., _, (, ), and space
-                  value: /^[0-9*#+-._() ]+$/,
-                  message: 'Please enter a valid phone number.'
-                },
-                maxLength: {
-                  // Value from BE validation models.RevenueProgram.contact_phone
-                  value: 17,
-                  message: 'Phone number must be less than 17 characters.'
-                }
-              }}
               render={({ field }) => (
-                <TextField
+                <PhoneTextField
                   {...field}
                   fullWidth
                   id="contact-phone"
                   label="Phone Number"
-                  placeholder="+1 (555) 555-5555"
-                  type="tel"
                   error={!!errors.contact_phone || !!errorMessage?.contact_phone}
                   helperText={errors?.contact_phone?.message || errorMessage?.contact_phone}
                 />

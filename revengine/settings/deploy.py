@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 
 from .base import *  # noqa: F403
@@ -10,29 +9,29 @@ from .base import *  # noqa: F403
 
 #### Critical settings
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 
 ### Environment-specific settings
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", "localhost", delimeter=":")
 
 ## Email
 EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
 MAILGUN_SENDER_DOMAIN = "fundjournalism.org"
 
 ANYMAIL = {
-    "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
+    "MAILGUN_API_KEY": env.str("MAILGUN_API_KEY", ""),
     "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
 }
 
 EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
-DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
+DEFAULT_FROM_EMAIL = f"noreply@{env.str('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 
 ### Google Cloud Storage ###
-GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
+GS_BUCKET_NAME = env.str("GS_BUCKET_NAME", "rev-engine-media")
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
-GS_PROJECT_ID = os.getenv("GS_PROJECT_ID", "revenue-engine")
+GS_PROJECT_ID = env.str("GS_PROJECT_ID", "revenue-engine")
 # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
 GS_QUERYSTRING_AUTH = False
 GS_DEFAULT_ACL = None
@@ -46,8 +45,8 @@ STATICFILES_DIRS = [PROJECT_DIR / "static", str(FRONTEND_BUILD_DIR / "static")]
 
 ### HTTPS
 
-CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", True)
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", True)
 
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
@@ -114,4 +113,4 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     ignore_logger("django.security.DisallowedHost")
 
 
-USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
+USE_DEBUG_INTERVALS = env.bool("USE_DEBUG_INTERVALS", False)

@@ -87,6 +87,38 @@ describe('ContributorPortal', () => {
       });
       errorSpy.mockRestore();
     });
+
+    it('should disable buttons if phone number is unchanged', () => {
+      tree();
+
+      expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /cancel changes/i })).toBeDisabled();
+    });
+
+    it.each(['+1', '+55', '+380'])(
+      'should disable buttons if only phone only contains country code: %s',
+      (countryCode) => {
+        tree({ revenueProgram: { ...revenueProgram, contact_phone: '' } });
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
+          target: { value: countryCode }
+        });
+
+        expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /cancel changes/i })).toBeDisabled();
+      }
+    );
+
+    it('should not disable buttons if only country code, but RP has phone number to reset to', () => {
+      tree();
+
+      fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
+        target: { value: '+123' }
+      });
+
+      expect(screen.getByRole('button', { name: /save/i })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: /cancel changes/i })).not.toBeDisabled();
+    });
   });
 
   describe('Email Address input', () => {

@@ -53,6 +53,11 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
     [contact_email, contact_phone, revenueProgram?.contact_email, revenueProgram?.contact_phone]
   );
 
+  const onlyCountryCode = contact_phone.length > 0 && contact_phone.length < 5;
+  // Disable buttons if the phone number is only a country code and the revenue program does not have a phone number to "Cancel Changes" to;
+  // or if the form is not different from the revenue program
+  const disableButton = (onlyCountryCode && !revenueProgram?.contact_phone) || !isDifferent;
+
   const submit = async (data: ContactInfoFormFields) => {
     setErrorMessage(undefined);
 
@@ -140,7 +145,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
         <ActionWrapper>
           <Button
             color="secondary"
-            disabled={!isDifferent}
+            disabled={disableButton}
             onClick={() => {
               reset({
                 contact_email: revenueProgram?.contact_email ?? '',
@@ -151,7 +156,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
           >
             Cancel Changes
           </Button>
-          <Button startIcon={<SaveIcon />} disabled={!isDifferent} color="primaryDark" type="submit">
+          <Button startIcon={<SaveIcon />} disabled={disableButton} color="primaryDark" type="submit">
             Save
           </Button>
         </ActionWrapper>

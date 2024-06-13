@@ -32,6 +32,7 @@ const StyledSelect = styled(Select)`
 export function PhoneTextField({ onChange, value, ...props }: PhoneTextFieldProps) {
   const { inputValue, handlePhoneValueChange, inputRef, country, setCountry } = usePhoneInput({
     defaultCountry: 'us',
+    forceDialCode: true,
     value,
     onChange: (data) => {
       onChange?.(data.phone);

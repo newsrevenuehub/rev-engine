@@ -95,7 +95,7 @@ describe('ContributorPortal', () => {
       expect(screen.getByRole('button', { name: /cancel changes/i })).toBeDisabled();
     });
 
-    it.each(['+1', '+55', '+380'])(
+    it.each(['+1', '+55', '+380', '+1234'])(
       'should disable buttons if only phone only contains country code: %s',
       (countryCode) => {
         tree({ revenueProgram: { ...revenueProgram, contact_phone: '' } });
@@ -216,7 +216,7 @@ describe('ContributorPortal', () => {
       expect(updateRevenueProgram).not.toHaveBeenCalled();
 
       await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
-        target: { value: '123' }
+        target: { value: '+123456789' }
       });
       await fireEvent.change(screen.getByRole('textbox', { name: 'Email Address' }), {
         target: { value: 'email@mock.com' }
@@ -227,8 +227,34 @@ describe('ContributorPortal', () => {
       await waitFor(() => {
         expect(updateRevenueProgram).toHaveBeenCalledTimes(1);
       });
-      expect(updateRevenueProgram).toHaveBeenCalledWith({ contact_email: 'email@mock.com', contact_phone: '123' });
+      expect(updateRevenueProgram).toHaveBeenCalledWith({
+        contact_email: 'email@mock.com',
+        contact_phone: '+123456789'
+      });
     });
+
+    it.each(['+1', '+55', '+380', '+1234'])(
+      'should call Revenue Program patch with empty phone number if it only contains country code: %s',
+      async (countryCode) => {
+        tree();
+
+        expect(updateRevenueProgram).not.toHaveBeenCalled();
+
+        await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
+          target: { value: countryCode }
+        });
+        await fireEvent.change(screen.getByRole('textbox', { name: 'Email Address' }), {
+          target: { value: 'email@mock.com' }
+        });
+
+        userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+        await waitFor(() => {
+          expect(updateRevenueProgram).toHaveBeenCalledTimes(1);
+        });
+        expect(updateRevenueProgram).toHaveBeenCalledWith({ contact_email: 'email@mock.com', contact_phone: '' });
+      }
+    );
 
     it('should show success message when patch returns 200', async () => {
       tree();

@@ -53,7 +53,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
     [contact_email, contact_phone, revenueProgram?.contact_email, revenueProgram?.contact_phone]
   );
 
-  const onlyCountryCode = contact_phone.length > 0 && contact_phone.length < 5;
+  const onlyCountryCode = contact_phone.length > 0 && contact_phone.length < 6;
   // Disable buttons if the phone number is only a country code and the revenue program does not have a phone number to "Cancel Changes" to;
   // or if the form is not different from the revenue program
   const disableButton = (onlyCountryCode && !revenueProgram?.contact_phone) || !isDifferent;
@@ -67,7 +67,10 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
     }
 
     try {
-      await updateRevenueProgram(data);
+      await updateRevenueProgram({
+        contact_email: data.contact_email,
+        contact_phone: onlyCountryCode ? '' : data.contact_phone
+      });
       setShowSuccess(true);
     } catch (error) {
       setShowSuccess(false);

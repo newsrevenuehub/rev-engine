@@ -1,6 +1,7 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import PhoneTextField, { PhoneTextFieldProps } from './PhoneTextField';
+import userEvent from '@testing-library/user-event';
 
 function tree(props?: Partial<PhoneTextFieldProps>) {
   return render(<PhoneTextField id="mock-label" label="mock-label" {...props} />);
@@ -27,6 +28,27 @@ describe('PhoneTextField', () => {
     tree({ onChange });
     expect(onChange).toHaveBeenCalledWith('+1');
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onChange with typed number', () => {
+    const onChange = jest.fn();
+    tree({ onChange });
+    userEvent.type(screen.getByRole('textbox'), '6195357597');
+    expect(onChange).toHaveBeenCalledWith('+16195357597');
+  });
+
+  it('opens country select', () => {
+    tree();
+    userEvent.click(screen.getByRole('button', { name: 'US icon' }));
+    expect(screen.getByRole('listbox')).toBeVisible();
+  });
+
+  it('changes country', () => {
+    const onChange = jest.fn();
+    tree({ onChange });
+    userEvent.click(screen.getByRole('button', { name: 'US icon' }));
+    userEvent.click(screen.getByRole('option', { name: 'Brazil' }));
+    expect(onChange).toHaveBeenCalledWith('+55');
   });
 
   it('is accessible', async () => {

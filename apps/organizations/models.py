@@ -799,10 +799,22 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
+        if not self.mailchimp_integration_connected:
+            logger.debug(
+                "Mailchimp integration not connected for this revenue program (%s), returning None",
+                self.id,
+            )
+            return None
         return self.mailchimp_client.get_product(self.mailchimp_one_time_contribution_product_id)
 
     @cached_property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
+        if not self.mailchimp_integration_connected:
+            logger.debug(
+                "Mailchimp integration not connected for this revenue program (%s), returning None",
+                self.id,
+            )
+            return None
         return self.mailchimp_client.get_product(self.mailchimp_recurring_contribution_product_id)
 
     # Below are not cached because they are dependent on model fields.

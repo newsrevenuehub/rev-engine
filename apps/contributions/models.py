@@ -203,6 +203,8 @@ class Contribution(IndexedTimeStampedModel):
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
+    # TODO @BW: Make provider_payment_id, provider_setup_intent_id, provider_subscription_id unique
+    # DEV-4915
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)

@@ -74,20 +74,30 @@ def charge_refunded():
 
 
 @pytest.mark.django_db()
-@pytest.mark.parametrize("pm_found", [True, False])
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
-def test_payment_method_attached(client, mocker, payment_method_attached_event, pm_found, payment_method):
-    ContributionFactory.create_batch(2, provider_customer_id=payment_method.customer)
+def test_charge_succeeded(client, mocker, charge_succeeded_event):
+    contributions = ContributionFactory.create_batch(
+        2,
+        one_time=True,
+        status=ContributionStatus.PROCESSING,
+        provider_payment_id=charge_succeeded_event["data"]["object"]["payment_intent"],
+        provider_payment_method_id=None,
+    )
+    assert {x.provider_payment_method_id for x in contributions} == {None}
+    mocker.patch(
+        "stripe.PaymentMethod.retrieve",
+        return_value=(pm := {"card": {"brand": "Visa", "last4": "4242"}}),
+    )
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    mock_pm_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
-    mock_pm_retrieve.return_value = payment_method if pm_found else None
-    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data=charge_succeeded_event, **header)
     assert response.status_code == status.HTTP_200_OK
-    contributions = Contribution.objects.filter(provider_customer_id=payment_method.customer)
-    assert contributions.count() == 2
-    if pm_found:
-        assert all(c.provider_payment_method_id == payment_method.id for c in contributions)
-        assert all(c.provider_payment_method_details == payment_method.to_dict() for c in contributions)
+    assert (
+        touched := Contribution.objects.filter(
+            provider_payment_method_id=charge_succeeded_event["data"]["object"]["payment_method"],
+            provider_payment_method_details=pm,
+        )
+    ).count() == 2
+    assert set(touched.values_list("id", flat=True)) == {x.id for x in contributions}
 
 
 @pytest.mark.django_db()

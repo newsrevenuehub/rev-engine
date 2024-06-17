@@ -6,7 +6,7 @@ import styled from 'styled-components';
 import { InputAdornment } from '@material-ui/core';
 
 export type PhoneTextFieldProps = Omit<TextFieldProps, 'onChange'> & {
-  onChange?: (...event: any[]) => void;
+  onChange?: (value: string) => void;
   value?: string;
 };
 

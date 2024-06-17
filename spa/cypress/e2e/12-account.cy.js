@@ -142,7 +142,7 @@ describe('Account', () => {
       cy.visit(SIGN_UP);
       cy.url().should('include', SIGN_UP);
       cy.findByRole('textbox', { name: 'Email' }).type('test@test.com');
-      cy.findByLabelText('Password *').type('P1#password');
+      cy.findByLabelText('Password').type('P1#password');
       cy.findByRole('checkbox').check();
       cy.intercept('POST', getEndpoint(USER), {
         statusCode: 400,
@@ -156,7 +156,7 @@ describe('Account', () => {
       cy.visit(SIGN_UP);
       cy.url().should('include', SIGN_UP);
       cy.findByRole('textbox', { name: 'Email' }).type('test@test.com');
-      cy.findByLabelText('Password *').type('P1#password');
+      cy.findByLabelText('Password').type('P1#password');
       cy.findByRole('checkbox').check();
       cy.intercept(getEndpoint(TOKEN), TOKEN_API_200);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });

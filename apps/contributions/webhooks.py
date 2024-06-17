@@ -173,17 +173,24 @@ class StripeWebhookProcessor:
 
         Specifically, we update the provider_payment_method_id and provider_payment_method_details fields.
         """
-        with reversion.create_revision():
-            # TODO @BW: use .get here instead of filter after provider payment id is unique
-            # DEV-4915
-            updated = Contribution.objects.filter(provider_payment_id=self.obj_data["payment_intent"]).update(
-                provider_payment_method_id=self.obj_data["payment_method"],
-                provider_payment_method_details=stripe.PaymentMethod.retrieve(
-                    self.obj_data["payment_method"],
-                    stripe_account=self.event.account,
-                ),
+        updated = 0
+        # # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
+        # DEV-4915
+        for contribution in Contribution.objects.filter(provider_payment_id=self.obj_data["payment_intent"]):
+            contribution.provider_payment_method_id = self.obj_data["payment_method"]
+            contribution.provider_payment_method_details = stripe.PaymentMethod.retrieve(
+                self.obj_data["payment_method"],
+                stripe_account=self.event.account,
             )
-            reversion.set_comment(f"`StripeWebhookProcessor.handle_charge_succeeded` updated {updated} contributions")
+            with reversion.create_revision():
+                contribution.save(
+                    update_fields={"provider_payment_method_id", "provider_payment_method_details", "modified"}
+                )
+                updated += 1
+                reversion.set_comment(
+                    f"`StripeWebhookProcessor.handle_charge_succeeded` updated {updated} contributions"
+                )
+
         logger.info("Updated %s contributions with provider payment method ID", updated)
 
     def handle_payment_intent_canceled(self):

@@ -79,7 +79,6 @@ class StripePaymentManager(PaymentManager):
         pi.capture(
             self.contribution.provider_payment_id,
             stripe_account=self.contribution.revenue_program.payment_provider.stripe_account_id,
-            idempotency_key=str(self.contribution.uuid),
         )
         update_data["status"] = ContributionStatus.PAID
         return update_data

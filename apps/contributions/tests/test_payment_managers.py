@@ -56,7 +56,6 @@ class TestStripePaymentManager:
                 mock_pi_retrieve.return_value.capture.assert_called_once_with(
                     contribution.provider_payment_id,
                     stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
-                    idempotency_key=str(contribution.uuid),
                 )
 
         else:

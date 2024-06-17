@@ -16,3 +16,8 @@ class TestDenylistValidation:
     def test_case_insensitive_uniqueness(self, word, case):
         with pytest.raises(IntegrityError):
             DenyListWord.objects.create(word=getattr(word.word, case)())
+
+    def test_retrieval_case_insensitivity(self, word):
+        word_lower = DenyListWord.objects.get(word=word.word.lower())
+        word_upper = DenyListWord.objects.get(word=word.word.upper())
+        assert word_lower == word_upper

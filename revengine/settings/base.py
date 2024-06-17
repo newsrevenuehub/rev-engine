@@ -11,37 +11,34 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import json
 import logging
+import os
 from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
-import environs
-
 from revengine.utils import __ensure_gs_credentials
 
 
-env = environs.Env()
-
-DEBUG = env.bool("DJANGO_DEBUG", False)
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to
 # be truncated for testing (as much as possible, currently).
-USE_DEBUG_INTERVALS = env.bool("USE_DEBUG_INTERVALS", False)
+USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
 
-ENABLE_API_BROWSER = env.bool("ENABLE_API_BROWSER", False)
+ENABLE_API_BROWSER = os.getenv("ENABLE_API_BROWSER", "false").lower() == "true"
 
 # Build paths inside the project like this: BASE_DIR /  ...
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_DIR.parent
 
 # https://news-revenue-hub.atlassian.net/wiki/spaces/TECH/pages/2014871553/Rev+Engine+NRE+development+deployment+servers+and+environments
-ENVIRONMENT = env.str("ENVIRONMENT", "unknown")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "unknown")
 
 ADMINS = [("dc", "daniel@fundjournalism.org")]
 ROOT_URLCONF = "revengine.urls"
 AUTH_USER_MODEL = "users.User"
 WSGI_APPLICATION = "revengine.wsgi.application"
 # SITE_URL must include scheme and optionally port, https://example.com.
-SITE_URL = env.str("SITE_URL", "")
+SITE_URL = os.getenv("SITE_URL", "")
 
 # This is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected.
@@ -92,25 +89,23 @@ MEDIA_ROOT = BASE_DIR / "public" / "media"
 MEDIA_URL = "/media/"
 
 # django-storages Settings
-MEDIA_STORAGE_BUCKET_NAME = env.str("MEDIA_STORAGE_BUCKET_NAME", "")
-MEDIA_LOCATION = env.str("MEDIA_LOCATION", "")
-DEFAULT_FILE_STORAGE = env.str("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
+MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
+MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
+DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
 
 # Google cloud
-GOOGLE_CLOUD_PROJECT = env.str("GOOGLE_CLOUD_PROJECT", "revenue-engine")
-# TODO @njh: Strings should have string defaults. Replace None with emptystring, "".
-# https://news-revenue-hub.atlassian.net/browse/DEV-4904
-GOOGLE_CLOUD_PROJECT_ID = env.str("GS_PROJECT_ID", None)
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
+GOOGLE_CLOUD_PROJECT_ID = os.getenv("GS_PROJECT_ID", None)
 #   Pub/Sub
-ENABLE_PUBSUB = env.bool("ENABLE_PUBSUB", False)
-PAGE_PUBLISHED_TOPIC = env.str("PAGE_PUBLISHED_TOPIC", None)
-NEW_USER_TOPIC = env.str("NEW_USER_TOPIC", None)
+ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
+PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
+NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 #   Secret Manager
-ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = env.bool("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", False)
+ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = os.getenv("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", "false").lower() == "true"
 
 GS_CREDENTIALS = __ensure_gs_credentials(
-    gs_service_account_raw=env.str("GS_SERVICE_ACCOUNT", None),
-    raise_on_unset=env.bool("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", True),
+    gs_service_account_raw=os.getenv("GS_SERVICE_ACCOUNT", None),
+    raise_on_unset=os.getenv("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", "true").lower() == "true",
 )
 
 # Application definition
@@ -211,12 +206,12 @@ DATABASES = {
         "PORT": "",
     }
 }
-if env.str("DATABASE_URL"):
+if os.getenv("DATABASE_URL"):
     import dj_database_url
 
     db_from_env = dj_database_url.config(
         conn_max_age=500,
-        ssl_require=env.bool("DATABASE_SSL", False),
+        ssl_require=os.getenv("DATABASE_SSL", False),
     )
     DATABASES["default"].update(db_from_env)
 
@@ -251,10 +246,10 @@ STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
 # evicted before the TTL. Also, note the existence of python manage.py clear_cache, which can be used to clear the cache
 # related to Stripe transactions import runs.
 STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = int(
-    env.int("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 25)  # default is 25 hours
+    os.getenv("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 25)  # default is 25 hours
 )
 
-REDIS_URL = env.str("REDIS_TLS_URL", env.str("REDIS_URL", "redis://redis:6379"))
+REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 
 
 CACHE_HOST = REDIS_URL
@@ -290,7 +285,7 @@ CACHES = {
 # MIDDLEWARE_LOGGING_CODES is not Django, used by LogFourHundredsMiddleware.
 MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 DEFAULT_LOGGER = "warn"
-LOG_LEVEL = env.log_level("LOG_LEVEL", "INFO")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -336,15 +331,15 @@ LOGGING = {
 ### Request ID Settings
 # Ref: https://django-request-id.readthedocs.io/en/latest/
 # For Heroku environments, REQUEST_ID_HEADER will have to be set to "X-Request-ID"
-REQUEST_ID_HEADER = env.str("REQUEST_ID_HEADER", None)
+REQUEST_ID_HEADER = os.getenv("REQUEST_ID_HEADER", None)
 
 ### Sentry Settings
-SENTRY_ENABLE_FRONTEND = env.bool("SENTRY_ENABLE_FRONTEND", False)
-SENTRY_DSN_FRONTEND = env.str("SENTRY_DSN_FRONTEND", "")
-SENTRY_ENABLE_BACKEND = env.bool("SENTRY_ENABLE_BACKEND", False)
-SENTRY_DSN_BACKEND = env.str("SENTRY_DSN_BACKEND", "")
-SENTRY_ENABLE_PII = env.bool("SENTRY_ENABLE_PII", True)
-SENTRY_PROFILING_SAMPLE_RATE = env.float("SENTRY_PROFILING_SAMPLE_RATE", 0.1)
+SENTRY_ENABLE_FRONTEND = os.getenv("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
+SENTRY_DSN_FRONTEND = os.getenv("SENTRY_DSN_FRONTEND")
+SENTRY_ENABLE_BACKEND = os.getenv("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
+SENTRY_DSN_BACKEND = os.getenv("SENTRY_DSN_BACKEND")
+SENTRY_ENABLE_PII = os.getenv("SENTRY_ENABLE_PII", "true").lower() == "true"
+SENTRY_PROFILING_SAMPLE_RATE = float(os.getenv("SENTRY_PROFILING_SAMPLE_RATE", "0.1"))
 
 
 ### REST_FRAMEWORK Settings
@@ -372,13 +367,13 @@ DTM_IGNORED_MIGRATIONS = {
 ### Django-CSP Settings
 
 # TODO: [DEV-2359] Fix CSP violation caused by react-select emotion
-ENFORCE_CSP = env.bool("ENFORCE_CSP", True)
+ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
 if not ENFORCE_CSP:
     CSP_REPORT_ONLY = True
 CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
-CSP_REPORTING_ENABLE = env.bool("CSP_REPORTING_ENABLE", False)
+CSP_REPORTING_ENABLE = os.getenv("CSP_REPORTING_ENABLE", "false").lower() == "true"
 if CSP_REPORTING_ENABLE:
-    CSP_REPORT_URI = env.str("CSP_REPORT_URI")
+    CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
 CSP_DEFAULT_SRC = (
     "'self'",
     "*.fundjournalism.org",
@@ -436,12 +431,12 @@ CSP_OBJECT_SRC = ("'none'",)
 
 ### https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=env.float("ACCESS_TOKEN_LIFETIME_HOURS", 12)),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
-    "UPDATE_LAST_LOGIN": env.bool("UPDATE_LAST_LOGIN", True),
+    "UPDATE_LAST_LOGIN": os.getenv("UPDATE_LAST_LOGIN", True),
 }
 
-SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", True)
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"
 
 ### sorl-thumbmail Settings
 THUMBNAIL_COLORSPACE = None
@@ -461,14 +456,14 @@ DEFAULT_CURRENCY = "usd"
 GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 WEBHOOK_URL = r"^revengine-stripe-webhook/"
 # THE ID of the Stripe product that is used for subscriptions to the Core org plan
-STRIPE_CORE_PRODUCT_ID = env.str("STRIPE_CORE_PRODUCT_ID", "")
+STRIPE_CORE_PRODUCT_ID = os.getenv("STRIPE_CORE_PRODUCT_ID", "")
 STRIPE_OAUTH_SCOPE = "read_write"
-STRIPE_LIVE_MODE = env.bool("STRIPE_LIVE_MODE", False)
+STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
 # The following values that end in `_UPGRADES` are for interacting with Stripe to create and manage contributions
-STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = env.str("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
-STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = env.str("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
+STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
+STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
-STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = env.str("STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS", "")
+STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS", "")
 STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
@@ -481,9 +476,9 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
 ]
 
 # The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades
-STRIPE_LIVE_SECRET_KEY_UPGRADES = env.str("STRIPE_LIVE_SECRET_KEY_UPGRADES", "")
-STRIPE_TEST_SECRET_KEY_UPGRADES = env.str("STRIPE_TEST_SECRET_KEY_UPGRADES", "")
-STRIPE_WEBHOOK_SECRET_UPGRADES = env.str("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
+STRIPE_LIVE_SECRET_KEY_UPGRADES = os.getenv("STRIPE_LIVE_SECRET_KEY_UPGRADES", "")
+STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "")
+STRIPE_WEBHOOK_SECRET_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
 STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
     "checkout.session.completed",
     "customer.subscription.deleted",
@@ -492,14 +487,14 @@ STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
 # that max expected wait time is UPGRADE_DAYS_WAIT days.
 UPGRADE_DAYS_WAIT = 3
 
-HOOKDECK_API_KEY = env.str("HOOKDECK_API_KEY", "")
-HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS = env.str("HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS", "")
-HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = env.str("HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES", "")
+HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES", "")
 
 ### django-healthcheck Settings
 # This URL will get pinged when in the `auto_accept_flagged_contributions``
 # task. Which ensures the task completes on a schedule.
-HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = env.str("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS", "")
+HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 
 ### Google Tag Manager ID
@@ -508,22 +503,22 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = env.str("HEALTHCHECK_URL_AUTO_ACC
 # for the `gtm_id` context key in `revengine.views.ReactAppView`. In turn, spa.public.index.html
 # references `gtm_id`. If this value is defined, a Google Tag Manager script is added to head and GTM
 # iframe added to body.
-HUB_GTM_ID = env.str("HUB_GTM_ID", "")
+HUB_GTM_ID = os.getenv("HUB_GTM_ID")
 
 
 ### Heroku Settings
-HEROKU_APP_NAME = env.str("HEROKU_APP_NAME", "")
-HEROKU_API_KEY = env.str("HEROKU_API_KEY", "")
-HEROKU_BRANCH = env.str("HEROKU_BRANCH", "")
-CF_ZONE_NAME = env.str("CF_ZONE_NAME", "")
+HEROKU_APP_NAME = os.getenv("HEROKU_APP_NAME")
+HEROKU_API_KEY = os.getenv("HEROKU_API_KEY")
+HEROKU_BRANCH = os.getenv("HEROKU_BRANCH")
+CF_ZONE_NAME = os.getenv("CF_ZONE_NAME")
 
 
 ### RevEngine (1st Party) Settings
 
 # TODO: [DEV-2010] Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
-DOMAIN_APEX = env.str("DOMAIN_APEX", "")
+DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
-DASHBOARD_SUBDOMAINS = env.list("DASHBOARD_SUBDOMAINS", "www:dashboard:", delimiter=":")
+DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
 
 # These values are used in the generation of Stripe metadata for contribution payments. These values must be coordinated
@@ -544,7 +539,7 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = 3
 CONTRIBUTOR_VERIFY_URL = "contributor-verify"
 # In format num/[second, minute, hour, day]
 # https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
-CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = env.str("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")
+CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")
 # Token key used to distinguish between regular users and contributors See ContributorRefreshToken()
 CONTRIBUTOR_ID_CLAIM = "contrib_id"
 CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=15)
@@ -557,7 +552,7 @@ AUTH_COOKIE_KEY = "Authorization"
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
 # Salt used in UID and account verification hashes.
-ENCRYPTION_SALT = env.str("ENCRYPTION_SALT", "")
+ENCRYPTION_SALT = os.getenv("ENCRYPTION_SALT", "")
 
 # Expire account verification URLs after X hours.
 ACCOUNT_VERIFICATION_LINK_EXPIRY = 24
@@ -573,18 +568,18 @@ PAGE_SLUG_PARAM = "slug"
 REQUESTS_TIMEOUT_DEFAULT = 31
 
 ## Email and ESP Settings
-DEFAULT_FROM_EMAIL = f"noreply@{env.str('DOMAIN', 'example.com')}"
+DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = f"[RevEngine {ENVIRONMENT.title()}] "
 # Revengine template identifiers
-EMAIL_DEFAULT_TRANSACTIONAL_SENDER = env.str(
+EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
 )
 
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-EMAIL_DEFAULT_TRANSACTIONAL_SENDER = env.str(
+EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
 )
 
@@ -598,9 +593,9 @@ DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 24
 
 ## BadActor API
 # [DEV-2008] the test API shouldn't be here. It shouldn't have a default.
-BAD_ACTOR_API_URL = env.str("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
+BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
-BAD_ACTOR_API_KEY = env.str("BAD_ACTOR_API_KEY", "testing_123")
+BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
 BAD_ACTOR_BAD_SCORE = 4
 BAD_ACTOR_SUPERBAD_SCORE = 5
 BAD_ACTOR_FLAG_SCORE = BAD_ACTOR_BAD_SCORE
@@ -613,57 +608,58 @@ BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS = BAD_ACTOR_SUPERBAD_SCORE
 # on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
 # webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
 # dev environment.
-STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = env.str("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
+STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
 
 # These `MAILCHIMP_` values are used by code that makes requests to mailchimp on behalf of org users
-MAILCHIMP_CLIENT_ID = env.str("MAILCHIMP_CLIENT_ID", None)
-MAILCHIMP_CLIENT_SECRET = env.str("MAILCHIMP_CLIENT_SECRET", None)
+MAILCHIMP_CLIENT_ID = os.getenv("MAILCHIMP_CLIENT_ID", None)
+MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 
 # see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
+# Host map for client custom hostnames. This should be a JSON-encoded dictionary
+# of { "customhostname.org": "rp-slug" } values.
+
 logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
 
 try:
-    # Host map for client custom hostnames. This should be a JSON-encoded dictionary
-    # of { "customhostname.org": "rp-slug" } values.
-    HOST_MAP = env.json("HOST_MAP", "{}")
-except (json.JSONDecodeError, environs.EnvError, environs.EnvValidationError):
+    HOST_MAP = json.loads(os.getenv("HOST_MAP", "{}"))
+except json.JSONDecodeError:
     logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
     HOST_MAP = {}
 
 ### Front End Environment Variables
 SPA_ENV_VARS = {
-    "HUB_STRIPE_API_PUB_KEY": env.str("SPA_ENV_HUB_STRIPE_API_PUB_KEY", ""),
+    "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
     "NRE_MAILCHIMP_CLIENT_ID": MAILCHIMP_CLIENT_ID,
-    "CAPTURE_PAGE_SCREENSHOT": env.bool("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", False),
-    "SALESFORCE_CAMPAIGN_ID_QUERYPARAM": env.str("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM", "campaign"),
-    "FREQUENCY_QUERYPARAM": env.str("SPA_ENV_FREQUENCY_QUERYPARAM", "frequency"),
-    "AMOUNT_QUERYPARAM": env.str("SPA_ENV_AMOUNT_QUERYPARAM", "amount"),
-    "PENDO_API_KEY": env.str("SPA_ENV_PENDO_API_KEY", ""),
-    "PENDO_VISITOR_PREFIX": env.str("SPA_ENV_PENDO_VISITOR_PREFIX", ""),
-    "REVENGINE_API_VERSION": env.str("SPA_ENV_REVENGINE_API_VERSION", "v1"),
+    "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", "false").lower() == "true",
+    "SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM", "campaign"),
+    "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM", "frequency"),
+    "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM", "amount"),
+    "PENDO_API_KEY": os.getenv("SPA_ENV_PENDO_API_KEY"),
+    "PENDO_VISITOR_PREFIX": os.getenv("SPA_ENV_PENDO_VISITOR_PREFIX"),
+    "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION", "v1"),
     "STRIPE_API_VERSION": STRIPE_API_VERSION,
     "STRIPE_OAUTH_SCOPE": STRIPE_OAUTH_SCOPE,
-    "STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL": env.str("SPA_ENV_STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL", ""),
-    "STRIPE_SELF_UPGRADE_PRICING_TABLE_ID": env.str("SPA_ENV_STRIPE_SELF_UPGRADE_PRICING_TABLE_ID", ""),
-    "STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY": env.str(
-        "SPA_ENV_STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY", ""
+    "STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL": os.getenv("SPA_ENV_STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL"),
+    "STRIPE_SELF_UPGRADE_PRICING_TABLE_ID": os.getenv("SPA_ENV_STRIPE_SELF_UPGRADE_PRICING_TABLE_ID"),
+    "STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY": os.getenv(
+        "SPA_ENV_STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY"
     ),
     "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
     "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
-    "STRIPE_CLIENT_ID": env.str("SPA_ENV_STRIPE_CLIENT_ID", ""),
-    "HOST_MAP": HOST_MAP,
-    "HUB_GOOGLE_MAPS_API_KEY": env.str("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY", ""),
-    "HUB_V3_GOOGLE_ANALYTICS_ID": env.str("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID", ""),
+    "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
+    "HOST_MAP": os.getenv("HOST_MAP", "{}"),
+    "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
+    "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
 
 
-RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = env.str("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC", "")
+RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")
 
 # Three minutes
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
-SWITCHBOARD_ACCOUNT_EMAIL = env.str("SWITCHBOARD_ACCOUNT_EMAIL", None)
+SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)

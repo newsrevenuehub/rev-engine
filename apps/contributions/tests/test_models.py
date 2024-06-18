@@ -481,7 +481,7 @@ class TestContributionModel:
             ),
             stripe_account=rp.stripe_account_id,
             capture_method="automatic",
-            idempotency_key=str(one_time_contribution.uuid),
+            idempotency_key=f"{one_time_contribution.uuid}-payment-intent",
         )
 
     def test_create_stripe_subscription(self, contribution, monkeypatch, mocker):
@@ -518,7 +518,7 @@ class TestContributionModel:
             expand=["latest_invoice.payment_intent"],
             off_session=False,
             default_payment_method=None,
-            idempotency_key=str(contribution.uuid),
+            idempotency_key=f"{contribution.uuid}-subscription",
         )
         assert subscription == return_value
 
@@ -542,7 +542,7 @@ class TestContributionModel:
             customer=contribution.provider_customer_id,
             stripe_account=contribution.revenue_program.stripe_account_id,
             metadata=metadata,
-            idempotency_key=str(contribution.uuid),
+            idempotency_key=f"{contribution.uuid}-setup-intent",
         )
         assert setup_intent == return_value
 

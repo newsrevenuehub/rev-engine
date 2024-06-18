@@ -477,7 +477,7 @@ class Contribution(IndexedTimeStampedModel):
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
-            idempotency_key=str(self.uuid),
+            idempotency_key=f"{self.uuid}-payment-intent",
         )
 
     def create_stripe_setup_intent(self, metadata):
@@ -485,7 +485,7 @@ class Contribution(IndexedTimeStampedModel):
             customer=self.provider_customer_id,
             stripe_account=self.stripe_account_id,
             metadata=metadata,
-            idempotency_key=str(self.uuid),
+            idempotency_key=f"{self.uuid}-setup-intent",
         )
 
     def create_stripe_subscription(
@@ -521,7 +521,7 @@ class Contribution(IndexedTimeStampedModel):
             payment_settings={"save_default_payment_method": "on_subscription"},
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
-            idempotency_key=str(self.uuid),
+            idempotency_key=f"{self.uuid}-subscription",
         )
 
     def cancel(self):

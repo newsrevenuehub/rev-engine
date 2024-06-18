@@ -1199,7 +1199,7 @@ class TestCreateOneTimePaymentSerializer:
             "statement_descriptor_suffix": None,
             "stripe_account": contribution.revenue_program.payment_provider.stripe_account_id,
             "capture_method": "manual",
-            "idempotency_key": str(contribution.uuid),
+            "idempotency_key": f"{contribution.uuid}-payment-intent",
         }
         save_spy.assert_called_once()
 

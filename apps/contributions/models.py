@@ -198,6 +198,8 @@ class ContributionManager(models.Manager):
 class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
+    # TODO @BW: Remove reason column/field
+    # DEV-4922
     reason = models.CharField(max_length=255, blank=True)
 
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)

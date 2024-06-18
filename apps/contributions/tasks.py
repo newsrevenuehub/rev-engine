@@ -53,14 +53,13 @@ def mark_abandoned_carts_as_abandoned():
     abandoned = Contribution.objects.unmarked_abandoned_carts()
     logger.info("Found %s abandoned carts", abandoned.count())
     updated = 0
-    if abandoned.exists():
-        for contribution in abandoned:
-            logger.info("Marking contribution %s as abandoned", contribution.id)
-            with reversion.create_revision():
-                contribution.status = ContributionStatus.ABANDONED
-                contribution.save(update_fields={"status", "modified"})
-                reversion.set_comment("`mark_abandoned_carts_as_abandoned` task marked as abandoned")
-                updated += 1
+    for contribution in abandoned:
+        logger.info("Marking contribution %s as abandoned", contribution.id)
+        with reversion.create_revision():
+            contribution.status = ContributionStatus.ABANDONED
+            contribution.save(update_fields={"status", "modified"})
+            reversion.set_comment("`mark_abandoned_carts_as_abandoned` task marked as abandoned")
+            updated += 1
     logger.info("Marked %s contributions carts as abandoned", updated)
 
 

@@ -182,7 +182,8 @@ class ContributionQuerySet(models.QuerySet):
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.
 
-        We define abandoned as contributions that have been flagged or are in processing state for more than 24 hours.
+        We define abandoned as contributions that have been flagged or are in processing state for more than
+        CONTRIBUTION_ABANDONED_THRESHOLD hours.
         """
         return self.filter(
             status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING],

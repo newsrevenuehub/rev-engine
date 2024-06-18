@@ -34,7 +34,7 @@ class TestQuarantineAdmin:
                     {"label": "address", "value": "123 Main St"},
                 ]
             },
-            contribution_metadata={"reason": "some reason"},
+            contribution_metadata={"reason_for_giving": "some reason"},
         )
 
     @pytest.fixture()
@@ -44,7 +44,7 @@ class TestQuarantineAdmin:
             flagged=True,
             last_payment_date=timezone.now() - timedelta(days=30),
             bad_actor_response={"items": []},
-            contribution_metadata={},
+            contribution_metadata={"reason_for_giving": "some  other reason"},
             provider_customer_id=None,
             # doing this so have one with flagged date and one not
             flagged_date=None,
@@ -158,9 +158,14 @@ class TestQuarantineAdmin:
             assert mock_pm_retrieve.call_count == 1
             assert mock_pm_retrieve.return_value.detach.call_count == 1
 
-    def test_get_page_stands_up(self, client, admin_user):
+    def test_get_page_stands_up(
+        self, client, admin_user, flagged_one_time_contribution, flagged_recurring_contribution
+    ):
         client.force_login(admin_user)
-        assert client.get(reverse("admin:contributions_quarantine_changelist"), follow=True).status_code == 200
+        response = client.get(reverse("admin:contributions_quarantine_changelist"), follow=True)
+        assert response.status_code == 200
+        for x in [flagged_one_time_contribution, flagged_recurring_contribution]:
+            assert x.contribution_metadata["reason_for_giving"] in response.content.decode()
 
     def test__process_flagged_payment_edge_case(self, mocker):
         admin = QuarantineQueue(Contribution, AdminSite())

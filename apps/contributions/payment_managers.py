@@ -95,7 +95,6 @@ class StripePaymentManager(PaymentManager):
             stripe_account=self.contribution.revenue_program.payment_provider.stripe_account_id,
             cancellation_reason="fraudulent",
         )
-        # we only want to update the status if the payment was successfully canceled
         update_data["status"] = ContributionStatus.REJECTED
         return update_data
 
@@ -139,9 +138,7 @@ class StripePaymentManager(PaymentManager):
             raise PaymentProviderError(message) from exc
 
         finally:
-            self._handle_contribution_update(
-                update_data=update_data, caller="StripePaymentManager.complete_one_time_payment"
-            )
+            self.git(update_data=update_data, caller="StripePaymentManager.complete_one_time_payment")
 
     def _handle_subscription_creation(
         self, setup_intent: stripe.SetupIntent, pm: stripe.PaymentMethod, update_data: dict
@@ -290,11 +287,9 @@ class StripePaymentManager(PaymentManager):
             update_data = self._handle_when_existing_subscription_with_si_pm(existing, si, update_data)
         else:
             update_data = self._handle_subscription_creation(si, pm, update_data)
-        self._handle_contribution_update(
-            update_data=update_data, caller="StripePaymentManager.complete_recurring_payment"
-        )
+        self.git(update_data=update_data, caller="StripePaymentManager.complete_recurring_payment")
 
-    def _handle_contribution_update(self, update_data: dict, caller=str) -> None:
+    def git(self, update_data: dict, caller=str) -> None:
         """Update the contribution with the data in `update_data` and log the update."""
         if update_data:
             for key, value in update_data.items():

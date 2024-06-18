@@ -89,7 +89,7 @@ class TestStripePaymentManager:
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError) as exc:
             spm.complete_payment()
-        assert str(exc.value) == f"Contribution {contribution.id} has no provider_payment_id"
+        assert str(exc.value) == "Cannot retrieve payment data"
 
     def test_complete_payment_when_one_time_and_no_pi(self, mocker):
         contribution = ContributionFactory(one_time=True, flagged=True)

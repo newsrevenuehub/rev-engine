@@ -106,39 +106,27 @@ class StripePaymentManager(PaymentManager):
         If we're rejecting, we cancel the payment intent.
         """
         update_data = {}
+        if not self.contribution.provider_payment_id or not (pi := self.contribution.stripe_payment_intent):
+            logger.error(
+                "`StripePaymentManager.complete_one_time_payment` error retrieving payment intent for contribution"
+                " with ID %s and payment intent ID %s",
+                self.contribution.id,
+                self.contribution.provider_payment_id,
+            )
+            raise PaymentProviderError("Cannot retrieve payment data")
         try:
-            match (
-                reject,
-                bool(self.contribution.provider_payment_id),
-                bool(pi := self.contribution.stripe_payment_intent),
-            ):
-                # if no provider payment id or unretrievable payment intent,
-                #  we won't be able to cancel in case of reject or capture in case of accept, so raise error.
-                case (_, False, _) | (_, _, False):
-                    logger.error(
-                        "Cannot find payment intent for contribution %s. Cannot be %s",
-                        self.contribution.id,
-                        "rejected" if reject else "accepted",
-                    )
-                    raise PaymentProviderError(f"Contribution {self.contribution.id} has no provider_payment_id")
-                # if we're accepting and have payment intent
-                case (False, True, True):
-                    update_data = self._handle_one_time_acceptance(pi, update_data)
-                # if we're rejecting and have payment intent
-                case (
-                    True,
-                    True,
-                    True,
-                ):  # pragma: no cover  This last case makes the set of cases exhaustive, but pytest cov doesn't see it.
-                    update_data = self._handle_one_time_rejection(pi, update_data)
-
+            if reject:
+                update_data = self._handle_one_time_rejection(pi, update_data)
+            else:
+                update_data = self._handle_one_time_acceptance(pi, update_data)
         except stripe.error.StripeError as exc:
             message = exc.error.message if exc.error else "Could not complete payment"
             logger.exception("`StripePaymentManager.complete_one_time_payment` raised StripeError")
             raise PaymentProviderError(message) from exc
-
-        finally:
-            self.git(update_data=update_data, caller="StripePaymentManager.complete_one_time_payment")
+        else:
+            self._handle_contribution_update(
+                update_data=update_data, caller="StripePaymentManager.complete_one_time_payment"
+            )
 
     def _handle_subscription_creation(
         self, setup_intent: stripe.SetupIntent, pm: stripe.PaymentMethod, update_data: dict
@@ -287,9 +275,11 @@ class StripePaymentManager(PaymentManager):
             update_data = self._handle_when_existing_subscription_with_si_pm(existing, si, update_data)
         else:
             update_data = self._handle_subscription_creation(si, pm, update_data)
-        self.git(update_data=update_data, caller="StripePaymentManager.complete_recurring_payment")
+        self._handle_contribution_update(
+            update_data=update_data, caller="StripePaymentManager.complete_recurring_payment"
+        )
 
-    def git(self, update_data: dict, caller=str) -> None:
+    def _handle_contribution_update(self, update_data: dict, caller=str) -> None:
         """Update the contribution with the data in `update_data` and log the update."""
         if update_data:
             for key, value in update_data.items():

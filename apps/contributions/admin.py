@@ -277,9 +277,11 @@ class QuarantineQueue(admin.ModelAdmin):
     def rp(self, obj):
         return obj.revenue_program.name
 
-    # unclear why, but using "reason" as method name seems to cause data to not appear. This only happens with this field name.
+    # There is a Contribution.reason field that is largely unused, but that creates a collision here, so we need `._reason`
+    # TODO @BW: Change to `reason` once the Contribution.reason field is removed
+    # DEV-4922
     def _reason(self, obj):
-        return obj.contribution_metadata.get("reason") if obj.contribution_metadata else None
+        return obj.contribution_metadata.get("reason_for_giving") if obj.contribution_metadata else None
 
     _reason.short_description = "Reason"
 

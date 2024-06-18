@@ -286,6 +286,7 @@ class StripePaymentManager(PaymentManager):
             ),
             None,
         ):
+
             update_data = self._handle_when_existing_subscription_with_si_pm(existing, si, update_data)
         else:
             update_data = self._handle_subscription_creation(si, pm, update_data)
@@ -306,3 +307,9 @@ class StripePaymentManager(PaymentManager):
                     caller,
                     self.contribution.id,
                 )
+        else:
+            logger.warning(
+                "%s did not update contribution with id %s",
+                caller,
+                self.contribution.id,
+            )

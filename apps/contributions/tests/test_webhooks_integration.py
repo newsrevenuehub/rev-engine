@@ -75,6 +75,28 @@ def charge_refunded():
 
 @pytest.mark.django_db()
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
+def test_payment_method_attached(client, mocker, payment_method_attached_event):
+    contribution = ContributionFactory(
+        one_time=True,
+        flagged=True,
+        provider_customer_id=payment_method_attached_event["data"]["object"]["customer"],
+        provider_payment_method_id=None,
+        provider_payment_method_details=None,
+    )
+    mocker.patch(
+        "stripe.PaymentMethod.retrieve",
+        return_value=(pm := {"card": {"brand": "Visa", "last4": "4242"}}),
+    )
+    header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
+    assert response.status_code == status.HTTP_200_OK
+    contribution.refresh_from_db()
+    assert contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
+    assert contribution.provider_payment_method_details == pm
+
+
+@pytest.mark.django_db()
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 def test_charge_succeeded(client, mocker, charge_succeeded_event):
     contributions = ContributionFactory.create_batch(
         2,

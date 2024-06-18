@@ -388,8 +388,10 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_unmarked_abandoned_cart(self) -> bool:
-        return self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING) and (
-            self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD
+        return (
+            not self.provider_payment_method_id
+            and self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING)
+            and (self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD,)
         )
 
     def process_flagged_payment(self, reject=False):

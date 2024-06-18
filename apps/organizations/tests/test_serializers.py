@@ -14,6 +14,7 @@ from apps.organizations.serializers import (
     MailchimpRevenueProgramForSpaConfiguration,
     MailchimpRevenueProgramForSwitchboard,
     OrganizationInlineSerializer,
+    RevenueProgramForPageDetailSerializer,
     RevenueProgramSerializer,
 )
 from conftest import make_mock_mailchimp_email_list
@@ -110,6 +111,28 @@ class TestOrganizationInlineSerializer:
 
 @pytest.mark.django_db()
 class TestRevenueProgramSerializer:
+    def test_revenue_program_for_page_detail_serializer_has_right_fields_and_values(
+        self,
+        mc_connected_rp,
+    ):
+        serialized = RevenueProgramForPageDetailSerializer(mc_connected_rp).data
+        for field in (
+            "id",
+            "name",
+            "slug",
+            "default_donation_page",
+            "contact_email",
+            "contact_phone",
+            "contributor_portal_show_appeal",
+            "facebook_pixel_id",
+            "google_analytics_v3_domain",
+            "google_analytics_v3_id",
+            "google_analytics_v4_id",
+            "twitter_handle",
+            "website_url",
+        ):
+            assert serialized[field] == getattr(mc_connected_rp, field)
+
     def test_has_right_fields_and_values(
         self,
         mc_connected_rp,

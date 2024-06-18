@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
@@ -652,7 +652,7 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     @cached_property
-    def stripe_subscriptions_for_customer(self) -> list[stripe.Subscription]:
+    def stripe_subscriptions_for_customer(self) -> Generator[stripe.Subscription]:
         """Return all subscriptions for the customer associated with this contribution."""
         if not self.provider_customer_id:
             return []

@@ -391,7 +391,7 @@ class Contribution(IndexedTimeStampedModel):
         return (
             not self.provider_payment_method_id
             and self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING)
-            and (self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD,)
+            and (self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD)
         )
 
     def process_flagged_payment(self, reject=False):

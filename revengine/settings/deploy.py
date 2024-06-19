@@ -9,7 +9,7 @@ from .base import *  # noqa: F403
 
 #### Critical settings
 
-SECRET_KEY = env.str("DJANGO_SECRET_KEY")
+SECRET_KEY = env.str("DJANGO_SECRET_KEY", "")
 
 ### Environment-specific settings
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", "localhost", delimeter=":")

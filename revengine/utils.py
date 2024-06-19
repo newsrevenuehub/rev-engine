@@ -8,7 +8,7 @@ from google.oauth2 import service_account
 
 
 def __ensure_gs_credentials(
-    gs_service_account_raw: str = None,
+    gs_service_account_raw: str = "",
     raise_on_unset: bool = False,
 ) -> service_account.Credentials | None:
     """Ensure that Google Storage service account credentials are available.

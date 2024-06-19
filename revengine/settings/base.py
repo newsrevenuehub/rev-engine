@@ -98,18 +98,16 @@ DEFAULT_FILE_STORAGE = env.str("DEFAULT_FILE_STORAGE", "django.core.files.storag
 
 # Google cloud
 GOOGLE_CLOUD_PROJECT = env.str("GOOGLE_CLOUD_PROJECT", "revenue-engine")
-# TODO @njh: Strings should have string defaults. Replace None with emptystring, "".
-# https://news-revenue-hub.atlassian.net/browse/DEV-4904
-GOOGLE_CLOUD_PROJECT_ID = env.str("GS_PROJECT_ID", None)
+GOOGLE_CLOUD_PROJECT_ID = env.str("GS_PROJECT_ID", "")
 #   Pub/Sub
 ENABLE_PUBSUB = env.bool("ENABLE_PUBSUB", False)
-PAGE_PUBLISHED_TOPIC = env.str("PAGE_PUBLISHED_TOPIC", None)
-NEW_USER_TOPIC = env.str("NEW_USER_TOPIC", None)
+PAGE_PUBLISHED_TOPIC = env.str("PAGE_PUBLISHED_TOPIC", "")
+NEW_USER_TOPIC = env.str("NEW_USER_TOPIC", "")
 #   Secret Manager
 ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = env.bool("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", False)
 
 GS_CREDENTIALS = __ensure_gs_credentials(
-    gs_service_account_raw=env.str("GS_SERVICE_ACCOUNT", None),
+    gs_service_account_raw=env.str("GS_SERVICE_ACCOUNT", ""),
     raise_on_unset=env.bool("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", True),
 )
 
@@ -211,7 +209,7 @@ DATABASES = {
         "PORT": "",
     }
 }
-if env.str("DATABASE_URL"):
+if env.str("DATABASE_URL", ""):
     import dj_database_url
 
     db_from_env = dj_database_url.config(
@@ -336,7 +334,7 @@ LOGGING = {
 ### Request ID Settings
 # Ref: https://django-request-id.readthedocs.io/en/latest/
 # For Heroku environments, REQUEST_ID_HEADER will have to be set to "X-Request-ID"
-REQUEST_ID_HEADER = env.str("REQUEST_ID_HEADER", None)
+REQUEST_ID_HEADER = env.str("REQUEST_ID_HEADER", "")
 
 ### Sentry Settings
 SENTRY_ENABLE_FRONTEND = env.bool("SENTRY_ENABLE_FRONTEND", False)
@@ -378,7 +376,7 @@ if not ENFORCE_CSP:
 CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
 CSP_REPORTING_ENABLE = env.bool("CSP_REPORTING_ENABLE", False)
 if CSP_REPORTING_ENABLE:
-    CSP_REPORT_URI = env.str("CSP_REPORT_URI")
+    CSP_REPORT_URI = env.str("CSP_REPORT_URI", "")
 CSP_DEFAULT_SRC = (
     "'self'",
     "*.fundjournalism.org",
@@ -613,11 +611,11 @@ BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS = BAD_ACTOR_SUPERBAD_SCORE
 # on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
 # webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
 # dev environment.
-STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = env.str("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
+STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = env.str("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", "")
 
 # These `MAILCHIMP_` values are used by code that makes requests to mailchimp on behalf of org users
-MAILCHIMP_CLIENT_ID = env.str("MAILCHIMP_CLIENT_ID", None)
-MAILCHIMP_CLIENT_SECRET = env.str("MAILCHIMP_CLIENT_SECRET", None)
+MAILCHIMP_CLIENT_ID = env.str("MAILCHIMP_CLIENT_ID", "")
+MAILCHIMP_CLIENT_SECRET = env.str("MAILCHIMP_CLIENT_SECRET", "")
 
 # see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
@@ -666,4 +664,4 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = env.str("RP_MAILCHIMP_LIST_CONF
 # Three minutes
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
-SWITCHBOARD_ACCOUNT_EMAIL = env.str("SWITCHBOARD_ACCOUNT_EMAIL", None)
+SWITCHBOARD_ACCOUNT_EMAIL = env.str("SWITCHBOARD_ACCOUNT_EMAIL", "")

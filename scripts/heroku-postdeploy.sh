@@ -3,35 +3,21 @@
 set -o nounset
 set -o xtrace
 
-
-# We dump the target database excluding the django_migrations table and id sequence
-# because in release step, migrations are run, and they won't be reflected in source
-# db's django_migrations table.
-pg_dump
-    --schema-only \
-    --no-owner \
-    --no-acl \
-    --format=custom \
-    --file=schema_dump.sql ${REVIEW_APP_SOURCE_DATABASE_URL}
-
-pg_restore
-    --schema-only
-    --no-owner
-    --no-acl
-    --format=custom -d ${DATABASE_URL} schema_dump.sql
+# zero out, because migrations will have been run in earlier step, and potentially conflict with what's in backup
+psql -d ${DATABASE_URL} -c "DROP SCHEMA public CASCADE;
+DROP OWNED by current_user CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO public;
+"
 
 
-
-python manage.py migrate
-
+python manage.py migrate --noinput
 
 pg_dump \
-    --data-only \
-    --no-owner \
-    --no-acl \
+    --format=custom \
     --exclude-table='public.django_migrations' \
     --exclude-table='public.django_migrations_id_seq' \
-    --format=custom \
     ${REVIEW_APP_SOURCE_DATABASE_URL} | \
 
 pg_restore \
@@ -40,5 +26,4 @@ pg_restore \
     --no-acl \
     --format=custom \
     -d ${DATABASE_URL}
-
 python manage.py bootstrap-review-app

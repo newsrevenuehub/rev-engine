@@ -12,7 +12,7 @@ pg_dump \
     --exclude-table='public.django_migrations' \
     --exclude-table='public.django_migrations_id_seq' | \
 pg_restore \
-    --if-exists \
+    --data-only \
     --no-owner \
     --no-acl \
     --format=custom \

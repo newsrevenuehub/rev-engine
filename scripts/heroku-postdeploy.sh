@@ -5,10 +5,11 @@ set -o xtrace
 
 
 # Parse the DATABASE_URL to extract components
-export PGHOST=$(echo $DATABASE_URL | awk -F[@/:] '{print $4}')
-export PGPORT=$(echo $DATABASE_URL | awk -F[@/:] '{print $7}' | awk -F[?] '{print $1}')
-export PGUSER=$(echo $DATABASE_URL | awk -F[@/:] '{print $3}' | awk -F[:] '{print $1}')
-export PGPASSWORD=$(echo $DATABASE_URL | awk -F[@/:] '{print $3}' | awk -F[:] '{print $2}')
+export PGUSER=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/\([^:]*\):.*$/\1/')
+export PGPASSWORD=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/[^:]*:\([^@]*\)@.*$/\1/')
+export PGHOST=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/[^@]*@\([^:]*\):.*$/\1/')
+export PGPORT=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/[^:]*:[^@]*@[^:]*:\([^\/]*\)\/.*$/\1/')
+export PGDATABASE=$(echo $DATABASE_URL | sed -e 's/^postgres:\/\/[^\/]*\/\(.*\)$/\1/')
 
 
 # First we zero out the database.

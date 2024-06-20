@@ -15,7 +15,7 @@ const Template: StoryFn<typeof MobileInfoMenu> = (props) => (
 export const Default = Template.bind({});
 Default.args = {
   revenueProgram: {
-    contact_email: 'revengine@news.com',
+    contact_email: 'revengine@fundjournalism.org',
     contact_phone: '+1 (415) 555-2671',
     contributor_portal_show_appeal: true
   } as any
@@ -24,7 +24,7 @@ Default.args = {
 export const HideAppeal = Template.bind({});
 HideAppeal.args = {
   revenueProgram: {
-    contact_email: 'revengine@news.com',
+    contact_email: 'revengine@fundjournalism.org',
     contact_phone: '+1 (415) 555-2671',
     contributor_portal_show_appeal: false
   } as any

@@ -37,6 +37,19 @@ describe('MobileInfoMenu', () => {
 
       expect(screen.getByTestId(modal)).toBeInTheDocument();
     });
+
+    it('closes modal', () => {
+      tree();
+
+      fireEvent.click(screen.getByLabelText('Open information menu'));
+      fireEvent.click(screen.getByRole('menuitem', { name: menuItem }));
+
+      expect(screen.getByTestId(modal)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Close'));
+
+      expect(screen.queryByTestId(modal)).not.toBeInTheDocument();
+    });
   });
 
   it('does not render appeal menu item if contributor_portal_show_appeal is false', () => {

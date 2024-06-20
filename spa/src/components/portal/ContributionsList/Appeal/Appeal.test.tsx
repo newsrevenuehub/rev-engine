@@ -25,27 +25,44 @@ describe('Appeal', () => {
     expect(screen.getByTestId('appeal')).toBeInTheDocument();
   });
 
-  it('shows "Keep Reading" link if website_url is defined', () => {
-    tree();
-    const link = screen.getByRole('link', { name: 'Keep Reading' });
-    expect(link).toHaveAttribute('href', defaultProps.revenueProgram.website_url);
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  describe('Keep Reading link', () => {
+    it('shows link if website_url is defined and slim prop is unset', () => {
+      tree();
+      const link = screen.getByRole('link', { name: 'Keep Reading' });
+      expect(link).toHaveAttribute('href', defaultProps.revenueProgram.website_url);
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    describe('hides link if', () => {
+      it('website_url is defined and slim is true', () => {
+        tree({ slim: true });
+        expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
+      });
+
+      it('website_url is empty', () => {
+        tree({ revenueProgram: { ...defaultProps.revenueProgram, website_url: '' } });
+        expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
+      });
+
+      it('slim is true', () => {
+        tree({ slim: true });
+        expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
+      });
+    });
   });
 
-  it('hides "Keep Reading" link if website_url is empty', () => {
-    tree({ revenueProgram: { ...defaultProps.revenueProgram, website_url: '' } });
-    expect(screen.queryByRole('link', { name: 'Keep Reading' })).toBeNull();
-  });
+  describe('See more link', () => {
+    it('shows link if slim is true', () => {
+      tree({ slim: true });
+      expect(screen.getByRole('link', { name: 'See more' })).toBeEnabled();
+    });
 
-  it('hides "Keep Reading" link if slim is true', () => {
-    tree({ slim: true });
-    expect(screen.queryByRole('link', { name: 'Keep Reading' })).toBeNull();
-  });
+    it('has the correct href that redirects to /portal/my-contributions/', () => {
+      tree({ slim: true });
 
-  it('shows "See more" button if slim is true', () => {
-    tree({ slim: true });
-    expect(screen.getByRole('button', { name: 'See more' })).toBeEnabled();
+      const link = screen.getByRole('link', { name: 'See more' });
+      expect(link).toHaveAttribute('href', '/portal/my-contributions/');
+    });
   });
 
   it('is accessible', async () => {

@@ -1,4 +1,3 @@
-import MuiPopover from '@material-ui/core/Popover';
 import MuiMenuItem from '@material-ui/core/MenuItem';
 import MuiListItemIcon from '@material-ui/core/ListItemIcon';
 import MuiTypography from '@material-ui/core/Typography';
@@ -18,17 +17,6 @@ export const ContactInfoButton = styled(IconButton)`
     @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
       right: 20px;
     }
-  }
-`;
-
-export const Popover = styled(MuiPopover)`
-  .MuiPaper-rounded {
-    min-width: 207px;
-    box-shadow: none;
-    padding: 12px 15px;
-    border: 1px solid ${(props) => props.theme.colors.muiGrey[300]};
-    background-color: ${(props) => props.theme.colors.muiGrey[100]};
-    filter: drop-shadow(0px 2px 20px rgba(0, 0, 0, 0.1));
   }
 `;
 
@@ -80,7 +68,7 @@ export const Typography = styled(MuiTypography)`
 export const CloseButton = styled(IconButton)`
   && {
     position: absolute;
-    right: 0;
+    right: 14px;
     height: 24px;
     width: 24px;
     padding: 0;

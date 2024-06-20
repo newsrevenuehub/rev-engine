@@ -10,12 +10,11 @@ import {
   ListItemIcon,
   ListWrapper,
   MenuItem,
-  Popover,
   Typography,
   CloseButton
 } from './MobileInfoMenu.styled';
 import GetHelp from '../GetHelp/GetHelp';
-import { Modal, ModalContent } from 'components/base';
+import { Modal, ModalContent, Popover } from 'components/base';
 import Appeal from '../Appeal';
 
 export interface MobileInfoMenuProps extends InferProps<typeof MobileInfoMenuPropTypes> {
@@ -84,24 +83,20 @@ const MobileInfoMenu = ({ revenueProgram }: MobileInfoMenuProps) => {
           </MenuItem>
         </ListWrapper>
       </Popover>
-      <Modal data-testid="modal-contact-info" open={showGetHelp} onClose={() => setShowGetHelp(false)}>
+      <Modal width={400} data-testid="modal-contact-info" open={showGetHelp} onClose={() => setShowGetHelp(false)}>
         <ModalContent>
-          <div style={{ position: 'relative' }}>
-            <CloseButton color="text" aria-label="Close get help" onClick={() => setShowGetHelp(false)}>
-              <CloseIcon />
-            </CloseButton>
-            <GetHelp contact_email={revenueProgram?.contact_email} contact_phone={revenueProgram?.contact_phone} />
-          </div>
+          <CloseButton color="text" aria-label="Close" onClick={() => setShowGetHelp(false)}>
+            <CloseIcon />
+          </CloseButton>
+          <GetHelp contact_email={revenueProgram?.contact_email} contact_phone={revenueProgram?.contact_phone} />
         </ModalContent>
       </Modal>
       <Modal data-testid="modal-appeal" open={showAppeal} onClose={() => setShowAppeal(false)}>
         <ModalContent>
-          <div style={{ position: 'relative' }}>
-            <CloseButton color="text" aria-label="Close why giving matters" onClick={() => setShowAppeal(false)}>
-              <CloseIcon />
-            </CloseButton>
-            <Appeal inModal revenueProgram={revenueProgram} />
-          </div>
+          <CloseButton color="text" aria-label="Close" onClick={() => setShowAppeal(false)}>
+            <CloseIcon />
+          </CloseButton>
+          <Appeal isInsideModal revenueProgram={revenueProgram} />
         </ModalContent>
       </Modal>
     </>

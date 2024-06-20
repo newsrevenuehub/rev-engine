@@ -1,7 +1,7 @@
 import { Button } from 'components/base';
 import styled from 'styled-components';
 
-export const Wrapper = styled.div<{ $slim: boolean; $inModal: boolean }>`
+export const Wrapper = styled.div<{ $slim: boolean; $isInsideModal: boolean }>`
   background-color: ${({ theme }) => theme.basePalette.greyscale.white};
   border-radius: 10px;
   border: 0.25px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
@@ -10,13 +10,8 @@ export const Wrapper = styled.div<{ $slim: boolean; $inModal: boolean }>`
   gap: 20px;
   padding: 20px 23px;
 
-  & > img {
-    height: 300px;
-    object-fit: cover;
-  }
-
-  ${({ $inModal }) =>
-    $inModal &&
+  ${({ $isInsideModal }) =>
+    $isInsideModal &&
     `
     border: none;
     padding: 35px 10px 10px;
@@ -32,6 +27,18 @@ export const Wrapper = styled.div<{ $slim: boolean; $inModal: boolean }>`
       height: 108px;
       min-width: 233px;
     }
+  `}
+`;
+
+export const Image = styled.img<{ $slim: boolean }>`
+  height: 300px;
+  object-fit: cover;
+
+  ${({ $slim }) =>
+    $slim &&
+    `
+      height: 108px;
+      min-width: 233px;
   `}
 `;
 
@@ -76,7 +83,7 @@ export const Title = styled.p<{ $slim: boolean }>`
   }
 `;
 
-export const Description = styled.p<{ $hideText: boolean }>`
+export const Description = styled.div<{ $hideText: boolean }>`
   margin: 0;
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   font-weight: 400;

@@ -121,6 +121,7 @@ class TestRevenueProgramSerializer:
             "name",
             "slug",
             "default_donation_page",
+            "organization",
             "contact_email",
             "contact_phone",
             "contributor_portal_show_appeal",
@@ -131,7 +132,10 @@ class TestRevenueProgramSerializer:
             "twitter_handle",
             "website_url",
         ):
-            assert serialized[field] == getattr(mc_connected_rp, field)
+            if field == "organization":
+                assert serialized[field] == OrganizationInlineSerializer(mc_connected_rp.organization).data
+            else:
+                assert serialized[field] == getattr(mc_connected_rp, field)
 
     def test_has_right_fields_and_values(
         self,

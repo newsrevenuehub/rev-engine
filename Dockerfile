@@ -63,6 +63,9 @@ ADD . /code/
 
 FROM base AS deploy
 
+
+COPY review_app_restore_list.txt /code/scripts/review_app_restore_list.txt
+
 # Copy React SPA build into final image
 COPY --from=static_files /code/spa/build /code/build
 

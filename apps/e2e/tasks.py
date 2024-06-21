@@ -31,7 +31,7 @@ def safe_subprocess_call(command, args):
     if not full_command:
         raise ValueError(f"Command {command} not found")
     safe_args = [full_command, *(shlex.quote(arg) for arg in args)]
-    return subprocess.run(safe_args, check=True)  # noqa
+    return subprocess.run(safe_args, check=True)  # noqa S603
 
 
 @dataclass(frozen=True)

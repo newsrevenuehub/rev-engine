@@ -1,3 +1,5 @@
+import shlex
+import shutil
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
@@ -6,7 +8,8 @@ from django.conf import settings
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from e2e import TESTS
+
+from apps.e2e import TESTS
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -15,6 +18,20 @@ logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class TestOutcome(Enum):
     PASSED = "passed"
     FAILED = "failed"
+
+
+ALLOWED_COMMANDS = ("pytest",)
+
+
+def safe_subprocess_call(command, args):
+    """Run a subprocess command and return the result."""
+    if command not in ALLOWED_COMMANDS:
+        raise ValueError(f"Command {command} not allowed")
+    full_command = shutil.which(command)
+    if not full_command:
+        raise ValueError(f"Command {command} not found")
+    safe_args = [full_command, *(shlex.quote(arg) for arg in args)]
+    return subprocess.run(safe_args, check=True)  # noqa
 
 
 @dataclass(frozen=True)
@@ -29,7 +46,7 @@ class E2ETest:
 
     def run(self) -> None:
         try:
-            result = subprocess.run(["pytest", TESTS[self.name]], capture_output=True, text=True, check=False)
+            result = safe_subprocess_call(TESTS[self.name]["command"], TESTS[self.name]["args"])
         except Exception:  # BLE001
             logger.exception("Test %s failed with uncaught error", self.name)
             self.outcome = TestOutcome.FAILED
@@ -42,22 +59,25 @@ class E2ETest:
                 self.outcome = TestOutcome.FAILED
 
 
-def report_results_to_github(tests: list[dict[str:TestOutcome]], url: str):
-    #
-    #
-    pass
+def report_results_to_github(commit_sha: str, result: str):
+    logger.info("Commit sha: %s, result: %s", commit_sha, result)
 
 
 @shared_task
 def do_ci_e2e_test_run(
     tests: list,
+    commit_sha: str,
     report_results: bool = False,
-):
+) -> dict[str, TestOutcome]:
+    if report_results and not commit_sha:
+        raise ValueError("commit_sha is required when report_results is True")
     logger.info("Running tests %s", tests)
     test_results = {}
     for _test in tests:
         test = E2ETest(_test)
         test.run()
         test_results[_test] = test.outcome.value
+    result = "success" if all(test.outcome == TestOutcome.PASSED for test in test_results.values()) else "failure"
     if report_results:
-        report_results_to_github(test_results, settings.GITHUB_ACTIONS_API_URL)
+        report_results_to_github(result=result, commit_sha=commit_sha)
+    return test_results

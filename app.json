@@ -27,7 +27,7 @@
       "value": "review"
     },
     "GH_TOKEN": {
-      "required": true,
+      "required": false,
       "description": "GitHub token for accessing the (commit status) API"
     },
     "ALLOWED_HOSTS": {

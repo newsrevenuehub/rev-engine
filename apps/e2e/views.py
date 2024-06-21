@@ -2,7 +2,8 @@ import logging
 
 from django.conf import settings
 
-from rest_framework.views import APIView, Response
+from rest_framework import viewsets
+from rest_framework.views import Response
 
 from apps.api.permissions import IsE2EUser
 from apps.e2e import TESTS
@@ -13,7 +14,7 @@ from apps.e2e.tasks import do_ci_e2e_test_run
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class E2EView(APIView):
+class E2EView(viewsets.ViewSet):
     permission_classes = [IsE2EUser]
     serializer_class = E2ETestRunSerializer
 

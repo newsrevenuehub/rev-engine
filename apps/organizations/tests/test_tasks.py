@@ -261,26 +261,10 @@ class TestSetupMailchimpEntitiesForRpMailingList:
         celery_session_worker,
     ):
         settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = "some-topic"
-        mock_ensure_store_fn = mocker.patch("apps.organizations.models.RevenueProgram.ensure_mailchimp_store")
-        mock_ensure_one_time_contribution_product_fn = mocker.patch(
-            "apps.organizations.models.RevenueProgram.ensure_mailchimp_one_time_contribution_product"
-        )
-        mock_ensure_recurring_contribution_product_fn = mocker.patch(
-            "apps.organizations.models.RevenueProgram.ensure_mailchimp_recurring_contribution_product"
-        )
-        mock_ensure_contributor_segment_fn = mocker.patch(
-            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contributor_segment"
-        )
-        mock_ensure_recurring_segment_fn = mocker.patch(
-            "apps.organizations.models.RevenueProgram.ensure_mailchimp_recurring_segment"
-        )
+        mock_ensure_entities_fn = mocker.patch("apps.organizations.models.RevenueProgram.ensure_mailchimp_entities")
         mock_publish_revenue_program_mailchimp_list_configuration_complete_fn = mocker.patch(
             "apps.organizations.models.RevenueProgram.publish_revenue_program_mailchimp_list_configuration_complete",
         )
         setup_mailchimp_entities_for_rp_mailing_list.delay(revenue_program.id).wait()
-        mock_ensure_store_fn.assert_called_once()
-        mock_ensure_one_time_contribution_product_fn.assert_called_once()
-        mock_ensure_recurring_contribution_product_fn.assert_called_once()
-        mock_ensure_contributor_segment_fn.assert_called_once()
-        mock_ensure_recurring_segment_fn.assert_called_once()
+        mock_ensure_entities_fn.assert_called_once()
         mock_publish_revenue_program_mailchimp_list_configuration_complete_fn.assert_called_once()

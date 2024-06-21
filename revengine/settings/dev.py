@@ -1,6 +1,4 @@
-import os
-
-from .base import *  # noqa
+from .base import *  # noqa: F403
 
 
 DEBUG = True
@@ -23,24 +21,24 @@ INSTALLED_APPS.extend(
 # Set for testing
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = "1000/minute"
 
-if os.getenv("DEBUG_TOOLBAR", "True") == "True":
+if env.bool("DEBUG_TOOLBAR", True):
     INSTALLED_APPS += [
         "debug_toolbar",
     ]
     MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 
 # To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
-if os.getenv("TEST_EMAIL", "False") == "True":
+if env.bool("TEST_EMAIL", False):
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
     ANYMAIL = {
-        "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
+        "MAILGUN_API_KEY": env.str("MAILGUN_API_KEY", ""),
     }
     DEFAULT_FROM_EMAIL = "noreply@fundjournalism.org"
 
 
 # Celery
-BROKER_URL = os.getenv("BROKER_URL", "memory://")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
+BROKER_URL = env.str("BROKER_URL", "memory://")
+CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", "cache")
 CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
 

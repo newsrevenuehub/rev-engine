@@ -46,6 +46,6 @@ if settings.ENABLE_API_BROWSER:  # pragma: no cover It is covered but the reimpo
 
     urlpatterns += [
         re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
-        re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
-        re_path(r"^redoc/$", csp_exempt(schema_view.with_ui("redoc", cache_timeout=0)), name="schema-redoc"),
+        path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+        path("redoc/", csp_exempt(schema_view.with_ui("redoc", cache_timeout=0)), name="schema-redoc"),
     ]

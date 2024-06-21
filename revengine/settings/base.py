@@ -112,6 +112,7 @@ GS_CREDENTIALS = __ensure_gs_credentials(
 INSTALLED_APPS = [
     "apps.common",
     "apps.api",
+    "apps.e2e",
     "apps.users",
     "apps.organizations",
     "apps.pages",

@@ -132,6 +132,7 @@ line-length = 140
 target-version = "py310"
 include = ["*py", "apps/*py", "revengine/*py", "scripts/*py"]
 
+
 [tool.ruff.format]
 quote-style = "double"
 
@@ -143,6 +144,7 @@ quote-style = "double"
 "*/tests/*py" = ["S", "RUF018"]
 "*/tests.py" = ["S", "RUF018"]
 "conftest.py" = ["S", "RUF018"]
+"apps/e2e/flows/*.py" = ["S101"] # Use of assert detected. The enclosed code will be executed at runtime.
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Option", ]

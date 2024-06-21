@@ -70,6 +70,7 @@ tldextract = "^5.1.1"
 uwsgi = "^2"
 uwsgitop = "^0.11"
 whitenoise = "^6.2.0"
+pytest-asyncio = "^0.23.7"
 
 [tool.poetry.dev-dependencies]
 Faker = "*"
@@ -99,6 +100,7 @@ addopts = "--ruff --reuse-db -p no:warnings"
 DJANGO_SETTINGS_MODULE = "revengine.settings.local"
 testpaths = ["apps", "revengine"]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
 
 [tool.bandit]
 targets = ["./apps", "./revengine", "./scripts"]

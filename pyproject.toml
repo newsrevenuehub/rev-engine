@@ -41,7 +41,6 @@ django-waffle = "^2.4.1"
 djangorestframework = "^3.12.4"
 djangorestframework-simplejwt = "^5.3.1"
 drf-extra-fields = "^3"
-environs = "^11.0.0"
 google-auth = "^2.12"
 google-cloud-pubsub = "^2.13"
 google-cloud-secret-manager = "^2.16.0"
@@ -179,6 +178,7 @@ ignore = [
   "ANN", "RUF012", "RUF013", # TODO @njh: type annotations
   "DJ001", # TODO @njh: charfields should not be nullable
   "DTZ", # TODO @njh: DEV-4777 fix datetimez
+  "PLW1508", # TODO @njh: DEV-4779 invalid type for env var
   "S308",  # TODO @njh: DEV-4778 use of mark_safe may expose cross-site scripting vulnerabilities
 ]
 select = [

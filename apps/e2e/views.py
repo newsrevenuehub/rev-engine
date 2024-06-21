@@ -14,7 +14,7 @@ from apps.e2e.tasks import do_ci_e2e_test_run
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class E2EView(viewsets.ViewSet):
+class E2EViewSet(viewsets.ViewSet):
     permission_classes = [IsE2EUser]
     serializer_class = E2ETestRunSerializer
 
@@ -27,7 +27,7 @@ class E2EView(viewsets.ViewSet):
         logger.info("Triggering async run of e2e tests %s", request.data)
         do_ci_e2e_test_run.delay(
             tests=serializer.validated_data["tests"],
-            commit_sha=serializer.validated_data.get("commit_sha"),
+            commit_sha=serializer.validated_data["commit_sha"],
             report_results=True,
         )
         return Response({"status": "success"})

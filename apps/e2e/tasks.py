@@ -24,7 +24,10 @@ ALLOWED_COMMANDS = ("pytest",)
 
 
 def slightly_safer_subprocess_call(command, args):
-    """Run a subprocess command and return the result."""
+    """Run a subprocess command and return the result.
+
+    We validate that the command is in ALLOWED_COMMANDS and that the args are in TESTS.
+    """
     if command not in ALLOWED_COMMANDS:
         raise ValueError(f"Command {command} not allowed")
     if not set(args).issubset(TESTS.keys()):
@@ -71,7 +74,7 @@ def report_results_to_github(commit_sha: str, result: str):
 @shared_task
 def do_ci_e2e_test_run(
     tests: list,
-    commit_sha: str,
+    commit_sha: str = None,
     report_results: bool = False,
 ) -> dict[str, TestOutcome]:
     if report_results and not commit_sha:

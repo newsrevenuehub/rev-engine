@@ -23,15 +23,20 @@ class TestOutcome(Enum):
 ALLOWED_COMMANDS = ("pytest",)
 
 
-def safe_subprocess_call(command, args):
+def subprocess_call(command, args):
     """Run a subprocess command and return the result."""
     if command not in ALLOWED_COMMANDS:
         raise ValueError(f"Command {command} not allowed")
+    if not set(args).issubset(TESTS.keys()):
+        raise ValueError(f"Arguments {args} not found in available tests")
     full_command = shutil.which(command)
     if not full_command:
         raise ValueError(f"Command {command} not found")
     safe_args = [full_command, *(shlex.quote(arg) for arg in args)]
-    return subprocess.run(safe_args, check=True)  # noqa S603
+    # despite sanitizing the command and args, Ruff is still not happy
+    # seemingly because of this conflict between s602 and s603
+    # https://github.com/astral-sh/ruff/issues/4045
+    return subprocess.run(safe_args, check=True)  # noqa: S603
 
 
 @dataclass(frozen=True)
@@ -46,7 +51,7 @@ class E2ETest:
 
     def run(self) -> None:
         try:
-            result = safe_subprocess_call(TESTS[self.name]["command"], TESTS[self.name]["args"])
+            result = subprocess_call(TESTS[self.name]["command"], TESTS[self.name]["args"])
         except Exception:  # BLE001
             logger.exception("Test %s failed with uncaught error", self.name)
             self.outcome = TestOutcome.FAILED

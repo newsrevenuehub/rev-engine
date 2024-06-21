@@ -48,6 +48,6 @@
   "stack": "container",
   "scripts": {
     "postdeploy": "./scripts/heroku-postdeploy.sh",
-    "release": "./scripts/trigger-e2e.sh"
+    "release": "./scripts/trigger-e2e-test-run.py"
   }
 }

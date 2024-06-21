@@ -23,7 +23,7 @@ class TestOutcome(Enum):
 ALLOWED_COMMANDS = ("pytest",)
 
 
-def subprocess_call(command, args):
+def slightly_safer_subprocess_call(command, args):
     """Run a subprocess command and return the result."""
     if command not in ALLOWED_COMMANDS:
         raise ValueError(f"Command {command} not allowed")
@@ -51,7 +51,7 @@ class E2ETest:
 
     def run(self) -> None:
         try:
-            result = subprocess_call(TESTS[self.name]["command"], TESTS[self.name]["args"])
+            result = slightly_safer_subprocess_call(TESTS[self.name]["command"], TESTS[self.name]["args"])
         except Exception:  # BLE001
             logger.exception("Test %s failed with uncaught error", self.name)
             self.outcome = TestOutcome.FAILED

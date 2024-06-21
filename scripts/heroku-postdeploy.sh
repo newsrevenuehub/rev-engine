@@ -26,4 +26,4 @@ pg_dump --format=custom ${REVIEW_APP_SOURCE_DATABASE_URL} | pg_restore --clean -
 python manage.py migrate --noinput
 python manage.py bootstrap-review-app
 # Trigger the e2e test run on review app server, now that we know review app is post (first) deploy.
-trigger-e2e-test-run.sh
+trigger-e2e-test-run.py

@@ -21,6 +21,15 @@ for TABLE in $TABLES; do
     PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE -c "DROP TABLE IF EXISTS $TABLE CASCADE;"
 done
 
+
+# Drop all custom collations in the database
+echo "Drop all custom collations in db"
+COLLATIONS=$(PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE -t -c "SELECT collname FROM pg_collation WHERE collname IN ('case_insensitive');")
+for COLLATION in $COLLATIONS; do
+    PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE -c "DROP COLLATION IF EXISTS $COLLATION;"
+done
+
+
 # Dump the source database to a file
 echo "Dumping source database..."
 pg_dump --format=custom $REVIEW_APP_SOURCE_DATABASE_URL -f dump_file.dump

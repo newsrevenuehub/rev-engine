@@ -12,6 +12,19 @@ import SubheaderSection from 'components/common/SubheaderSection';
 import { Content, Wrapper } from './Integration.styled';
 
 const CARD_TYPES = {
+  // Keep Salesforce first, to be rendered at the top of the list
+  salesforce: {
+    image: SalesforceLogo,
+    title: 'Salesforce',
+    site: {
+      label: 'salesforce.com',
+      url: 'https://www.salesforce.com'
+    },
+    toggleLabelOverride: undefined,
+    toggleTooltipMessageOverride: undefined,
+    description: "Manage multi-channel customer insights with the world's #1 CRM.",
+    flag: 'show_connected_to_salesforce' as const
+  },
   digestbuilder: {
     image: DigestbuilderLogo,
     title: 'digestbuilder',
@@ -59,18 +72,6 @@ const CARD_TYPES = {
     toggleTooltipMessageOverride: 'Coming soon',
     description: 'Connect to Google Analytics to see site traffic trends to RevEngine pages.',
     flag: 'show_connected_to_google_analytics' as const
-  },
-  salesforce: {
-    image: SalesforceLogo,
-    title: 'Salesforce',
-    site: {
-      label: 'salesforce.com',
-      url: 'https://www.salesforce.com'
-    },
-    toggleLabelOverride: undefined,
-    toggleTooltipMessageOverride: undefined,
-    description: "Manage multi-channel customer insights with the world's #1 CRM.",
-    flag: 'show_connected_to_salesforce' as const
   }
 };
 

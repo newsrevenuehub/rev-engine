@@ -9,8 +9,8 @@ import requests
 
 AUTH_URL = f"{os.environ['SITE_URL']}/api/v1/token/"
 E2E_URL = f"{os.environ['SITE_URL']}/api/v1/e2e/"
-USERNAME = os.environ["REVIEW_APP_USERNAME"]
-PASSWORD = os.environ["REVIEW_APP_PASSWORD"]
+USERNAME = os.environ["E2E_USERNAME"]
+PASSWORD = os.environ["E2E_PASSWORD"]
 GH_TOKEN = os.environ["GITHUB_TOKEN"]
 COMMIT_SHA = os.environ["HEROKU_SLUG_COMMIT"]
 E2E_TESTS = ["contribution_checkout"]

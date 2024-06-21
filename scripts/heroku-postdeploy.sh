@@ -20,4 +20,4 @@ pg_restore \
     -d ${DATABASE_URL} || true
 python manage.py bootstrap-review-app
 # Trigger the e2e test run on review app server, now that we know review app is post (first) deploy.
-trigger-e2e-test-run.py
+./scripts/trigger-e2e-test-run.py

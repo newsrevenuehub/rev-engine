@@ -23,7 +23,6 @@ VISA = "4242424242424242"
 MASTER_CARD = "5555555555554444"
 REVENUE_PROGRAM_NAME = "Billy Penn"
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -47,11 +46,9 @@ def fill_out_contribution_form(
     mailing_country_selector: str,
     page_url: str = CHECKOUT_PAGE_URL,
 ):
-    """Fill out both forms in checkout flow."""
     logger.info("Loading page %s", page_url)
     page.goto(page_url)
     expect(page).to_have_title(f"Join | {REVENUE_PROGRAM_NAME}")
-    # fill out initial checkout form
     page.locator(f"input[type='radio'][value='{interval}']").click()
     page.locator("input[name='amount']").press_sequentially(str(amount))
     page.locator("input[name='first_name']").press_sequentially(first_name)
@@ -69,8 +66,6 @@ def fill_out_contribution_form(
     page.keyboard.press("Tab")
     page.keyboard.press("Enter")
 
-    # we now wait for the Stripe payment element to load, which happens after initial form
-    # submission
     payment_form_iframe_title = "Secure payment input frame"
     page.wait_for_function(
         "selector => !!document.querySelector(selector)",
@@ -84,18 +79,15 @@ def fill_out_contribution_form(
     if stripe_iframe is None:
         raise E2EError("Stripe iframe not found")
 
-    # fill out Stripe payment form
     stripe_iframe.get_by_label("Card number").fill(VISA)
     stripe_iframe.get_by_label("Expiration").fill("12/28")
     stripe_iframe.get_by_label("CVC").fill("123")
-    page.screenshot(path="checkout_form_filled.png")
 
     page.click("text=/Give \\$\\d+\\.\\d{2} USD once/")
-    # contributor gets to thank you page, signaling success
     page.wait_for_selector("text=Thank you")
+    page.screenshot(path="checkout_form_filled.png")
 
 
-@pytest.mark.django_db()
 def assert_db_side_effects(email: str, amount: int, interval: str) -> Contribution:
     logger.info("Checking DB side effects")
     try:
@@ -125,42 +117,41 @@ def assert_stripe_side_effects(pi_id: str, stripe_account_id: str, amount: int) 
 
 @pytest.fixture()
 def email():
-    return f"{uuid.uuid4()}@example.com"
+    return f"{str(uuid.uuid4())[:10]}+approved@example.com"
 
 
 AMOUNT = 100
 INTERVAL = "one_time"
 
 
-@pytest.fixture()
-def _do_checkout(email, amount=AMOUNT, interval=INTERVAL):
+def _do_checkout(page, email, amount=AMOUNT, interval=INTERVAL):
     logger.info("Filling out contribution form")
+    fill_out_contribution_form(
+        email=email,
+        page=page,
+        amount=amount,
+        interval=interval,
+        first_name="John",
+        last_name="Doe",
+        phone="5555555555",
+        mailing_street="123 Main St",
+        mailing_city="Anytown",
+        mailing_state="NY",
+        mailing_postal_code="12345",
+        mailing_country="United States",
+        mailing_country_selector="xpath=//li[normalize-space(.)='United States' and not(contains(., 'Minor Outlying Islands'))]",
+    )
+    logger.info("Napping to pass Stripe webhook processing time")
+    time.sleep(5)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_checkout(email):
+    logger.info("Starting checkout flow")
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-
-        fill_out_contribution_form(
-            email=email,
-            page=page,
-            amount=amount,
-            interval=interval,
-            first_name="John",
-            last_name="Doe",
-            phone="5555555555",
-            mailing_street="123 Main St",
-            mailing_city="Anytown",
-            mailing_state="NY",
-            mailing_postal_code="12345",
-            mailing_country="United States",
-            mailing_country_selector="xpath=//li[normalize-space(.)='United States' and not(contains(., 'Minor Outlying Islands'))]",
-        )
-        logger.info("Napping to pass Stripe webhook processing time")
-        time.sleep(5)
-
-
-@pytest.mark.usefixtures("_do_checkout")
-@pytest.mark.django_db()
-def test_checkout(email):
+        _do_checkout(page, email)
     logger.info("Checking side effects of checkout")
     try:
         contribution = assert_db_side_effects(email, AMOUNT, INTERVAL)

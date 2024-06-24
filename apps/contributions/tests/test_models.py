@@ -1194,7 +1194,7 @@ class TestContributionModel:
     def user(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_filtered_by_role_assignment(self, user, contribution):
+    def test_filter_by_role_assignment(self, user, contribution):
         org1 = (rp1 := contribution.revenue_program).organization
         rp2 = RevenueProgramFactory(name="rev-program-2", organization=org1)
         contribution2 = ContributionFactory(
@@ -1234,7 +1234,7 @@ class TestContributionModel:
                 expected = Contribution.objects.none()
                 assert expected.count() == 0
 
-        result = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+        result = Contribution.objects.filter_by_role_assignment(user.roleassignment)
         assert result.count() == expected.count()
         assert set(result) == set(expected)
 

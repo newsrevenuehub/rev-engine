@@ -459,11 +459,9 @@ def handle_mailchimp_oauth_success(request):
     logger.info("handle_mailchimp_oauth_success called with request data %s", request.data)
     serializer = MailchimpOauthSuccessSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    if (
-        rp_id := serializer.validated_data["revenue_program"]
-    ) not in RevenueProgram.objects.filtered_by_role_assignment(request.user.roleassignment).values_list(
-        "id", flat=True
-    ):
+    if (rp_id := serializer.validated_data["revenue_program"]) not in RevenueProgram.objects.filter_by_role_assignment(
+        request.user.roleassignment
+    ).values_list("id", flat=True):
         logger.warning(
             "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program"
             " with ID %s by user with email %s",

@@ -202,7 +202,7 @@ class TestContributionsViewSet:
 
         Contributor users are not handled in this test because setup is too different
         """
-        spy = mocker.spy(ContributionQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(ContributionQuerySet, "filter_by_role_assignment")
         api_client.force_authenticate(non_contributor_user)
         new_rp = RevenueProgramFactory(organization=OrganizationFactory(name="new-org"), name="new rp")
         if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -224,7 +224,7 @@ class TestContributionsViewSet:
                 ContributionFactory(**({"status": ContributionStatus.PAID, "one_time": True} | kwargs))
                 ContributionFactory(**({"status": ContributionStatus.PAID, "annual_subscription": True} | kwargs))
                 ContributionFactory(**({"status": ContributionStatus.PAID, "monthly_subscription": True} | kwargs))
-            query = Contribution.objects.filtered_by_role_assignment(non_contributor_user.roleassignment)
+            query = Contribution.objects.filter_by_role_assignment(non_contributor_user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
 
         assert query.count() > 0
@@ -294,11 +294,11 @@ class TestContributionsViewSet:
                 status=ContributionStatus.PAID,
             )
             non_contributor_user.roleassignment.refresh_from_db()
-            query = Contribution.objects.filtered_by_role_assignment(non_contributor_user.roleassignment)
+            query = Contribution.objects.filter_by_role_assignment(non_contributor_user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
             assert unpermitted.count()
             assert query.count()
-        spy = mocker.spy(ContributionQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(ContributionQuerySet, "filter_by_role_assignment")
         response = api_client.get(reverse("contribution-list"))
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]) == query.count()
@@ -522,7 +522,7 @@ class TestContributionsViewSetExportCSV:
         expected = (
             Contribution.objects.all()
             if user.is_staff
-            else Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+            else Contribution.objects.filter_by_role_assignment(user.roleassignment)
         )
         not_expected = (
             Contribution.objects.none()
@@ -531,7 +531,7 @@ class TestContributionsViewSetExportCSV:
         )
         assert expected.count()
         assert (not_expected.count() == 0) if user.is_staff else (not_expected.count() > 0)
-        filter_spy = mocker.spy(Contribution.objects, "filtered_by_role_assignment")
+        filter_spy = mocker.spy(Contribution.objects, "filter_by_role_assignment")
         email_export_spy = mocker.spy(email_contribution_csv_export_to_user, "delay")
         response = api_client.post(reverse("contribution-email-contributions"))
         assert response.status_code == status.HTTP_200_OK

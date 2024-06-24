@@ -11,5 +11,5 @@ class FilterForSuperUserOrRoleAssignmentUserMixin:
         if self.request.user.is_superuser:
             return self.model.objects.all()
         if ra := self.request.user.get_role_assignment():
-            return self.model.objects.filtered_by_role_assignment(ra)
+            return self.model.objects.filter_by_role_assignment(ra)
         return self.model.objects.none()

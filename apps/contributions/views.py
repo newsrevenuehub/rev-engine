@@ -268,7 +268,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_superuser:
             return self.model.objects.all()
         if ra:
-            return self.model.objects.filtered_by_role_assignment(ra)
+            return self.model.objects.filter_by_role_assignment(ra)
         logger.warning("Encountered unexpected user")
         raise ApiConfigurationError
 

@@ -13,7 +13,8 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
@@ -108,6 +109,12 @@ class Contributor(IndexedTimeStampedModel):
 
 
 class ContributionQuerySet(models.QuerySet):
+    # can't figure out
+    # can't annotate "revenue_program" because it's a property
+    # annotate/alias gets the id, not the standard django FK field magical object
+    def with_revenue_program(self):
+        return self.alias(revenue_program=Coalesce("_revenue_program", "donation_page__revenue_program"))
+
     def one_time(self):
         return self.filter(interval=ContributionInterval.ONE_TIME)
 
@@ -117,12 +124,9 @@ class ContributionQuerySet(models.QuerySet):
     def filter_by_revenue_programs(
         self, revenue_programs: list[int] | models.QuerySet[RevenueProgram] | None
     ) -> models.QuerySet[Contribution]:
-        if revenue_programs:
-            return self.filter(
-                Q(donation_page__revenue_program__in=revenue_programs)
-                | Q(contribution_metadata__revenue_program__in=revenue_programs)
-            )
-        return self
+        if not revenue_programs:
+            return self
+        return self.with_revenue_program().filter(revenue_program__in=revenue_programs)
 
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
@@ -157,7 +161,7 @@ class ContributionQuerySet(models.QuerySet):
             and x.status == ContributionStatus.PAID.value
         ]
 
-    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+    def filter_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet[Contribution]:
         """Return results based on user's role type."""
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
@@ -177,7 +181,8 @@ class ContributionQuerySet(models.QuerySet):
 
 
 class ContributionManager(models.Manager):
-    pass
+    def get_queryset(self):
+        return ContributionQuerySet(self.model, using=self._db).with_revenue_program()
 
 
 class Contribution(IndexedTimeStampedModel):
@@ -286,6 +291,8 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
+        if hasattr(self, "_secret_sauce"):
+            return self._secret_sauce
         if self.donation_page:
             return self.donation_page.revenue_program
         return self._revenue_program

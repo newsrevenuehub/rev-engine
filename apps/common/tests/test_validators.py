@@ -28,8 +28,8 @@ class TestValidateFkReferenceOwnership:
         with pytest.raises(serializers.ValidationError, match="unexpected signature"):
             ValidateFkReferenceOwnership("", self.model, fn)
 
-    def test_model_not_implement_filtered_by_role_assignment(self, monkeypatch):
-        monkeypatch.setattr(Contribution.objects, "filtered_by_role_assignment", None)
+    def test_model_not_implement_filter_by_role_assignment(self, monkeypatch):
+        monkeypatch.setattr(Contribution.objects, "filter_by_role_assignment", None)
         with pytest.raises(serializers.ValidationError):
             ValidateFkReferenceOwnership("", Contribution)
 

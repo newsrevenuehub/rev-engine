@@ -60,6 +60,7 @@ def mark_abandoned_carts_as_abandoned():
             contribution.save(update_fields={"status", "modified"})
             reversion.set_comment("`mark_abandoned_carts_as_abandoned` task marked as abandoned")
             updated += 1
+    ping_healthchecks("mark_abandoned_carts_as_abandoned", settings.HEALTHCHECK_URL_MARK_ABANDONED_CARTS)
     logger.info("Marked %s contributions carts as abandoned", updated)
 
 

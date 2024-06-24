@@ -1,12 +1,13 @@
-import shutil
-import subprocess
 from dataclasses import dataclass
 from enum import Enum
-
 from django.conf import settings
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
+
+import pytest
+from pytest_jsonreport.plugin import JSONReport
+import requests
 
 from apps.e2e import TESTS
 
@@ -15,37 +16,17 @@ logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class TestOutcome(Enum):
-    PASSED = "passed"
-    FAILED = "failed"
-
-
-ALLOWED_COMMANDS = ("pytest",)
-
-
-def start_e2e_subprocess(test_path: str):
-    """Run a subprocess command and return the result.
-
-    We make a minimal effort to ensure that the command is an expected one, that it can be
-    fully qualified in execution space.
-    """
-    logger.info("Running test %s", test_path)
-    if test_path not in TESTS.values():
-        raise ValueError("Arguments not found in available tests")
-    pytest = shutil.which("pytest")
-    if not pytest:
-        raise ValueError("Command `pytest` not found")
-    safe_args = [pytest, test_path]
-    proc = subprocess.run(safe_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)  # noqa S603
-    returncode = proc.returncode
-    return subprocess.CompletedProcess(
-        args=safe_args, returncode=returncode, stdout=subprocess.PIPE, stderr=subprocess.PIPE  # UP002
-    )
+    SUCCESS = "success"
+    FAILURE = "failure"
+    PENDING = "pending"
+    ERROR = "error"
 
 
 @dataclass()
 class E2ETest:
     name: str
     outcome: TestOutcome = None
+    description: str = None
 
     def __post_init__(self):
         if self.name not in TESTS:
@@ -53,22 +34,68 @@ class E2ETest:
 
     def run(self) -> None:
         logger.info("Running test %s", self.name)
-        try:
-            result = start_e2e_subprocess(TESTS[self.name])
-        except Exception:
-            logger.exception("Test %s failed with uncaught error", self.name)
+        json_report = JSONReport()
+        # Setting --json-report-file=none to avoid writing to file so we'll be able to
+        # access the report object directly
+        pytest.main(["--json-report-file=none", TESTS[self.name]], plugins=[json_report])
+        for x in [x for x in json_report.report["tests"] if x["outcome"] == "failed"]:
+            x["call"]["crash"]
+        if (report := json_report.report)["summary"]["failed"]:
+            failed = [x for x in report["tests"] if x["outcome"] == "failed"]
+            report["tests"][0]["call"]["crash"]
+            logger.warn("Test %s failed", self.name)
             self.outcome = TestOutcome.FAILED
+            self.message = report["tests"]
+        #                 {'lineno': 162,
+        #  'message': 'Failed: Contributor not found in DB',
+        #  'path': '/Users/benwhite/Projects/rev-engine/apps/e2e/flows/test_contribution_checkout.py'}
         else:
-            if result.returncode == 0:
-                logger.info("Test %s passed", self.name)
-                self.outcome = TestOutcome.PASSED
-            else:
-                logger.warning("Test %s failed with output: %s", self.name, result.stdout)
-                self.outcome = TestOutcome.FAILED
+            logger.info("Test %s succeeded", self.name)
+            self.outcome = TestOutcome.PASSED
 
 
-def report_results_to_github(commit_sha: str, result: str):
-    logger.info("Commit sha: %s, result: %s", commit_sha, result)
+_GH_HEADERS = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": f"token {settings.GITHUB_TOKEN}",
+}
+
+_GH_COMMIT_CONTEXT = "ci/e2e"
+_GH_REPO_URL = "https://api.github.com/repos/newsrevenuehub/rev-engine/"
+
+
+def create_commit_comment(commit_sha: str, body: str):
+    logger.info("Commit sha: %s, body: %s", commit_sha, body)
+    response = requests.post(
+        f"{_GH_REPO_URL}commits/{commit_sha}/comments",
+        headers=_GH_HEADERS,
+        json={"body": body},
+    )
+    response.raise_for_status()
+
+
+def create_commit_status(commit_sha: str, results: list[E2ETest], overall_outcome: TestOutcome):
+    logger.info("Commit sha: %s, state: %s", commit_sha, overall_outcome.value)
+    response = requests.post(
+        f"{_GH_REPO_URL}statuses/{commit_sha}",
+        headers=_GH_HEADERS,
+        json={
+            "state": overall_outcome.value,
+            # iterate over results to generate description
+            "description": None,
+            "context": _GH_COMMIT_CONTEXT,
+        },
+    )
+    response.raise_for_status()
+
+
+def report_results_to_github(results: list[E2ETest], commit_sha: str, outcome: TestOutcome):
+    overall_outcome = (
+        TestOutcome.SUCCESS if all(val == TestOutcome.PASSED for val in results.values()) else TestOutcome.FAILURE
+    )
+    create_commit_status(commit_sha, results, overall_outcome)
+    if overall_outcome == TestOutcome.FAILURE:
+        # generate description from failed tests
+        create_commit_comment(commit_sha, body="")
 
 
 @shared_task
@@ -87,5 +114,6 @@ def do_ci_e2e_test_run(
         test_results[_test] = test.outcome.value
     result = "success" if all(val == TestOutcome.PASSED for val in test_results.values()) else "failure"
     if report_results:
-        report_results_to_github(result=result, commit_sha=commit_sha)
+        # this should take a list of tests not a single result
+        report_results_to_github(results=test_results, commit_sha=commit_sha)
     return test_results

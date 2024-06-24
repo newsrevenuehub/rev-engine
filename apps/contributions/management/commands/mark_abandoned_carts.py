@@ -6,7 +6,7 @@ from apps.contributions.tasks import mark_abandoned_carts_as_abandoned
 
 
 class Command(BaseCommand):
-    """Allows user to delete all entries from cache related to Stripe transactions import."""
+    """Run the mark_abandoned_carts_as_abandoned task."""
 
     @property
     def name(self):

@@ -222,8 +222,8 @@ def task_import_contributions_and_payments_for_stripe_account(
         to_date,
         stripe_account_id,
     )
-    from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
-    to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
+    from_date = datetime.fromtimestamp(int(from_date), tz=datetime.timezone.utc) if from_date else None
+    to_date = datetime.fromtimestamp(int(to_date), tz=datetime.timezone.utc) if to_date else None
     StripeTransactionsImporter(
         from_date=from_date,
         to_date=to_date,

@@ -156,6 +156,26 @@ class Organization(IndexedTimeStampedModel):
         default=False,
         help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
     )
+    show_connected_to_eventbrite = models.BooleanField(
+        verbose_name="Show connected to Eventbrite",
+        default=False,
+        help_text="Indicates Eventbrite integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_digestbuilder = models.BooleanField(
+        verbose_name="Show connected to digestbuilder",
+        default=False,
+        help_text="Indicates digestbuilder integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_google_analytics = models.BooleanField(
+        verbose_name="Show connected to Google Analytics",
+        default=False,
+        help_text="Indicates Google Analytics integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_newspack = models.BooleanField(
+        verbose_name="Show connected to Newspack",
+        default=False,
+        help_text="Indicates Newspack integration status, designed for manual operation by staff members",
+    )
 
     slug = models.SlugField(
         # This is currently set to 63. It's also the same limit that is set on org name. This is because we

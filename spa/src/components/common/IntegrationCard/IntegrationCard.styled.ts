@@ -103,3 +103,9 @@ export const CustomButtonLink = styled(BaseButton)`
     }
   }
 `;
+
+export const TooltipTitle = styled.p`
+  color: white;
+  margin: 0;
+  max-width: 230px;
+`;

@@ -2,7 +2,15 @@ import { Switch, SwitchProps, Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes, { InferProps } from 'prop-types';
 
-import { Flex, Content, Description, Footer, CustomButtonLink, RightActionWrapper } from './IntegrationCard.styled';
+import {
+  Flex,
+  Content,
+  Description,
+  Footer,
+  CustomButtonLink,
+  RightActionWrapper,
+  TooltipTitle
+} from './IntegrationCard.styled';
 import IntegrationCardHeader from './IntegrationCardHeader';
 
 export interface IntegrationCardProps extends InferProps<typeof IntegrationCardPropTypes> {
@@ -40,9 +48,9 @@ const IntegrationCard = ({
         <Tooltip
           interactive
           title={
-            <p style={{ color: 'white', margin: 0 }}>
+            <TooltipTitle>
               {isActive ? card.toggleConnectedTooltipMessage ?? card.toggleTooltipMessage : card.toggleTooltipMessage}
-            </p>
+            </TooltipTitle>
           }
           placement="bottom-end"
           open={showTooltip && (!!card.toggleTooltipMessage || (!!card.toggleConnectedTooltipMessage && isActive!))}

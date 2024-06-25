@@ -71,6 +71,7 @@ describe('Verify', () => {
     });
 
     it('enables the resend button', async () => {
+      jest.resetAllMocks();
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'Resend Verification' }));
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));

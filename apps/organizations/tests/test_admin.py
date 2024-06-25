@@ -117,6 +117,10 @@ def test_show_expected_fields_on_organization_pages(admin_client):
     assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
     assert soup.find("input", {"name": "show_connected_to_salesforce"}) is not None
     assert soup.find("input", {"name": "show_connected_to_mailchimp"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_eventbrite"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_google_analytics"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_digestbuilder"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_newspack"}) is not None
     # change page
     org = OrganizationFactory()
     response = admin_client.get(f"/nrhadmin/organizations/organization/{org.id}/change/")
@@ -124,6 +128,10 @@ def test_show_expected_fields_on_organization_pages(admin_client):
     assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
     assert soup.find("input", {"name": "show_connected_to_salesforce"}) is not None
     assert soup.find("input", {"name": "show_connected_to_mailchimp"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_eventbrite"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_google_analytics"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_digestbuilder"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_newspack"}) is not None
 
 
 def test_revenue_program_tax_id_available_in_admin_page(admin_client):

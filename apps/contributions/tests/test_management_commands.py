@@ -76,7 +76,7 @@ class Test_sync_payment_transaction_time:
 
     @pytest.fixture()
     def payment_with_transaction_time(self):
-        return PaymentFactory(transaction_time=datetime.datetime.utcnow())
+        return PaymentFactory(transaction_time=datetime.datetime.now(datetime.timezone.utc))
 
     @pytest.fixture()
     def payment_no_transaction_time_eligible(self):

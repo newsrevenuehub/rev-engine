@@ -16,7 +16,7 @@ from apps.emails.helpers import convert_to_timezone_formatted
     ],
 )
 def test_convert_to_timezone_formatted(timezone, fmt, is_UTC, expect):
-    test_date = datetime.datetime(2022, 12, 6)
+    test_date = datetime.datetime(2022, 12, 6)  # noqa: DTZ001 point of helper is to add tz
 
     if is_UTC:
         test_date = test_date.replace(tzinfo=ZoneInfo("UTC"))

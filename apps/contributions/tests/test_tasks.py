@@ -116,7 +116,7 @@ def stripe_pi_search_result_factory(pi_for_active_subscription_factory, pi_for_v
 def stripe_uninvoiced_subscription_factory(subscription_data_factory):
     class Factory:
         def get(self, rp_slug: str, *args, **kwargs) -> stripe.Subscription:
-            anchor = (now := datetime.datetime.now(tz=datetime.timezone.utc)) + datetime.timedelta(days=365)
+            anchor = (now := datetime.datetime.now(datetime.timezone.utc)) + datetime.timedelta(days=365)
             data = subscription_data_factory.get()
             data = data | {
                 "created": now.timestamp(),

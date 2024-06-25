@@ -225,7 +225,7 @@ def valid_create_data_for_muteable_user_serializer():
     return {
         "email": "foo@bar.com",
         "password": "supersecurepassword199719997!!!",
-        "accepted_terms_of_service": datetime.datetime.utcnow(),
+        "accepted_terms_of_service": datetime.datetime.now(datetime.timezone.utc),
     }
 
 

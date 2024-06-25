@@ -1,5 +1,5 @@
+import datetime
 from dataclasses import asdict
-from datetime import datetime
 
 from django.http import HttpResponse
 from django.template import TemplateDoesNotExist
@@ -40,10 +40,10 @@ def preview_contribution_email_template(request, template_name: str):
         return HttpResponse("Template does not exist.", status=404)
     data = {
         "contribution_interval_display_value": "year",
-        "timestamp": datetime.now(),
+        "timestamp": datetime.datetime.now(datetime.timezone.utc),
         "contribution_amount": "$123.45",
         "contributor_name": "Contributor Name",
-        "copyright_year": datetime.now().year,
+        "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
         "contributor_email": "nobody@fundjournalism.org",
         "magic_link": "https://magic-link",
         "rp_name": rp.name,

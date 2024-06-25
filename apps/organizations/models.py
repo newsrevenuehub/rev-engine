@@ -774,7 +774,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
-    # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # DEV-3581
     # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
@@ -1063,7 +1064,6 @@ class RevenueProgram(IndexedTimeStampedModel):
             button_color=_style.colors.cstm_CTAs or None,
         )
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """Retrieve Mailchimp email lists for this RP, if any.

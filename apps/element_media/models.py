@@ -60,8 +60,6 @@ class MediaImage(IndexedTimeStampedModel):
         :param image_key: The key that identifies an Image element.
         :return: The data["sidebar_elements"] updated with the storage locations for the image and the thumbnail.
         """
-        ## TODO: Duplicate detection
-
         mutable = data.copy()
         if sbe := mutable.get("sidebar_elements"):
             elements = json.loads(sbe)

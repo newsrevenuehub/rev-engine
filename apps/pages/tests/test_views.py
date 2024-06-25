@@ -804,7 +804,8 @@ class TestPageViewSet:
         assert live_donation_page.modified == last_modified
         assert spy.call_count == 1
 
-    # TODO: [DEV-3193] Fix bug where superuser can assign a style that is unowned by an RP to its donation page
+    # TODO @BW: Fix bug where superuser can assign a style that is unowned by an RP to its donation page
+    # DEV-3193
     @pytest.fixture(
         params=[
             ("patch_page_unowned_style", "styles"),
@@ -1070,7 +1071,8 @@ class TestPageViewSet:
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        # TODO: [DEV-3189] Don't leak info about revenue program payment provider verification publicly
+        # TODO @BW: Don't leak info about revenue program payment provider verification publicly
+        # DEV-3189
         assert response.json() == {"detail": "RevenueProgram does not have a fully verified payment provider"}
 
     def test_live_detail_page_when_no_payment_provider(self, live_donation_page, api_client):
@@ -1080,7 +1082,8 @@ class TestPageViewSet:
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        # TODO: [DEV-3189] Don't leak info about revenue program payment provider verification publicly
+        # TODO @BW: Don't leak info about revenue program payment provider verification publicly
+        # DEV-3189
         assert response.json() == {"detail": "RevenueProgram does not have a payment provider configured"}
 
     def test_draft_detail_page_when_expected_user(self, expected_user, api_client, live_donation_page):

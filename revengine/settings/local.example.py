@@ -1,3 +1,5 @@
+import os
+
 from revengine.settings.dev import *  # noqa
 
 
@@ -9,4 +11,4 @@ INSTALLED_APPS += (
 
 ALLOWED_HOSTS = ["localhost", "172.20.1.211"]
 
-SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", False)
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "false").lower() == "true"

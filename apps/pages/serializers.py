@@ -168,7 +168,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     revenue_program_is_nonprofit = serializers.SerializerMethodField(method_name="get_revenue_program_is_nonprofit")
 
-    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
+    # TODO @BW: Remove stripe_account_id from DonationPageFullDetailSerializer
+    # DEV-2187
     stripe_account_id = serializers.SerializerMethodField(method_name="get_stripe_account_id")
     currency = serializers.SerializerMethodField(method_name="get_currency")
     revenue_program_country = serializers.SerializerMethodField(method_name="get_revenue_program_country")
@@ -218,7 +219,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def get_revenue_program_is_nonprofit(self, obj):
         return obj.revenue_program.non_profit
 
-    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
+    # TODO @BW: Remove stripe_account_id from DonationPageFullDetailSerializer
+    # DEV-2187
     def get_stripe_account_id(self, obj):
         if self.context.get("live"):
             return obj.revenue_program.payment_provider.stripe_account_id
@@ -434,7 +436,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         if "published_date" in data:
             self.ensure_slug_for_publication(data)
             self.validate_publish_limit(data)
-        # TODO: [DEV-2741] Add granular validation for page and sidebar elements
+        # TODO @BW: Add granular validation for page and sidebar elements
+        # DEV-2741
         self.validate_page_element_permissions(data)
         self.validate_sidebar_element_permissions(data)
         return data

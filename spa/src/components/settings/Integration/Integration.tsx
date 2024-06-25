@@ -1,11 +1,78 @@
+import DigestbuilderLogo from 'assets/images/digestbuilder.png';
+import EventbriteLogo from 'assets/images/eventbrite.png';
+import GoogleAnalyticsLogo from 'assets/images/google-analytics.png';
+import NewspackLogo from 'assets/images/newspack.png';
+import SalesforceLogo from 'assets/images/salesforce.jpg';
 import HeaderSection from 'components/common/HeaderSection';
-import SubheaderSection from 'components/common/SubheaderSection';
-import { StripeIntegrationCard } from 'components/common/IntegrationCard/StripeIntegrationCard';
-import { SlackIntegrationCard } from 'components/common/IntegrationCard/SlackIntegrationCard';
+import { CustomIntegrationCard } from 'components/common/IntegrationCard/CustomIntegrationCard';
 import { MailchimpIntegrationCard } from 'components/common/IntegrationCard/MailchimpIntegrationCard';
-import { SalesforceIntegrationCard } from 'components/common/IntegrationCard/SalesforceIntegrationCard';
-
+import { SlackIntegrationCard } from 'components/common/IntegrationCard/SlackIntegrationCard';
+import { StripeIntegrationCard } from 'components/common/IntegrationCard/StripeIntegrationCard';
+import SubheaderSection from 'components/common/SubheaderSection';
 import { Content, Wrapper } from './Integration.styled';
+
+const CARD_TYPES = {
+  digestbuilder: {
+    image: DigestbuilderLogo,
+    title: 'digestbuilder',
+    site: {
+      label: 'digestbuilder.com',
+      url: 'https://www.digestbuilder.com'
+    },
+    toggleLabelOverride: undefined,
+    toggleTooltipMessageOverride: undefined,
+    description: 'Connect payments made from DigestBuilder to RevEngine.',
+    flag: 'show_connected_to_digestbuilder' as const
+  },
+  eventbrite: {
+    image: EventbriteLogo,
+    title: 'Eventbrite',
+    site: {
+      label: 'eventbrite.com',
+      url: 'https://www.eventbrite.com'
+    },
+    toggleLabelOverride: undefined,
+    toggleTooltipMessageOverride: undefined,
+    description: 'Sync your event data - including attendees, revenue and new email signups - to Salesforce.',
+    flag: 'show_connected_to_eventbrite' as const
+  },
+  newspack: {
+    image: NewspackLogo,
+    title: 'Newspack',
+    site: {
+      label: 'newspack.com',
+      url: 'https://www.newspack.com'
+    },
+    toggleLabelOverride: undefined,
+    toggleTooltipMessageOverride: undefined,
+    description: 'Embed and create calls-to-actions within your Newspack-supported CMS to point to RevEngine pages.',
+    flag: 'show_connected_to_newspack' as const
+  },
+  ga: {
+    image: GoogleAnalyticsLogo,
+    title: 'Google Analytics',
+    site: {
+      label: 'analytics.google.com',
+      url: 'https://analytics.google.com'
+    },
+    toggleLabelOverride: 'Not Connected',
+    toggleTooltipMessageOverride: 'Coming soon',
+    description: 'Connect to Google Analytics to see site traffic trends to RevEngine pages.',
+    flag: 'show_connected_to_google_analytics' as const
+  },
+  salesforce: {
+    image: SalesforceLogo,
+    title: 'Salesforce',
+    site: {
+      label: 'salesforce.com',
+      url: 'https://www.salesforce.com'
+    },
+    toggleLabelOverride: undefined,
+    toggleTooltipMessageOverride: undefined,
+    description: "Manage multi-channel customer insights with the world's #1 CRM.",
+    flag: 'show_connected_to_salesforce' as const
+  }
+};
 
 const Integration = () => {
   return (
@@ -16,7 +83,12 @@ const Integration = () => {
         <StripeIntegrationCard />
         <SlackIntegrationCard />
         <MailchimpIntegrationCard />
-        <SalesforceIntegrationCard />
+      </Content>
+      <SubheaderSection title="Custom Features" subtitle="Contact Support to enable custom integrations." />
+      <Content>
+        {Object.entries(CARD_TYPES).map(([type, card]) => (
+          <CustomIntegrationCard key={type} {...card} />
+        ))}
       </Content>
     </Wrapper>
   );

@@ -1,14 +1,27 @@
-import { render, screen } from 'test-utils';
-import SalesforceIntegrationCard from './SalesforceIntegrationCard';
 import useUser from 'hooks/useUser';
+import { render, screen } from 'test-utils';
+import CustomIntegrationCard from './CustomIntegrationCard';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useUser');
 
-describe('SalesforceIntegrationCard', () => {
+const defaultProps = {
+  image: 'logo.png',
+  title: 'digestbuilder',
+  site: {
+    label: 'digestbuilder.com',
+    url: 'https://www.digestbuilder.com'
+  },
+  toggleLabelOverride: undefined,
+  toggleTooltipMessageOverride: undefined,
+  description: 'Connect payments made from DigestBuilder to RevEngine.',
+  flag: 'show_connected_to_digestbuilder' as const
+};
+
+describe('CustomIntegrationCard', () => {
   const useUserMock = jest.mocked(useUser);
   function tree() {
-    return render(<SalesforceIntegrationCard />);
+    return render(<CustomIntegrationCard {...defaultProps} />);
   }
 
   beforeEach(() => {
@@ -31,6 +44,12 @@ describe('SalesforceIntegrationCard', () => {
     expect(screen.getByTestId('mock-integration-card')).toBeVisible();
   });
 
+  it('renders correct card type', () => {
+    tree();
+
+    expect(screen.getByTestId('title')).toHaveTextContent(defaultProps.title);
+  });
+
   it('renders connected integration card', () => {
     useUserMock.mockReturnValue({
       isLoading: false,
@@ -40,7 +59,7 @@ describe('SalesforceIntegrationCard', () => {
         organizations: [
           {
             id: 'mock-org',
-            show_connected_to_salesforce: true
+            [defaultProps.flag]: true
           }
         ]
       } as any
@@ -53,7 +72,6 @@ describe('SalesforceIntegrationCard', () => {
   it('renders not connected integration card', () => {
     tree();
 
-    expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Custom Feature');
     expect(screen.getByTestId('isActive')).toHaveTextContent('false');
     expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
   });

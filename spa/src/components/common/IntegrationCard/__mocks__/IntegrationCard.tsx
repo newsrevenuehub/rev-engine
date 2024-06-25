@@ -2,6 +2,7 @@ import { IntegrationCardProps } from '../IntegrationCard';
 
 const IntegrationCard = (props: IntegrationCardProps) => (
   <div data-testid="mock-integration-card">
+    <div data-testid="title">{props?.title}</div>
     <div data-testid="cornerMessage">{props?.cornerMessage}</div>
     <div data-testid="isActive">{`${props?.isActive}`}</div>
     <button onClick={props.onChange as any} disabled={props?.disabled}>

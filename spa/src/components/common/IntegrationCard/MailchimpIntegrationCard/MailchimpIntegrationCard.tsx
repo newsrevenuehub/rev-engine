@@ -2,7 +2,7 @@ import MailchimpLogo from 'assets/images/mailchimp.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 
-import { ButtonProps, RouterLinkButton, RouterLinkButtonProps } from 'components/base';
+import { ButtonProps, Link, RouterLinkButton, RouterLinkButtonProps } from 'components/base';
 import FeatureBadge from 'components/common/Badge/FeatureBadge/FeatureBadge';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import useModal from 'hooks/useModal';
@@ -50,9 +50,9 @@ export function MailchimpIntegrationCard() {
         toggleConnectedTooltipMessage={
           <>
             Connected to Mailchimp. Contact{' '}
-            <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+            <Link href={HELP_URL} target="_blank">
               Support
-            </a>{' '}
+            </Link>{' '}
             to disconnect.
           </>
         }

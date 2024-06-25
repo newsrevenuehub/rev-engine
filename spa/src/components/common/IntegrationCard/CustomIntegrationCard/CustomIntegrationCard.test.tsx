@@ -1,6 +1,6 @@
 import useUser from 'hooks/useUser';
 import { render, screen } from 'test-utils';
-import CustomIntegrationCard from './CustomIntegrationCard';
+import CustomIntegrationCard, { CustomIntegrationCardProps } from './CustomIntegrationCard';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useUser');
@@ -20,8 +20,8 @@ const defaultProps = {
 
 describe('CustomIntegrationCard', () => {
   const useUserMock = jest.mocked(useUser);
-  function tree() {
-    return render(<CustomIntegrationCard {...defaultProps} />);
+  function tree(props?: Partial<CustomIntegrationCardProps>) {
+    return render(<CustomIntegrationCard {...defaultProps} {...props} />);
   }
 
   beforeEach(() => {
@@ -74,5 +74,59 @@ describe('CustomIntegrationCard', () => {
 
     expect(screen.getByTestId('isActive')).toHaveTextContent('false');
     expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
+  });
+
+  describe('toggle label', () => {
+    it('renders default if no override is passed', () => {
+      tree();
+      expect(screen.getByTestId('toggleLabel')).toHaveTextContent('Contact Support to Connect');
+    });
+
+    it('renders override if defined', () => {
+      tree({ toggleLabelOverride: 'Override' });
+      expect(screen.getByTestId('toggleLabel')).toHaveTextContent('Override');
+    });
+  });
+
+  describe('toggle tooltip message', () => {
+    it('renders default if no override is passed', () => {
+      tree();
+      expect(screen.getByTestId('toggleTooltipMessage')).toHaveTextContent(
+        `Contact our Support Staff to integrate with ${defaultProps.title}`
+      );
+    });
+
+    it('renders override if defined', () => {
+      tree({ toggleTooltipMessageOverride: 'Override' });
+      expect(screen.getByTestId('toggleTooltipMessage')).toHaveTextContent('Override');
+    });
+  });
+
+  describe('when user is loading', () => {
+    it('renders "isActive" as false', () => {
+      useUserMock.mockReturnValue({
+        isLoading: true,
+        isError: false,
+        refetch: jest.fn(),
+        user: undefined
+      });
+      tree();
+
+      expect(screen.getByTestId('isActive')).toHaveTextContent('false');
+    });
+  });
+
+  describe('when user returns error', () => {
+    it('renders "isActive" as false', () => {
+      useUserMock.mockReturnValue({
+        isLoading: false,
+        isError: true,
+        refetch: jest.fn(),
+        user: undefined
+      });
+      tree();
+
+      expect(screen.getByTestId('isActive')).toHaveTextContent('false');
+    });
   });
 });

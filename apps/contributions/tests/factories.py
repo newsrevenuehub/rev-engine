@@ -52,7 +52,7 @@ def _get_last_payment_date(created_date):
     return created_date + datetime.timedelta(hours=1)
 
 
-NOW = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
+NOW = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 THEN = NOW - datetime.timedelta(weeks=52)
 
 

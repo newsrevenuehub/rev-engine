@@ -171,13 +171,11 @@ ignore = [
   "S105",  # Hardcoded passwords (too many false positives)
   "SIM108", # Use ternary operator (only when it's more readable)
   "TRY003", # Avoid long messages outside exception class (no)
-  "TD002", # Not sure this is worth the effort
-  "TD003", # Very annoying flake8-todos forces link to be on next line.
   "COM812", # Conflicts with black feature (black always splits lines with trailing comma)
   # @njh we should enforce these rules
   "ANN", "RUF012", "RUF013", # TODO @njh: type annotations
   "DJ001", # TODO @njh: charfields should not be nullable
-  "DTZ", # TODO @njh: DEV-4777 fix datetimez
+  "PLW1508", # TODO @njh: DEV-4779 invalid type for env var
   "S308",  # TODO @njh: DEV-4778 use of mark_safe may expose cross-site scripting vulnerabilities
 ]
 select = [

@@ -10,8 +10,8 @@ Tests are grouped by the type of webhook they are testing. For example, all test
 are grouped together in the `TestPaymentIntentSucceeded` class.
 """
 
+import datetime
 import json
-from datetime import datetime, timedelta
 from pathlib import Path
 
 from django.urls import reverse
@@ -421,18 +421,25 @@ def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, c
     response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming_event, **header)
     assert response.status_code == status.HTTP_200_OK
     if not contribution_found:
-        # TODO: assert that task debug logs
         return
     if expect_reminder_email:
         mock_send_reminder.assert_called_once_with(
-            make_aware(datetime.fromtimestamp(invoice_upcoming_event["data"]["object"]["next_payment_attempt"])).date()
+            make_aware(
+                datetime.datetime.fromtimestamp(  # noqa: DTZ006  handled by make_aware
+                    invoice_upcoming_event["data"]["object"]["next_payment_attempt"]
+                )
+            ).date()
         )
     else:
         mock_send_reminder.assert_not_called()
 
     if expect_reminder_email and contribution_found:
         mock_send_reminder.assert_called_once_with(
-            make_aware(datetime.fromtimestamp(invoice_upcoming_event["data"]["object"]["next_payment_attempt"])).date()
+            make_aware(
+                datetime.datetime.fromtimestamp(  # noqa: DTZ006  handled by make_aware
+                    invoice_upcoming_event["data"]["object"]["next_payment_attempt"]
+                )
+            ).date()
         )
     else:
         mock_send_reminder.assert_not_called()
@@ -536,7 +543,10 @@ class TestInvoicePaymentSucceeded:
             status=ContributionStatus.PROCESSING if is_first_payment else ContributionStatus.PAID,
             provider_subscription_id=pi.invoice.subscription,
             last_payment_date=(
-                None if is_first_payment else datetime.fromtimestamp(balance_transaction.created) - timedelta(days=365)
+                None
+                if is_first_payment
+                else datetime.datetime.fromtimestamp(balance_transaction.created, tz=datetime.timezone.utc)
+                - datetime.timedelta(days=365)
             ),
             provider_payment_id=pi.id if is_first_payment else "some-other-id",
             provider_payment_method_id=None,

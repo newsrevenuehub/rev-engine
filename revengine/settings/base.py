@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import json
 import logging
+import os
 from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
@@ -371,8 +372,9 @@ DTM_IGNORED_MIGRATIONS = {
 
 ### Django-CSP Settings
 
-# TODO: [DEV-2359] Fix CSP violation caused by react-select emotion
-ENFORCE_CSP = env.bool("ENFORCE_CSP", True)
+# TODO @BW: Fix CSP violation caused by react-select emotion
+# DEV-2359
+ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
 if not ENFORCE_CSP:
     CSP_REPORT_ONLY = True
 CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
@@ -520,8 +522,9 @@ CF_ZONE_NAME = env.str("CF_ZONE_NAME", "")
 
 ### RevEngine (1st Party) Settings
 
-# TODO: [DEV-2010] Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
-DOMAIN_APEX = env.str("DOMAIN_APEX", "")
+# TODO @njh: Isn't DOMAIN_APEX just SITE_URL without any subdomain?
+# DEV-2010
+DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = env.list("DASHBOARD_SUBDOMAINS", "www:dashboard:", delimiter=":")
 

@@ -222,7 +222,8 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
         # first/next(in NRE platform) payment date.
-        # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
+        # TODO @BW: Add some sort of analytics / telemetry to track how often this happens
+        # DEV-4151
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
 
 
@@ -242,8 +243,8 @@ def task_import_contributions_and_payments_for_stripe_account(
         to_date,
         stripe_account_id,
     )
-    from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
-    to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
+    from_date = datetime.fromtimestamp(int(from_date), tz=datetime.timezone.utc) if from_date else None
+    to_date = datetime.fromtimestamp(int(to_date), tz=datetime.timezone.utc) if to_date else None
     StripeTransactionsImporter(
         from_date=from_date,
         to_date=to_date,

@@ -166,8 +166,9 @@ class StripeWebhookProcessor:
 
     def _handle_pm_update_event(self, query: dict, pm_id: str, caller: str) -> None:
         updated = 0
-        # # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
-        # DEV-4915. May need to put optionality around get vs. filter for initial query at top of this method
+        # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
+        # DEV-4915
+        # 5. May need to put optionality around get vs. filter for initial query at top of this method
         for x in Contribution.objects.filter(**query):
             x.provider_payment_method_id = pm_id
             x.provider_payment_method_details = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.event.account)
@@ -299,7 +300,11 @@ class StripeWebhookProcessor:
                 self.contribution.id,
             )
             self.contribution.send_recurring_contribution_email_reminder(
-                make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
+                make_aware(
+                    datetime.datetime.fromtimestamp(  # noqa: DTZ006 make_aware handles tz
+                        self.obj_data["next_payment_attempt"]
+                    )
+                ).date()
             )
         else:
             logger.debug(

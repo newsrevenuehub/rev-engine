@@ -18,6 +18,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 from random import choice, randint, uniform
+from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
 
@@ -138,7 +139,7 @@ def org_user_free_plan(default_feature_flags) -> User:
 
 @pytest.fixture()
 def user_with_verified_email_and_tos_accepted():
-    return UserFactory(accepted_terms_of_service=datetime.datetime.utcnow(), email_verified=True)
+    return UserFactory(accepted_terms_of_service=datetime.datetime.now(tz=ZoneInfo("UTC")), email_verified=True)
 
 
 @pytest.fixture()

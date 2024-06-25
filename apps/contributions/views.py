@@ -351,7 +351,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
     def retrieve(self, request, pk):
-        #  TODO: [DEV-3227] Here...
+        # TODO @BW: Revisit SubscriptionsViewSet with a view towards security concerns...
+        # DEV-3227
         subscriptions = self._fetch_subscriptions(request)
         for subscription in subscriptions:
             if (
@@ -373,7 +374,6 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
 
-        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
         try:
             subscription = stripe.Subscription.retrieve(
                 pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
@@ -383,7 +383,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
 
         if (email := request.user.email.lower()) != subscription.customer.email.lower():
-            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
+            # TODO @DC: should we find a way to user DRF's permissioning scheme here instead?
+            # DEV-2287
             # treat as not found so as to not leak info about subscription
             logger.warning("User %s attempted to update unowned subscription %s", email, pk)
             return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -427,14 +428,14 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi related to subscription %s after update",
                 subscription.id,
             )
-        # TODO: [DEV-2438] return the updated sub
+        # TODO @DC: return the updated sub
+        # DEV-2438
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 
     def destroy(self, request: Request, pk: str) -> Response:
         logger.info("Attempting to cancel subscription %s", pk)
         revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?
         try:
             subscription = stripe.Subscription.retrieve(
                 pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
@@ -445,7 +446,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
         if (email := request.user.email.lower()) != subscription.customer.email.lower():
             logger.warning("User %s attempted to delete unowned subscription %s", email, pk)
-            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
+            # TODO @DC: should we find a way to user DRF's permissioning scheme here instead?
+            # DEV-2287
             # treat as not found so not leak info about subscription
             return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -486,7 +488,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when working on subscription %s",
                 subscription.id,
             )
-        # TODO: [DEV-2438] return the canceled sub
+        # TODO @DC: return the canceled sub
+        # DEV-2438
         return response
 
     @staticmethod

@@ -121,6 +121,10 @@ class OrganizationAdmin(RevEngineBaseAdmin):
                     "show_connected_to_slack",
                     "show_connected_to_salesforce",
                     "show_connected_to_mailchimp",
+                    "show_connected_to_eventbrite",
+                    "show_connected_to_google_analytics",
+                    "show_connected_to_digestbuilder",
+                    "show_connected_to_newspack",
                 )
             },
         ),

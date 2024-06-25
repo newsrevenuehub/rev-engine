@@ -21,6 +21,7 @@ export * from './Select';
 export * from './Stepper';
 export * from './Switch/Switch';
 export * from './TextField/TextField';
+export * from './TextField/PhoneTextField';
 export * from './Table';
 export * from './Tabs';
 export * from './Tooltip/Tooltip';

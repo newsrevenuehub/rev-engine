@@ -107,8 +107,10 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         ],
         send_default_pii=SENTRY_ENABLE_PII,
         environment=ENVIRONMENT,
+        # TODO @njh: After testing will want to reduce this to less than 100% sampling rate.
+        # DEV-2683
         # https://docs.sentry.io/platforms/python/configuration/sampling/#setting-a-uniform-sample-rate
-        traces_sample_rate=1.0,  # TODO @njh: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
+        traces_sample_rate=1.0,
         profiles_sample_rate=SENTRY_PROFILING_SAMPLE_RATE,
     )
     ignore_logger("django.security.DisallowedHost")

@@ -201,7 +201,8 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
         # first/next(in NRE platform) payment date.
-        # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
+        # TODO @BW: Add some sort of analytics / telemetry to track how often this happens
+        # DEV-4151
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
 
 

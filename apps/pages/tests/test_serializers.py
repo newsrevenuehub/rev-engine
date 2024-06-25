@@ -255,7 +255,8 @@ class TestDonationPageFullDetailSerializer:
         serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
         assert serializer.data["revenue_program_is_nonprofit"] == expect
 
-    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
+    # TODO @BW: Remove stripe_account_id from DonationPageFullDetailSerializer
+    # DEV-2187
     def test_live_context_adds_org_stripe_account_id(self, live_donation_page):
         assert live_donation_page.revenue_program.payment_provider.stripe_account_id is not None
         serializer = DonationPageFullDetailSerializer(instance=live_donation_page, context={"live": False})

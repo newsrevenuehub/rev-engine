@@ -3,7 +3,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandParser
 
 from apps.e2e import TESTS
-from apps.e2e.tasks import do_ci_e2e_test_run
+from apps.e2e.tasks import do_ci_e2e_flow_run
 
 
 class Command(BaseCommand):
@@ -22,5 +22,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name} with tests: {options['tests']}`"))
-        results = do_ci_e2e_test_run(tests=options["tests"])
+        results = do_ci_e2e_flow_run(tests=options["tests"])
         self.stdout.write(self.style.SUCCESS(f"Results: {results}"))

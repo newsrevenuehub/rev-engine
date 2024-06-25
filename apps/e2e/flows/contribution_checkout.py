@@ -11,6 +11,7 @@ from playwright.sync_api import Page, expect, sync_playwright
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor
 from apps.e2e.tasks import E2eOutCome
+from apps.e2e.flows import register_flow
 
 
 ENV = settings.ENVIRONMENT
@@ -155,7 +156,7 @@ def assert_stripe_side_effects_for_one_time(pi_id: str, stripe_account_id: str, 
 
 
 def make_email():
-    return f"{str(uuid.uuid4())[:10]}+approved@example.com"
+    return f"{str(uuid.uuid4())[:10]}{settings.E2E_CONTRIBUTOR_EMAIL_SUFFIX}@{settings.E2E_CONTRIBUTOR_EMAIL_DOMAIN}"
 
 
 AMOUNT = 100
@@ -167,12 +168,19 @@ class E2eOutCome:
     decription: str
 
 
-def e2e_test_contribution_checkout():
+def get_flows_from_module(module):
+    """Get all functions decorated with @register_flow from a module."""
+    return [getattr(module, attr) for attr in dir(module) if hasattr(getattr(module, attr), "flow")]
+
+
+@register_flow()
+def confirm_contribution_checkout_implementation() -> E2eOutCome:
+    """End-to-end user flow for making a contribution."""
     logger.info("Starting checkout flow")
-    # don't do django quries in this context, they'll be somewhat inexpelibly async despite
-    # using with sync_playwright() as p below.
     email = make_email()
     try:
+        # don't do django quries in this context, they'll be somewhat inexpelibly async despite
+        # using with sync_playwright() as p below.
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page()
@@ -192,6 +200,7 @@ def e2e_test_contribution_checkout():
                 mailing_country_selector="xpath=//li[normalize-space(.)='United States' and not(contains(., 'Minor Outlying Islands'))]",
             )
             browser.close()
+        # figure out what to catch on for playwright
         logger.info("Sleeping for 5 seconds to allow for async side effects to complete")
         time.sleep(5)
         logger.info("Checking side effects of checkout")

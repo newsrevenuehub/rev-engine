@@ -108,11 +108,16 @@ GS_CREDENTIALS = __ensure_gs_credentials(
     raise_on_unset=os.getenv("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", "true").lower() == "true",
 )
 
+E2E_ENABLED = os.getenv("E2E_ENABLED", "false").lower() == "true"
+E2E_USERNAME = os.getenv("E2E_USERNAME", "")
+E2E_PASSWORD = os.getenv("E2E_PASSWORD", "")
+E2E_CONTRIBUTOR_EMAIL_SUFFIX = os.getenv("E2E_CONTRIBUTOR_EMAIL_SUFFIX", "")
+E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "fundjournalism.org")
+
 # Application definition
 INSTALLED_APPS = [
     "apps.common",
     "apps.api",
-    "apps.e2e",
     "apps.users",
     "apps.organizations",
     "apps.pages",
@@ -148,10 +153,13 @@ INSTALLED_APPS = [
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
-if ENABLE_API_BROWSER:
-    INSTALLED_APPS += [
-        "drf_yasg",
-    ]
+
+for setting, app in [
+    (ENABLE_API_BROWSER, "drf_yasg"),
+    (E2E_ENABLED, "apps.e2e"),
+]:
+    if setting:
+        INSTALLED_APPS.append(app)
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",

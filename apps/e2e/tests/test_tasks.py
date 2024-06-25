@@ -1,7 +1,7 @@
 import pytest
 
 from apps.e2e import TESTS
-from apps.e2e.tasks import E2ETest, do_ci_e2e_test_run, slightly_safer_subprocess_call
+from apps.e2e.tasks import E2ETest, do_ci_e2e_flow_run, slightly_safer_subprocess_call
 
 
 def test_E2ETest_when_unsupported_test():
@@ -14,7 +14,7 @@ def test_E2ETest_when_unsupported_test():
 @pytest.mark.parametrize("raises_exception", [True, False])
 @pytest.mark.parametrize("report_results", [True, False])
 @pytest.mark.parametrize("commit_sha", ["1234", None])
-def test_do_ci_e2e_test_run(commit_sha, report_results, raises_exception, result_return_code, mocker):
+def test_do_ci_e2e_flow_run(commit_sha, report_results, raises_exception, result_return_code, mocker):
     mocker.patch("apps.e2e.tasks.report_results_to_github")
     mock_subprocess_call = mocker.patch("apps.e2e.tasks.slightly_safer_subprocess_call")
     if raises_exception:
@@ -23,9 +23,9 @@ def test_do_ci_e2e_test_run(commit_sha, report_results, raises_exception, result
         mock_subprocess_call.return_value.returncode = result_return_code
     if report_results and not commit_sha:
         with pytest.raises(ValueError, match="commit_sha must be provided when report_results is True"):
-            do_ci_e2e_test_run([TESTS.keys()[0]], commit_sha=commit_sha, report_results=report_results)
+            do_ci_e2e_flow_run([TESTS.keys()[0]], commit_sha=commit_sha, report_results=report_results)
     else:
-        results = do_ci_e2e_test_run([TESTS.keys()[0]], commit_sha=commit_sha, report_results=report_results)
+        results = do_ci_e2e_flow_run([TESTS.keys()[0]], commit_sha=commit_sha, report_results=report_results)
         assert results.keys() == [TESTS.keys()[0]]
         assert results[TESTS.keys()[0]] == result_return_code
 

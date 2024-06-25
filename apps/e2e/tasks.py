@@ -99,7 +99,7 @@ def report_results_to_github(results: list[E2ETest], commit_sha: str, outcome: T
 
 
 @shared_task
-def do_ci_e2e_test_run(
+def do_ci_e2e_flow_run(
     tests: list,
     commit_sha: str = None,
     report_results: bool = False,

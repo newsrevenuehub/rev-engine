@@ -588,7 +588,7 @@ class Contribution(IndexedTimeStampedModel):
             "contribution_interval_display_value": self.interval,
             "contributor_email": self.contributor.email,
             "contributor_name": customer.name,
-            "copyright_year": datetime.datetime.now().year,
+            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
             "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
             "fiscal_status": self.revenue_program.fiscal_status,
             "magic_link": Contributor.create_magic_link(self),
@@ -596,7 +596,9 @@ class Contribution(IndexedTimeStampedModel):
             "rp_name": self.revenue_program.name,
             "style": asdict(self.revenue_program.transactional_email_style),
             "tax_id": self.revenue_program.tax_id,
-            "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
+            "timestamp": (
+                timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+            ),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.

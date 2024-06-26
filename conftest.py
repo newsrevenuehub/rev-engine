@@ -295,7 +295,7 @@ def annual_contribution(live_donation_page):
 
 @pytest.fixture()
 def monthly_contribution_with_refund(live_donation_page):
-    then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)
+    then = datetime.datetime.now(tz=ZoneInfo("UTC")) - datetime.timedelta(days=30)
     contribution = ContributionFactory(
         donation_page=live_donation_page,
         monthly_subscription=True,
@@ -314,7 +314,7 @@ def monthly_contribution_with_refund(live_donation_page):
 
 @pytest.fixture()
 def monthly_contribution_multiple_payments(live_donation_page):
-    then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)
+    then = datetime.datetime.now(tz=ZoneInfo("UTC")) - datetime.timedelta(days=30)
     contribution = ContributionFactory(
         donation_page=live_donation_page,
         monthly_subscription=True,

@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
@@ -26,6 +26,7 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
+from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     make_send_thank_you_email_data,
     send_templated_email,
@@ -284,6 +285,9 @@ class Contribution(IndexedTimeStampedModel):
         currency = self.get_currency_dict()
         return f"{currency['symbol']}{f'{self.amount / 100:.2f}'} {currency['code']}"
 
+    def format_amount(self, amount: int, symbol="$", code="USD") -> str:
+        return f"{symbol}{f'{amount / 100:.2f}'} {code}"
+
     @property
     def revenue_program(self) -> RevenueProgram | None:
         if self.donation_page:
@@ -540,18 +544,53 @@ class Contribution(IndexedTimeStampedModel):
             self.save(update_fields={"status", "modified"})
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
-    def handle_thank_you_email(self):
+    def handle_thank_you_email(self, billing_history: list[Contribution.Billing] | None = None):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email."""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
             data = make_send_thank_you_email_data(self)
+            if billing_history:
+                data["billing_history"] = billing_history
             send_thank_you_email.delay(data)
         else:
             logger.info(
                 "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
                 self.id,
             )
+
+    class Billing(TypedDict):
+        payment_date: datetime.datetime
+        payment_amount: int
+        payment_status: str
+
+    def get_billing_history(self) -> list[Billing] | None:
+        """Get the billing history of a recurring contribution."""
+        if self.interval == ContributionInterval.ONE_TIME:
+            logger.info(
+                "`Contribution.get_billing_history` called on ID: %s with one-time interval. No billing history available",
+                self.id,
+            )
+            return None
+
+        payments: list[Payment] = self.payment_set.all()
+        billing_history = [
+            {
+                "payment_date": convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
+                "payment_amount": (
+                    self.format_amount(payment.amount_refunded)
+                    if payment.amount_refunded
+                    else self.format_amount(payment.gross_amount_paid)
+                ),
+                "payment_status": "Paid" if payment.amount_refunded == 0 else "Refunded",
+            }
+            for payment in payments
+        ]
+
+        logger.info(
+            "`Contribution.get_billing_history` called on an instance (ID: %s). Billing history generated", self.id
+        )
+        return billing_history
 
     def send_recurring_contribution_change_email(
         self, subject_line: str, template_name: str, timestamp: str = None

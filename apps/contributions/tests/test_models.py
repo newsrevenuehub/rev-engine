@@ -35,6 +35,7 @@ from apps.contributions.tests.factories import (
     PaymentFactory,
 )
 from apps.contributions.types import StripeEventData
+from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -331,6 +332,33 @@ class TestContributionModel:
     def contribution(self, request):
         return request.getfixturevalue(request.param)
 
+    @pytest.fixture(
+        params=["one_time_contribution", "monthly_contribution_multiple_payments", "monthly_contribution_with_refund"]
+    )
+    def contribution_billing_history(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_get_billing_history(self, contribution_billing_history: Contribution):
+        billing_history = contribution_billing_history.get_billing_history()
+
+        expected_value = [
+            {
+                "payment_date": convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
+                "payment_amount": (
+                    contribution_billing_history.format_amount(payment.amount_refunded)
+                    if payment.amount_refunded
+                    else contribution_billing_history.format_amount(payment.gross_amount_paid)
+                ),
+                "payment_status": "Paid" if payment.amount_refunded == 0 else "Refunded",
+            }
+            for payment in contribution_billing_history.payment_set.all()
+        ]
+
+        if contribution_billing_history.interval.value is ContributionInterval.ONE_TIME.value:
+            assert billing_history is None
+        else:
+            assert billing_history == expected_value
+
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
         """Show Contribution.create_stripe_customer calls Stripe with right params and returns the customer object."""
         customer_create_return_val = {"id": "cus_fakefakefake"}
@@ -550,7 +578,8 @@ class TestContributionModel:
 
     @pytest.mark.usefixtures("_mock_stripe_customer")
     @pytest.mark.parametrize("send_receipt_email_via_nre", [True, False])
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, mocker, settings):
+    @pytest.mark.parametrize("billing_history", [None, "mock_billing_history"])
+    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, billing_history, mocker, settings):
         """Show that when org configured to have NRE send thank you emails, send_templated_email gets called with expected args."""
         settings.CELERY_TASK_ALWAYS_EAGER = True
         (org := contribution.revenue_program.organization).send_receipt_email_via_nre = send_receipt_email_via_nre
@@ -558,8 +587,11 @@ class TestContributionModel:
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
-        contribution.handle_thank_you_email()
+        contribution.handle_thank_you_email(billing_history)
         expected_data = make_send_thank_you_email_data(contribution)
+        if billing_history:
+            expected_data["billing_history"] = billing_history
+
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)
         else:

@@ -30,7 +30,7 @@ from waffle import get_waffle_flag_model
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
@@ -290,6 +290,44 @@ def monthly_contribution(live_donation_page):
 @pytest.fixture()
 def annual_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture()
+def monthly_contribution_with_refund(live_donation_page):
+    then = datetime.datetime.now() - datetime.timedelta(days=30)
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        monthly_subscription=True,
+        created=then,
+    )
+    for x in (then, then + datetime.timedelta(days=30)):
+        PaymentFactory(
+            created=x,
+            contribution=contribution,
+            amount_refunded=contribution.amount,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=0,
+        )
+    return contribution
+
+
+@pytest.fixture()
+def monthly_contribution_multiple_payments(live_donation_page):
+    then = datetime.datetime.now() - datetime.timedelta(days=30)
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        monthly_subscription=True,
+        created=then,
+    )
+    for x in (then, then + datetime.timedelta(days=30)):
+        PaymentFactory(
+            created=x,
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+    return contribution
 
 
 @pytest.fixture()

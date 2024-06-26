@@ -49,6 +49,34 @@
     margin-top: 28px;
     margin-bottom: 25px;
   }
+
+  .outer-center {
+    margin-left: 34px;
+    margin-right: 34px;
+  }
+
+  .billing-history-header {
+    font-family: Roboto, sans-serif;
+    font-size: 18px;
+    color: #282828;
+    margin-bottom: 20px;
+  }
+
+  .billing-history-label {
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #282828;
+    margin-bottom: 6px;
+  }
+
+  .billing-history-value {
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #282828;
+    margin-bottom: 12px;
+  }
 </style>
 {% endblock custom_style %}
 
@@ -84,3 +112,49 @@
 {% endblock header %}
 
 {% block timestamp_label %}Received{% endblock timestamp_label %}
+
+{% block billing_history %}
+  {% if billing_history %}
+    <div class="u-row-container" style="padding-bottom: 70px;">
+      <p class="outer-center billing-history-header">Billing History</p>
+      <table class="outer-center" width="532px" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding-right: 0px;padding-left: 0px;" align="left">
+              <p class="billing-history-label">Date</p>
+          </td>
+          <td style="padding-right: 0px;padding-left: 0px;" align="left">
+              <p class="billing-history-label">Amount</p>
+          </td>
+          <td style="padding-right: 0px;padding-left: 0px;" align="left">
+              <p class="billing-history-label">Status</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-right: 0px;padding-left: 0px;" align="left">
+            <div style="border-bottom: 1px solid #f1f1f1; margin-bottom: 18px;"></div>
+          </td>
+          <td style="padding-right: 0px;padding-left: 0px;" align="left">
+            <div style="border-bottom: 1px solid #f1f1f1; margin-bottom: 18px;"></div>
+          </td>
+          <td style="padding-right: 0px;padding-left: 0px;" align="left">
+            <div style="border-bottom: 1px solid #f1f1f1; margin-bottom: 18px;"></div>
+          </td>
+        </tr>
+
+        {% for item in billing_history %}
+          <tr>
+            <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                <p class="billing-history-value">{{ item.payment_date }}</p>
+            </td>
+            <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                <p class="billing-history-value">{{ item.payment_amount }}</p>
+            </td>
+            <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                <p class="billing-history-value">{{ item.payment_status }}</p>
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endif %}
+{% endblock billing_history %}

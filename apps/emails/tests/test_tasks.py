@@ -113,19 +113,39 @@ class TestSendThankYouEmail:
             lambda: ContributionFactory(monthly_subscription=True),
         ],
     )
-    def test_happy_path(self, make_contribution_fn, mocker):
+    @pytest.mark.parametrize(
+        "billing_history",
+        [
+            None,
+            [
+                {"payment_date": "06-11-24 05:08 EDT", "payment_amount": "$6684.00 USD", "payment_status": "Paid"},
+                {"payment_date": "05-10-24 22:14 EDT", "payment_amount": "$6684.00 USD", "payment_status": "Refunded"},
+            ],
+        ],
+    )
+    def test_happy_path(self, make_contribution_fn, billing_history, mocker):
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
         contribution = make_contribution_fn()
         data = make_send_thank_you_email_data(contribution)
+        if billing_history:
+            data["billing_history"] = billing_history
         send_thank_you_email(data)
+
+        email_html = render_to_string("nrh-default-contribution-confirmation-email.html", context=data)
+
+        if billing_history:
+            assert "Billing History" in email_html
+            for history in billing_history:
+                assert f"<p class=\"billing-history-value\">{history['payment_status']}</p>" in email_html
+
         mock_send_mail.assert_called_once_with(
             subject="Thank you for your contribution!",
             message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=data),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[contribution.contributor.email],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=data),
+            html_message=email_html,
         )
 
     @pytest.fixture(

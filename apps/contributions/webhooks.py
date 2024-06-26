@@ -89,7 +89,8 @@ class StripeWebhookProcessor:
     def route_request(self):
         logger.info("Routing request for event type %s", self.event_type)
         match self.event_type:
-            # TODO: [DEV-4450] Create a new webhook receiver to correctly handle payment_method.attached event
+            # TODO @BW: Create a new webhook receiver to correctly handle payment_method.attached event
+            # DEV-4450
             case "payment_method.attached":
                 return None
             case "payment_intent.canceled":
@@ -202,8 +203,9 @@ class StripeWebhookProcessor:
             contribution_update_data = self._add_pm_id_and_payment_method_details(
                 pm_id=self.obj_data["payment_method"],
                 update_data={
-                    # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever
-                    # event happened to cause creation
+                    # TODO @BW: Get rid of payment_provider_data.
+                    # DEV-4295
+                    # As it's an inconistent reference to whichever event happened to cause creation.
                     "payment_provider_data": self.event,
                     "last_payment_date": payment.created,
                     "status": ContributionStatus.PAID,
@@ -261,7 +263,11 @@ class StripeWebhookProcessor:
                 self.contribution.id,
             )
             self.contribution.send_recurring_contribution_email_reminder(
-                make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
+                make_aware(
+                    datetime.datetime.fromtimestamp(  # noqa: DTZ006 make_aware handles tz
+                        self.obj_data["next_payment_attempt"]
+                    )
+                ).date()
             )
         else:
             logger.debug(

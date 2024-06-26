@@ -1,7 +1,7 @@
 import StripeLogo from 'assets/images/stripe.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
-
+import { Link } from 'components/base';
 import IntegrationCard from '../IntegrationCard';
 
 export function StripeIntegrationCard() {
@@ -21,9 +21,9 @@ export function StripeIntegrationCard() {
       toggleConnectedTooltipMessage={
         <>
           Connected to Stripe. Contact{' '}
-          <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+          <Link href={HELP_URL} target="_blank">
             Support
-          </a>{' '}
+          </Link>{' '}
           to disconnect.
         </>
       }

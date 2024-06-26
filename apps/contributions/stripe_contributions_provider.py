@@ -187,7 +187,8 @@ class StripePaymentIntent:
             return False
         return self.payment_intent.invoice.subscription.status == "canceled"
 
-    # TODO: [DEV-3987] Fix StripePaymentIntent.refunded property
+    # TODO @BW: Fix StripePaymentIntent.refunded property
+    # DEV-3987
     @property
     def refunded(self):
         """Is contribution refunded.

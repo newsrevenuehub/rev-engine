@@ -148,7 +148,7 @@ class TestContributorModel:
         contributor_user,
         customer_id,
     ):
-        then = datetime.datetime.now() - timedelta(days=30)
+        then = datetime.datetime.now(datetime.timezone.utc) - timedelta(days=30)
         contribution = ContributionFactory(
             monthly_subscription=True,
             status=ContributionStatus.CANCELED,
@@ -1031,7 +1031,7 @@ class TestContributionModel:
         annual_contribution.donation_page.revenue_program = revenue_program
         annual_contribution.donation_page.save()
         mocker.spy(send_templated_email, "delay")
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         email_expectations = [
             f"Email: {annual_contribution.contributor.email}",
@@ -1695,7 +1695,7 @@ class TestContributionModel:
 
     @pytest.mark.parametrize(
         "canceled_at",
-        [None, datetime.datetime.now().timestamp()],
+        [None, datetime.datetime.now(datetime.timezone.utc).timestamp()],
     )
     def test_cancelled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
         contribution.provider_subscription_id = "something"

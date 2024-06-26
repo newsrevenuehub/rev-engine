@@ -254,7 +254,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
     first_name = serializers.CharField(max_length=40, write_only=True)
     last_name = serializers.CharField(max_length=80, write_only=True)
-    # TODO: DEV-3440 - handle address structure & validation in a better way.
+    # TODO @MariclareHall: handle address structure & validation in a better way.
+    # DEV-3440
     mailing_postal_code = serializers.CharField(
         max_length=20, write_only=True, required=False, allow_blank=True, default=""
     )
@@ -442,7 +443,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             contributor_id=contribution.contributor.id,
             # the `or None` pattern here and below because in validated data, these fields are allowed to be blank, but in
             # the Stripe metadata, we want to send null, not blank.
-            # TODO: [DEV-3827] Coordinate comp_subscription between server and SPA
+            # TODO @BW: Coordinate comp_subscription between server and SPA
+            # DEV-3827
             comp_subscription=self.validated_data["comp_subscription"] or None,
             donor_selected_amount=self.validated_data["donor_selected_amount"],
             honoree=self.validated_data["honoree"] or None,
@@ -720,7 +722,8 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     subscription_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
     )
-    # TODO: [DEV-2320] remove these two booleans after the frontend is fully using the Subscriptions API
+    # TODO @DC: remove these two booleans after the frontend is fully using the Subscriptions API
+    # DEV-2320
     is_modifiable = serializers.BooleanField(
         required=True, help_text="if recurring then can the payment method be modified"
     )

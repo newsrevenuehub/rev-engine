@@ -301,14 +301,20 @@ def monthly_contribution_with_refund(live_donation_page):
         monthly_subscription=True,
         created=then,
     )
-    for x in (then, then + datetime.timedelta(days=30)):
-        PaymentFactory(
-            created=x,
-            contribution=contribution,
-            amount_refunded=contribution.amount,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=0,
-        )
+    PaymentFactory(
+        created=then,
+        contribution=contribution,
+        amount_refunded=0,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=contribution.amount - 100,
+    )
+    PaymentFactory(
+        created=then + datetime.timedelta(days=30),
+        contribution=contribution,
+        amount_refunded=contribution.amount,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=0,
+    )
     return contribution
 
 

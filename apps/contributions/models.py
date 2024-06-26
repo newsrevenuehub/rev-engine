@@ -49,6 +49,12 @@ class ContributionStatusError(Exception):
     pass
 
 
+class BillingHistory(TypedDict):
+    payment_date: datetime.datetime
+    payment_amount: int
+    payment_status: str
+
+
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
@@ -545,14 +551,14 @@ class Contribution(IndexedTimeStampedModel):
             self.save(update_fields={"status", "modified"})
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
-    def handle_thank_you_email(self, billing_history: list[Contribution.Billing] | None = None):
+    def handle_thank_you_email(self, send_billing_history: bool = False):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email."""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
             data = make_send_thank_you_email_data(self)
-            if billing_history:
-                data["billing_history"] = billing_history
+            if send_billing_history:
+                data["billing_history"] = self.get_billing_history()
             send_thank_you_email.delay(data)
         else:
             logger.info(
@@ -560,21 +566,9 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
 
-    class Billing(TypedDict):
-        payment_date: datetime.datetime
-        payment_amount: int
-        payment_status: str
-
-    def get_billing_history(self) -> list[Billing] | None:
-        """Get the billing history of a recurring contribution."""
-        if self.interval == ContributionInterval.ONE_TIME:
-            logger.info(
-                "`Contribution.get_billing_history` called on ID: %s with one-time interval. No billing history available",
-                self.id,
-            )
-            return None
-
-        payments: list[Payment] = self.payment_set.all()
+    def get_billing_history(self) -> list[BillingHistory] | None:
+        """Get the billing history of a contribution."""
+        payments = self.payment_set.all()
         billing_history = [
             {
                 "payment_date": convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
@@ -586,6 +580,7 @@ class Contribution(IndexedTimeStampedModel):
                 "payment_status": "Paid" if payment.amount_refunded == 0 else "Refunded",
             }
             for payment in payments
+            if isinstance(payment, Payment)
         ]
 
         logger.info(

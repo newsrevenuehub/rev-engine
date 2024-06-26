@@ -26,7 +26,7 @@ class TestUserHasAcceptedTermsOfService:
         assert permission.has_permission(request, None) is False
 
     def test_has_permission_when_user_has_accepted_terms_of_service(self, user, rf):
-        user.accepted_terms_of_service = datetime.datetime.utcnow()
+        user.accepted_terms_of_service = datetime.datetime.now(datetime.timezone.utc)
         user.save()
         request = rf.get("/")
         request.user = user

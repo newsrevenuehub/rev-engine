@@ -368,7 +368,8 @@ DTM_IGNORED_MIGRATIONS = {
 
 ### Django-CSP Settings
 
-# TODO: [DEV-2359] Fix CSP violation caused by react-select emotion
+# TODO @BW: Fix CSP violation caused by react-select emotion
+# DEV-2359
 ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
 if not ENFORCE_CSP:
     CSP_REPORT_ONLY = True
@@ -517,7 +518,8 @@ CF_ZONE_NAME = os.getenv("CF_ZONE_NAME")
 
 ### RevEngine (1st Party) Settings
 
-# TODO: [DEV-2010] Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
+# TODO @njh: Isn't DOMAIN_APEX just SITE_URL without any subdomain?
+# DEV-2010
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")

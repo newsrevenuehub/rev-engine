@@ -196,7 +196,8 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
-    # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
+    # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
+    # DEV-4333
     last_payment_date = models.DateTimeField(null=True)
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
 
@@ -587,7 +588,7 @@ class Contribution(IndexedTimeStampedModel):
             "contribution_interval_display_value": self.interval,
             "contributor_email": self.contributor.email,
             "contributor_name": customer.name,
-            "copyright_year": datetime.datetime.now().year,
+            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
             "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
             "fiscal_status": self.revenue_program.fiscal_status,
             "magic_link": Contributor.create_magic_link(self),
@@ -595,7 +596,9 @@ class Contribution(IndexedTimeStampedModel):
             "rp_name": self.revenue_program.name,
             "style": asdict(self.revenue_program.transactional_email_style),
             "tax_id": self.revenue_program.tax_id,
-            "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
+            "timestamp": (
+                timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+            ),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.
@@ -694,7 +697,8 @@ class Contribution(IndexedTimeStampedModel):
         return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
 
     @property
-    # TODO: [DEV-4333] Update this to be .last_payment_date when no longer in conflict with db model field
+    # TODO @BW: Update this to be .last_payment_date when no longer in conflict with db model field
+    # DEV-4333
     def _last_payment_date(self) -> datetime.datetime | None:
         """Temporary property to avoid conflict with db field name.
 
@@ -1103,7 +1107,8 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
-    # TODO: [DEV-4379] Make transaction_time non-nullable once we've run data migration for existing payments
+    # TODO @BW: Make transaction_time non-nullable once we've run data migration for existing payments
+    # DEV-4379
     # NB: this is the time the payment was created in Stripe, not the time it was created in NRE. Additionally, note that we
     # source this from the .created property on the balance transaction associated with the payment. There is also a
     # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look

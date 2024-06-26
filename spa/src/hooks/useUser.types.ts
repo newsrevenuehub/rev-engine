@@ -11,6 +11,10 @@ export interface Organization {
   show_connected_to_salesforce: boolean;
   show_connected_to_slack: boolean;
   send_receipt_email_via_nre: boolean;
+  show_connected_to_digestbuilder: boolean;
+  show_connected_to_eventbrite: boolean;
+  show_connected_to_google_analytics: boolean;
+  show_connected_to_newspack: boolean;
 }
 
 export interface User {

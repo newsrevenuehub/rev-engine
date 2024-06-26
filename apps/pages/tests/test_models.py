@@ -25,7 +25,8 @@ def test__get_screenshot_upload_path(mocker):
     assert isinstance(_get_screenshot_upload_path(instance, filename), str)
     assert (
         _get_screenshot_upload_path(instance, filename)
-        == f"{instance.organization.name}/page_screenshots/{instance.name}_{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.png"
+        == f"{instance.organization.name}/page_screenshots/{instance.name}_"
+        f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')}.png"
     )
 
 
@@ -44,7 +45,7 @@ def donation_page_no_published_date():
 
 @pytest.fixture()
 def donation_with_published_date():
-    return DonationPageFactory(published_date=datetime.datetime.now())
+    return DonationPageFactory(published_date=datetime.datetime.now(datetime.timezone.utc))
 
 
 @pytest.mark.django_db()

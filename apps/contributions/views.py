@@ -674,7 +674,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
-        contribution.handle_thank_you_email(contribution.interval.value != ContributionInterval.ONE_TIME.value)
+        contribution.handle_thank_you_email(contribution.interval != ContributionInterval.ONE_TIME.value)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(

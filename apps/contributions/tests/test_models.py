@@ -355,7 +355,7 @@ class TestContributionModel:
         ]
 
         if contribution_billing_history.interval.value is ContributionInterval.ONE_TIME.value:
-            assert billing_history is None
+            assert billing_history == []
         else:
             assert billing_history == expected_value
 
@@ -578,8 +578,10 @@ class TestContributionModel:
 
     @pytest.mark.usefixtures("_mock_stripe_customer")
     @pytest.mark.parametrize("send_receipt_email_via_nre", [True, False])
-    @pytest.mark.parametrize("billing_history", [None, "mock_billing_history"])
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, billing_history, mocker, settings):
+    @pytest.mark.parametrize("show_billing_history", [None, True])
+    def test_handle_thank_you_email(
+        self, contribution: Contribution, send_receipt_email_via_nre, show_billing_history, mocker, settings
+    ):
         """Show that when org configured to have NRE send thank you emails, send_templated_email gets called with expected args."""
         settings.CELERY_TASK_ALWAYS_EAGER = True
         (org := contribution.revenue_program.organization).send_receipt_email_via_nre = send_receipt_email_via_nre
@@ -587,10 +589,10 @@ class TestContributionModel:
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
-        contribution.handle_thank_you_email(billing_history)
+        contribution.handle_thank_you_email(show_billing_history)
         expected_data = make_send_thank_you_email_data(contribution)
-        if billing_history:
-            expected_data["billing_history"] = billing_history
+        if show_billing_history:
+            expected_data["billing_history"] = contribution.get_billing_history()
 
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)

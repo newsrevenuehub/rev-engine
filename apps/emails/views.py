@@ -51,12 +51,12 @@ def preview_contribution_email_template(request, template_name: str):
         "default_contribution_page_url": rp.default_donation_page.page_url if rp.default_donation_page else None,
         "billing_history": [
             {
-                "payment_date": datetime.now(),
+                "payment_date": datetime.datetime.now(datetime.timezone.utc),
                 "payment_amount": 500,
                 "payment_status": "paid",
             },
             {
-                "payment_date": datetime.now(),
+                "payment_date": datetime.datetime.now(datetime.timezone.utc),
                 "payment_amount": 500,
                 "payment_status": "refunded",
             },

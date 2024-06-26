@@ -76,7 +76,7 @@ def setup_request(user, request):
     # Annotate a request object with a session.
     # Note that we need to pass a callable to the middleware in Django 4.2. Here, we just have a dummy
     # that returns the request object.
-    middleware = SessionMiddleware(get_response=(dummy := lambda request: request))
+    middleware = SessionMiddleware(get_response=(dummy := lambda x: x))
     middleware.process_request(request)
     request.session.save()
 

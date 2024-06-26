@@ -97,6 +97,10 @@ EXPECTED_ORGANIZATION_INLINE_SERIALIZER_FIELDS = {
     "show_connected_to_salesforce",
     "show_connected_to_mailchimp",
     "send_receipt_email_via_nre",
+    "show_connected_to_eventbrite",
+    "show_connected_to_google_analytics",
+    "show_connected_to_digestbuilder",
+    "show_connected_to_newspack",
 }
 
 

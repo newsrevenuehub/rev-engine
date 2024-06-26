@@ -1,5 +1,5 @@
+import datetime
 import json
-from datetime import datetime, timedelta
 from pathlib import Path
 from unittest import mock
 from zoneinfo import ZoneInfo
@@ -1352,6 +1352,7 @@ class TestPaymentViewset:
         response = client.post(url, {})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         # TODO @BW: figure out how to do csrf protection but return JSON when no token
+        # https://news-revenue-hub.atlassian.net/browse/DEV-2335
 
     @pytest.mark.parametrize(
         ("interval", "payment_intent_id", "subscription_id"),
@@ -1531,7 +1532,7 @@ class TestPortalContributorsViewSet:
         faker,
         stripe_subscription,
     ):
-        then = datetime.now() - timedelta(days=30)
+        then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)
         contribution = ContributionFactory(
             interval=ContributionInterval.MONTHLY,
             status=ContributionStatus.PAID,
@@ -1543,7 +1544,7 @@ class TestPortalContributorsViewSet:
             provider_subscription_id=stripe_subscription.id,
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
-        for x in (then, then + timedelta(days=30)):
+        for x in (then, then + datetime.timedelta(days=30)):
             PaymentFactory(
                 created=x,
                 contribution=contribution,
@@ -1561,7 +1562,7 @@ class TestPortalContributorsViewSet:
         faker,
         stripe_subscription,
     ):
-        then = datetime.now() - timedelta(days=365)
+        then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=365)
         contribution = ContributionFactory(
             interval=ContributionInterval.YEARLY,
             status=ContributionStatus.PAID,
@@ -1573,7 +1574,7 @@ class TestPortalContributorsViewSet:
             provider_subscription_id=stripe_subscription.id,
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
-        for x in (then, then + timedelta(days=365)):
+        for x in (then, then + datetime.timedelta(days=365)):
             PaymentFactory(
                 created=x,
                 contribution=contribution,

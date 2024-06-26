@@ -156,6 +156,26 @@ class Organization(IndexedTimeStampedModel):
         default=False,
         help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
     )
+    show_connected_to_eventbrite = models.BooleanField(
+        verbose_name="Show connected to Eventbrite",
+        default=False,
+        help_text="Indicates Eventbrite integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_digestbuilder = models.BooleanField(
+        verbose_name="Show connected to digestbuilder",
+        default=False,
+        help_text="Indicates digestbuilder integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_google_analytics = models.BooleanField(
+        verbose_name="Show connected to Google Analytics",
+        default=False,
+        help_text="Indicates Google Analytics integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_newspack = models.BooleanField(
+        verbose_name="Show connected to Newspack",
+        default=False,
+        help_text="Indicates Newspack integration status, designed for manual operation by staff members",
+    )
 
     slug = models.SlugField(
         # This is currently set to 63. It's also the same limit that is set on org name. This is because we
@@ -759,7 +779,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
-    # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # DEV-3581
     # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
@@ -1048,7 +1069,6 @@ class RevenueProgram(IndexedTimeStampedModel):
             button_color=_style.colors.cstm_CTAs or None,
         )
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """Retrieve Mailchimp email lists for this RP, if any.

@@ -48,3 +48,5 @@ python manage.py migrate
 
 echo "Bootstrapping review app"
 python manage.py bootstrap-review-app
+# Trigger the e2e test run on review app server, now that we know review app is post (first) deploy.
+./scripts/trigger-e2e-test-run.py

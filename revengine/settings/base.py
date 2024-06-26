@@ -108,6 +108,12 @@ GS_CREDENTIALS = __ensure_gs_credentials(
     raise_on_unset=os.getenv("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", "true").lower() == "true",
 )
 
+E2E_ENABLED = os.getenv("E2E_ENABLED", "false").lower() == "true"
+E2E_USERNAME = os.getenv("E2E_USERNAME", "")
+E2E_PASSWORD = os.getenv("E2E_PASSWORD", "")
+E2E_CONTRIBUTOR_EMAIL_SUFFIX = os.getenv("E2E_CONTRIBUTOR_EMAIL_SUFFIX", "")
+E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "fundjournalism.org")
+
 # Application definition
 INSTALLED_APPS = [
     "apps.common",
@@ -147,10 +153,13 @@ INSTALLED_APPS = [
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
-if ENABLE_API_BROWSER:
-    INSTALLED_APPS += [
-        "drf_yasg",
-    ]
+
+for setting, app in [
+    (ENABLE_API_BROWSER, "drf_yasg"),
+    (E2E_ENABLED, "apps.e2e"),
+]:
+    if setting:
+        INSTALLED_APPS.append(app)
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
@@ -664,4 +673,8 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 # Three minutes
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
+# Account that is allowed to do E2E testing
+E2E_ACCOUNT_EMAIL = os.getenv("E2E_ACCOUNT_EMAIL", None)
 SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
+
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", None)

@@ -8,6 +8,7 @@ from apps.api.views import (
     VerifyContributorTokenView,
 )
 from apps.contributions.urls import urlpatterns as contributions_urlpatterns
+from apps.e2e.urls import urlpatterns as e2e_urlpatterns
 from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
@@ -19,6 +20,7 @@ urlpatterns = [
     path("v1/", include(organizations_urlpatterns)),
     path("v1/", include(pages_urlpatterns)),
     path("v1/", include(contributions_urlpatterns)),
+    path("v1/", include(e2e_urlpatterns)),
     path("v1/healthcheck", include("health_check.urls")),
     path("v1/public/", include(public_urlpatterns)),
     path("v1/token/", TokenObtainPairCookieView.as_view(), name="token-obtain-pair"),

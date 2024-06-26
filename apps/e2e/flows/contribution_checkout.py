@@ -6,7 +6,9 @@ import uuid
 from django.conf import settings
 
 import stripe
-from playwright.sync_api import Page, expect, sync_playwright
+from playwright.sync_api import expect, sync_playwright
+import playwright._impl._errors
+
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor
@@ -37,7 +39,6 @@ class E2EAssertionError(E2EError):
 
 
 def fill_out_contribution_form(
-    page: Page,
     amount: int,
     email: str,
     interval: str,
@@ -51,48 +52,57 @@ def fill_out_contribution_form(
     mailing_country: str,
     mailing_country_selector: str,
     page_url: str = CHECKOUT_PAGE_URL,
-):
+) -> None:
     """Loads contribution page, and fills out first form, submits it, then fills out Stripe Payment element."""
     logger.info("Loading page %s", page_url)
-    page.goto(page_url)
-    expect(page).to_have_title(f"Join | {REVENUE_PROGRAM_NAME}")
-    logger.info("Filling out first form.")
-    page.locator(f"input[type='radio'][value='{interval}']").click()
-    page.locator("input[name='amount']").press_sequentially(str(amount))
-    page.locator("input[name='first_name']").press_sequentially(first_name)
-    page.locator("input[name='last_name']").press_sequentially(last_name)
-    page.locator("input[name='email']").press_sequentially(email)
-    page.locator("input[name='phone']").press_sequentially(phone)
-    page.locator("input[name='mailing_street']").type(mailing_street)
-    page.keyboard.press("Tab")
-    page.keyboard.press("Tab")
-    page.locator("input[name='mailing_city']").press_sequentially(mailing_city)
-    page.locator("input[name='mailing_state']").press_sequentially(mailing_state)
-    page.locator("input[name='mailing_postal_code']").press_sequentially(mailing_postal_code)
-    page.locator("input[name='mailing_country']").press_sequentially(mailing_country)
-    page.click(mailing_country_selector)
-    page.keyboard.press("Tab")
-    page.keyboard.press("Enter")
-
-    payment_form_iframe_title = "Secure payment input frame"
-    page.wait_for_function(
-        "selector => !!document.querySelector(selector)",
-        arg=f"iframe[title='{payment_form_iframe_title}']",
-    )
-    stripe_iframe = None
-    for iframe in page.query_selector_all("iframe"):
-        if iframe.get_attribute("title") == payment_form_iframe_title:
-            stripe_iframe = iframe.content_frame()
-            break
-    if stripe_iframe is None:
-        raise E2EError("Stripe iframe not found")
-    logger.info("Filling out payment form.")
-    stripe_iframe.get_by_label("Card number").fill(VISA)
-    stripe_iframe.get_by_label("Expiration").fill("12/28")
-    stripe_iframe.get_by_label("CVC").fill("123")
-    page.click("text=/Give \\$\\d+\\.\\d{2} USD once/")
-    # Thank you page is separate and proof we made it through the whole flow
-    page.wait_for_selector("text=Thank you")
+    browser = None
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.goto(page_url)
+            expect(page).to_have_title(f"Join | {REVENUE_PROGRAM_NAME}")
+            logger.info("Filling out first form.")
+            page.locator(f"input[type='radio'][value='{interval}']").click()
+            page.locator("input[name='amount']").press_sequentially(str(amount))
+            page.locator("input[name='first_name']").press_sequentially(first_name)
+            page.locator("input[name='last_name']").press_sequentially(last_name)
+            page.locator("input[name='email']").press_sequentially(email)
+            page.locator("input[name='phone']").press_sequentially(phone)
+            page.locator("input[name='mailing_street']").type(mailing_street)
+            page.keyboard.press("Tab")
+            page.keyboard.press("Tab")
+            page.locator("input[name='mailing_city']").press_sequentially(mailing_city)
+            page.locator("input[name='mailing_state']").press_sequentially(mailing_state)
+            page.locator("input[name='mailing_postal_code']").press_sequentially(mailing_postal_code)
+            page.locator("input[name='mailing_country']").press_sequentially(mailing_country)
+            page.click(mailing_country_selector)
+            page.keyboard.press("Tab")
+            page.keyboard.press("Enter")
+            payment_form_iframe_title = "Secure payment input frame"
+            page.wait_for_function(
+                "selector => !!document.querySelector(selector)",
+                arg=f"iframe[title='{payment_form_iframe_title}']",
+            )
+            stripe_iframe = None
+            for iframe in page.query_selector_all("iframe"):
+                if iframe.get_attribute("title") == payment_form_iframe_title:
+                    stripe_iframe = iframe.content_frame()
+                    break
+            if stripe_iframe is None:
+                raise E2EError("Stripe iframe not found")
+            logger.info("Filling out payment form.")
+            stripe_iframe.get_by_label("Card number").fill(VISA)
+            stripe_iframe.get_by_label("Expiration").fill("12/28")
+            stripe_iframe.get_by_label("CVC").fill("123")
+            page.click("text=/Give \\$\\d+\\.\\d{2} USD once/")
+            # Thank you page is separate and proof we made it through the whole flow
+            page.wait_for_selector("text=Thank you")
+    except playwright._impl._errors.Error as e:
+        raise E2EError("Error in playwright") from e
+    finally:
+        if browser:
+            browser.close()
 
 
 def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
@@ -105,15 +115,21 @@ def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
     try:
         contribution = Contribution.objects.get(contributor=contributor)
     except Contribution.DoesNotExist as exc:
-        raise E2EError("Contribution not found in DB") from exc
-    assert contribution.payment_set.count() == 1
-    assert contribution.amount == amount
-    assert contribution.interval == interval
-    if not interval == ContributionInterval.ONE_TIME:
-        assert contribution.subscription_id
-    else:
-        assert contribution.subscription_id is None
-    assert contribution.status == ContributionStatus.PAID
+        raise E2EAssertionError("Contribution not found in DB") from exc
+    problems = []
+    for descriptor, fn in {
+        "payment_count": lambda x: x.payment_set.count() == 1,
+        "amount": lambda x: x.amount == amount,
+        "interval": lambda x: x.interval == interval,
+        "subscription_id": lambda x: (
+            x.subscription_id is None if interval == ContributionInterval.ONE_TIME else bool(x.subscription_id)
+        ),
+        "status": lambda x: x.status == ContributionStatus.PAID,
+    }.items():
+        if not fn(contribution):
+            problems.append(descriptor)
+    if problems:
+        raise E2EAssertionError(f"Problems with these characteristics of contribution: {', '.join(problems)}")
     return contribution
 
 
@@ -168,39 +184,26 @@ class E2eOutCome:
     decription: str
 
 
-def get_flows_from_module(module):
-    """Get all functions decorated with @register_flow from a module."""
-    return [getattr(module, attr) for attr in dir(module) if hasattr(getattr(module, attr), "flow")]
-
-
 @register_flow()
 def confirm_contribution_checkout_implementation() -> E2eOutCome:
     """End-to-end user flow for making a contribution."""
     logger.info("Starting checkout flow")
     email = make_email()
     try:
-        # don't do django quries in this context, they'll be somewhat inexpelibly async despite
-        # using with sync_playwright() as p below.
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            fill_out_contribution_form(
-                email=email,
-                page=page,
-                amount=AMOUNT,
-                interval=INTERVAL,
-                first_name="John",
-                last_name="Doe",
-                phone="5555555555",
-                mailing_street="123 Main St",
-                mailing_city="Anytown",
-                mailing_state="NY",
-                mailing_postal_code="12345",
-                mailing_country="United States",
-                mailing_country_selector="xpath=//li[normalize-space(.)='United States' and not(contains(., 'Minor Outlying Islands'))]",
-            )
-            browser.close()
-        # figure out what to catch on for playwright
+        fill_out_contribution_form(
+            email=email,
+            amount=AMOUNT,
+            interval=INTERVAL,
+            first_name="John",
+            last_name="Doe",
+            phone="5555555555",
+            mailing_street="123 Main St",
+            mailing_city="Anytown",
+            mailing_state="NY",
+            mailing_postal_code="12345",
+            mailing_country="United States",
+            mailing_country_selector="xpath=//li[normalize-space(.)='United States' and not(contains(., 'Minor Outlying Islands'))]",
+        )
         logger.info("Sleeping for 5 seconds to allow for async side effects to complete")
         time.sleep(5)
         logger.info("Checking side effects of checkout")

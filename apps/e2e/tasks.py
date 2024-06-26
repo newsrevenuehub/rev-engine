@@ -9,17 +9,10 @@ import pytest
 from pytest_jsonreport.plugin import JSONReport
 import requests
 
-from apps.e2e import TESTS
-
+from apps.e2e import FLOWS
+from apps.e2e.choices import TestOutcome
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-
-class TestOutcome(Enum):
-    SUCCESS = "success"
-    FAILURE = "failure"
-    PENDING = "pending"
-    ERROR = "error"
 
 
 @dataclass()

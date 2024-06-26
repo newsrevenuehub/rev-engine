@@ -3,7 +3,8 @@ from rest_framework import status
 from apps.common.tests.test_resources import AbstractTestCase
 
 
-# TODO: [DEV-3409] Retire RevEngineApiAbstractTestCase
+# TODO @BW: Retire RevEngineApiAbstractTestCase
+# DEV-3409
 class RevEngineApiAbstractTestCase(AbstractTestCase):
     """A set custom test assertions for testing the API, with a view of distinct user types and role assignments.
 

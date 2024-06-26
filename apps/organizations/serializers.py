@@ -35,7 +35,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             data = PaymentProviderSerializer(payment_provider).data
             data.pop("id")
             representation.update(**data)
-            # TODO: [DEV-1886] remove this after the FE no longer relies on it
+            # TODO @DC: remove this after the FE no longer relies on it
+            # DEV-1886
             representation["non_profit"] = revenue_program.non_profit
             representation["domain_apple_verified_date"] = revenue_program.domain_apple_verified_date
         return representation
@@ -54,6 +55,10 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
             "show_connected_to_mailchimp",
             "show_connected_to_salesforce",
             "show_connected_to_slack",
+            "show_connected_to_eventbrite",
+            "show_connected_to_google_analytics",
+            "show_connected_to_digestbuilder",
+            "show_connected_to_newspack",
             "slug",
             "uuid",
         )

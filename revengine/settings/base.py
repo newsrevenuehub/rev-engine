@@ -49,7 +49,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "SAMEORIGIN"
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
-# Internationalization
+
+## Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -73,7 +74,8 @@ class CurrencyDict(TypedDict):
 
 CURRENCIES: CurrencyDict = {"USD": "$", "CAD": "$"}
 
-# Static files (CSS, JavaScript, Images)
+
+## Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 STATIC_ROOT = BASE_DIR / "public" / "static"
 STATIC_URL = "/static/"
@@ -189,7 +191,7 @@ TEMPLATES = [
 ]
 
 
-# Database
+## Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
@@ -216,7 +218,7 @@ if os.getenv("DATABASE_URL"):
     DATABASES["default"].update(db_from_env)
 
 
-# Password validation
+## Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -251,17 +253,13 @@ STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = int(
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 
-
 CACHE_HOST = REDIS_URL
 CONNECTION_POOL_KWARGS = {}
 if CACHE_HOST.startswith("rediss"):
     import ssl
 
     # See: https://github.com/mirumee/saleor/issues/6926
-    CONNECTION_POOL_KWARGS = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
-    }
-
+    CONNECTION_POOL_KWARGS["ssl_cert_reqs"] = ssl.CERT_NONE
 
 base_cache_config = {
     "BACKEND": "django_redis.cache.RedisCache",
@@ -328,10 +326,12 @@ LOGGING = {
     },
 }
 
+
 ### Request ID Settings
 # Ref: https://django-request-id.readthedocs.io/en/latest/
 # For Heroku environments, REQUEST_ID_HEADER will have to be set to "X-Request-ID"
 REQUEST_ID_HEADER = os.getenv("REQUEST_ID_HEADER", None)
+
 
 ### Sentry Settings
 SENTRY_ENABLE_FRONTEND = os.getenv("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
@@ -354,6 +354,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
 }
+
 
 ### django-test-migrations
 # we ignore waffle and celery beat's migrations because they are beyond our control,
@@ -439,6 +440,7 @@ SIMPLE_JWT = {
 
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"
 
+
 ### sorl-thumbmail Settings
 THUMBNAIL_COLORSPACE = None
 THUMBNAIL_PRESERVE_FORMAT = True
@@ -448,6 +450,12 @@ THUMBNAIL_PRESERVE_FORMAT = True
 # Add reversion models to admin interface.
 ADD_REVERSION_ADMIN = False
 REVERSION_COMPARE_IGNORE_NOT_REGISTERED = True
+
+
+### django-healthcheck Settings
+# This URL will get pinged when in the `auto_accept_flagged_contributions``
+# task. Which ensures the task completes on a schedule.
+HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 
 ### Stripe Settings
@@ -476,6 +484,15 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "charge.refunded",
 ]
 
+RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3  # Three minutes
+
+# This is meant to facilitate testing of the Stripe Account Link flow in local dev environment
+# By setting this to "http://localhost:3000" in env, when you go through Stripe Account Link flow,
+# on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
+# webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
+# dev environment.
+STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
+
 # The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades
 STRIPE_LIVE_SECRET_KEY_UPGRADES = os.getenv("STRIPE_LIVE_SECRET_KEY_UPGRADES", "")
 STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "")
@@ -491,11 +508,6 @@ UPGRADE_DAYS_WAIT = 3
 HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
 HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS", "")
 HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES", "")
-
-### django-healthcheck Settings
-# This URL will get pinged when in the `auto_accept_flagged_contributions``
-# task. Which ensures the task completes on a schedule.
-HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 
 ### Google Tag Manager ID
@@ -559,6 +571,7 @@ ENCRYPTION_SALT = os.getenv("ENCRYPTION_SALT", "")
 # Expire account verification URLs after X hours.
 ACCOUNT_VERIFICATION_LINK_EXPIRY = 24
 
+
 ## Various HTTP parameter names.
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"
@@ -569,6 +582,7 @@ PAGE_SLUG_PARAM = "slug"
 # > packet retransmission window. https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
 REQUESTS_TIMEOUT_DEFAULT = 31
 
+
 ## Email and ESP Settings
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -577,13 +591,7 @@ EMAIL_SUBJECT_PREFIX = f"[RevEngine {ENVIRONMENT.title()}] "
 EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
 )
-
-# Transactional Email
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
-    "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
-)
+SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
 
 # password-reset related
 #
@@ -592,6 +600,7 @@ EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
 DJANGO_REST_PASSWORDRESET_NO_INFORMATION_LEAKAGE = True
 # this is in hours
 DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 24
+
 
 ## BadActor API
 # [DEV-2008] the test API shouldn't be here. It shouldn't have a default.
@@ -605,13 +614,7 @@ BAD_ACTOR_REJECT_SCORE = BAD_ACTOR_SUPERBAD_SCORE
 BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS = BAD_ACTOR_SUPERBAD_SCORE
 
 
-# This is meant to facilitate testing of the Stripe Account Link flow in local dev environment
-# By setting this to "http://localhost:3000" in env, when you go through Stripe Account Link flow,
-# on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
-# webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
-# dev environment.
-STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
-
+## Mailchimp Settings
 # These `MAILCHIMP_` values are used by code that makes requests to mailchimp on behalf of org users
 MAILCHIMP_CLIENT_ID = os.getenv("MAILCHIMP_CLIENT_ID", None)
 MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
@@ -619,18 +622,20 @@ MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 # see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
+RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")
+
+
+### Front End Environment Variables
+
 # Host map for client custom hostnames. This should be a JSON-encoded dictionary
 # of { "customhostname.org": "rp-slug" } values.
-
-logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
-
 try:
     HOST_MAP = json.loads(os.getenv("HOST_MAP", "{}"))
 except json.JSONDecodeError:
+    logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
     logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
     HOST_MAP = {}
 
-### Front End Environment Variables
 SPA_ENV_VARS = {
     "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
     "NRE_MAILCHIMP_CLIENT_ID": MAILCHIMP_CLIENT_ID,
@@ -651,17 +656,9 @@ SPA_ENV_VARS = {
     "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
     "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
-    "HOST_MAP": os.getenv("HOST_MAP", "{}"),
+    "HOST_MAP": HOST_MAP,
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
-
-
-RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")
-
-# Three minutes
-RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
-
-SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)

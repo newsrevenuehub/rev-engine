@@ -1047,6 +1047,9 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.contribution_metadata is not None
         assert contribution.provider_customer_id == fake_customer_id
         assert contribution.provider_payment_id == pi_id
+        assert contribution.payment_provider_data == dict(mock_create_stripe_one_time_payment_intent.return_value) | {
+            "client_secret": None
+        }
         save_spy.assert_called_once()
 
     def test_when_stripe_errors_creating_payment_intent(
@@ -1095,6 +1098,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.contribution_metadata is not None
         assert contribution.provider_customer_id == fake_customer_id
         assert contribution.provider_payment_id is None
+        assert contribution.payment_provider_data is None
 
         save_spy.assert_called_once()
 
@@ -1135,6 +1139,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.contribution_metadata is None
         assert contribution.provider_customer_id is None
         assert contribution.provider_payment_id is None
+        assert contribution.payment_provider_data is None
 
         save_spy.assert_called_once()
 
@@ -1186,6 +1191,9 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.provider_payment_id == pi_id
         assert contribution.contribution_metadata is not None
         assert contribution.provider_customer_id == fake_customer_id
+        assert contribution.payment_provider_data == dict(mock_create_stripe_one_time_payment_intent.return_value) | {
+            "client_secret": None
+        }
 
         mock_create_stripe_customer.assert_called_once()
 
@@ -1199,7 +1207,6 @@ class TestCreateOneTimePaymentSerializer:
             "statement_descriptor_suffix": None,
             "stripe_account": contribution.revenue_program.payment_provider.stripe_account_id,
             "capture_method": "manual",
-            "idempotency_key": f"{contribution.uuid}-payment-intent",
         }
         save_spy.assert_called_once()
 
@@ -1238,7 +1245,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.bad_actor_response == MockBadActorResponseObjectSuperBad.mock_bad_actor_response_json
         assert contribution.provider_customer_id is None
         assert contribution.provider_payment_id is None
-
+        assert contribution.payment_provider_data is None
         save_spy.assert_called_once()
 
     def test_create_when_value_error_creating_metadata(self, minimally_valid_contribution_form_data, mocker):
@@ -1325,6 +1332,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
+        assert contribution.payment_provider_data == mock_create_stripe_subscription.return_value
         assert contribution.provider_subscription_id == mock_create_stripe_subscription.return_value["id"]
         assert contribution.contribution_metadata is not None
 
@@ -1366,7 +1374,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.provider_customer_id == mock_create_stripe_customer.return_value["id"]
         assert contribution.provider_subscription_id is None
-
+        assert contribution.payment_provider_data is None
         assert contribution.contribution_metadata is not None
 
         save_spy.assert_called_once()
@@ -1405,7 +1413,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.provider_customer_id is None
         assert contribution.provider_subscription_id is None
-
+        assert contribution.payment_provider_data is None
         assert contribution.contribution_metadata is not None
         save_spy.assert_called_once()
 
@@ -1489,7 +1497,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.flagged_date is None
         assert contribution.provider_subscription_id is None
         assert contribution.provider_customer_id is None
-
+        assert contribution.payment_provider_data is None
         assert contribution.contribution_metadata is None
         save_spy.assert_called_once()
 

@@ -27,6 +27,7 @@ from apps.api.permissions import (
     HasRoleAssignment,
     IsContributor,
     IsContributorOwningContribution,
+    IsHubAdmin,
     IsSwitchboardAccount,
     UserIsRequestedContributor,
 )
@@ -40,6 +41,7 @@ from apps.contributions.models import (
     ContributionStatusError,
     Contributor,
 )
+from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     StripePiAsPortalContribution,
@@ -148,6 +150,7 @@ def process_stripe_webhook(request):
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+
     process_stripe_webhook_task.delay(raw_event_data=raw_data)
     return Response(status=status.HTTP_200_OK)
 
@@ -292,6 +295,23 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, Contributor):
             return serializers.PaymentProviderContributionSerializer
         return serializers.ContributionSerializer
+
+    # only superusers and hub admins have permission
+    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])
+    def process_flagged(self, request, pk=None):
+        reject = request.data.get("reject", None)
+        if reject is None:
+            return Response(data={"detail": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            contribution = Contribution.objects.get(pk=pk)
+            contribution.process_flagged_payment(reject=reject)
+        except Contribution.DoesNotExist:
+            return Response({"detail": "Could not find contribution"}, status=status.HTTP_404_NOT_FOUND)
+        except PaymentProviderError as pp_error:
+            return Response({"detail": str(pp_error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
     @action(
         methods=["post"],
@@ -569,7 +589,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         ContributionStatus.FLAGGED,
         ContributionStatus.PROCESSING,
         ContributionStatus.REJECTED,
-        ContributionStatus.ABANDONED,
     ]
     # NB: This view is about returning contributor.contributions and never returns contributors, but
     # we need to set a queryset to satisfy DRF's viewset machinery

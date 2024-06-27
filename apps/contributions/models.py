@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
@@ -15,7 +15,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
 
 import reversion
@@ -39,9 +38,6 @@ from revengine.settings.base import CurrencyDict
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-
-CONTRIBUTION_ABANDONED_THRESHOLD = datetime.timedelta(minutes=60 * 8)
 
 
 class ContributionIntervalError(Exception):
@@ -179,18 +175,6 @@ class ContributionQuerySet(models.QuerySet):
             case _:
                 return self.none()
 
-    def unmarked_abandoned_carts(self) -> models.QuerySet:
-        """Return contributions that have been abandoned.
-
-        We define abandoned as contributions that have been flagged or are in processing state for more than
-        CONTRIBUTION_ABANDONED_THRESHOLD hours.
-        """
-        return self.filter(
-            status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING],
-            created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
-            provider_payment_method_id__isnull=True,
-        )
-
 
 class ContributionManager(models.Manager):
     pass
@@ -199,15 +183,12 @@ class ContributionManager(models.Manager):
 class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
-    # TODO @BW: Remove reason column/field
-    # DEV-4922
     reason = models.CharField(max_length=255, blank=True)
 
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
-    # TODO @BW: Make provider_payment_id, provider_setup_intent_id, provider_subscription_id unique
-    # DEV-4915
+    payment_provider_data = models.JSONField(null=True)
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
@@ -387,19 +368,6 @@ class Contribution(IndexedTimeStampedModel):
     def expanded_bad_actor_score(self):
         return None if self.bad_actor_score is None else self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
-    @property
-    def is_unmarked_abandoned_cart(self) -> bool:
-        return (
-            not self.provider_payment_method_id
-            and self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING)
-            and (self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD)
-        )
-
-    def process_flagged_payment(self, reject=False):
-        logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
-        payment_manager = self.get_payment_manager_instance()
-        payment_manager.complete_payment(reject=reject)
-
     def get_currency_dict(self) -> CurrencyDict:
         """Return code (i.e. USD) and symbol (i.e. $) for this contribution."""
         try:
@@ -415,16 +383,29 @@ class Contribution(IndexedTimeStampedModel):
 
     def get_payment_manager_instance(self):
         """Select the correct payment manager for this Contribution, then instantiates it."""
-        from apps.contributions.payment_managers import StripePaymentManager
+        from apps.contributions.payment_managers import PaymentManager
 
-        return StripePaymentManager(contribution=self)
+        manager_class = PaymentManager.get_subclass(self)
+        return manager_class(contribution=self)
+
+    def process_flagged_payment(self, reject=False):
+        logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
+        payment_manager = self.get_payment_manager_instance()
+        payment_manager.complete_payment(reject=reject)
+        logger.info("Contribution.process_flagged_payment - processing for contribution %s complete", self.pk)
 
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
-        if not provider_payment_method_id:
+        pm_id = provider_payment_method_id or self.provider_payment_method_id
+        if not pm_id:
+            logger.warning(
+                "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id"
+                " on contribution with ID %s",
+                self.id,
+            )
             return None
         try:
             return stripe.PaymentMethod.retrieve(
-                provider_payment_method_id,
+                pm_id,
                 stripe_account=self.revenue_program.payment_provider.stripe_account_id,
             )
         except StripeError:
@@ -481,7 +462,6 @@ class Contribution(IndexedTimeStampedModel):
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
-            idempotency_key=f"{self.uuid}-payment-intent",
         )
 
     def create_stripe_setup_intent(self, metadata):
@@ -489,15 +469,10 @@ class Contribution(IndexedTimeStampedModel):
             customer=self.provider_customer_id,
             stripe_account=self.stripe_account_id,
             metadata=metadata,
-            idempotency_key=f"{self.uuid}-setup-intent",
         )
 
     def create_stripe_subscription(
-        self,
-        metadata=None,
-        default_payment_method=None,
-        off_session=False,
-        error_if_incomplete=False,
+        self, metadata=None, default_payment_method=None, off_session=False, error_if_incomplete=False
     ):
         """Create a Stripe Subscription and attach its data to the contribution.
 
@@ -525,7 +500,6 @@ class Contribution(IndexedTimeStampedModel):
             payment_settings={"save_default_payment_method": "on_subscription"},
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
-            idempotency_key=f"{self.uuid}-subscription",
         )
 
     def cancel(self):
@@ -653,30 +627,6 @@ class Contribution(IndexedTimeStampedModel):
             "recurring-contribution-email-reminder",
             next_charge_date,
         )
-
-    @cached_property
-    def stripe_subscriptions_for_customer(self) -> Generator[stripe.Subscription]:
-        """Return all subscriptions for the customer associated with this contribution."""
-        if not self.provider_customer_id:
-            return []
-        return stripe.Subscription.list(
-            customer=self.provider_customer_id, stripe_account=self.stripe_account_id
-        ).auto_paging_iter()
-
-    @property
-    def stripe_customer(self) -> stripe.Customer | None:
-        if not self.provider_customer_id:
-            return None
-        try:
-            return stripe.Customer.retrieve(self.provider_customer_id, stripe_account=self.stripe_account_id)
-        except stripe.error.StripeError:
-            logger.exception(
-                "`Contribution.stripe_customer` encountered a Stripe error trying to retrieve stripe customer"
-                " with ID %s and stripe account ID %s for contribution with ID %s",
-                self.provider_customer_id,
-                self.stripe_account_id,
-                self.id,
-            )
 
     @property
     def stripe_setup_intent(self) -> stripe.SetupIntent | None:
@@ -977,9 +927,7 @@ class Contribution(IndexedTimeStampedModel):
                 "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
                 contribution.id,
             )
-            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method(
-                contribution.provider_payment_method_id
-            )
+            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
             if dry_run:
                 updated += 1
                 continue

@@ -147,7 +147,13 @@ class TestStripeWebhookProcessor:
         )
         processor._add_pm_id_and_payment_method_details(pm_id="pm_id" if has_pm_id else None, update_data={})
 
-    def test__handle_pm_update_event_when_no_update(self, mocker, payment_intent_succeeded_one_time_event):
+    def test_route_request_when_event_type_is_payment_method_attached(
+        self, mocker, payment_intent_succeeded_one_time_event
+    ):
+        mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.event_type",
+            new_callable=mocker.PropertyMock,
+            return_value="payment_method.attached",
+        )
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
-        mocker.patch.object(processor, "contribution", return_value=None, new_callable=mocker.PropertyMock)
-        processor._add_pm_id_and_payment_method_details(pm_id="pm_id", update_data={})
+        processor.route_request()

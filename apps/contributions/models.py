@@ -108,6 +108,12 @@ class Contributor(IndexedTimeStampedModel):
 
 
 class ContributionQuerySet(models.QuerySet):
+    PORTAL_HIDDEN_STATUSES = [
+        ContributionStatus.FLAGGED,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.REJECTED,
+    ]
+
     def one_time(self):
         return self.filter(interval=ContributionInterval.ONE_TIME)
 
@@ -174,6 +180,17 @@ class ContributionQuerySet(models.QuerySet):
                 )
             case _:
                 return self.none()
+
+    def viewable_in_portal(self) -> models.QuerySet[Contribution]:
+        return self._exclude_hidden_statuses()._exclude_paymentless_canceled()
+
+    def _exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:
+        return self.exclude(status__in=self.PORTAL_HIDDEN_STATUSES)
+
+    def _exclude_paymentless_canceled(self) -> models.QuerySet[Contribution]:
+        return self.annotate(num_payments=models.Count("payment")).exclude(
+            num_payments=0, status=ContributionStatus.CANCELED
+        )
 
 
 class ContributionManager(models.Manager):

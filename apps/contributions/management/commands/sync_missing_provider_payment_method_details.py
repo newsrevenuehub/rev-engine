@@ -30,7 +30,7 @@ class Command(BaseCommand):
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
     def fetch_stripe_payment_method(self, contribution) -> stripe.PaymentMethod | None:
-        return contribution.fetch_stripe_payment_method()
+        return contribution.fetch_stripe_payment_method(contribution.provider_payment_method_id)
 
     def backfill_provider_payment_method_details_for_contribution(self, contribution) -> None:
         self.stdout.write(

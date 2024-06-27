@@ -29,8 +29,8 @@ from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
-from apps.contributions.choices import CardBrand, ContributionInterval
-from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
+from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
@@ -1065,20 +1065,8 @@ def customer_subscription_updated_event():
 
 
 @pytest.fixture()
-def charge_succeeded_event():
-    with Path("apps/contributions/tests/fixtures/charge-succeeded-event.json").open() as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture()
 def payment_intent_succeeded_one_time_event(_suppress_stripe_webhook_sig_verification):
     with Path("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json").open() as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture()
-def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
-    with Path("apps/contributions/tests/fixtures/payment-method-attached-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
@@ -1190,3 +1178,15 @@ def unmarked_abandoned_contributions() -> list[Contribution]:
         for interval in [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
         for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING]
     ]
+
+
+@pytest.fixture()
+def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
+    with Path("apps/contributions/tests/fixtures/payment-method-attached-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
+def charge_succeeded_event():
+    with Path("apps/contributions/tests/fixtures/charge-succeeded-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)

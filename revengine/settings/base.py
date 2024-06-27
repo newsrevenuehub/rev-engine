@@ -474,6 +474,7 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "invoice.upcoming",
     "invoice.payment_succeeded",
     "charge.refunded",
+    "charge.succeeded",
 ]
 
 # The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades

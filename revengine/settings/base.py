@@ -476,6 +476,7 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "invoice.upcoming",
     "invoice.payment_succeeded",
     "charge.refunded",
+    "charge.succeeded",
 ]
 
 # The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades
@@ -498,6 +499,7 @@ HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOU
 # This URL will get pinged when in the `auto_accept_flagged_contributions``
 # task. Which ensures the task completes on a schedule.
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
+HEALTHCHECK_URL_MARK_ABANDONED_CARTS = os.getenv("HEALTHCHECK_URL_MARK_ABANDONED_CARTS", "")
 
 
 ### Google Tag Manager ID

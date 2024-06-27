@@ -15,7 +15,6 @@ class ContributionStatus(TextChoices):
     FLAGGED = "flagged", "flagged"
     REJECTED = "rejected", "rejected"
     REFUNDED = "refunded", "refunded"
-    ABANDONED = "abandoned", "abandoned"
 
 
 class CardBrand(TextChoices):

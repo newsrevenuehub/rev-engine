@@ -582,8 +582,8 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
     DEFAULT_ORDERING_FIELDS = ["created"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
-    # # NB: This view is about returning contributor.contributions and never returns contributors, but
-    # # we need to set a queryset to satisfy DRF's viewset machinery
+    # NB: This view is about returning contributor.contributions and never returns contributors, but
+    # we need to set a queryset to satisfy DRF's viewset expectations.
     queryset = Contributor.objects.all()
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):

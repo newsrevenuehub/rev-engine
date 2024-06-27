@@ -182,6 +182,10 @@ class ContributionQuerySet(models.QuerySet):
                 return self.none()
 
     def viewable_in_portal(self) -> models.QuerySet[Contribution]:
+        """Return contributions that should be viewable in the portal.
+
+        For a given queryset of contributions, we exclude those with hidden statuses and those that are paymentless+canceled
+        """
         return self._exclude_hidden_statuses()._exclude_paymentless_canceled()
 
     def _exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:

@@ -274,6 +274,103 @@ class Test_fix_recurring_contribution_missing_provider_payment_id:
         assert contribution.provider_payment_id is None
 
 
+@pytest.mark.django_db()
+class Test_fix_recurring_contribution_missing_provider_subscription_id:
+    @pytest.fixture()
+    def contribution(self):
+        return ContributionFactory(
+            provider_payment_id="test-payment-id", provider_subscription_id=None, monthly_subscription=True
+        )
+
+    @pytest.fixture()
+    def _mock_get_account_status(self, mocker, contribution):
+        mocker.patch(
+            # needed to mock at import because otherwise tests failed, seemingly because
+            # of leaked mock state between tests in this class
+            "apps.contributions.management.commands.fix_recurring_contribution_missing_provider_subscription_id.get_stripe_accounts_and_their_connection_status",
+            side_effect=[{contribution.stripe_account_id: True}],
+        )
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_happy_path(self, contribution, mocker):
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=mocker.Mock(invoice=mocker.Mock(subscription="test-sub-id")),
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id == "test-sub-id"
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_skips_contribution_with_subscription_id(self, contribution):
+        contribution.provider_subscription_id = "existing-id"
+        contribution.save()
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id == "existing-id"
+
+    def test_skips_disconnected_stripe_account(self, contribution, mocker):
+        mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={contribution.stripe_account_id: False},
+        )
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=mocker.Mock(invoice=mocker.Mock(subscription="test-sub-id")),
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_skips_missing_provider_payment_id(self, contribution):
+        contribution.provider_payment_id = None
+        contribution.save()
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_handles_stripe_retrieval_exception(self, contribution, mocker):
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve", side_effect=stripe.error.InvalidRequestError("test-error", param={})
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_skips_when_intent_has_no_invoice(self, contribution, mocker):
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value={},
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_skips_when_intent_invoice_has_sub_linked_to_existing_contribution(self, contribution, mocker):
+        ContributionFactory(provider_subscription_id="existing-id")
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=mocker.Mock(invoice=mocker.Mock(subscription="existing-id")),
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+    @pytest.mark.usefixtures("_mock_get_account_status")
+    def test_skips_when_intent_invoice_has_no_subscription(self, contribution, mocker):
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=mocker.Mock(invoice=mocker.Mock(subscription=None)),
+        )
+        call_command("fix_recurring_contribution_missing_provider_subscription_id")
+        contribution.refresh_from_db()
+        assert contribution.provider_subscription_id is None
+
+
 def test_clear_stripe_transactions_import_cache(mocker):
     mock_clear_cache = mocker.patch(
         "apps.contributions.stripe_import.StripeTransactionsImporter.clear_all_stripe_transactions_cache"
@@ -414,9 +511,3 @@ class Test_sync_missing_provider_payment_method_details:
     @pytest.mark.usefixtures("contributions", "_get_accounts_none_found")
     def test_when_eligible_but_no_fixable(self):
         call_command("sync_missing_provider_payment_method_details")
-
-
-def test_mark_abandoned_carts(mocker):
-    mock_mark_abandoned_carts = mocker.patch("apps.contributions.tasks.mark_abandoned_carts_as_abandoned")
-    call_command("mark_abandoned_carts")
-    mock_mark_abandoned_carts.assert_called_once()

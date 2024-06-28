@@ -165,6 +165,7 @@ class StripeWebhookProcessor:
         return data
 
     def _handle_pm_update_event(self, query: dict, pm_id: str, caller: str) -> None:
+        logger.info("Updating contributions matching query %s with payment method data for id %s", query, pm_id)
         updated = 0
         # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
         # DEV-4915

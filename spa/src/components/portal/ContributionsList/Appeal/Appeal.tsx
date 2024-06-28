@@ -20,7 +20,7 @@ const Appeal = ({ isInsideModal, revenueProgram }: AppealProps) => {
 
   return (
     <Wrapper data-testid="appeal" $isInsideModal={!!isInsideModal}>
-      <MultipleArrowsIcon src={MultipleArrows} $isInsideModal={!!isInsideModal} alt="Arrows pointing up icon" />
+      <MultipleArrowsIcon src={MultipleArrows} $isInsideModal={!!isInsideModal} alt="" />
       <Image src={PortalAppealImage} alt="People holding hands" />
       <TextWrapper>
         <Title>We couldn’t do this important work without you</Title>

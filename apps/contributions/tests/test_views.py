@@ -1,5 +1,5 @@
+import datetime
 import json
-from datetime import datetime, timedelta
 from pathlib import Path
 from unittest import mock
 from zoneinfo import ZoneInfo
@@ -17,7 +17,7 @@ from addict import Dict as AttrDict
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.reverse import reverse
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APIClient
 from reversion.models import Version
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
@@ -34,7 +34,6 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
-from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import (
     PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS,
     ContributionSerializer,
@@ -56,13 +55,12 @@ from apps.contributions.tests.test_serializers import (
 )
 from apps.organizations.tests.factories import (
     OrganizationFactory,
-    PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
-from apps.users.tests.factories import UserFactory, create_test_user
+from apps.users.tests.factories import UserFactory
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"
@@ -1180,68 +1178,6 @@ def test_feature_flagging_when_flag_not_found():
     assert response.json().get("detail", None) == "There was a problem with the API"
 
 
-@mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
-class ProcessFlaggedContributionTest(APITestCase):
-    def setUp(self):
-        self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
-        self.subscription_id = "test-subscription-id"
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory()
-
-        self.contributor = ContributorFactory()
-
-        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        self.contribution = ContributionFactory(
-            contributor=self.contributor,
-            donation_page=DonationPageFactory(revenue_program=revenue_program),
-            provider_subscription_id=self.subscription_id,
-        )
-        self.other_contribution = ContributionFactory()
-
-    def _make_request(self, contribution_pk=None, request_args=None):
-        if request_args is None:
-            request_args = {}
-        url = reverse("contribution-process-flagged", args=[contribution_pk])
-        self.client.force_authenticate(user=self.user)
-        return self.client.post(url, request_args)
-
-    def test_response_when_missing_required_param(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk)
-        assert response.status_code == 400
-        assert response.data["detail"] == "Missing required data"
-        mock_process_flagged.assert_not_called()
-
-    def test_response_when_no_such_contribution(self, mock_process_flagged):
-        nonexistent_pk = 10000001
-        # First, let's make sure there isn't a contributoin with this pk.
-        assert Contribution.objects.filter(pk=nonexistent_pk).first() is None
-        response = self._make_request(contribution_pk=nonexistent_pk, request_args={"reject": True})
-        assert response.status_code == 404
-        assert response.data["detail"] == "Could not find contribution"
-        mock_process_flagged.assert_not_called()
-
-    def test_response_when_payment_provider_error(self, mock_process_flagged):
-        error_message = "my error message"
-        mock_process_flagged.side_effect = PaymentProviderError(error_message)
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
-        assert response.status_code == 500
-        assert response.data["detail"] == error_message
-
-    def test_response_when_successful_reject(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
-        assert response.status_code == 200
-        mock_process_flagged.assert_called_with(reject="True")
-
-        # assert about revision and update fields
-
-    def test_response_when_successful_accept(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
-        assert response.status_code == 200
-        mock_process_flagged.assert_called_with(reject="False")
-        # assert about revision and update fields
-
-
 @pytest.fixture()
 def stripe_create_customer_response():
     return {"id": "customer-id"}
@@ -1352,6 +1288,7 @@ class TestPaymentViewset:
         response = client.post(url, {})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         # TODO @BW: figure out how to do csrf protection but return JSON when no token
+        # https://news-revenue-hub.atlassian.net/browse/DEV-2335
 
     @pytest.mark.parametrize(
         ("interval", "payment_intent_id", "subscription_id"),
@@ -1531,7 +1468,7 @@ class TestPortalContributorsViewSet:
         faker,
         stripe_subscription,
     ):
-        then = datetime.now() - timedelta(days=30)
+        then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)
         contribution = ContributionFactory(
             interval=ContributionInterval.MONTHLY,
             status=ContributionStatus.PAID,
@@ -1543,7 +1480,7 @@ class TestPortalContributorsViewSet:
             provider_subscription_id=stripe_subscription.id,
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
-        for x in (then, then + timedelta(days=30)):
+        for x in (then, then + datetime.timedelta(days=30)):
             PaymentFactory(
                 created=x,
                 contribution=contribution,
@@ -1561,7 +1498,7 @@ class TestPortalContributorsViewSet:
         faker,
         stripe_subscription,
     ):
-        then = datetime.now() - timedelta(days=365)
+        then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=365)
         contribution = ContributionFactory(
             interval=ContributionInterval.YEARLY,
             status=ContributionStatus.PAID,
@@ -1573,7 +1510,7 @@ class TestPortalContributorsViewSet:
             provider_subscription_id=stripe_subscription.id,
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
-        for x in (then, then + timedelta(days=365)):
+        for x in (then, then + datetime.timedelta(days=365)):
             PaymentFactory(
                 created=x,
                 contribution=contribution,

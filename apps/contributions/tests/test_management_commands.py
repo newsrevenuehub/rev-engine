@@ -76,7 +76,7 @@ class Test_sync_payment_transaction_time:
 
     @pytest.fixture()
     def payment_with_transaction_time(self):
-        return PaymentFactory(transaction_time=datetime.datetime.utcnow())
+        return PaymentFactory(transaction_time=datetime.datetime.now(datetime.timezone.utc))
 
     @pytest.fixture()
     def payment_no_transaction_time_eligible(self):
@@ -414,3 +414,9 @@ class Test_sync_missing_provider_payment_method_details:
     @pytest.mark.usefixtures("contributions", "_get_accounts_none_found")
     def test_when_eligible_but_no_fixable(self):
         call_command("sync_missing_provider_payment_method_details")
+
+
+def test_mark_abandoned_carts(mocker):
+    mock_mark_abandoned_carts = mocker.patch("apps.contributions.tasks.mark_abandoned_carts_as_abandoned")
+    call_command("mark_abandoned_carts")
+    mock_mark_abandoned_carts.assert_called_once()

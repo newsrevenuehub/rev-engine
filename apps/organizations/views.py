@@ -134,7 +134,8 @@ class OrganizationViewSet(
     @classmethod
     def send_upgrade_success_confirmation_email(cls, org: Organization):
         logger.info("`send_upgrade_success_confirmation_email` running")
-        # TODO: [DEV-3777] Refactor `send_templated_email` to accomodate a list of recipients
+        # TODO @BW: Refactor `send_templated_email` to accomodate a list of recipients
+        # DEV-3777
         for to in (
             org.roleassignment_set.filter(role_type=Roles.ORG_ADMIN.value)
             .values_list("user__email", flat=True)
@@ -307,7 +308,8 @@ def handle_stripe_account_link(request, rp_pk):
     This endpoint is designed to support polling from the front end.
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
+    # TODO @BW: Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
+    # DEV-4082
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
             "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does"

@@ -170,7 +170,8 @@ class TestStripePaymentIntent:
             == pi_for_active_subscription.invoice.subscription.id
         )
 
-    # TODO: [DEV-3987] Fix StripePaymentIntent.refunded property
+    # TODO @BW: Fix StripePaymentIntent.refunded property
+    # DEV-3987
     # We'll test this once there is a functional implementation. At the moment
     # the real implementation is faulty, so no reason to test it.
     # def test_refunded(self):

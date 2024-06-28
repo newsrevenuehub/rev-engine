@@ -38,7 +38,8 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
     )
-    # TODO: [DEV-3913] Remove this field as part of the DEV-3913 ticket
+    # TODO @DC: Remove this field as part of the DEV-3913 ticket
+    # DEV-3913
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
     accepted_terms_of_service = models.DateTimeField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
@@ -169,7 +170,8 @@ class RoleAssignment(models.Model):
             return f"{Roles.RP_ADMIN.label} for these revenue programs: {', '.join(owned_rps_as_strings)}"
         return f"Unspecified RoleAssignment ({self.pk})"
 
-    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
+    # TODO @BW: Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
+    # DEV-4082
     def can_access_rp(self, revenue_program):
         """Determine if role assignment grants basic acess to a given revenue program.
 

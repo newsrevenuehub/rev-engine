@@ -26,42 +26,16 @@ describe('Appeal', () => {
   });
 
   describe('Keep Reading link', () => {
-    it('shows link if website_url is defined and slim prop is unset', () => {
+    it('shows link if website_url is defined', () => {
       tree();
       const link = screen.getByRole('link', { name: 'Keep Reading' });
       expect(link).toHaveAttribute('href', defaultProps.revenueProgram.website_url);
       expect(link).toHaveAttribute('target', '_blank');
     });
 
-    describe('hides link if', () => {
-      it('website_url is defined and slim is true', () => {
-        tree({ slim: true });
-        expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
-      });
-
-      it('website_url is empty', () => {
-        tree({ revenueProgram: { ...defaultProps.revenueProgram, website_url: '' } });
-        expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
-      });
-
-      it('slim is true', () => {
-        tree({ slim: true });
-        expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('See more link', () => {
-    it('shows link if slim is true', () => {
-      tree({ slim: true });
-      expect(screen.getByRole('link', { name: 'See more' })).toBeEnabled();
-    });
-
-    it('has the correct href that redirects to /portal/my-contributions/', () => {
-      tree({ slim: true });
-
-      const link = screen.getByRole('link', { name: 'See more' });
-      expect(link).toHaveAttribute('href', '/portal/my-contributions/');
+    it('hides link if website_url is empty', () => {
+      tree({ revenueProgram: { ...defaultProps.revenueProgram, website_url: '' } });
+      expect(screen.queryByRole('link', { name: 'Keep Reading' })).not.toBeInTheDocument();
     });
   });
 

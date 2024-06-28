@@ -133,7 +133,7 @@ export function ContributionsList() {
         <Layout $isDetailSelected={!!selectedContribution}>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
           <AppealWrapper>
-            <Appeal slim={!!selectedContribution} revenueProgram={page?.revenue_program} />
+            <Appeal revenueProgram={page?.revenue_program} />
           </AppealWrapper>
           <Impact>
             <ImpactTracker contributorId={contributor?.id} />

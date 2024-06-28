@@ -1,7 +1,8 @@
 import { Button } from 'components/base';
 import styled from 'styled-components';
 
-export const Wrapper = styled.div<{ $slim: boolean; $isInsideModal: boolean }>`
+export const Wrapper = styled.div<{ $isInsideModal: boolean }>`
+  position: relative;
   background-color: ${({ theme }) => theme.basePalette.greyscale.white};
   border-radius: 10px;
   border: 0.25px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
@@ -16,37 +17,17 @@ export const Wrapper = styled.div<{ $slim: boolean; $isInsideModal: boolean }>`
     border: none;
     padding: 35px 10px 10px;
   `}
-
-  ${({ $slim }) =>
-    $slim &&
-    `
-    flex-direction: row;
-    padding: 17px 23px;
-
-    && > img {
-      height: 108px;
-      min-width: 233px;
-    }
-  `}
 `;
 
-export const Image = styled.img<{ $slim: boolean }>`
-  height: 300px;
+export const Image = styled.img`
+  height: 235px;
   object-fit: cover;
-
-  ${({ $slim }) =>
-    $slim &&
-    `
-      height: 108px;
-      min-width: 233px;
-  `}
 `;
 
 export const AppealButton = styled(Button)`
   && {
-    padding: 0;
     height: unset;
-    align-self: baseline;
+    align-self: end;
     background: none;
     box-shadow: none;
 
@@ -61,20 +42,16 @@ export const AppealButton = styled(Button)`
   }
 `;
 
-export const TextWrapper = styled.div<{ $slim: boolean }>`
+export const TextWrapper = styled.div`
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 16px;
-
-  ${({ $slim }) =>
-    $slim &&
-    `
-    gap: 12px;
-  `}
 `;
 
-export const Title = styled.p<{ $slim: boolean }>`
-  font-size: ${({ theme, $slim }) => ($slim ? theme.fontSizesUpdated.lg : theme.fontSizesUpdated.lgx)};
+export const Title = styled.p`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.lgx};
+  color: ${({ theme }) => theme.basePalette.primary.indigo};
   font-weight: 600;
   margin: 0;
 
@@ -83,19 +60,22 @@ export const Title = styled.p<{ $slim: boolean }>`
   }
 `;
 
-export const Description = styled.div<{ $hideText: boolean }>`
+export const Description = styled.div`
   margin: 0;
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-weight: 400;
   line-height: 21px;
+`;
 
-  ${({ $hideText }) =>
-    $hideText &&
+export const MultipleArrowsIcon = styled.img<{ $isInsideModal: boolean }>`
+  z-index: 1;
+  position: absolute;
+  top: 3px;
+
+  ${({ $isInsideModal }) =>
+    $isInsideModal &&
     `
-    text-overflow: ellipsis;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    top: 18px;
   `}
 `;

@@ -39,13 +39,11 @@ export const Root = styled.div`
 export const Layout = styled.div<{ $isDetailSelected: boolean }>`
   display: grid;
   gap: 25px 20px;
-  grid-template-areas: ${({ $isDetailSelected }) =>
-    `
-        'header _'
-        'tracker appeal'
-        'legend appeal'
-        'list ${$isDetailSelected ? 'detail' : 'appeal'}'
-      `};
+  grid-template-areas:
+    'header appeal'
+    'tracker appeal'
+    'legend appeal'
+    'list detail';
   grid-template-columns: 1fr 1fr;
   margin: 0 auto;
   padding: 40px;

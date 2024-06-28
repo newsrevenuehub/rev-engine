@@ -1,19 +1,13 @@
-import PropTypes, { InferProps } from 'prop-types';
-import { Description, Title, Wrapper, TextWrapper, AppealButton, Image } from './Appeal.styled';
-import { PORTAL } from 'routes';
-import { Link as RouterLink } from 'react-router-dom';
-import { RevenueProgram } from 'hooks/useContributionPage';
+import MultipleArrows from 'assets/icons/multiple_arrows.svg';
 import PortalAppealImage from 'assets/images/portal-appeal.jpg';
+import { RevenueProgram } from 'hooks/useContributionPage';
+import PropTypes, { InferProps } from 'prop-types';
+import { AppealButton, Description, Image, MultipleArrowsIcon, TextWrapper, Title, Wrapper } from './Appeal.styled';
 
 const AppealLink = AppealButton as any;
 
 export interface AppealProps extends InferProps<typeof AppealPropTypes> {
   revenueProgram?: Pick<RevenueProgram, 'contributor_portal_show_appeal' | 'website_url'>;
-  /**
-   * If true, the appeal will render in a slim version, taking less space on the screen
-   * @default false
-   * */
-  slim?: boolean;
   /**
    * If true, the appeal will render in a way to best fit being inside a modal
    * @default false
@@ -21,17 +15,18 @@ export interface AppealProps extends InferProps<typeof AppealPropTypes> {
   isInsideModal?: boolean;
 }
 
-const Appeal = ({ slim, isInsideModal, revenueProgram }: AppealProps) => {
+const Appeal = ({ isInsideModal, revenueProgram }: AppealProps) => {
   if (!revenueProgram?.contributor_portal_show_appeal) {
     return null;
   }
 
   return (
-    <Wrapper data-testid="appeal" $slim={!!slim} $isInsideModal={!!isInsideModal}>
-      <Image $slim={!!slim} src={PortalAppealImage} alt="People holding hands" />
-      <TextWrapper $slim={!!slim}>
-        <Title $slim={!!slim}>We couldn’t do this important work without you</Title>
-        <Description $hideText={!!slim}>
+    <Wrapper data-testid="appeal" $isInsideModal={!!isInsideModal}>
+      <MultipleArrowsIcon src={MultipleArrows} $isInsideModal={!!isInsideModal} alt="Arrows pointing up icon" />
+      <Image src={PortalAppealImage} alt="People holding hands" />
+      <TextWrapper>
+        <Title>We couldn’t do this important work without you</Title>
+        <Description>
           <p>
             We appreciate your commitment to our independent newsroom. Reader support is critical in sustaining our
             work—and strengthening democracy.
@@ -41,12 +36,7 @@ const Appeal = ({ slim, isInsideModal, revenueProgram }: AppealProps) => {
             believing in the importance of independent journalism.
           </p>
         </Description>
-        {slim && (
-          <AppealLink role="link" component={RouterLink} to={PORTAL.CONTRIBUTIONS}>
-            See more
-          </AppealLink>
-        )}
-        {!slim && revenueProgram.website_url && (
+        {revenueProgram.website_url && (
           <AppealLink component="a" href={revenueProgram.website_url} target="_blank">
             Keep Reading
           </AppealLink>

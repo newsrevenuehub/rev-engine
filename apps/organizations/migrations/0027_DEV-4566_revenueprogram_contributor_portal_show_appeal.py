@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0025_DEV-4244_revenueprogram_mailchimp_all_contributors_segment_id"),
+        ("organizations", "0026_DEV-4610_add_integrations"),
     ]
 
     operations = [

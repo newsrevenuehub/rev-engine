@@ -1,4 +1,4 @@
-import { Button } from 'components/base';
+import { LinkButton } from 'components/base';
 import styled from 'styled-components';
 
 export const Wrapper = styled.div<{ $isInsideModal: boolean }>`
@@ -14,6 +14,7 @@ export const Wrapper = styled.div<{ $isInsideModal: boolean }>`
   ${({ $isInsideModal }) =>
     $isInsideModal &&
     `
+    background-color: transparent;
     border: none;
     padding: 35px 10px 10px;
   `}
@@ -24,7 +25,7 @@ export const Image = styled.img`
   object-fit: cover;
 `;
 
-export const AppealButton = styled(Button)`
+export const AppealLink = styled(LinkButton)`
   && {
     height: unset;
     align-self: end;
@@ -63,9 +64,12 @@ export const Title = styled.p`
 export const Description = styled.div`
   margin: 0;
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
-  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-weight: 400;
   line-height: 21px;
+
+  p {
+    color: ${({ theme }) => theme.basePalette.greyscale.black};
+  }
 `;
 
 export const MultipleArrowsIcon = styled.img<{ $isInsideModal: boolean }>`

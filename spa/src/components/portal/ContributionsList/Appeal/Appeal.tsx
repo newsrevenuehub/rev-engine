@@ -2,9 +2,7 @@ import MultipleArrows from 'assets/icons/multiple_arrows.svg';
 import PortalAppealImage from 'assets/images/portal-appeal.jpg';
 import { RevenueProgram } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
-import { AppealButton, Description, Image, MultipleArrowsIcon, TextWrapper, Title, Wrapper } from './Appeal.styled';
-
-const AppealLink = AppealButton as any;
+import { AppealLink, Description, Image, MultipleArrowsIcon, TextWrapper, Title, Wrapper } from './Appeal.styled';
 
 export interface AppealProps extends InferProps<typeof AppealPropTypes> {
   revenueProgram?: Pick<RevenueProgram, 'contributor_portal_show_appeal' | 'website_url'>;
@@ -37,7 +35,7 @@ const Appeal = ({ isInsideModal, revenueProgram }: AppealProps) => {
           </p>
         </Description>
         {revenueProgram.website_url && (
-          <AppealLink component="a" href={revenueProgram.website_url} target="_blank">
+          <AppealLink href={revenueProgram.website_url} target="_blank">
             Keep Reading
           </AppealLink>
         )}

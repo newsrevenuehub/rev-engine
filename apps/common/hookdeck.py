@@ -22,7 +22,8 @@ class HookDeckIntegrationError(Exception): ...
 
 HEADERS = {"Authorization": f"Bearer {settings.HOOKDECK_API_KEY}"}
 
-# TODO: [DEV-4205] Configure Hookdeck retry for failed webhooks to be within Stripe signature verification tolerance.
+# TODO @BW: Configure Hookdeck retry for failed webhooks to be within Stripe signature verification tolerance.
+# DEV-4205
 #  https://hookdeck.com/docs/configure-connection-rules
 
 

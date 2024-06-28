@@ -365,7 +365,8 @@ DTM_IGNORED_MIGRATIONS = {
 
 ### Django-CSP Settings
 
-# TODO: [DEV-2359] Fix CSP violation caused by react-select emotion
+# TODO @BW: Fix CSP violation caused by react-select emotion
+# DEV-2359
 ENFORCE_CSP = env.bool("ENFORCE_CSP", True)
 if not ENFORCE_CSP:
     CSP_REPORT_ONLY = True
@@ -472,6 +473,7 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "invoice.upcoming",
     "invoice.payment_succeeded",
     "charge.refunded",
+    "charge.succeeded",
 ]
 
 # The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades
@@ -494,6 +496,7 @@ HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = env.str("HOOKDECK_STRIPE_WEBHOOK_SOURC
 # This URL will get pinged when in the `auto_accept_flagged_contributions``
 # task. Which ensures the task completes on a schedule.
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = env.str("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS", "")
+HEALTHCHECK_URL_MARK_ABANDONED_CARTS = env.str("HEALTHCHECK_URL_MARK_ABANDONED_CARTS", "")
 
 
 ### Google Tag Manager ID
@@ -514,7 +517,8 @@ CF_ZONE_NAME = env.str("CF_ZONE_NAME", "")
 
 ### RevEngine (1st Party) Settings
 
-# TODO: [DEV-2010] Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
+# TODO @njh: Isn't DOMAIN_APEX just SITE_URL without any subdomain?
+# DEV-2010
 DOMAIN_APEX = env.str("DOMAIN_APEX", "")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = env.list("DASHBOARD_SUBDOMAINS", "www:dashboard:", delimiter=":")

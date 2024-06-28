@@ -18,6 +18,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 from random import choice, randint, uniform
+from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
 
@@ -28,7 +29,8 @@ from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
-from apps.contributions.choices import CardBrand, ContributionInterval
+from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
+from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
@@ -137,7 +139,7 @@ def org_user_free_plan(default_feature_flags) -> User:
 
 @pytest.fixture()
 def user_with_verified_email_and_tos_accepted():
-    return UserFactory(accepted_terms_of_service=datetime.datetime.utcnow(), email_verified=True)
+    return UserFactory(accepted_terms_of_service=datetime.datetime.now(tz=ZoneInfo("UTC")), email_verified=True)
 
 
 @pytest.fixture()
@@ -1145,3 +1147,46 @@ def payment_method(payment_method_data_factory):
     return stripe.PaymentMethod.construct_from(
         payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
     )
+
+
+@pytest.fixture()
+def not_unmarked_abandoned_contributions() -> list[Contribution]:
+    return [
+        ContributionFactory(**{param: True})
+        for param in [
+            "rejected",
+            "canceled",
+            "refunded",
+            "abandoned",
+            "annual_subscription",
+            "one_time",
+        ]
+    ]
+
+
+@pytest.fixture()
+def unmarked_abandoned_contributions() -> list[Contribution]:
+    return [
+        ContributionFactory(
+            **{
+                "unmarked_abandoned": True,
+                "one_time" if interval == ContributionInterval.ONE_TIME else "monthly_subscription": True,
+                "status": status,
+                "interval": interval,
+            }
+        )
+        for interval in [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
+        for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING]
+    ]
+
+
+@pytest.fixture()
+def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
+    with Path("apps/contributions/tests/fixtures/payment-method-attached-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
+def charge_succeeded_event():
+    with Path("apps/contributions/tests/fixtures/charge-succeeded-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)

@@ -10,6 +10,7 @@ def convert_to_timezone_formatted(
     if selected_timezone:
         localtz = dt.astimezone(zoneinfo.ZoneInfo(selected_timezone))
     else:
-        # TODO: DEV-2904 show correct time/date/zone in transactional emails -> update function to get client's timezone
+        # TODO @DC: show correct time/date/zone in transactional emails -> update function to get client's timezone
+        # DEV-2904
         localtz = dt.astimezone(timezone.get_current_timezone())
     return localtz.strftime(date_format)

@@ -1,6 +1,6 @@
 import SaveIcon from '@material-design-icons/svg/outlined/save.svg?react';
 import { AxiosError } from 'axios';
-import { Button, TextField } from 'components/base';
+import { Button, TextField, PhoneTextField } from 'components/base';
 import Hero from 'components/common/Hero';
 import SuccessBanner from 'components/common/SuccessBanner';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
@@ -53,6 +53,11 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
     [contact_email, contact_phone, revenueProgram?.contact_email, revenueProgram?.contact_phone]
   );
 
+  const onlyCountryCode = contact_phone.length > 0 && contact_phone.length < 6;
+  // Disable buttons if the phone number is only a country code and the revenue program does not have a phone number to "Cancel Changes" to;
+  // or if the form is not different from the revenue program
+  const disableButton = (onlyCountryCode && !revenueProgram?.contact_phone) || !isDifferent;
+
   const submit = async (data: ContactInfoFormFields) => {
     setErrorMessage(undefined);
 
@@ -62,7 +67,10 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
     }
 
     try {
-      await updateRevenueProgram(data);
+      await updateRevenueProgram({
+        contact_email: data.contact_email,
+        contact_phone: onlyCountryCode ? '' : data.contact_phone
+      });
       setShowSuccess(true);
     } catch (error) {
       setShowSuccess(false);
@@ -99,26 +107,12 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
             <Controller
               name="contact_phone"
               control={control}
-              rules={{
-                pattern: {
-                  // Regex to allow characters: 0-9, *, #, +, -, ., _, (, ), and space
-                  value: /^[0-9*#+-._() ]+$/,
-                  message: 'Please enter a valid phone number.'
-                },
-                maxLength: {
-                  // Value from BE validation models.RevenueProgram.contact_phone
-                  value: 17,
-                  message: 'Phone number must be less than 17 characters.'
-                }
-              }}
               render={({ field }) => (
-                <TextField
+                <PhoneTextField
                   {...field}
                   fullWidth
                   id="contact-phone"
                   label="Phone Number"
-                  placeholder="+1 (555) 555-5555"
-                  type="tel"
                   error={!!errors.contact_phone || !!errorMessage?.contact_phone}
                   helperText={errors?.contact_phone?.message || errorMessage?.contact_phone}
                 />
@@ -154,7 +148,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
         <ActionWrapper>
           <Button
             color="secondary"
-            disabled={!isDifferent}
+            disabled={disableButton}
             onClick={() => {
               reset({
                 contact_email: revenueProgram?.contact_email ?? '',
@@ -165,7 +159,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
           >
             Cancel Changes
           </Button>
-          <Button startIcon={<SaveIcon />} disabled={!isDifferent} color="primaryDark" type="submit">
+          <Button startIcon={<SaveIcon />} disabled={disableButton} color="primaryDark" type="submit">
             Save
           </Button>
         </ActionWrapper>

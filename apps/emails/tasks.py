@@ -82,6 +82,9 @@ class SendContributionEmailData(TypedDict):
     contributor_email: str
     tax_id: str | None
     show_upgrade_prompt: bool
+    # Can't use BillingHistoryItem from Contribution model here because of circular import
+    billing_history: list | None
+    show_billing_history: bool
 
 
 class SendMagicLinkEmailData(TypedDict):
@@ -92,7 +95,7 @@ class SendMagicLinkEmailData(TypedDict):
 
 
 # would like to have type hint for contribution but that would cause a circular import because need to import class to this file
-def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
+def make_send_thank_you_email_data(contribution, show_billing_history: bool = False) -> SendContributionEmailData:
     logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
 
     # vs circular import
@@ -133,6 +136,8 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
         style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
         show_upgrade_prompt=False,
+        billing_history=contribution.get_billing_history(),
+        show_billing_history=show_billing_history,
     )
 
 

@@ -114,7 +114,7 @@
 {% block timestamp_label %}Received{% endblock timestamp_label %}
 
 {% block billing_history %}
-  {% if billing_history %}
+  {% if billing_history and show_billing_history %}
     <div class="u-row-container" style="padding-bottom: 70px;">
       <p class="outer-center billing-history-header">Billing History</p>
       <table class="outer-center" width="532px" cellpadding="0" cellspacing="0" border="0">

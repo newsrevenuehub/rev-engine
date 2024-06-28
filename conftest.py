@@ -284,6 +284,24 @@ def one_time_contribution(live_donation_page):
 
 
 @pytest.fixture()
+def one_time_contribution_with_payment(live_donation_page):
+    now = datetime.datetime.now(tz=ZoneInfo("UTC"))
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        one_time=True,
+        created=now,
+    )
+    PaymentFactory(
+        created=now,
+        contribution=contribution,
+        amount_refunded=0,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=contribution.amount - 100,
+    )
+    return contribution
+
+
+@pytest.fixture()
 def monthly_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 

@@ -17,6 +17,7 @@ from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
 from apps.contributions.models import (
+    BillingHistoryItem,
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
@@ -333,7 +334,11 @@ class TestContributionModel:
         return request.getfixturevalue(request.param)
 
     @pytest.fixture(
-        params=["one_time_contribution", "monthly_contribution_multiple_payments", "monthly_contribution_with_refund"]
+        params=[
+            "one_time_contribution_with_payment",
+            "monthly_contribution_multiple_payments",
+            "monthly_contribution_with_refund",
+        ]
     )
     def contribution_billing_history(self, request):
         return request.getfixturevalue(request.param)
@@ -342,22 +347,19 @@ class TestContributionModel:
         billing_history = contribution_billing_history.get_billing_history()
 
         expected_value = [
-            {
-                "payment_date": convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
-                "payment_amount": (
+            BillingHistoryItem(
+                payment_date=convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
+                payment_amount=(
                     contribution_billing_history.format_amount(payment.amount_refunded)
                     if payment.amount_refunded
                     else contribution_billing_history.format_amount(payment.gross_amount_paid)
                 ),
-                "payment_status": "Paid" if payment.amount_refunded == 0 else "Refunded",
-            }
+                payment_status="Paid" if payment.amount_refunded == 0 else "Refunded",
+            )
             for payment in contribution_billing_history.payment_set.all()
         ]
 
-        if contribution_billing_history.interval.value is ContributionInterval.ONE_TIME.value:
-            assert billing_history == []
-        else:
-            assert billing_history == expected_value
+        assert billing_history == expected_value
 
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
         """Show Contribution.create_stripe_customer calls Stripe with right params and returns the customer object."""
@@ -578,7 +580,7 @@ class TestContributionModel:
 
     @pytest.mark.usefixtures("_mock_stripe_customer")
     @pytest.mark.parametrize("send_receipt_email_via_nre", [True, False])
-    @pytest.mark.parametrize("show_billing_history", [None, True])
+    @pytest.mark.parametrize("show_billing_history", [False, True])
     def test_handle_thank_you_email(
         self, contribution: Contribution, send_receipt_email_via_nre, show_billing_history, mocker, settings
     ):
@@ -589,10 +591,8 @@ class TestContributionModel:
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
-        contribution.handle_thank_you_email(show_billing_history)
-        expected_data = make_send_thank_you_email_data(contribution)
-        if show_billing_history:
-            expected_data["billing_history"] = contribution.get_billing_history()
+        contribution.handle_thank_you_email(show_billing_history=show_billing_history)
+        expected_data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
 
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)

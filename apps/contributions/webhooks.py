@@ -215,7 +215,11 @@ class StripeWebhookProcessor:
                 caller="StripeWebhookProcessor.handle_charge_succeeded",
             )
         else:
-            logger.warning("No payment intent ID found in charge succeeded event")
+            logger.warning(
+                "No payment intent ID found in charge succeeded event with id %s for account %s",
+                self.event_id,
+                self.event.account,
+            )
 
     def handle_payment_intent_canceled(self):
         self._handle_contribution_update(

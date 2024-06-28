@@ -460,18 +460,15 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self, mocker):
         contribution = ContributionFactory(provider_payment_method_id=None)
-        logger_spy = mocker.spy(logger, "warning")
         assert contribution.fetch_stripe_payment_method() is None
-        logger_spy.assert_called_once_with(
-            "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
-            "on contribution with ID %s",
-            contribution.id,
-        )
 
     def test_fetch_stripe_payment_method_happy_path(self, one_time_contribution, mocker):
         return_value = AttrDict({"key": "val"})
         mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", return_value=return_value)
-        assert one_time_contribution.fetch_stripe_payment_method() == return_value
+        assert (
+            one_time_contribution.fetch_stripe_payment_method(one_time_contribution.provider_payment_method_id)
+            == return_value
+        )
         mock_retrieve_pm.assert_called_once_with(
             one_time_contribution.provider_payment_method_id,
             stripe_account=one_time_contribution.revenue_program.payment_provider.stripe_account_id,
@@ -479,7 +476,9 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_stripe_error(self, one_time_contribution, mocker):
         mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", side_effect=stripe.error.StripeError("error"))
-        assert one_time_contribution.fetch_stripe_payment_method() is None
+        assert (
+            one_time_contribution.fetch_stripe_payment_method(one_time_contribution.provider_payment_method_id) is None
+        )
         mock_retrieve_pm.assert_called_once_with(
             one_time_contribution.provider_payment_method_id,
             stripe_account=one_time_contribution.revenue_program.payment_provider.stripe_account_id,
@@ -512,6 +511,7 @@ class TestContributionModel:
             ),
             stripe_account=rp.stripe_account_id,
             capture_method="automatic",
+            idempotency_key=f"{one_time_contribution.uuid}-payment-intent",
         )
 
     def test_create_stripe_subscription(self, contribution, monkeypatch, mocker):
@@ -548,6 +548,7 @@ class TestContributionModel:
             expand=["latest_invoice.payment_intent"],
             off_session=False,
             default_payment_method=None,
+            idempotency_key=f"{contribution.uuid}-subscription",
         )
         assert subscription == return_value
 
@@ -571,6 +572,7 @@ class TestContributionModel:
             customer=contribution.provider_customer_id,
             stripe_account=contribution.revenue_program.stripe_account_id,
             metadata=metadata,
+            idempotency_key=f"{contribution.uuid}-setup-intent",
         )
         assert setup_intent == return_value
 
@@ -1845,6 +1847,30 @@ class TestContributionModel:
         else:
             ContributionFactory(donation_page=page, _revenue_program=rp)
 
+    def test_is_unmarked_abandoned_cart(self, unmarked_abandoned_contributions, one_time_contribution):
+        assert unmarked_abandoned_contributions[0].is_unmarked_abandoned_cart
+        assert not one_time_contribution.is_unmarked_abandoned_cart
+
+    def test_stripe_customer_when_no_customer_id(self):
+        contribution = ContributionFactory(provider_customer_id=None)
+        assert contribution.stripe_customer is None
+
+    def test_stripe_customer_when_error_on_retrieve(self, mocker):
+        contribution = ContributionFactory(provider_customer_id="something")
+        mock_retrieve = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError("uh oh"))
+        assert contribution.stripe_customer is None
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+
+    def test_stripe_customer_when_retrieve_success(self, mocker):
+        contribution = ContributionFactory(provider_customer_id="something")
+        mock_retrieve = mocker.patch("stripe.Customer.retrieve", return_value=(retrieved := "something"))
+        assert contribution.stripe_customer == retrieved
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+
 
 @pytest.mark.django_db()
 class TestContributionQuerySetMethods:
@@ -1953,6 +1979,14 @@ class TestContributionQuerySetMethods:
         results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
         assert len(results) == 1
         assert results[0].id == paid.id
+
+    @pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
+    def test_unmarked_abandoned_carts(self, unmarked_abandoned_contributions):
+        """Show that this method returns the expected results."""
+        assert unmarked_abandoned_contributions
+        assert set(Contribution.objects.unmarked_abandoned_carts().values_list("id", flat=True)) == {
+            c.id for c in unmarked_abandoned_contributions
+        }
 
 
 @pytest.fixture()

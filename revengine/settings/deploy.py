@@ -36,7 +36,8 @@ STORAGES = {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
         "OPTIONS": {
-            "bucket_name": os.getenv("GS_BUCKET_NAME"),
+            "bucket_name": os.getenv("GS_BUCKET_NAME", "rev-engine-media"),
+            "location": os.getenv("GS_LOCATION", "media"),
             "project_id": os.getenv("GS_PROJECT_ID", "revenue-engine"),
             "querystring_auth": False,
             "credentials": GS_CREDENTIALS,

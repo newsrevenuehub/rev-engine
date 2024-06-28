@@ -169,9 +169,10 @@ class StripeWebhookProcessor:
         # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
         # DEV-4915
         # 5. May need to put optionality around get vs. filter for initial query at top of this method
+        details = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.event.account)
         for x in Contribution.objects.filter(**query):
             x.provider_payment_method_id = pm_id
-            x.provider_payment_method_details = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.event.account)
+            x.provider_payment_method_details = details
             with reversion.create_revision():
                 x.save(update_fields={"provider_payment_method_id", "provider_payment_method_details", "modified"})
                 updated += 1
@@ -188,11 +189,12 @@ class StripeWebhookProcessor:
         the payment form. Attaching the PM to the contribution is what makes it ineligible for marking as abandoned.
         """
         logger.info("Handling payment method attached event for customer %s", self.customer_id)
-        self._handle_pm_update_event(
-            query={"provider_customer_id": self.customer_id},
-            pm_id=self.obj_data["id"],
-            caller="StripeWebhookProcessor.handle_payment_method_attached",
-        )
+        if self.customer_id:
+            self._handle_pm_update_event(
+                query={"provider_customer_id": self.customer_id},
+                pm_id=self.obj_data["id"],
+                caller="StripeWebhookProcessor.handle_payment_method_attached",
+            )
 
     @transaction.atomic
     def handle_charge_succeeded(self):
@@ -206,11 +208,14 @@ class StripeWebhookProcessor:
         Specifically, we update the provider_payment_method_id and provider_payment_method_details fields.
         """
         logger.info("Handling charge succeeded event for payment intent %s", self.obj_data["payment_intent"])
-        self._handle_pm_update_event(
-            query={"provider_payment_id": self.obj_data["payment_intent"]},
-            pm_id=self.obj_data["payment_method"],
-            caller="StripeWebhookProcessor.handle_charge_succeeded",
-        )
+        if pi_id := self.obj_data["payment_intent"]:
+            self._handle_pm_update_event(
+                query={"provider_payment_id": pi_id},
+                pm_id=self.obj_data["payment_method"],
+                caller="StripeWebhookProcessor.handle_charge_succeeded",
+            )
+        else:
+            logger.warning("No payment intent ID found in charge succeeded event")
 
     def handle_payment_intent_canceled(self):
         self._handle_contribution_update(

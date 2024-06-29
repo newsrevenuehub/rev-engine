@@ -3,7 +3,8 @@ from enum import Enum
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandParser
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Q, QuerySet
 
 import reversion
 import stripe
@@ -15,6 +16,9 @@ from apps.contributions.models import Contribution
 
 # otherwise we get spammed by stripe info logs when running this command
 logging.getLogger("stripe").setLevel(logging.ERROR)
+
+
+TEMP_PM_ID = "pm_this_is_temp_for_2445"
 
 
 class ContributionOutcome(Enum):
@@ -126,6 +130,24 @@ class Command(BaseCommand):
             return self._save_changes(contribution, update_fields), ContributionOutcome.UPDATED
         return contribution, ContributionOutcome.NOT_UPDATED
 
+    def nullify_bad_change(self, contributions: QuerySet[Contribution]) -> QuerySet[Contribution]:
+        """Set affected contribution's payment related fields to temp values."""
+        self.stdout.write(self.style.HTTP_INFO("Nullifying bad change to contributions"))
+        with transaction.atomic():
+            for x in contributions:
+                with reversion.create_revision():
+                    x.provider_payment_method_id = TEMP_PM_ID
+                    x.provider_payment_method_details = None
+                    x.save(update_fields={"provider_payment_method_id", "provider_payment_method_details", "modified"})
+                    reversion.set_comment(f"Nullified bad change by {self.name}.Command.nullify_bad_change")
+        return contributions
+
+    def get_queryset(self, original_contribution_id: str, payment_method_id: str) -> QuerySet[Contribution]:
+        """Get queryset of contributions."""
+        return Contribution.objects.exclude(id=original_contribution_id).filter(
+            provider_payment_method_id__in=(payment_method_id, TEMP_PM_ID)
+        )
+
     def handle(self, *args, **options):
         """Handle command.
 
@@ -136,9 +158,7 @@ class Command(BaseCommand):
         for one-time and recurring contributions.
         """
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
-        contributions = Contribution.objects.exclude(id=options["original_contribution_id"]).filter(
-            provider_payment_method_id=options["payment_method_id"]
-        )
+        contributions = self.get_queryset(options["original_contribution_id"], options["payment_method_id"])
         if not contributions.exists():
             self.stdout.write(
                 self.style.HTTP_INFO(
@@ -146,14 +166,15 @@ class Command(BaseCommand):
                 )
             )
             return
+        nullified = self.nullify_bad_change(contributions)
         account_ids = set(
             list(
-                contributions.filter(donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
+                nullified.filter(donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
                 .values_list("donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
                 .distinct()
             )
             + list(
-                contributions.filter(_revenue_program__payment_provider__stripe_account_id__isnull=False)
+                nullified.filter(_revenue_program__payment_provider__stripe_account_id__isnull=False)
                 .values_list("_revenue_program__payment_provider__stripe_account_id", flat=True)
                 .distinct()
             )
@@ -162,7 +183,7 @@ class Command(BaseCommand):
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
 
-        fixable_contributions = contributions.filter(
+        fixable_contributions = nullified.filter(
             Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
             | Q(_revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
         )
@@ -192,11 +213,9 @@ class Command(BaseCommand):
             else:
                 _method = self.handle_recurring_contribution
             handled, outcome = _method(contribution)
-            match outcome:
-                case ContributionOutcome.UPDATED:
-                    updated_ids.append(handled.id)
-                case ContributionOutcome.NOT_UPDATED:
-                    unupdated_ids.append(handled.id)
+            if outcome == ContributionOutcome.UPDATED:
+                updated_ids.append(handled.id)
+            unupdated_ids.append(handled.id)
 
         self.stdout.write(
             self.style.SUCCESS(

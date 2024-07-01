@@ -215,7 +215,8 @@ class Command(BaseCommand):
             handled, outcome = _method(contribution)
             if outcome == ContributionOutcome.UPDATED:
                 updated_ids.append(handled.id)
-            unupdated_ids.append(handled.id)
+            else:
+                unupdated_ids.append(handled.id)
 
         self.stdout.write(
             self.style.SUCCESS(

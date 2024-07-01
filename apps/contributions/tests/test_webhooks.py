@@ -147,13 +147,29 @@ class TestStripeWebhookProcessor:
         )
         processor._add_pm_id_and_payment_method_details(pm_id="pm_id" if has_pm_id else None, update_data={})
 
-    def test_route_request_when_event_type_is_payment_method_attached(
-        self, mocker, payment_intent_succeeded_one_time_event
-    ):
-        mocker.patch(
-            "apps.contributions.webhooks.StripeWebhookProcessor.event_type",
-            new_callable=mocker.PropertyMock,
-            return_value="payment_method.attached",
-        )
+    def test__handle_pm_update_event_when_no_update(self, mocker, payment_intent_succeeded_one_time_event):
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
-        processor.route_request()
+        mocker.patch.object(processor, "contribution", return_value=None, new_callable=mocker.PropertyMock)
+        processor._add_pm_id_and_payment_method_details(pm_id="pm_id", update_data={})
+
+    def test_handle_payment_method_attached_when_no_customer_id(self, mocker, payment_method_attached_event):
+        payment_method_attached_event["data"]["object"]["customer"] = None
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_method_attached_event))
+        mocker.patch.object(processor, "contribution", return_value=None, new_callable=mocker.PropertyMock)
+        mock_update_pm = mocker.patch.object(processor, "_handle_pm_update_event")
+        processor.handle_payment_method_attached()
+        mock_update_pm.assert_not_called()
+
+    def test_handle_charge_succeeded_when_payment_intent_is_null(self, mocker, charge_succeeded_event):
+        mock_logger = mocker.patch("apps.contributions.webhooks.logger.warning")
+        charge_succeeded_event["data"]["object"]["payment_intent"] = None
+        processor = StripeWebhookProcessor(event=StripeEventData(**charge_succeeded_event))
+        mock_update_pm = mocker.patch.object(processor, "_handle_pm_update_event")
+        mocker.patch.object(processor, "contribution", return_value=None, new_callable=mocker.PropertyMock)
+        processor.handle_charge_succeeded()
+        mock_logger.assert_called_once_with(
+            "No payment intent ID found in charge succeeded event with id %s for account %s",
+            charge_succeeded_event["id"],
+            processor.event.account,
+        )
+        mock_update_pm.assert_not_called()

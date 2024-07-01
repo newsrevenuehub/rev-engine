@@ -68,6 +68,7 @@ export const Typography = styled(MuiTypography)`
 export const CloseButton = styled(IconButton)`
   && {
     position: absolute;
+    top: 14px;
     right: 14px;
     height: 24px;
     width: 24px;

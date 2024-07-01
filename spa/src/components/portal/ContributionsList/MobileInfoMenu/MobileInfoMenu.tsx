@@ -93,10 +93,10 @@ const MobileInfoMenu = ({ revenueProgram }: MobileInfoMenuProps) => {
       </Modal>
       <Modal data-testid="modal-appeal" open={showAppeal} onClose={() => setShowAppeal(false)}>
         <ModalContent>
+          <Appeal isInsideModal revenueProgram={revenueProgram} />
           <CloseButton color="text" aria-label="Close" onClick={() => setShowAppeal(false)}>
             <CloseIcon />
           </CloseButton>
-          <Appeal isInsideModal revenueProgram={revenueProgram} />
         </ModalContent>
       </Modal>
     </>

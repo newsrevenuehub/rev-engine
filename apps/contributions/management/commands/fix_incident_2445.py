@@ -217,6 +217,7 @@ class Command(BaseCommand):
                 updated_ids.append(handled.id)
             else:
                 unupdated_ids.append(handled.id)
+            self.stdout.write(self.style.HTTP_INFO(f"Contribution {handled.id} was {outcome.value}"))
 
         self.stdout.write(
             self.style.SUCCESS(

@@ -1,3 +1,7 @@
+# Needed for postponing evaluation of annotations (because of "if TYPE_CHECKING")
+# ref: https://peps.python.org/pep-0563/
+from __future__ import annotations
+
 from dataclasses import asdict
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, TypedDict

@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
-from apps.contributions.models import BillingHistoryItem
+from apps.contributions.models import BillingHistoryItem, BillingHistoryItemStatus
 from apps.organizations.models import RevenueProgram
 
 
@@ -54,12 +54,12 @@ def preview_contribution_email_template(request, template_name: str):
             BillingHistoryItem(
                 payment_date=datetime.datetime.now(datetime.timezone.utc),
                 payment_amount=500,
-                payment_status="paid",
+                payment_status=BillingHistoryItemStatus.PAID,
             ),
             BillingHistoryItem(
                 payment_date=datetime.datetime.now(datetime.timezone.utc),
                 payment_amount=500,
-                payment_status="refunded",
+                payment_status=BillingHistoryItemStatus.REFUNDED,
             ),
         ],
     }

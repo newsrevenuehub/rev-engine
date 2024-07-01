@@ -5,6 +5,7 @@ import logging
 import uuid
 from collections.abc import Callable, Generator
 from dataclasses import asdict
+from enum import Enum
 from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, TypedDict
@@ -53,10 +54,15 @@ class ContributionStatusError(Exception):
     pass
 
 
+class BillingHistoryItemStatus(Enum):
+    PAID = "Paid"
+    REFUNDED = "Refunded"
+
+
 class BillingHistoryItem(TypedDict):
     payment_date: datetime.datetime
     payment_amount: int
-    payment_status: str
+    payment_status: BillingHistoryItemStatus
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -309,10 +315,7 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
-        return f"{currency['symbol']}{f'{self.amount / 100:.2f}'} {currency['code']}"
-
-    def format_amount(self, amount: int, symbol="$", code="USD") -> str:
-        return f"{symbol}{f'{amount / 100:.2f}'} {code}"
+        return self.format_amount(amount=self.amount, symbol=currency["symbol"], code=currency["code"])
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
@@ -600,7 +603,9 @@ class Contribution(IndexedTimeStampedModel):
                     if payment.amount_refunded
                     else self.format_amount(payment.gross_amount_paid)
                 ),
-                payment_status="Paid" if payment.amount_refunded == 0 else "Refunded",
+                payment_status=(
+                    BillingHistoryItemStatus.PAID if payment.amount_refunded == 0 else BillingHistoryItemStatus.REFUNDED
+                ),
             )
             for payment in self.payment_set.all()
         ]
@@ -824,6 +829,10 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
             return None
+
+    @staticmethod
+    def format_amount(amount: int, symbol="$", code="USD") -> str:
+        return f"{symbol}{f'{amount / 100:.2f}'} {code}"
 
     @staticmethod
     def fix_contributions_stuck_in_processing(dry_run: bool = False) -> None:

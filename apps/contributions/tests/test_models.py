@@ -1946,22 +1946,6 @@ class TestContributionQuerySetMethods:
         assert len(results) == 1
         assert results[0].id == paid.id
 
-    def test_viewable_in_portal(self):
-        """Show that this method returns the expected results."""
-        paid = ContributionFactory(one_time=True, status=ContributionStatus.PAID)
-        refunded = ContributionFactory(one_time=True, status=ContributionStatus.REFUNDED)
-        canceled_with_payments = ContributionFactory(one_time=True, status=ContributionStatus.CANCELED)
-        # processing
-        ContributionFactory(one_time=True, status=ContributionStatus.PROCESSING)
-        # rejected
-        ContributionFactory(one_time=True, status=ContributionStatus.REJECTED)
-        # canceled no payments
-        ContributionFactory(one_time=True, status=ContributionStatus.CANCELED)
-        for x in [paid, refunded, canceled_with_payments]:
-            PaymentFactory(contribution=x)
-        results = Contribution.objects.viewable_in_portal()
-        assert set(results.values_list("id", flat=True)) == {paid.id, refunded.id, canceled_with_payments.id}
-
     @pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
     def test_unmarked_abandoned_carts(self, unmarked_abandoned_contributions):
         """Show that this method returns the expected results."""

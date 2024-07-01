@@ -613,7 +613,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         return Response(impact, status=status.HTTP_200_OK)
 
     def get_contributor_queryset(self, contributor):
-        return contributor.contribution_set.viewable_in_portal()
+        return contributor.contribution_set.all()._exclude_hidden_statuses()._exclude_paymentless_canceled()
 
     @action(
         methods=["get"],

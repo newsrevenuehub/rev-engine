@@ -15,7 +15,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('hooks/usePortal');
 jest.mock('hooks/usePortalContributionList');
 jest.mock('hooks/usePortalContributorImpact');
-jest.mock('./ContactInfoPopover/ContactInfoPopover');
+jest.mock('./DesktopContactInfoPopover/DesktopContactInfoPopover');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionsHeader/ContributionsHeader');
 jest.mock('./ContributionItem/ContributionItem');

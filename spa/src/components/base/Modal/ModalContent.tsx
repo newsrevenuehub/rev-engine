@@ -9,6 +9,7 @@ const ModalContentPropTypes = {
 export type ModalContentProps = InferProps<typeof ModalContentPropTypes>;
 
 const Root = styled('div')`
+  position: relative;
   color: ${({ theme }) => theme.basePalette.greyscale.black};
   font:
     16px Roboto,

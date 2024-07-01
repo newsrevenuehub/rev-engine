@@ -11,6 +11,7 @@ export * from './MenuItem/MenuItem';
 export * from './Modal';
 export * from './OffscreenText/OffscreenText';
 export * from './Pagination/Pagination';
+export * from './Popover/Popover';
 export * from './Radio/Radio';
 export * from './RadioGroup/RadioGroup';
 // RichTextEditor and RichTextDisplay are intentionally not part of this barrel

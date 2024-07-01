@@ -22,9 +22,9 @@ import {
   ListWrapper,
   MenuItem,
   ModalHeader,
-  Popover,
   Typography
 } from './AvatarMenu.styled';
+import { Popover } from 'components/base';
 
 export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>;
 

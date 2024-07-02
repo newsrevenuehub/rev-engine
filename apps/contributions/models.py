@@ -5,10 +5,9 @@ import logging
 import uuid
 from collections.abc import Callable, Generator
 from dataclasses import asdict
-from enum import Enum
 from functools import cached_property, reduce, wraps
 from operator import or_
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
@@ -54,15 +53,10 @@ class ContributionStatusError(Exception):
     pass
 
 
-class BillingHistoryItemStatus(Enum):
-    PAID = "Paid"
-    REFUNDED = "Refunded"
-
-
 class BillingHistoryItem(TypedDict):
     payment_date: datetime.datetime
     payment_amount: int
-    payment_status: BillingHistoryItemStatus
+    payment_status: Literal["Paid", "Refunded"]
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -603,9 +597,7 @@ class Contribution(IndexedTimeStampedModel):
                     if payment.amount_refunded
                     else self.format_amount(payment.gross_amount_paid)
                 ),
-                payment_status=(
-                    BillingHistoryItemStatus.PAID if payment.amount_refunded == 0 else BillingHistoryItemStatus.REFUNDED
-                ),
+                payment_status=("Paid" if payment.amount_refunded == 0 else "Refunded"),
             )
             for payment in self.payment_set.all()
         ]

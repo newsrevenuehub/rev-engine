@@ -18,7 +18,6 @@ from bs4 import BeautifulSoup
 
 from apps.contributions.models import (
     BillingHistoryItem,
-    BillingHistoryItemStatus,
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
@@ -355,9 +354,7 @@ class TestContributionModel:
                     if payment.amount_refunded
                     else contribution_billing_history.format_amount(payment.gross_amount_paid)
                 ),
-                payment_status=(
-                    BillingHistoryItemStatus.PAID if payment.amount_refunded == 0 else BillingHistoryItemStatus.REFUNDED
-                ),
+                payment_status=("Paid" if payment.amount_refunded == 0 else "Refunded"),
             )
             for payment in contribution_billing_history.payment_set.all()
         ]

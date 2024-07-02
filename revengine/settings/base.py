@@ -626,7 +626,8 @@ try:
     # Host map for client custom hostnames. This should be a JSON-encoded dictionary
     # of { "customhostname.org": "rp-slug" } values.
     HOST_MAP = env.json("HOST_MAP", "{}")
-except (json.JSONDecodeError, environs.EnvError, environs.EnvValidationError):
+except (json.JSONDecodeError, environs.EnvError):
+    # env.json() raises environs.EnvError (or subclass), JSONDecodeError is "defensive" in case that changes.
     logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
     HOST_MAP = {}
 

@@ -12,7 +12,7 @@ from .base import *  # noqa: F403
 SECRET_KEY = env.str("DJANGO_SECRET_KEY", "")
 
 ### Environment-specific settings
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", "localhost", delimeter=":")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", "localhost", delimiter=":")
 
 ## Email
 EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
@@ -68,7 +68,7 @@ for backend in TEMPLATES:
 # Celery
 
 BROKER_URL = f"{REDIS_URL}/1"
-if BROKER_URL.startswith("rediss"):
+if BROKER_URL.startswith("rediss"):  # rediss is not a typo it's "redis" + "ssl"
     import ssl
 
     # See: https://github.com/mirumee/saleor/issues/6926

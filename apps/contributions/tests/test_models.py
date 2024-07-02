@@ -20,6 +20,7 @@ from apps.contributions.models import (
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
+    ContributionQuerySet,
     ContributionStatus,
     ContributionStatusError,
     Contributor,
@@ -1755,6 +1756,17 @@ class TestContributionModel:
         mock_retrieve.assert_called_once_with(
             contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
         )
+
+    @pytest.mark.parametrize("status", ContributionQuerySet.CONTRIBUTOR_HIDDEN_STATUSES)
+    def test_exclude_hidden_statuses(self, status):
+        ContributionFactory(status=status)
+        assert Contribution.objects.exclude_hidden_statuses().count() == 0
+
+    def test_exclude_paymentless_canceled(self):
+        contribution = ContributionFactory(one_time=True)
+        assert contribution.status == ContributionStatus.PAID
+        assert contribution.payment_set.count() == 0
+        assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 
 
 @pytest.mark.django_db()

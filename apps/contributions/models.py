@@ -60,7 +60,7 @@ class Contributor(IndexedTimeStampedModel):
         """Calculate the total impact of a contributor across multiple revenue programs."""
         totals = (
             self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
-            ._exclude_hidden_statuses()
+            .exclude_hidden_statuses()
             .annotate(total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded"))
             .aggregate(
                 total_amount_paid=Sum("total_payments", default=0),
@@ -184,10 +184,10 @@ class ContributionQuerySet(models.QuerySet):
             case _:
                 return self.none()
 
-    def _exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:
+    def exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:
         return self.exclude(status__in=self.CONTRIBUTOR_HIDDEN_STATUSES)
 
-    def _exclude_paymentless_canceled(self) -> models.QuerySet[Contribution]:
+    def exclude_paymentless_canceled(self) -> models.QuerySet[Contribution]:
         return self.annotate(num_payments=models.Count("payment")).exclude(
             num_payments=0, status=ContributionStatus.CANCELED
         )

@@ -159,7 +159,11 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
     queryset = Contribution.objects.all()
 
     def get_serializer_class(self):
-        if (interval := self.request.data["interval"]) == ContributionInterval.ONE_TIME:
+        try:
+            interval = self.request.data["interval"]
+        except KeyError as err:
+            raise ValidationError({"interval": "The interval field is required"}) from err
+        if interval == ContributionInterval.ONE_TIME:
             return serializers.CreateOneTimePaymentSerializer
         if interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
             return serializers.CreateRecurringPaymentSerializer

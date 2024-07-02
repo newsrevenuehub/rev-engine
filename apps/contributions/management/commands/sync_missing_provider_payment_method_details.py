@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
-from django.db.models.functions import Coalesce
 
 import backoff
 import reversion
@@ -59,12 +58,7 @@ class Command(BaseCommand):
         self.unupdated_ids = []
         contributions = Contribution.objects.filter(
             provider_payment_method_id__isnull=False, provider_payment_method_details__isnull=True
-        ).annotate(
-            stripe_account=Coalesce(
-                "donation_page__revenue_program__payment_provider__stripe_account_id",
-                "_revenue_program__payment_provider__stripe_account_id",
-            )
-        )
+        ).with_stripe_account()
         if not contributions.exists():
             self.stdout.write(
                 self.style.HTTP_INFO(

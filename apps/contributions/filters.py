@@ -57,8 +57,8 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
     RECURRING = "recurring"
 
     def filter_queryset_by_rp(self, queryset, revenue_program_id: str):
-        return queryset.filter(
-            Q(revenue_program__id=revenue_program_id)
+        return queryset.with_revenue_program_id().filter(
+            Q(revenue_program_id=revenue_program_id)
             | Q(contribution_metadata__contains={"revenue_program_id": revenue_program_id})
         )
 

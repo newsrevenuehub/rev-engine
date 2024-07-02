@@ -88,13 +88,6 @@ class TestPortalContributionFilter:
         request = mocker.Mock(query_params={"status": "paid", "revenue_program": str(paid.revenue_program.id)})
         unfiltered = Contribution.objects.all()
         assert unfiltered.count() == 4
-        from icecream import ic
-
-        ic([(x.revenue_program) for x in unfiltered])
-        ic([(x._revenue_program) for x in unfiltered])
-        from django.db.models import F
-
-        ic([type(x.funtime) for x in unfiltered.annotate(funtime=F("revenue_program"))])
         filtered = filter_.filter_queryset(request, unfiltered)
         assert filtered.count() == 2
         assert set(filtered.values_list("id", flat=True)) == {paid.id, by_metadata.id}

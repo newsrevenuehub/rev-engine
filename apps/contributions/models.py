@@ -113,11 +113,27 @@ class Contributor(IndexedTimeStampedModel):
 
 
 class ContributionQuerySet(models.QuerySet):
-    # can't figure out
-    # can't annotate "revenue_program" because it's a property
-    # annotate/alias gets the id, not the standard django FK field magical object
-    def with_revenue_program(self):
-        return self.alias(revenue_program=Coalesce("_revenue_program", "donation_page__revenue_program"))
+    def with_revenue_program_id(self):
+        """Alias revenue_program_id as "revenue_program".
+
+        Alias (which is only in SQL) as Contribuition has property "revenue_program" which handles dual revenue_program source.
+        """
+        return self.alias(revenue_program_id=Coalesce("_revenue_program", "donation_page__revenue_program"))
+
+    def with_organization_id(self):
+        """Alias organization_id as "organization_id"."""
+        return self.alias(
+            organization_id=Coalesce("_revenue_program__organization", "donation_page__revenue_program__organization")
+        )
+
+    def with_stripe_account(self):
+        """Annotate stripe_account_id as "stripe_account"."""
+        return self.annotate(
+            stripe_account=Coalesce(
+                "_revenue_program__payment_provider__stripe_account_id",
+                "donation_page__revenue_program__payment_provider__stripe_account_id",
+            )
+        )
 
     def one_time(self):
         return self.filter(interval=ContributionInterval.ONE_TIME)
@@ -130,7 +146,7 @@ class ContributionQuerySet(models.QuerySet):
     ) -> models.QuerySet[Contribution]:
         if not revenue_programs:
             return self
-        return self.with_revenue_program().filter(revenue_program__in=revenue_programs)
+        return self.with_revenue_program_id().filter(revenue_program_id__in=revenue_programs)
 
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
@@ -171,14 +187,16 @@ class ContributionQuerySet(models.QuerySet):
             case Roles.HUB_ADMIN:
                 return self.having_org_viewable_status()
             case Roles.ORG_ADMIN:
-                return self.having_org_viewable_status().filter(
-                    models.Q(donation_page__revenue_program__organization=role_assignment.organization)
-                    | models.Q(_revenue_program__organization=role_assignment.organization)
+                return (
+                    self.having_org_viewable_status()
+                    .with_organization_id()
+                    .filter(organization_id=role_assignment.organization.id)
                 )
             case Roles.RP_ADMIN:
-                return self.having_org_viewable_status().filter(
-                    models.Q(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
-                    | models.Q(_revenue_program__in=role_assignment.revenue_programs.all())
+                return (
+                    self.having_org_viewable_status()
+                    .with_revenue_program_id()
+                    .filter(revenue_program_id__in=role_assignment.revenue_programs.all())
                 )
             case _:
                 return self.none()
@@ -197,8 +215,7 @@ class ContributionQuerySet(models.QuerySet):
 
 
 class ContributionManager(models.Manager):
-    def get_queryset(self):
-        return ContributionQuerySet(self.model, using=self._db).with_revenue_program()
+    pass
 
 
 class Contribution(IndexedTimeStampedModel):
@@ -311,8 +328,6 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
-        if hasattr(self, "_secret_sauce"):
-            return self._secret_sauce
         if self.donation_page:
             return self.donation_page.revenue_program
         return self._revenue_program

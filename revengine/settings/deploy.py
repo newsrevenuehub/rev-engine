@@ -23,8 +23,6 @@ ANYMAIL = {
     "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
 }
 
-EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
-DEFAULT_FROM_EMAIL = f"noreply@{env.str('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 
@@ -113,6 +111,3 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         profiles_sample_rate=SENTRY_PROFILING_SAMPLE_RATE,
     )
     ignore_logger("django.security.DisallowedHost")
-
-
-USE_DEBUG_INTERVALS = env.bool("USE_DEBUG_INTERVALS", False)

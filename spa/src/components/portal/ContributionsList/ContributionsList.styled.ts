@@ -36,13 +36,13 @@ export const Root = styled.div`
   }
 `;
 
-export const Layout = styled.div`
+export const Layout = styled.div<{ $isDetailSelected: boolean }>`
   display: grid;
   gap: 25px 20px;
   grid-template-areas:
-    'header _'
-    'tracker _'
-    'legend _'
+    'header appeal'
+    'tracker appeal'
+    'legend appeal'
     'list detail';
   grid-template-columns: 1fr 1fr;
   margin: 0 auto;
@@ -58,6 +58,14 @@ export const Layout = styled.div`
 
 export const Detail = styled.div`
   grid-area: detail;
+`;
+
+export const AppealWrapper = styled.div`
+  grid-area: appeal;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    display: none;
+  }
 `;
 
 export const Impact = styled.div`
@@ -103,8 +111,22 @@ export const Description = styled.p`
   line-height: 120%;
 `;
 
-export const ContactInfoWrapper = styled.div`
+export const InfoWrapper = styled.div`
   position: absolute;
   top: 0;
   right: 0;
+`;
+
+export const DesktopOnly = styled.div`
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    display: none;
+  }
+`;
+
+export const MobileOnly = styled.div`
+  display: none;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    display: block;
+  }
 `;

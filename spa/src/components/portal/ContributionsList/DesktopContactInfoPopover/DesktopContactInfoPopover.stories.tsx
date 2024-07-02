@@ -1,14 +1,14 @@
 import { Meta, StoryFn } from '@storybook/react';
-import ContactInfoPopover from './ContactInfoPopover';
+import DesktopContactInfoPopover from './DesktopContactInfoPopover';
 
 export default {
-  component: ContactInfoPopover,
-  title: 'Contributor/ContactInfoPopover'
-} as Meta<typeof ContactInfoPopover>;
+  component: DesktopContactInfoPopover,
+  title: 'Contributor/DesktopContactInfoPopover'
+} as Meta<typeof DesktopContactInfoPopover>;
 
-const Template: StoryFn<typeof ContactInfoPopover> = (props) => (
+const Template: StoryFn<typeof DesktopContactInfoPopover> = (props) => (
   <div style={{ marginTop: 250, marginLeft: 400 }}>
-    <ContactInfoPopover {...props}>This is the popover content.</ContactInfoPopover>
+    <DesktopContactInfoPopover {...props}>This is the popover content.</DesktopContactInfoPopover>
   </div>
 );
 

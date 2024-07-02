@@ -1,7 +1,6 @@
 import {
   Avatar as MuiAvatar,
   Divider as MuiDivider,
-  Popover as MuiPopover,
   MenuItem as MuiMenuItem,
   Typography as MuiTypography,
   ListItemIcon as MuiListItemIcon
@@ -67,17 +66,6 @@ export const Avatar = styled(MuiAvatar)`
     border: 1px solid white;
     font-size: ${(props) => props.theme.fontSizesUpdated.sm};
     background-color: ${(props) => props.theme.colors.muiLightBlue[800]};
-  }
-`;
-
-export const Popover = styled(MuiPopover)`
-  .MuiPaper-rounded {
-    min-width: 207px;
-    box-shadow: none;
-    padding: 12px 15px;
-    border: 1px solid ${(props) => props.theme.colors.muiGrey[300]};
-    background-color: ${(props) => props.theme.colors.muiGrey[100]};
-    filter: drop-shadow(0px 2px 20px rgba(0, 0, 0, 0.1));
   }
 `;
 

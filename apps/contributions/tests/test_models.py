@@ -1763,8 +1763,8 @@ class TestContributionModel:
         assert Contribution.objects.exclude_hidden_statuses().count() == 0
 
     def test_exclude_paymentless_canceled(self):
-        contribution = ContributionFactory(one_time=True)
-        assert contribution.status == ContributionStatus.PAID
+        contribution = ContributionFactory(one_time=True, status=ContributionStatus.CANCELED)
+        assert contribution.status == ContributionStatus.CANCELED
         assert contribution.payment_set.count() == 0
         assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 

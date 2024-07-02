@@ -1187,7 +1187,7 @@ def test_get_stripe_account_link_return_url_when_env_var_set(settings):
 
 
 def test_get_stripe_account_link_return_url_when_env_var_not_set(settings):
-    settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = None
+    settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = ""
     factory = APIRequestFactory()
     assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"
 

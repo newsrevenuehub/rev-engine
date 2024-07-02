@@ -34,9 +34,9 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
     @pytest.mark.parametrize(
         "config",
         [
-            {"MAILCHIMP_CLIENT_ID": None, "MAILCHIMP_CLIENT_SECRET": "something"},
-            {"MAILCHIMP_CLIENT_ID": "something", "MAILCHIMP_CLIENT_SECRET": None},
-            {"MAILCHIMP_CLIENT_ID": None, "MAILCHIMP_CLIENT_SECRET": None},
+            {"MAILCHIMP_CLIENT_ID": "", "MAILCHIMP_CLIENT_SECRET": "something"},
+            {"MAILCHIMP_CLIENT_ID": "something", "MAILCHIMP_CLIENT_SECRET": ""},
+            {"MAILCHIMP_CLIENT_ID": "", "MAILCHIMP_CLIENT_SECRET": ""},
         ],
     )
     def test_when_missing_config_vars(self, config, settings, mocker):

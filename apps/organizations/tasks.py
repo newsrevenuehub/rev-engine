@@ -37,7 +37,7 @@ def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
-    if missing := [x for x in ["MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"] if not getattr(settings, x, None)]:
+    if missing := [x for x in ["MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"] if not getattr(settings, x, "")]:
         logger.error(
             "`exchange_mc_oauth_code_for_mc_access_token` called but app is missing required config vars: %s",
             ", ".join(missing),

@@ -32,7 +32,7 @@ from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
@@ -285,6 +285,24 @@ def one_time_contribution(live_donation_page):
 
 
 @pytest.fixture()
+def one_time_contribution_with_payment(live_donation_page):
+    now = datetime.datetime.now(tz=ZoneInfo("UTC"))
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        one_time=True,
+        created=now,
+    )
+    PaymentFactory(
+        created=now,
+        contribution=contribution,
+        amount_refunded=0,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=contribution.amount - 100,
+    )
+    return contribution
+
+
+@pytest.fixture()
 def monthly_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
@@ -292,6 +310,50 @@ def monthly_contribution(live_donation_page):
 @pytest.fixture()
 def annual_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture()
+def monthly_contribution_with_refund(live_donation_page):
+    then = datetime.datetime.now(tz=ZoneInfo("UTC")) - datetime.timedelta(days=30)
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        monthly_subscription=True,
+        created=then,
+    )
+    PaymentFactory(
+        created=then,
+        contribution=contribution,
+        amount_refunded=0,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=contribution.amount - 100,
+    )
+    PaymentFactory(
+        created=then + datetime.timedelta(days=30),
+        contribution=contribution,
+        amount_refunded=contribution.amount,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=0,
+    )
+    return contribution
+
+
+@pytest.fixture()
+def monthly_contribution_multiple_payments(live_donation_page):
+    then = datetime.datetime.now(tz=ZoneInfo("UTC")) - datetime.timedelta(days=30)
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        monthly_subscription=True,
+        created=then,
+    )
+    for x in (then, then + datetime.timedelta(days=30)):
+        PaymentFactory(
+            created=x,
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+    return contribution
 
 
 @pytest.fixture()

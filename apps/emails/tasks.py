@@ -1,6 +1,10 @@
+# Needed for postponing evaluation of annotations (because of "if TYPE_CHECKING")
+# ref: https://peps.python.org/pep-0563/
+from __future__ import annotations
+
 from dataclasses import asdict
 from enum import Enum
-from typing import Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -19,6 +23,9 @@ from apps.contributions.choices import ContributionInterval
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.organizations.models import FiscalStatusChoices, FreePlan, TransactionalEmailStyle
 
+
+if TYPE_CHECKING:
+    from apps.contributions.models import BillingHistoryItem, Contribution
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -82,6 +89,8 @@ class SendContributionEmailData(TypedDict):
     contributor_email: str
     tax_id: str | None
     show_upgrade_prompt: bool
+    billing_history: list[BillingHistoryItem] | None
+    show_billing_history: bool
 
 
 class SendMagicLinkEmailData(TypedDict):
@@ -91,8 +100,9 @@ class SendMagicLinkEmailData(TypedDict):
     style: TransactionalEmailStyle
 
 
-# would like to have type hint for contribution but that would cause a circular import because need to import class to this file
-def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
+def make_send_thank_you_email_data(
+    contribution: Contribution, show_billing_history: bool = False
+) -> SendContributionEmailData:
     logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
 
     # vs circular import
@@ -133,6 +143,8 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
         style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
         show_upgrade_prompt=False,
+        billing_history=contribution.get_billing_history(),
+        show_billing_history=show_billing_history,
     )
 
 

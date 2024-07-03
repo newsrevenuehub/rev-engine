@@ -560,23 +560,11 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     """Furnish contributions data to the (new) contributor portal."""
 
     permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
-
     DEFAULT_ORDERING_FIELDS = ["created"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
-    # Contributors should never see contributions with these statuses, or
-    # interact with them (e.g. delete or patch them).
-    HIDDEN_STATUSES = [
-        ContributionStatus.FLAGGED,
-        ContributionStatus.PROCESSING,
-        ContributionStatus.REJECTED,
-        ContributionStatus.ABANDONED,
-    ]
     # NB: This view is about returning contributor.contributions and never returns contributors, but
-    # we need to set a queryset to satisfy DRF's viewset machinery
+    # we need to set a queryset to satisfy DRF's viewset expectations.
     queryset = Contributor.objects.all()
-
-    def exclude_hidden_statuses(self, queryset: QuerySet[Contribution]):
-        return queryset.exclude(status__in=self.HIDDEN_STATUSES)
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
         try:
@@ -624,6 +612,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         return Response(impact, status=status.HTTP_200_OK)
 
+    def get_contributor_queryset(self, contributor):
+        return contributor.contribution_set.all().exclude_hidden_statuses().exclude_paymentless_canceled()
+
     @action(
         methods=["get"],
         url_path="contributions",
@@ -634,11 +625,10 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
-        qs = PortalContributionFilter().filter_queryset(
-            request, self.exclude_hidden_statuses(contributor.contribution_set)
-        )
-        qs = self.handle_ordering(qs, request)
-        return self.paginate_results(qs, request)
+        qs = self.get_contributor_queryset(contributor)
+        filtered_qs = PortalContributionFilter().filter_queryset(request, qs)
+        ordered_qs = self.handle_ordering(filtered_qs, request)
+        return self.paginate_results(ordered_qs, request)
 
     @action(
         methods=["post"],
@@ -652,10 +642,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         logger.info("send receipt with contribution_id %s", contribution_id)
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
+            contribution = self.get_contributor_queryset(contributor).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
-        contribution.handle_thank_you_email()
+        contribution.handle_thank_you_email(
+            show_billing_history=contribution.interval != ContributionInterval.ONE_TIME.value
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -669,7 +661,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint to get or update a contribution for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
+            contribution = self.get_contributor_queryset(contributor).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 

@@ -7,7 +7,7 @@ from collections.abc import Callable, Generator
 from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
-from typing import Any
+from typing import Any, Literal, TypedDict
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
@@ -28,6 +28,7 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
+from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     make_send_thank_you_email_data,
     send_templated_email,
@@ -53,6 +54,12 @@ class ContributionStatusError(Exception):
     pass
 
 
+class BillingHistoryItem(TypedDict):
+    payment_date: datetime.datetime
+    payment_amount: int
+    payment_status: Literal["Paid", "Refunded"]
+
+
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
@@ -61,9 +68,7 @@ class Contributor(IndexedTimeStampedModel):
         """Calculate the total impact of a contributor across multiple revenue programs."""
         totals = (
             self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
-            .exclude(
-                status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.REJECTED]
-            )
+            .exclude_hidden_statuses()
             .annotate(total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded"))
             .aggregate(
                 total_amount_paid=Sum("total_payments", default=0),
@@ -113,6 +118,13 @@ class Contributor(IndexedTimeStampedModel):
 
 
 class ContributionQuerySet(models.QuerySet):
+    CONTRIBUTOR_HIDDEN_STATUSES = [
+        ContributionStatus.ABANDONED,
+        ContributionStatus.FLAGGED,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.REJECTED,
+    ]
+
     def with_revenue_program_id(self):
         """Alias revenue_program_id as "revenue_program".
 
@@ -200,6 +212,14 @@ class ContributionQuerySet(models.QuerySet):
                 )
             case _:
                 return self.none()
+
+    def exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:
+        return self.exclude(status__in=self.CONTRIBUTOR_HIDDEN_STATUSES)
+
+    def exclude_paymentless_canceled(self) -> models.QuerySet[Contribution]:
+        return self.annotate(num_payments=models.Count("payment")).exclude(
+            num_payments=0, status=ContributionStatus.CANCELED
+        )
 
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.
@@ -324,7 +344,7 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
-        return f"{currency['symbol']}{f'{self.amount / 100:.2f}'} {currency['code']}"
+        return self.format_amount(amount=self.amount, symbol=currency["symbol"], code=currency["code"])
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
@@ -589,18 +609,38 @@ class Contribution(IndexedTimeStampedModel):
             self.save(update_fields={"status", "modified"})
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
-    def handle_thank_you_email(self):
+    def handle_thank_you_email(self, show_billing_history: bool = False):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email."""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
-            data = make_send_thank_you_email_data(self)
+            data = make_send_thank_you_email_data(self, show_billing_history=show_billing_history)
             send_thank_you_email.delay(data)
         else:
             logger.info(
                 "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
                 self.id,
             )
+
+    def get_billing_history(self) -> list[BillingHistoryItem] | None:
+        """Get the billing history of a contribution."""
+        billing_history = [
+            BillingHistoryItem(
+                payment_date=convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
+                payment_amount=(
+                    self.format_amount(payment.amount_refunded)
+                    if payment.amount_refunded
+                    else self.format_amount(payment.gross_amount_paid)
+                ),
+                payment_status=("Paid" if payment.amount_refunded == 0 else "Refunded"),
+            )
+            for payment in self.payment_set.all()
+        ]
+
+        logger.info(
+            "`Contribution.get_billing_history` called on an instance (ID: %s). Billing history generated", self.id
+        )
+        return billing_history
 
     def send_recurring_contribution_change_email(
         self, subject_line: str, template_name: str, timestamp: str = None
@@ -816,6 +856,10 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
             return None
+
+    @staticmethod
+    def format_amount(amount: int, symbol="$", code="USD") -> str:
+        return f"{symbol}{f'{amount / 100:.2f}'} {code}"
 
     @staticmethod
     def fix_contributions_stuck_in_processing(dry_run: bool = False) -> None:

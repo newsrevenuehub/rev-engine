@@ -20,6 +20,7 @@ from apps.contributions.models import (
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
+    ContributionQuerySet,
     ContributionStatus,
     ContributionStatusError,
     Contributor,
@@ -47,63 +48,6 @@ class TestContributorModel:
     @pytest.fixture()
     def customer_id(self, faker):
         return faker.pystr_format(string_format="cus_??????")
-
-    @pytest.fixture()
-    def one_time_canceled_contribution_no_payment(self, contributor_user, customer_id):
-        return ContributionFactory(
-            one_time=True,
-            canceled=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-
-    @pytest.fixture()
-    def one_time_processing_contribution(self, contributor_user, customer_id):
-        contribution = ContributionFactory(
-            one_time=True,
-            processing=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-        PaymentFactory(
-            contribution=contribution,
-            amount_refunded=0,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=contribution.amount - 100,
-        )
-        return contribution
-
-    @pytest.fixture()
-    def one_time_flagged_contribution(self, contributor_user, customer_id):
-        contribution = ContributionFactory(
-            one_time=True,
-            flagged=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-        PaymentFactory(
-            contribution=contribution,
-            amount_refunded=0,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=contribution.amount - 100,
-        )
-        return contribution
-
-    @pytest.fixture()
-    def one_time_rejected_contribution(self, contributor_user, customer_id):
-        contribution = ContributionFactory(
-            one_time=True,
-            rejected=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-        PaymentFactory(
-            contribution=contribution,
-            amount_refunded=0,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=contribution.amount - 100,
-        )
-        return contribution
 
     @pytest.fixture()
     def one_time_contribution_with_payment(self, contributor_user, faker, customer_id):
@@ -184,16 +128,6 @@ class TestContributorModel:
     def contribution(self, request):
         return request.getfixturevalue(request.param)
 
-    @pytest.fixture(
-        params=[
-            "one_time_processing_contribution",
-            "one_time_flagged_contribution",
-            "one_time_rejected_contribution",
-        ]
-    )
-    def no_impact_contribution(self, request):
-        return request.getfixturevalue(request.param)
-
     def test__str__(self, contributor_user):
         assert str(contributor_user) == contributor_user.email
 
@@ -225,20 +159,6 @@ class TestContributorModel:
             "total_paid": total_paid,
             "total_refunded": total_refunded,
         }
-
-    def test_get_impact_with_cancelled_contribution(self, one_time_canceled_contribution_no_payment, contributor_user):
-        assert one_time_canceled_contribution_no_payment.payment_set.count() == 0
-        assert one_time_canceled_contribution_no_payment.status == ContributionStatus.CANCELED
-        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
-
-    def test_get_impact_with_no_impact_contribution(self, no_impact_contribution, contributor_user):
-        assert no_impact_contribution.payment_set.count() == 1
-        assert no_impact_contribution.status in [
-            ContributionStatus.FLAGGED,
-            ContributionStatus.REJECTED,
-            ContributionStatus.PROCESSING,
-        ]
-        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
 
     def test_get_impact_with_no_contributions(self, contributor_user):
         assert contributor_user.contribution_set.count() == 0
@@ -1836,6 +1756,17 @@ class TestContributionModel:
         mock_retrieve.assert_called_once_with(
             contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
         )
+
+    @pytest.mark.parametrize("status", ContributionQuerySet.CONTRIBUTOR_HIDDEN_STATUSES)
+    def test_exclude_hidden_statuses(self, status):
+        ContributionFactory(status=status)
+        assert Contribution.objects.exclude_hidden_statuses().count() == 0
+
+    def test_exclude_paymentless_canceled(self):
+        contribution = ContributionFactory(one_time=True, status=ContributionStatus.CANCELED)
+        assert contribution.status == ContributionStatus.CANCELED
+        assert contribution.payment_set.count() == 0
+        assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 
 
 @pytest.mark.django_db()

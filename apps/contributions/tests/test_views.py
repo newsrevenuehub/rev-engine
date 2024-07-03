@@ -1277,6 +1277,12 @@ class TestPaymentViewset:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"interval": "The provided value for interval is not permitted"}
 
+    def test_when_called_with_no_interval(self, minimally_valid_contribution_form_data):
+        del minimally_valid_contribution_form_data["interval"]
+        response = self.client.post(reverse("payment-list"), minimally_valid_contribution_form_data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"interval": "The interval field is required"}
+
     def test_when_no_csrf(self):
         """Show that view is inaccessible if no CSRF token is included in request.
 

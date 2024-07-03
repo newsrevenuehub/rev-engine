@@ -128,7 +128,7 @@ class ContributionQuerySet(models.QuerySet):
     def with_revenue_program_id(self):
         """Alias revenue_program_id as "revenue_program".
 
-        Alias (which is only in SQL) as Contribuition has property "revenue_program" which handles dual revenue_program source.
+        Alias (which is only in SQL) as Contribuition had existing property "revenue_program" which handles dual revenue_program source.
         """
         return self.alias(revenue_program_id=Coalesce("_revenue_program", "donation_page__revenue_program"))
 
@@ -139,7 +139,11 @@ class ContributionQuerySet(models.QuerySet):
         )
 
     def with_stripe_account(self):
-        """Annotate stripe_account_id as "stripe_account"."""
+        """Annotate stripe_account_id as "stripe_account".
+
+        stripe_account even though it is the id and not object instead of *_id because Contribuition had existing
+        property "stripe_account_id"
+        """
         return self.annotate(
             stripe_account=Coalesce(
                 "_revenue_program__payment_provider__stripe_account_id",

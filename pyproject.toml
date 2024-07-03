@@ -162,23 +162,29 @@ max-complexity = 12  # .flake8 set to 18, extremely high, 10 is default. 12 was 
 
 [tool.ruff.lint]
 ignore = [
+  # @njh these should not be ignored for reason stated, their effort/risk deserves separate ticket
+  "ANN", "RUF012", "RUF013", # TODO @njh: type annotations
+  "DJ001", # TODO @njh: charfields should not be nullable
+  "S308",  # TODO @njh: DEV-4778 use of mark_safe may expose cross-site scripting vulnerabilities
+  # Rule number, description (reason for being ignored)
   "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", # Missing docstring (too much effort)
-  "D203", # Incompatable with D211 (pick one or other)
-  "D213", # Incompatable with D212 (pick one or other)
+  "D203", # Incompatible with D211 (pick one or other)
+  "D213", # Incompatible with D212 (pick one or other)
   "E731",  # Do not assign a lambda expression, use a def (no)
   "PERF203", # try/except in loop incurs performance penalty (ok, but sometimes it's necessary)
-  "RET503", # No explicit return (the other RET rules are about removing superflous code such as this)
-  "S105",  # Hardcoded passwords (too many false positives)
+  "RET503", # No explicit return (the other RET rules are about removing superfluous code such as this)
+  "S105",  # Hard coded passwords (too many false positives)
   "SIM108", # Use ternary operator (only when it's more readable)
   "TRY003", # Avoid long messages outside exception class (no)
   "COM812", # Conflicts with black feature (black always splits lines with trailing comma)
-  # @njh we should enforce these rules
-  "ANN", "RUF012", "RUF013", # TODO @njh: type annotations
-  "DJ001", # TODO @njh: charfields should not be nullable
-  "PLW1508", # TODO @njh: DEV-4779 invalid type for env var
-  "S308",  # TODO @njh: DEV-4778 use of mark_safe may expose cross-site scripting vulnerabilities
 ]
 select = [
+  # @njh not enabled for (reason)
+  #"ARG",  # flake8 unused arguments (not helpful, unused func args are common and ok)
+  #"N",  # pep8-naming (too opinionated)
+  #"PLR",  # Pylint refactor (low ROI / too opinionated)
+  # "NPY", # numpy (numpy not used by project)
+  # "PD", # pandas (pandas not used by project)
   "A",  # flake8-builtins
   "ANN", # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
   "ASYNC", # https://docs.astral.sh/ruff/rules/#flake8-async-async
@@ -200,8 +206,6 @@ select = [
   "ICN", # https://github.com/joaopalmeiro/flake8-import-conventions
   "ISC", # https://pypi.org/project/flake8-implicit-str-concat/
   "LOG", # flake8-logging
-  # "NPY", # numpy (numpy not used by project)
-  # "PD", # pandas (pandas not used by project)
   "PERF", # https://docs.astral.sh/ruff/rules/#perflint-perf
   "PIE", # https://pypi.org/project/flake8-pie/
   "PLC",  # Pylint conventions
@@ -219,8 +223,4 @@ select = [
   "TRY",  # tryceratops
   "UP",  # pyupgrade
   "W",  # pycodestyle
-  # @njh disabled for stated ("reason")
-  #"ARG",  # flake8 unused arguments (not helpful, unused func args are common and ok)
-  #"N",  # pep8-naming (too opinionated)
-  #"PLR",  # Pylint refactor (too much effort for return / too opinionated)
   ]

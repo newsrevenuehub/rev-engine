@@ -573,7 +573,7 @@ REQUESTS_TIMEOUT_DEFAULT = 31
 ## Email and ESP Settings
 DEFAULT_FROM_EMAIL = f"noreply@{env.str('DOMAIN', 'example.com')}"
 # TODO @njh: Cut duplicate settings
-# https://news-revenue-hub.atlassian.net/browse/DEV-4904
+# https://news-revenue-hub.atlassian.net/browse/DEV-4924
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = f"[RevEngine {ENVIRONMENT.title()}] "
 # Revengine template identifiers

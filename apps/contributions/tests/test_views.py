@@ -2303,6 +2303,13 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
+    def test_get_contributor_queryset(self, mocker):
+        exclude_hidden_spy = mocker.spy(ContributionQuerySet, "exclude_hidden_statuses")
+        exclude_paymentless_spy = mocker.spy(ContributionQuerySet, "exclude_paymentless_canceled")
+        contributions_views.PortalContributorsViewSet().get_contributor_queryset(contributor=ContributorFactory())
+        exclude_hidden_spy.assert_called_once()
+        exclude_paymentless_spy.assert_called_once()
+
 
 @pytest.mark.django_db()
 class TestSwitchboardContributionsViewSet:

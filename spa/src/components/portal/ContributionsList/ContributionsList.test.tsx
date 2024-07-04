@@ -62,14 +62,23 @@ describe('ContributionsList', () => {
     expect(header.dataset.rp).toBe('mock-rp-id');
   });
 
-  it('shows Impact Tracker', () => {
-    tree();
-    expect(screen.getByText('Impact Tracker')).toBeInTheDocument();
-    expect(screen.getByText('$1,230.00')).toBeInTheDocument();
+  // TODO: Enable Impact Tracker as soon as it's available
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('Impact Tracker', () => {
+    it('shows Impact Tracker', () => {
+      tree();
+      expect(screen.getByText('Impact Tracker')).toBeInTheDocument();
+      expect(screen.getByText('$1,230.00')).toBeInTheDocument();
+    });
+
+    it('hides Impact Tracker when impact is loading', () => {
+      usePortalContributorImpactMock.mockReturnValue({ isLoading: true } as any);
+      tree();
+      expect(screen.queryByText('Impact Tracker')).not.toBeInTheDocument();
+    });
   });
 
-  it('hides Impact Tracker when impact is loading', () => {
-    usePortalContributorImpactMock.mockReturnValue({ isLoading: true } as any);
+  it('Impact Tracker is not shown', () => {
     tree();
     expect(screen.queryByText('Impact Tracker')).not.toBeInTheDocument();
   });

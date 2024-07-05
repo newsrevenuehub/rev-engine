@@ -29,9 +29,10 @@ from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
-from apps.contributions.choices import CardBrand, ContributionInterval
+from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
+from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
@@ -284,6 +285,24 @@ def one_time_contribution(live_donation_page):
 
 
 @pytest.fixture()
+def one_time_contribution_with_payment(live_donation_page):
+    now = datetime.datetime.now(tz=ZoneInfo("UTC"))
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        one_time=True,
+        created=now,
+    )
+    PaymentFactory(
+        created=now,
+        contribution=contribution,
+        amount_refunded=0,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=contribution.amount - 100,
+    )
+    return contribution
+
+
+@pytest.fixture()
 def monthly_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
@@ -291,6 +310,50 @@ def monthly_contribution(live_donation_page):
 @pytest.fixture()
 def annual_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture()
+def monthly_contribution_with_refund(live_donation_page):
+    then = datetime.datetime.now(tz=ZoneInfo("UTC")) - datetime.timedelta(days=30)
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        monthly_subscription=True,
+        created=then,
+    )
+    PaymentFactory(
+        created=then,
+        contribution=contribution,
+        amount_refunded=0,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=contribution.amount - 100,
+    )
+    PaymentFactory(
+        created=then + datetime.timedelta(days=30),
+        contribution=contribution,
+        amount_refunded=contribution.amount,
+        gross_amount_paid=contribution.amount,
+        net_amount_paid=0,
+    )
+    return contribution
+
+
+@pytest.fixture()
+def monthly_contribution_multiple_payments(live_donation_page):
+    then = datetime.datetime.now(tz=ZoneInfo("UTC")) - datetime.timedelta(days=30)
+    contribution = ContributionFactory(
+        donation_page=live_donation_page,
+        monthly_subscription=True,
+        created=then,
+    )
+    for x in (then, then + datetime.timedelta(days=30)):
+        PaymentFactory(
+            created=x,
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+    return contribution
 
 
 @pytest.fixture()
@@ -1146,3 +1209,46 @@ def payment_method(payment_method_data_factory):
     return stripe.PaymentMethod.construct_from(
         payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
     )
+
+
+@pytest.fixture()
+def not_unmarked_abandoned_contributions() -> list[Contribution]:
+    return [
+        ContributionFactory(**{param: True})
+        for param in [
+            "rejected",
+            "canceled",
+            "refunded",
+            "abandoned",
+            "annual_subscription",
+            "one_time",
+        ]
+    ]
+
+
+@pytest.fixture()
+def unmarked_abandoned_contributions() -> list[Contribution]:
+    return [
+        ContributionFactory(
+            **{
+                "unmarked_abandoned": True,
+                "one_time" if interval == ContributionInterval.ONE_TIME else "monthly_subscription": True,
+                "status": status,
+                "interval": interval,
+            }
+        )
+        for interval in [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
+        for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING]
+    ]
+
+
+@pytest.fixture()
+def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
+    with Path("apps/contributions/tests/fixtures/payment-method-attached-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
+def charge_succeeded_event():
+    with Path("apps/contributions/tests/fixtures/charge-succeeded-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)

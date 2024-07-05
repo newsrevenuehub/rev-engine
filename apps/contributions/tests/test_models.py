@@ -17,9 +17,11 @@ from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
 from apps.contributions.models import (
+    BillingHistoryItem,
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
+    ContributionQuerySet,
     ContributionStatus,
     ContributionStatusError,
     Contributor,
@@ -35,6 +37,7 @@ from apps.contributions.tests.factories import (
     PaymentFactory,
 )
 from apps.contributions.types import StripeEventData
+from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -47,63 +50,6 @@ class TestContributorModel:
     @pytest.fixture()
     def customer_id(self, faker):
         return faker.pystr_format(string_format="cus_??????")
-
-    @pytest.fixture()
-    def one_time_canceled_contribution_no_payment(self, contributor_user, customer_id):
-        return ContributionFactory(
-            one_time=True,
-            canceled=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-
-    @pytest.fixture()
-    def one_time_processing_contribution(self, contributor_user, customer_id):
-        contribution = ContributionFactory(
-            one_time=True,
-            processing=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-        PaymentFactory(
-            contribution=contribution,
-            amount_refunded=0,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=contribution.amount - 100,
-        )
-        return contribution
-
-    @pytest.fixture()
-    def one_time_flagged_contribution(self, contributor_user, customer_id):
-        contribution = ContributionFactory(
-            one_time=True,
-            flagged=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-        PaymentFactory(
-            contribution=contribution,
-            amount_refunded=0,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=contribution.amount - 100,
-        )
-        return contribution
-
-    @pytest.fixture()
-    def one_time_rejected_contribution(self, contributor_user, customer_id):
-        contribution = ContributionFactory(
-            one_time=True,
-            rejected=True,
-            provider_customer_id=customer_id,
-            contributor=contributor_user,
-        )
-        PaymentFactory(
-            contribution=contribution,
-            amount_refunded=0,
-            gross_amount_paid=contribution.amount,
-            net_amount_paid=contribution.amount - 100,
-        )
-        return contribution
 
     @pytest.fixture()
     def one_time_contribution_with_payment(self, contributor_user, faker, customer_id):
@@ -184,16 +130,6 @@ class TestContributorModel:
     def contribution(self, request):
         return request.getfixturevalue(request.param)
 
-    @pytest.fixture(
-        params=[
-            "one_time_processing_contribution",
-            "one_time_flagged_contribution",
-            "one_time_rejected_contribution",
-        ]
-    )
-    def no_impact_contribution(self, request):
-        return request.getfixturevalue(request.param)
-
     def test__str__(self, contributor_user):
         assert str(contributor_user) == contributor_user.email
 
@@ -225,20 +161,6 @@ class TestContributorModel:
             "total_paid": total_paid,
             "total_refunded": total_refunded,
         }
-
-    def test_get_impact_with_cancelled_contribution(self, one_time_canceled_contribution_no_payment, contributor_user):
-        assert one_time_canceled_contribution_no_payment.payment_set.count() == 0
-        assert one_time_canceled_contribution_no_payment.status == ContributionStatus.CANCELED
-        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
-
-    def test_get_impact_with_no_impact_contribution(self, no_impact_contribution, contributor_user):
-        assert no_impact_contribution.payment_set.count() == 1
-        assert no_impact_contribution.status in [
-            ContributionStatus.FLAGGED,
-            ContributionStatus.REJECTED,
-            ContributionStatus.PROCESSING,
-        ]
-        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
 
     def test_get_impact_with_no_contributions(self, contributor_user):
         assert contributor_user.contribution_set.count() == 0
@@ -330,6 +252,34 @@ class TestContributionModel:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
     def contribution(self, request):
         return request.getfixturevalue(request.param)
+
+    @pytest.fixture(
+        params=[
+            "one_time_contribution_with_payment",
+            "monthly_contribution_multiple_payments",
+            "monthly_contribution_with_refund",
+        ]
+    )
+    def contribution_billing_history(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_get_billing_history(self, contribution_billing_history: Contribution):
+        billing_history = contribution_billing_history.get_billing_history()
+
+        expected_value = [
+            BillingHistoryItem(
+                payment_date=convert_to_timezone_formatted(payment.transaction_time, "America/New_York"),
+                payment_amount=(
+                    contribution_billing_history.format_amount(payment.amount_refunded)
+                    if payment.amount_refunded
+                    else contribution_billing_history.format_amount(payment.gross_amount_paid)
+                ),
+                payment_status=("Paid" if payment.amount_refunded == 0 else "Refunded"),
+            )
+            for payment in contribution_billing_history.payment_set.all()
+        ]
+
+        assert billing_history == expected_value
 
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
         """Show Contribution.create_stripe_customer calls Stripe with right params and returns the customer object."""
@@ -430,18 +380,15 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self, mocker):
         contribution = ContributionFactory(provider_payment_method_id=None)
-        logger_spy = mocker.spy(logger, "warning")
         assert contribution.fetch_stripe_payment_method() is None
-        logger_spy.assert_called_once_with(
-            "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
-            "on contribution with ID %s",
-            contribution.id,
-        )
 
     def test_fetch_stripe_payment_method_happy_path(self, one_time_contribution, mocker):
         return_value = AttrDict({"key": "val"})
         mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", return_value=return_value)
-        assert one_time_contribution.fetch_stripe_payment_method() == return_value
+        assert (
+            one_time_contribution.fetch_stripe_payment_method(one_time_contribution.provider_payment_method_id)
+            == return_value
+        )
         mock_retrieve_pm.assert_called_once_with(
             one_time_contribution.provider_payment_method_id,
             stripe_account=one_time_contribution.revenue_program.payment_provider.stripe_account_id,
@@ -449,7 +396,9 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_stripe_error(self, one_time_contribution, mocker):
         mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", side_effect=stripe.error.StripeError("error"))
-        assert one_time_contribution.fetch_stripe_payment_method() is None
+        assert (
+            one_time_contribution.fetch_stripe_payment_method(one_time_contribution.provider_payment_method_id) is None
+        )
         mock_retrieve_pm.assert_called_once_with(
             one_time_contribution.provider_payment_method_id,
             stripe_account=one_time_contribution.revenue_program.payment_provider.stripe_account_id,
@@ -482,6 +431,7 @@ class TestContributionModel:
             ),
             stripe_account=rp.stripe_account_id,
             capture_method="automatic",
+            idempotency_key=f"{one_time_contribution.uuid}-payment-intent",
         )
 
     def test_create_stripe_subscription(self, contribution, monkeypatch, mocker):
@@ -518,6 +468,7 @@ class TestContributionModel:
             expand=["latest_invoice.payment_intent"],
             off_session=False,
             default_payment_method=None,
+            idempotency_key=f"{contribution.uuid}-subscription",
         )
         assert subscription == return_value
 
@@ -541,6 +492,7 @@ class TestContributionModel:
             customer=contribution.provider_customer_id,
             stripe_account=contribution.revenue_program.stripe_account_id,
             metadata=metadata,
+            idempotency_key=f"{contribution.uuid}-setup-intent",
         )
         assert setup_intent == return_value
 
@@ -550,7 +502,10 @@ class TestContributionModel:
 
     @pytest.mark.usefixtures("_mock_stripe_customer")
     @pytest.mark.parametrize("send_receipt_email_via_nre", [True, False])
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, mocker, settings):
+    @pytest.mark.parametrize("show_billing_history", [False, True])
+    def test_handle_thank_you_email(
+        self, contribution: Contribution, send_receipt_email_via_nre, show_billing_history, mocker, settings
+    ):
         """Show that when org configured to have NRE send thank you emails, send_templated_email gets called with expected args."""
         settings.CELERY_TASK_ALWAYS_EAGER = True
         (org := contribution.revenue_program.organization).send_receipt_email_via_nre = send_receipt_email_via_nre
@@ -558,8 +513,9 @@ class TestContributionModel:
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
-        contribution.handle_thank_you_email()
-        expected_data = make_send_thank_you_email_data(contribution)
+        contribution.handle_thank_you_email(show_billing_history=show_billing_history)
+        expected_data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)
         else:
@@ -1811,6 +1767,41 @@ class TestContributionModel:
         else:
             ContributionFactory(donation_page=page, _revenue_program=rp)
 
+    def test_is_unmarked_abandoned_cart(self, unmarked_abandoned_contributions, one_time_contribution):
+        assert unmarked_abandoned_contributions[0].is_unmarked_abandoned_cart
+        assert not one_time_contribution.is_unmarked_abandoned_cart
+
+    def test_stripe_customer_when_no_customer_id(self):
+        contribution = ContributionFactory(provider_customer_id=None)
+        assert contribution.stripe_customer is None
+
+    def test_stripe_customer_when_error_on_retrieve(self, mocker):
+        contribution = ContributionFactory(provider_customer_id="something")
+        mock_retrieve = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError("uh oh"))
+        assert contribution.stripe_customer is None
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+
+    def test_stripe_customer_when_retrieve_success(self, mocker):
+        contribution = ContributionFactory(provider_customer_id="something")
+        mock_retrieve = mocker.patch("stripe.Customer.retrieve", return_value=(retrieved := "something"))
+        assert contribution.stripe_customer == retrieved
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+
+    @pytest.mark.parametrize("status", ContributionQuerySet.CONTRIBUTOR_HIDDEN_STATUSES)
+    def test_exclude_hidden_statuses(self, status):
+        ContributionFactory(status=status)
+        assert Contribution.objects.exclude_hidden_statuses().count() == 0
+
+    def test_exclude_paymentless_canceled(self):
+        contribution = ContributionFactory(one_time=True, status=ContributionStatus.CANCELED)
+        assert contribution.status == ContributionStatus.CANCELED
+        assert contribution.payment_set.count() == 0
+        assert Contribution.objects.exclude_paymentless_canceled().count() == 0
+
 
 @pytest.mark.django_db()
 class TestContributionQuerySetMethods:
@@ -1919,6 +1910,14 @@ class TestContributionQuerySetMethods:
         results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
         assert len(results) == 1
         assert results[0].id == paid.id
+
+    @pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
+    def test_unmarked_abandoned_carts(self, unmarked_abandoned_contributions):
+        """Show that this method returns the expected results."""
+        assert unmarked_abandoned_contributions
+        assert set(Contribution.objects.unmarked_abandoned_carts().values_list("id", flat=True)) == {
+            c.id for c in unmarked_abandoned_contributions
+        }
 
 
 @pytest.fixture()

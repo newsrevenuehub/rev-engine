@@ -10,7 +10,16 @@ import stripe
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
     REVISION_COMMENT,
 )
-from apps.contributions.models import Payment
+from apps.contributions.management.commands.fix_incident_2445 import (
+    TEMP_PM_ID,
+)
+from apps.contributions.management.commands.fix_incident_2445 import (
+    Command as FixIncident2445Command,
+)
+from apps.contributions.management.commands.fix_incident_2445 import (
+    ContributionOutcome as Incident2445Outcome,
+)
+from apps.contributions.models import Contribution, Payment
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -274,103 +283,6 @@ class Test_fix_recurring_contribution_missing_provider_payment_id:
         assert contribution.provider_payment_id is None
 
 
-@pytest.mark.django_db()
-class Test_fix_recurring_contribution_missing_provider_subscription_id:
-    @pytest.fixture()
-    def contribution(self):
-        return ContributionFactory(
-            provider_payment_id="test-payment-id", provider_subscription_id=None, monthly_subscription=True
-        )
-
-    @pytest.fixture()
-    def _mock_get_account_status(self, mocker, contribution):
-        mocker.patch(
-            # needed to mock at import because otherwise tests failed, seemingly because
-            # of leaked mock state between tests in this class
-            "apps.contributions.management.commands.fix_recurring_contribution_missing_provider_subscription_id.get_stripe_accounts_and_their_connection_status",
-            side_effect=[{contribution.stripe_account_id: True}],
-        )
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_happy_path(self, contribution, mocker):
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value=mocker.Mock(invoice=mocker.Mock(subscription="test-sub-id")),
-        )
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id == "test-sub-id"
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_skips_contribution_with_subscription_id(self, contribution):
-        contribution.provider_subscription_id = "existing-id"
-        contribution.save()
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id == "existing-id"
-
-    def test_skips_disconnected_stripe_account(self, contribution, mocker):
-        mocker.patch(
-            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
-            return_value={contribution.stripe_account_id: False},
-        )
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value=mocker.Mock(invoice=mocker.Mock(subscription="test-sub-id")),
-        )
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id is None
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_skips_missing_provider_payment_id(self, contribution):
-        contribution.provider_payment_id = None
-        contribution.save()
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id is None
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_handles_stripe_retrieval_exception(self, contribution, mocker):
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve", side_effect=stripe.error.InvalidRequestError("test-error", param={})
-        )
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id is None
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_skips_when_intent_has_no_invoice(self, contribution, mocker):
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value={},
-        )
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id is None
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_skips_when_intent_invoice_has_sub_linked_to_existing_contribution(self, contribution, mocker):
-        ContributionFactory(provider_subscription_id="existing-id")
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value=mocker.Mock(invoice=mocker.Mock(subscription="existing-id")),
-        )
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id is None
-
-    @pytest.mark.usefixtures("_mock_get_account_status")
-    def test_skips_when_intent_invoice_has_no_subscription(self, contribution, mocker):
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value=mocker.Mock(invoice=mocker.Mock(subscription=None)),
-        )
-        call_command("fix_recurring_contribution_missing_provider_subscription_id")
-        contribution.refresh_from_db()
-        assert contribution.provider_subscription_id is None
-
-
 def test_clear_stripe_transactions_import_cache(mocker):
     mock_clear_cache = mocker.patch(
         "apps.contributions.stripe_import.StripeTransactionsImporter.clear_all_stripe_transactions_cache"
@@ -511,3 +423,258 @@ class Test_sync_missing_provider_payment_method_details:
     @pytest.mark.usefixtures("contributions", "_get_accounts_none_found")
     def test_when_eligible_but_no_fixable(self):
         call_command("sync_missing_provider_payment_method_details")
+
+
+def test_mark_abandoned_carts(mocker):
+    mock_mark_abandoned_carts = mocker.patch("apps.contributions.tasks.mark_abandoned_carts_as_abandoned")
+    call_command("mark_abandoned_carts")
+    mock_mark_abandoned_carts.assert_called_once()
+
+
+@pytest.mark.django_db()
+class Test_fix_incident_2445:
+
+    @pytest.fixture()
+    def command(self):
+        return FixIncident2445Command()
+
+    def test_handle_when_no_relevant_contributions(self, mocker):
+        call_command("fix_incident_2445", payment_method_id="pm_1", original_contribution_id=1)
+
+    def test_handle_when_ineligible_because_of_account_contributions(self, mocker):
+        pm_id = "pm_1"
+        contribution = ContributionFactory(provider_payment_method_id=pm_id)
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.get_stripe_accounts_and_their_connection_status",
+            return_value={contribution.stripe_account_id: None},
+        )
+        call_command("fix_incident_2445", payment_method_id=pm_id, original_contribution_id=99)
+
+    def test_handle_happy_path(self, mocker, command):
+        one_time = ContributionFactory(one_time=True, provider_payment_method_id=None)
+        recurring = ContributionFactory(monthly_subscription=True, provider_payment_method_id=None)
+        contributions = Contribution.objects.all()
+        assert contributions.count() == 2
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.Command.get_queryset", return_value=contributions
+        )
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.Command.nullify_bad_change",
+            return_value=contributions,
+        )
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.get_stripe_accounts_and_their_connection_status",
+            return_value={
+                one_time.stripe_account_id: True,
+                recurring.stripe_account_id: True,
+            },
+        )
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.Command.handle_one_time_contribution",
+            return_value=(one_time, Incident2445Outcome.UPDATED),
+        )
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.Command.handle_recurring_contribution",
+            return_value=(recurring, Incident2445Outcome.NOT_UPDATED),
+        )
+        call_command("fix_incident_2445", payment_method_id="pm_1", original_contribution_id=99)
+
+    @pytest.fixture()
+    def payment_intent_with_payment_method(self, mocker):
+        return mocker.Mock(id="pi_1", payment_method="pm_1")
+
+    @pytest.fixture()
+    def payment_intent_without_payment_method(self, mocker):
+        return mocker.Mock(id="pi_2", payment_method=None)
+
+    @pytest.fixture()
+    def bad_payment_method_id(self):
+        return "pm_X"
+
+    @pytest.mark.parametrize(
+        ("payment_intent", "fetch_pm_result", "expect_outcome"),
+        [
+            (None, None, Incident2445Outcome.NOT_UPDATED),
+            (
+                "payment_intent_with_payment_method",
+                {"id": "pm_1", "card": "card_1"},
+                Incident2445Outcome.UPDATED,
+            ),
+            ("payment_intent_with_payment_method", None, Incident2445Outcome.UPDATED),
+            ("payment_intent_without_payment_method", None, Incident2445Outcome.NOT_UPDATED),
+        ],
+    )
+    def test_handle_one_time_contribution(
+        self, payment_intent, fetch_pm_result, expect_outcome, mocker, request, command
+    ):
+        mocker.patch(
+            "apps.contributions.models.Contribution.stripe_payment_intent",
+            (pi := request.getfixturevalue(payment_intent) if payment_intent else None),
+        )
+        _con = ContributionFactory(provider_payment_method_details=None, provider_payment_method_id=None)
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=fetch_pm_result)
+        contribution, outcome = command.handle_one_time_contribution(contribution=_con)
+        assert contribution == _con
+        assert outcome == expect_outcome
+        if pi and pi.payment_method:
+            assert contribution.provider_payment_method_id == pi.payment_method
+        else:
+            assert contribution.provider_payment_method_id is None
+        if fetch_pm_result:
+            assert contribution.provider_payment_method_details == fetch_pm_result
+        else:
+            assert contribution.provider_payment_method_details is None
+
+    @pytest.fixture()
+    def contribution_unflagged(self):
+        return ContributionFactory(
+            monthly_subscription=True, provider_payment_method_id=None, provider_payment_method_details=None
+        )
+
+    @pytest.fixture()
+    def contribution_flagged(self):
+        return ContributionFactory(
+            monthly_subscription=True,
+            flagged=True,
+            provider_payment_method_id=None,
+            provider_payment_method_details=None,
+        )
+
+    @pytest.fixture()
+    def subscription_with_invoice(self, mocker):
+        return mocker.Mock(latest_invoice=mocker.Mock(payment_intent=mocker.Mock(payment_method="pm_1")))
+
+    @pytest.fixture()
+    def subscription_no_invoice(self, mocker):
+        return mocker.Mock(latest_invoice=None)
+
+    @pytest.fixture()
+    def setup_intent_with_pm(self, mocker):
+        return mocker.Mock(payment_method="pm_1")
+
+    @pytest.fixture()
+    def setup_intent_no_payment_method(self, mocker):
+        return mocker.Mock(payment_method=None)
+
+    @pytest.mark.parametrize(
+        (
+            "contribution",
+            "subscription",
+            "setup_intent",
+            "expected_outcome",
+            "fetch_pm_return",
+        ),
+        [
+            (
+                "contribution_unflagged",
+                "subscription_with_invoice",
+                None,
+                Incident2445Outcome.UPDATED,
+                {"id": "pm_1", "card": "card_1"},
+            ),
+            ("contribution_unflagged", "subscription_no_invoice", None, Incident2445Outcome.NOT_UPDATED, None),
+            ("contribution_unflagged", None, None, Incident2445Outcome.NOT_UPDATED, None),
+            (
+                "contribution_flagged",
+                "subscription_no_invoice",
+                "setup_intent_with_pm",
+                Incident2445Outcome.UPDATED,
+                None,
+            ),
+            (
+                "contribution_flagged",
+                "subscription_no_invoice",
+                "setup_intent_no_payment_method",
+                Incident2445Outcome.NOT_UPDATED,
+                None,
+            ),
+            (
+                "contribution_unflagged",
+                "subscription_no_invoice",
+                "setup_intent_no_payment_method",
+                Incident2445Outcome.NOT_UPDATED,
+                None,
+            ),
+        ],
+    )
+    def test_handle_reucrring_contribution(
+        self, command, contribution, subscription, setup_intent, expected_outcome, fetch_pm_return, mocker, request
+    ):
+        _contribution = request.getfixturevalue(contribution) if contribution else None
+        subscription = request.getfixturevalue(subscription) if subscription else None
+        setup_intent = request.getfixturevalue(setup_intent) if setup_intent else None
+        mocker.patch(
+            "apps.contributions.management.commands.fix_incident_2445.Command.get_stripe_subscription",
+            return_value=subscription,
+        )
+        mocker.patch(
+            "apps.contributions.models.Contribution.stripe_setup_intent",
+            return_value=setup_intent,
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=fetch_pm_return)
+        contribution, outcome = command.handle_recurring_contribution(contribution=_contribution)
+        assert contribution == _contribution
+        assert outcome == expected_outcome
+        if (
+            subscription
+            and subscription.latest_invoice
+            and (pi := subscription.latest_invoice.payment_intent)
+            and pi.payment_method
+        ):
+            assert contribution.provider_payment_method_id == pi.payment_method
+            if fetch_pm_return:
+                assert contribution.provider_payment_method_details == fetch_pm_return
+            else:
+                assert contribution.provider_payment_method_details is None
+        elif setup_intent and setup_intent.payment_method:
+            assert contribution.provider_payment_method_id == setup_intent.payment_method
+            if fetch_pm_return:
+                assert contribution.provider_payment_method_details == fetch_pm_return
+            else:
+                assert contribution.provider_payment_method_details is None
+        else:
+            assert contribution.provider_payment_method_id is None
+            assert contribution.provider_payment_method_details is None
+
+    @pytest.mark.parametrize(
+        ("pm_details_returned", "expected_update_fields"),
+        [
+            (None, {"provider_payment_method_id"}),
+            ({"card": "card_1"}, {"provider_payment_method_details", "provider_payment_method_id"}),
+        ],
+    )
+    def test_handle_sync_pm(self, pm_details_returned, expected_update_fields, command, mocker):
+        _contribution = ContributionFactory(provider_payment_method_id=None, provider_payment_method_details=None)
+        mocker.patch(
+            "apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=pm_details_returned
+        )
+        contribution, update_fields = command.handle_sync_pm(
+            contribution=_contribution, pm_id=(pm_id := "pm_1"), update_fields=set()
+        )
+        assert contribution == _contribution
+        assert update_fields == expected_update_fields
+        assert contribution.provider_payment_method_id == pm_id
+        if pm_details_returned:
+            assert contribution.provider_payment_method_details
+        else:
+            assert contribution.provider_payment_method_details is None
+
+    def test_get_stripe_subscription_when_no_id(self, command):
+        contribution = ContributionFactory(provider_subscription_id=None)
+        assert command.get_stripe_subscription(contribution) is None
+
+    def test_get_stripe_subscription_when_error(self, mocker, command):
+        contribution = ContributionFactory(provider_subscription_id="sub_1")
+        mocker.patch("stripe.Subscription.retrieve", side_effect=stripe.error.StripeError("Some error"))
+        assert command.get_stripe_subscription(contribution) is None
+
+    def test_nullify_bad_change(self, command):
+        contribution = ContributionFactory(
+            provider_payment_method_id="bad",
+            provider_payment_method_details={"bad": "bad"},
+        )
+        command.nullify_bad_change(Contribution.objects.all())
+        contribution.refresh_from_db()
+        assert contribution.provider_payment_method_id == TEMP_PM_ID
+        assert contribution.provider_payment_method_details is None

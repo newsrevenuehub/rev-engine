@@ -17,7 +17,7 @@ from addict import Dict as AttrDict
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.reverse import reverse
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APIClient
 from reversion.models import Version
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
@@ -34,7 +34,6 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
-from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import (
     PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS,
     ContributionSerializer,
@@ -56,13 +55,12 @@ from apps.contributions.tests.test_serializers import (
 )
 from apps.organizations.tests.factories import (
     OrganizationFactory,
-    PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
-from apps.users.tests.factories import UserFactory, create_test_user
+from apps.users.tests.factories import UserFactory
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"
@@ -1180,68 +1178,6 @@ def test_feature_flagging_when_flag_not_found():
     assert response.json().get("detail", None) == "There was a problem with the API"
 
 
-@mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
-class ProcessFlaggedContributionTest(APITestCase):
-    def setUp(self):
-        self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
-        self.subscription_id = "test-subscription-id"
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory()
-
-        self.contributor = ContributorFactory()
-
-        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        self.contribution = ContributionFactory(
-            contributor=self.contributor,
-            donation_page=DonationPageFactory(revenue_program=revenue_program),
-            provider_subscription_id=self.subscription_id,
-        )
-        self.other_contribution = ContributionFactory()
-
-    def _make_request(self, contribution_pk=None, request_args=None):
-        if request_args is None:
-            request_args = {}
-        url = reverse("contribution-process-flagged", args=[contribution_pk])
-        self.client.force_authenticate(user=self.user)
-        return self.client.post(url, request_args)
-
-    def test_response_when_missing_required_param(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk)
-        assert response.status_code == 400
-        assert response.data["detail"] == "Missing required data"
-        mock_process_flagged.assert_not_called()
-
-    def test_response_when_no_such_contribution(self, mock_process_flagged):
-        nonexistent_pk = 10000001
-        # First, let's make sure there isn't a contributoin with this pk.
-        assert Contribution.objects.filter(pk=nonexistent_pk).first() is None
-        response = self._make_request(contribution_pk=nonexistent_pk, request_args={"reject": True})
-        assert response.status_code == 404
-        assert response.data["detail"] == "Could not find contribution"
-        mock_process_flagged.assert_not_called()
-
-    def test_response_when_payment_provider_error(self, mock_process_flagged):
-        error_message = "my error message"
-        mock_process_flagged.side_effect = PaymentProviderError(error_message)
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
-        assert response.status_code == 500
-        assert response.data["detail"] == error_message
-
-    def test_response_when_successful_reject(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
-        assert response.status_code == 200
-        mock_process_flagged.assert_called_with(reject="True")
-
-        # assert about revision and update fields
-
-    def test_response_when_successful_accept(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
-        assert response.status_code == 200
-        mock_process_flagged.assert_called_with(reject="False")
-        # assert about revision and update fields
-
-
 @pytest.fixture()
 def stripe_create_customer_response():
     return {"id": "customer-id"}
@@ -1340,6 +1276,12 @@ class TestPaymentViewset:
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"interval": "The provided value for interval is not permitted"}
+
+    def test_when_called_with_no_interval(self, minimally_valid_contribution_form_data):
+        del minimally_valid_contribution_form_data["interval"]
+        response = self.client.post(reverse("payment-list"), minimally_valid_contribution_form_data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"interval": "The interval field is required"}
 
     def test_when_no_csrf(self):
         """Show that view is inaccessible if no CSRF token is included in request.
@@ -2360,6 +2302,13 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
+
+    def test_get_contributor_queryset(self, mocker):
+        exclude_hidden_spy = mocker.spy(ContributionQuerySet, "exclude_hidden_statuses")
+        exclude_paymentless_spy = mocker.spy(ContributionQuerySet, "exclude_paymentless_canceled")
+        contributions_views.PortalContributorsViewSet().get_contributor_queryset(contributor=ContributorFactory())
+        exclude_hidden_spy.assert_called_once()
+        exclude_paymentless_spy.assert_called_once()
 
 
 @pytest.mark.django_db()

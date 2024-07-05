@@ -47,8 +47,13 @@ const mockContributionResponse: ContributionListResponse = {
   ]
 };
 
-function hook(contributorId?: number) {
-  return renderHook(() => usePortalContributionList(contributorId), {
+const queryParams = {
+  ordering: 'created',
+  revenue_program: 1
+};
+
+function hook(contributorId?: number, queryParams?: { ordering: string; interval?: string; revenue_program?: number }) {
+  return renderHook(() => usePortalContributionList(contributorId, queryParams), {
     wrapper: TestQueryClientProvider
   });
 }
@@ -70,13 +75,19 @@ describe('usePortalContributionList', () => {
     expect(axiosMock.history.get.length).toBe(0);
   });
 
-  describe('When contributor ID is defined', () => {
+  it("doesn't fetch contributions if RP ID is undefined", async () => {
+    hook(undefined, queryParams);
+    await Promise.resolve();
+    expect(axiosMock.history.get.length).toBe(0);
+  });
+
+  describe('When contributor ID and RP ID is defined', () => {
     describe('While fetching contributions', () => {
       // These wait for the next update to allow component updates to happen after
       // the fetch completes.
 
       it('returns a loading status', async () => {
-        const { result, waitForNextUpdate } = hook(123);
+        const { result, waitForNextUpdate } = hook(123, queryParams);
 
         expect(result.current.isFetching).toBe(true);
         expect(result.current.isLoading).toBe(true);
@@ -84,7 +95,7 @@ describe('usePortalContributionList', () => {
       });
 
       it('returns an empty array of contributions', async () => {
-        const { result, waitForNextUpdate } = hook(123);
+        const { result, waitForNextUpdate } = hook(123, queryParams);
 
         expect(result.current.contributions).toEqual([]);
         await waitForNextUpdate();
@@ -92,18 +103,21 @@ describe('usePortalContributionList', () => {
     });
 
     it('returns contributions and appropriate status after fetching contributions', async () => {
-      const { result, waitFor } = hook(123);
+      axiosMock
+        .onGet('contributors/123/contributions/?ordering=created&revenue_program=1')
+        .reply(200, mockContributionResponse);
+      const { result, waitFor } = hook(123, queryParams);
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.contributions).toEqual(mockContributionResponse.results);
-      expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/');
+      expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/?ordering=created&revenue_program=1');
     });
 
     it('does not redirect if fetching succeeds', async () => {
       const push = jest.fn();
       useHistoryMock.mockReturnValue({ push });
 
-      const { result, waitFor } = hook(123);
+      const { result, waitFor } = hook(123, queryParams);
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(push).not.toHaveBeenCalled();
@@ -122,14 +136,14 @@ describe('usePortalContributionList', () => {
       afterEach(() => errorSpy.mockRestore());
 
       it('returns an error status', async () => {
-        const { result, waitFor } = hook(123);
+        const { result, waitFor } = hook(123, queryParams);
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
         expect(result.current.isError).toBe(true);
       });
 
       it('returns an empty array of contributions', async () => {
-        const { result, waitFor } = hook(123);
+        const { result, waitFor } = hook(123, queryParams);
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
         expect(result.current.contributions).toEqual([]);

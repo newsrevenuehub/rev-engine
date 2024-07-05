@@ -214,7 +214,10 @@ describe('ContributionsList', () => {
   describe('Sorting contributions', () => {
     it('should sort contributions by date by default', () => {
       tree();
-      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+        ordering: '-created',
+        revenue_program: 'mock-rp-id'
+      });
     });
 
     it.each([
@@ -231,7 +234,10 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('option', { name: option }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering},-created` });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+          ordering: `-${ordering},-created`,
+          revenue_program: 'mock-rp-id'
+        });
       });
     });
   });
@@ -239,7 +245,10 @@ describe('ContributionsList', () => {
   describe("Filtering contributions (Tabs: by 'All', 'Recurring', or 'One-time')", () => {
     it('should show all contributions by default', () => {
       tree();
-      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+        ordering: '-created',
+        revenue_program: 'mock-rp-id'
+      });
     });
 
     it('should show all contributions when moving to "All" tab', async () => {
@@ -249,13 +258,17 @@ describe('ContributionsList', () => {
       await waitFor(() => {
         expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
           ordering: '-created',
-          interval: 'recurring'
+          interval: 'recurring',
+          revenue_program: 'mock-rp-id'
         });
       });
       userEvent.click(screen.getByRole('tab', { name: 'All' }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+          ordering: '-created',
+          revenue_program: 'mock-rp-id'
+        });
       });
     });
 
@@ -268,9 +281,21 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('tab', { name: tab }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created', interval });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+          ordering: '-created',
+          interval,
+          revenue_program: 'mock-rp-id'
+        });
       });
     });
+  });
+
+  it('should filter contributions by RP', () => {
+    tree();
+    expect(usePortalContributionsListMock).toBeCalledWith(
+      expect.anything(),
+      expect.objectContaining({ revenue_program: 'mock-rp-id' })
+    );
   });
 
   it('is accessible', async () => {

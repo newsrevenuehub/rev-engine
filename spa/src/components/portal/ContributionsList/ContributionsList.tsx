@@ -55,9 +55,10 @@ export function ContributionsList() {
   const [tab, setTab] = useState(0);
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
-  const { page } = usePortal();
+  const { page, pageIsLoading } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
+    revenue_program: page?.revenue_program.id,
     ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
     // If the tab is 'All', we don't need to pass an interval
     ...(tab !== 0 && { interval: CONTRIBUTIONS_TABS[tab].toLowerCase().replace('-', '_') })
@@ -85,7 +86,7 @@ export function ContributionsList() {
     }
   }, [selectedContribution]);
 
-  if (isLoading) {
+  if (isLoading || pageIsLoading) {
     content = (
       <Loading {...contentProps}>
         <CircularProgress aria-label="Loading contributions" variant="indeterminate" />

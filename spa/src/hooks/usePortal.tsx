@@ -37,7 +37,11 @@ export default function usePortal() {
   const { enqueueSnackbar } = useSnackbar();
   const [error, setError] = useState<{ email?: string[] }>({});
 
-  const { data: page, isFetched } = useQuery(['getPage'], () => fetchPage(rpSlug), {
+  const {
+    data: page,
+    isLoading: pageIsLoading,
+    isFetched
+  } = useQuery(['getPage'], () => fetchPage(rpSlug), {
     enabled: enablePageFetch
   });
 
@@ -72,6 +76,7 @@ export default function usePortal() {
 
   return {
     page,
+    pageIsLoading,
     pageIsFetched: isFetched,
     enablePageFetch,
     sendMagicLink,

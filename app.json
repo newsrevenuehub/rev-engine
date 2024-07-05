@@ -28,13 +28,6 @@
     },
     "ALLOWED_HOSTS": {
       "value": ".herokuapp.com"
-    },
-    "GITHUB_TOKEN": {
-      "required": false,
-      "description": "GitHub token for accessing the (commit status) API"
-    },
-    "SOURCE_VERSION": {
-      "required": true
     }
   },
   "formation": {

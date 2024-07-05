@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Commit Status Detail{% endblock %}
+{% block content %}
+  <h2>Details</h2>
+  <p>{{ details }}</p>
+{% if test_run.screenshot %}
+  <h2>Screenshot:</h2>
+  <img src="{{ test_run.screenshot.url }}" alt="Screenshot" />
+{% endif %}
+{% endblock %}

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class E2EOutcome(Enum):
+class CommitStatusState(Enum):
     SUCCESS = "success"
     FAILURE = "failure"
     PENDING = "pending"

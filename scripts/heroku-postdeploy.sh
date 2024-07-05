@@ -48,5 +48,12 @@ python manage.py migrate
 
 echo "Bootstrapping review app"
 python manage.py bootstrap-review-app
-# Trigger the e2e test run on review app server, now that we know review app is post (first) deploy.
-./scripts/trigger-e2e-test-run.py
+# We toggle this so that in subsequent release phases, we can trigger e2e checks.
+heroku config:set REVIEW_APP_FIRST_DEPLOY_DONE=true
+# Since this is first deploy, we will not have had a e2e run on initial release, so 
+# we will trigger one here.
+python manage.py trigger-e2e-check \
+    --flow contribution_checkout \
+    --commit-sha $SOURCE_VERSION \
+    --async \
+    --report-results

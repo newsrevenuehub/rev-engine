@@ -675,8 +675,10 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 # Three minutes
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
-# Account that is allowed to do E2E testing
-E2E_ACCOUNT_EMAIL = os.getenv("E2E_ACCOUNT_EMAIL", None)
 SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
 
+# Account that is allowed to do E2E testing
+E2E_ACCOUNT_EMAIL = os.getenv("E2E_ACCOUNT_EMAIL", "")
+
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", None)
+GITHUB_REPO = os.getenv("GITHUB_REPO", None)

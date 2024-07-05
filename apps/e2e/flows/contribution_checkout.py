@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 import logging
 import os
+from pathlib import Path
 import time
 import uuid
 
@@ -12,7 +14,7 @@ import playwright._impl._errors
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor
-from apps.e2e.tasks import E2eOutCome
+from apps.e2e.choices import CommitStatusState
 from apps.e2e.flows import register_flow
 
 
@@ -31,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 class E2EError(Exception):
-    pass
+    screenshot: bytes
+    details: str
 
 
 class E2EAssertionError(E2EError):
@@ -52,10 +55,11 @@ def fill_out_contribution_form(
     mailing_country: str,
     mailing_country_selector: str,
     page_url: str = CHECKOUT_PAGE_URL,
-) -> None:
+) -> str:
     """Loads contribution page, and fills out first form, submits it, then fills out Stripe Payment element."""
-    logger.info("Loading page %s", page_url)
     browser = None
+    page = None
+    logger.info("Loading page %s", page_url)
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
@@ -98,8 +102,17 @@ def fill_out_contribution_form(
             page.click("text=/Give \\$\\d+\\.\\d{2} USD once/")
             # Thank you page is separate and proof we made it through the whole flow
             page.wait_for_selector("text=Thank you")
+            # make this predictable -- static method on CommitStatus?
+            screenshot_path = ""
+            page.screenshot(screenshot_path)
+            return screenshot_path
     except playwright._impl._errors.Error as e:
-        raise E2EError("Error in playwright") from e
+        kwargs = {}
+        if page:
+            screenshot_path = ""
+            page.screenshot(screenshot_path)
+            kwargs["screenshot_path"] = screenshot_path
+        raise E2EError("Error in playwright", **kwargs) from e
     finally:
         if browser:
             browser.close()
@@ -179,18 +192,20 @@ AMOUNT = 100
 INTERVAL = "one_time"
 
 
-class E2eOutCome:
-    status: str
+@dataclass
+class E2eOutcome:
+    state: str
     decription: str
+    screenshot_path: str
 
 
 @register_flow()
-def confirm_contribution_checkout_implementation() -> E2eOutCome:
+def confirm_contribution_checkout_implementation() -> E2eOutcome:
     """End-to-end user flow for making a contribution."""
     logger.info("Starting checkout flow")
     email = make_email()
     try:
-        fill_out_contribution_form(
+        screenshot_path = fill_out_contribution_form(
             email=email,
             amount=AMOUNT,
             interval=INTERVAL,
@@ -204,6 +219,8 @@ def confirm_contribution_checkout_implementation() -> E2eOutCome:
             mailing_country="United States",
             mailing_country_selector="xpath=//li[normalize-space(.)='United States' and not(contains(., 'Minor Outlying Islands'))]",
         )
+        # Note that if there are delays in webhook processing, it's possible to get apparent failures that may not necesarily be indicative
+        # an underlying problem. That said, we don't want to wait for ages for the webhook to process.
         logger.info("Sleeping for 5 seconds to allow for async side effects to complete")
         time.sleep(5)
         logger.info("Checking side effects of checkout")
@@ -211,9 +228,10 @@ def confirm_contribution_checkout_implementation() -> E2eOutCome:
         assert_stripe_side_effects(contribution)
     except E2EError as e:
         logger.exception("Error in checkout db side effects")
-        return E2eOutCome(status="failed", description=str(e))
+        state = CommitStatusState.FAILURE
+        description = str(e)
+        screenshot_path = e.screenshot_path
     else:
-        logger.info("Checkout flow succeeded")
-        return E2eOutCome(status="passed", description="")
-    finally:
-        logger.info("End of checkout flow")
+        state = CommitStatusState.SUCCESS
+        description = "Checkout flow succeeded"
+    return E2eOutcome(state=state, description=description, screenshot_path=screenshot_path)

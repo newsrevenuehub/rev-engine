@@ -1,13 +1,8 @@
-from django.urls import include, path
+from django.urls import path
 
-from rest_framework import routers
-
-from apps.e2e.views import E2EViewSet
-
-
-router = routers.DefaultRouter()
-router.register(r"e2e", E2EViewSet, basename="e2e")
+from apps.e2e.views import commit_status_detail
 
 urlpatterns = [
-    path("", include(router.urls)),
+    # make this also match on the commit_sha so securer and can't just guess monotonic ids
+    path("e2e/commit_status/<str:id>/", commit_status_detail, name="e2e-create"),
 ]

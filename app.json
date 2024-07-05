@@ -26,12 +26,15 @@
     "ENVIRONMENT": {
       "value": "review"
     },
-    "GH_TOKEN": {
+    "ALLOWED_HOSTS": {
+      "value": ".herokuapp.com"
+    },
+    "GITHUB_TOKEN": {
       "required": false,
       "description": "GitHub token for accessing the (commit status) API"
     },
-    "ALLOWED_HOSTS": {
-      "value": ".herokuapp.com"
+    "SOURCE_VERSION": {
+      "required": true
     }
   },
   "formation": {
@@ -48,6 +51,6 @@
   "stack": "container",
   "scripts": {
     "postdeploy": "./scripts/heroku-postdeploy.sh",
-    "release": "./scripts/trigger-e2e-test-run.py"
+    "release": "./scripts/heroku-release.sh"
   }
 }

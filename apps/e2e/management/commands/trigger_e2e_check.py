@@ -17,9 +17,14 @@ class Command(BaseCommand):
         return Path(__file__).name
 
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument("--flows", nargs="*", default=FLOWS.keys())
+        parser.add_argument("--flow", required=True, choices=FLOWS.keys(), help="E2E flow to run")
+        parser.add_argument("--commit-sha", required=False, help="Commit SHA to run the flow against")
+        parser.add_argument("--report-results", action="store_true", help="Report results to GitHub", default=False)
+        parser.add_argument("--async", action="store_true", help="Run the flow asynchronously", default=False)
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name} with flows: {options['flows']}`"))
-        results = do_ci_e2e_flow_run(flows=options["flows"])
-        self.stdout.write(self.style.SUCCESS(f"Results: {results}"))
+        self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name} with flow {(flow:=options['flow'])}`"))
+        (do_ci_e2e_flow_run.delay if options["async"] else do_ci_e2e_flow_run)(
+            flow, report_results=options["report_results"], commit_sha=options["commit_sha"]
+        )
+        self.stdout.write(self.style.SUCCESS("Done"))

@@ -125,7 +125,7 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
-          {/* TODO: Enable Impact Tracker as soon as it's available */}
+          {/* TODO: DEV-4981 Enable Impact Tracker as soon as it's available */}
           {/* <Impact>
             <ImpactTracker contributorId={contributor?.id} />
           </Impact> */}

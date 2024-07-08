@@ -47,7 +47,6 @@ describe('usePendo', () => {
     usePortalAuthContextMock.mockReturnValue({ contributor: mockContributor });
     usePortalMock.mockReturnValue({
       page: { revenue_program: { id: 'mock-rp-id' } } as any,
-      pageIsLoading: false,
       pageIsFetched: true,
       enablePageFetch: false,
       sendMagicLink: jest.fn(),
@@ -69,7 +68,6 @@ describe('usePendo', () => {
   it("doesn't initialize Pendo if the portal contribution page is loading", () => {
     usePortalMock.mockReturnValue({
       page: undefined,
-      pageIsLoading: false,
       pageIsFetched: false,
       enablePageFetch: false,
       sendMagicLink: jest.fn(),

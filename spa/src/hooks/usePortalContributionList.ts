@@ -91,12 +91,17 @@ async function fetchContributions(contributorId: number, queryParams?: string) {
  */
 export function usePortalContributionList(
   contributorId?: number,
-  queryParams?: { ordering: string; interval?: string; revenue_program?: number }
+  revenueProgram?: number,
+  queryParams?: { ordering: string; interval?: string }
 ) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
     ['portalContributionList', queryParams?.ordering, queryParams?.interval],
-    () => fetchContributions(contributorId!, queryString.stringify(queryParams ?? {})),
-    { enabled: !!contributorId && !!queryParams?.revenue_program, keepPreviousData: true }
+    () =>
+      fetchContributions(
+        contributorId!,
+        queryString.stringify({ ...queryParams, revenue_program: revenueProgram } ?? {})
+      ),
+    { enabled: !!contributorId && !!revenueProgram, keepPreviousData: true }
   );
 
   return { contributions: data?.results ?? [], isError, isFetching, isLoading, refetch };

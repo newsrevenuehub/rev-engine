@@ -14,7 +14,6 @@ import {
   AlignPositionWrapper,
   ContactInfoWrapper,
   Detail,
-  Impact,
   Layout,
   Legend,
   List,
@@ -24,7 +23,6 @@ import {
   Subhead,
   Tabs
 } from './ContributionsList.styled';
-import ImpactTracker from './ImpactTracker/ImpactTracker';
 import NoContributions from './NoContributions';
 
 const CONTRIBUTION_SORT_OPTIONS = [
@@ -127,9 +125,10 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
-          <Impact>
+          {/* TODO: DEV-4981 Enable Impact Tracker as soon as it's available */}
+          {/* <Impact>
             <ImpactTracker contributorId={contributor?.id} />
-          </Impact>
+          </Impact> */}
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>

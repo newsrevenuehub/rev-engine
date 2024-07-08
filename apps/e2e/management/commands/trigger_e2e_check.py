@@ -23,7 +23,11 @@ class Command(BaseCommand):
         parser.add_argument("--async", action="store_true", help="Run the flow asynchronously", default=False)
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name} with flow {(flow:=options['flow'])}`"))
+        self.stdout.write(
+            self.style.HTTP_INFO(
+                f"Running `{self.name} with flow {(flow:=options['flow'])} and commit sha `{options['commit_sha'] or '<none>'}"
+            )
+        )
         (do_ci_e2e_flow_run.delay if options["async"] else do_ci_e2e_flow_run)(
             flow, report_results=options["report_results"], commit_sha=options["commit_sha"]
         )

@@ -50,9 +50,9 @@ echo "Bootstrapping review app"
 python manage.py bootstrap-review-app
 # We toggle this so that in subsequent release phases, we can trigger e2e checks.
 heroku config:set REVIEW_APP_FIRST_DEPLOY_DONE=true
-# Since this is first deploy, we will not have had a e2e run on initial release, so 
+# Since this is first deploy, we will not have had a e2e run on initial release, so
 # we will trigger one here.
-python manage.py trigger-e2e-check \
+python manage.py trigger_e2e_check \
     --flow contribution_checkout \
     --commit-sha $SOURCE_VERSION \
     --async \

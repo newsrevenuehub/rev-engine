@@ -56,12 +56,18 @@ echo "Installing playwright dependencies"
 python -m playwright install
 
 
+
+if [ -z "$SOURCE_VERSION" ]; then
+    echo "SOURCE_VERSION is not set."
+    exit 1
+fi
+
+echo "Running e2e tests for commit: $SOURCE_VERSION"
+
 # Since this is first deploy, we will not have had a e2e run on initial release, so
 # we will trigger one here.
-# SHA=$(git rev-parse HEAD)
-# echo "Triggering e2e check for SHA $SHA"
-# python manage.py trigger_e2e_check \
-#     --flow contribution_checkout \
-#     --commit-sha $SHA \
-#     --async \
-#     --report-results
+python manage.py trigger_e2e_check \
+    --flow contribution_checkout \
+    --commit-sha $SHA \
+    --async \
+    --report-results

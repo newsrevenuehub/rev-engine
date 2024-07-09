@@ -24,7 +24,6 @@ RUN set -ex \
     postgresql-client \
     vim \
     curl \
-    git \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \
@@ -77,6 +76,12 @@ ENV PORT=8000
 
 # Add any static environment variables needed by Django or your settings file here:
 ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
+
+
+# Use SOURCE_VERSION as an environment variable
+ARG SOURCE_VERSION
+ENV SOURCE_VERSION=$SOURCE_VERSION
+
 
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env

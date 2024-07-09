@@ -1,10 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Commit Status Detail{% endblock %}
+{% block title %}Commit Status {{ commit_status.id }}{% endblock %}
 {% block content %}
-  <h2>Details</h2>
-  <p>{{ details }}</p>
-{% if test_run.screenshot %}
-  <h2>Screenshot:</h2>
-  <img src="{{ test_run.screenshot.url }}" alt="Screenshot" />
-{% endif %}
+<table>
+  <tr>
+      <th>Name</th>
+      <td>{{ commit_status.name }}</td>
+  </tr>
+  <tr>
+      <th>Commit SHA</th>
+      <td>{{ commit_status.commit_sha }}</td>
+  </tr>
+  <tr>
+    <th>State</th>
+    <td>{{ commit_status.state.value }}</td>
+  </tr>
+  <tr>
+      <th>Screenshot</th>
+      <td><img src="{{ commit_status.screenshot }}" alt="Screenshot"></td>
+  </tr>
+  <tr>
+    <th>Details</th>
+    <td>{{ commit_status.details }}</td>
+  </tr>
+  <tr>
+    <th>GitHub id</th>
+    <td>{{ commit_status.github_id }}</td>
+  </tr>
+</table>
 {% endblock %}

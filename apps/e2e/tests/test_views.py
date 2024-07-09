@@ -1,5 +1,9 @@
-import pytest
+from django.urls import reverse
 
+import pytest
+from bs4 import BeautifulSoup
+
+from apps.e2e.tests.factories import CommitStatusFactory
 from apps.users.tests.factories import UserFactory
 
 
@@ -12,24 +16,12 @@ class TestE2EViewSet:
         settings.E2E_USER = user.email
         return user
 
-    @pytest.fixture(params=["e2e_user", "superuser"])
-    def user(self, request):
-        return request.param
+    @pytest.fixture()
+    def commit_status(self):
+        return CommitStatusFactory()
 
-    def test_get(self, api_client, user):
-        api_client.force_authenticate(user=user)
-        response = api_client.get("/e2e/")
-        if user.email == "e2e_user":
-            assert response.status_code == 200
-            assert response.data == {"tests": ["test1", "test2"]}
-        else:
-            assert response.status_code == 403
-
-    def test_post(self, api_client, user):
-        api_client.force_authenticate(user=user)
-        response = api_client.post("/e2e/")
-        if user.email == "e2e_user":
-            assert response.status_code == 200
-            assert response.data == {"status": "success"}
-        else:
-            assert response.status_code == 403
+    def test_get(self, client, commit_status):
+        response = client.get(reverse("e2e-detail", args=(commit_status.commit_sha, commit_status.github_id)))
+        assert response.status_code == 200
+        soup = BeautifulSoup(response.content, "html.parser")
+        assert soup.find("title").text == f"Commit Status {commit_status.id}"

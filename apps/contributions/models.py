@@ -108,7 +108,7 @@ class Contributor(IndexedTimeStampedModel):
         from apps.api.views import construct_rp_domain  # vs. circular import
 
         if not isinstance(contribution, Contribution):
-            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
+            logger.error("`Contributor.create_magic_link` called with invalid contribution value: %s", contribution)
             raise ValueError("Invalid value provided for `contribution`")  # noqa: TRY004 TODO @njh: change to TypeError
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
@@ -128,7 +128,7 @@ class ContributionQuerySet(models.QuerySet):
     def with_revenue_program_id(self):
         """Alias revenue_program_id as "revenue_program".
 
-        Alias (which is only in SQL) as Contribuition had existing property "revenue_program" which handles dual revenue_program source.
+        Alias (which is only in SQL) as Contribution had existing property "revenue_program" which handles dual revenue_program source.
         """
         return self.alias(revenue_program_id=Coalesce("_revenue_program", "donation_page__revenue_program"))
 
@@ -141,7 +141,7 @@ class ContributionQuerySet(models.QuerySet):
     def with_stripe_account(self):
         """Annotate stripe_account_id as "stripe_account".
 
-        stripe_account even though it is the id and not object instead of *_id because Contribuition had existing
+        stripe_account even though it is the id and not object instead of *_id because Contribution had existing
         property "stripe_account_id"
         """
         return self.annotate(
@@ -870,7 +870,7 @@ class Contribution(IndexedTimeStampedModel):
         """Update status to PAID if contribution appears to be incorrectly stuck in PROCESSING.
 
         We compare a subset of local contributions to fresh Stripe data and update status to PAID if it
-        makes sense to do so. See discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        makes sense to do so. See discussion of Stripe webhook receiver race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010
         """
         updated = 0
@@ -951,7 +951,7 @@ class Contribution(IndexedTimeStampedModel):
                         f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
                     )
         logger.info(
-            "Contribution.fix_contributions_stuck_in_processing %sUpdated  %s contributions",
+            "Contribution.fix_contributions_stuck_in_processing %s Updated %s contributions",
             "[DRY-RUN] " if dry_run else "",
             updated,
         )
@@ -1028,7 +1028,7 @@ class Contribution(IndexedTimeStampedModel):
 
         For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`.
 
-        For discussion of need for this method, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        For discussion of need for this method, see discussion of Stripe webhook receiver race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010
         """
         kwargs = {

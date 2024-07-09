@@ -118,6 +118,7 @@ E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "fundjo
 INSTALLED_APPS = [
     "apps.common",
     "apps.api",
+    "apps.e2e",
     "apps.users",
     "apps.organizations",
     "apps.pages",
@@ -153,13 +154,8 @@ INSTALLED_APPS = [
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
-
-for setting, app in [
-    (ENABLE_API_BROWSER, "drf_yasg"),
-    (E2E_ENABLED, "apps.e2e"),
-]:
-    if setting:
-        INSTALLED_APPS.append(app)
+if ENABLE_API_BROWSER:
+    INSTALLED_APPS.append("drf_yasg")
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
@@ -679,6 +675,8 @@ SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
 
 # Account that is allowed to do E2E testing
 E2E_ACCOUNT_EMAIL = os.getenv("E2E_ACCOUNT_EMAIL", "")
+# Note that e2e test assumes this has a default donation page set
+E2E_RP_NAME = os.getenv("E2E_RP_NAME", "")
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", None)
 GITHUB_REPO = os.getenv("GITHUB_REPO", None)

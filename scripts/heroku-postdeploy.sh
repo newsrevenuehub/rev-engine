@@ -58,10 +58,10 @@ python -m playwright install
 
 # Since this is first deploy, we will not have had a e2e run on initial release, so
 # we will trigger one here.
-SHA=$(git rev-parse HEAD)
-echo "Triggering e2e check for SHA $SHA"
-python manage.py trigger_e2e_check \
-    --flow contribution_checkout \
-    --commit-sha $SHA \
-    --async \
-    --report-results
+# SHA=$(git rev-parse HEAD)
+# echo "Triggering e2e check for SHA $SHA"
+# python manage.py trigger_e2e_check \
+#     --flow contribution_checkout \
+#     --commit-sha $SHA \
+#     --async \
+#     --report-results

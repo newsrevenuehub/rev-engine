@@ -13,31 +13,33 @@ from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor
 from apps.e2e.choices import CommitStatusState
 from apps.e2e.utils import E2eOutcome
+from apps.organizations.models import RevenueProgram
 
 
 ENV = settings.ENVIRONMENT
 STANDING_NAMES = ("test", "staging", "sandbox", "dev", "demo")
+_rp = RevenueProgram.objects.get(name=settings.E2E_RP_NAME)
 CHECKOUT_PAGE_URL = os.environ.get(
     "CHECKOUT_PAGE_URL",
-    f"https://billypenn{f'-{ENV}' if ENV not in STANDING_NAMES else ''}.{settings.DOMAIN_APEX}/donate/",
+    f"https://{_rp.slug}{f'-{ENV}' if ENV not in STANDING_NAMES else ''}.{settings.DOMAIN_APEX}/{_rp.default_donation_page.slug}/",
 )
 STRIPE_API_KEY = settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
 VISA = "4242424242424242"
 MASTER_CARD = "5555555555554444"
-REVENUE_PROGRAM_NAME = "Billy Penn"
+REVENUE_PROGRAM_NAME = _rp.name
 
 logger = logging.getLogger(__name__)
 
 
 class E2EError(Exception):
-    def __init__(self, message, screenshot: bytes = None, details: str = None, **kwargs):
+    """Base class for E2E errors.
+
+    Contains a screenshot if available.
+    """
+
+    def __init__(self, message, screenshot: bytes = None, **kwargs):
         super().__init__(message)
         self.screenshot = screenshot
-        self.details = details
-
-
-class E2EAssertionError(E2EError):
-    pass
 
 
 def fill_out_contribution_form(
@@ -121,11 +123,11 @@ def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
     try:
         contributor = Contributor.objects.get(email=email)
     except Contributor.DoesNotExist:
-        raise E2EAssertionError("Contributor not found in DB") from None
+        raise E2EError("Contributor not found in DB") from None
     try:
         contribution = Contribution.objects.get(contributor=contributor)
     except Contribution.DoesNotExist as exc:
-        raise E2EAssertionError("Contribution not found in DB") from exc
+        raise E2EError("Contribution not found in DB") from exc
     problems = []
     for descriptor, fn in {
         "payment_count": lambda x: x.payment_set.count() == 1,
@@ -139,7 +141,7 @@ def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
         if not fn(contribution):
             problems.append(descriptor)
     if problems:
-        raise E2EAssertionError(f"Problems with these characteristics of contribution: {', '.join(problems)}")
+        raise E2EError(f"Problems with these characteristics of contribution: {', '.join(problems)}")
     return contribution
 
 

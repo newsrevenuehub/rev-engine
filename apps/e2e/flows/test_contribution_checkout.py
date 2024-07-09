@@ -1,21 +1,18 @@
-from dataclasses import dataclass
 import logging
 import os
-from pathlib import Path
 import time
 import uuid
 
 from django.conf import settings
 
+import playwright._impl._errors
 import stripe
 from playwright.sync_api import expect, sync_playwright
-import playwright._impl._errors
-
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor
 from apps.e2e.choices import CommitStatusState
-from apps.e2e.flows import register_flow
+from apps.e2e.utils import E2eOutcome
 
 
 ENV = settings.ENVIRONMENT
@@ -33,8 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 class E2EError(Exception):
-    screenshot: bytes
-    details: str
+    def __init__(self, message, screenshot: bytes = None, details: str = None, **kwargs):
+        super().__init__(message)
+        self.screenshot = screenshot
+        self.details = details
 
 
 class E2EAssertionError(E2EError):
@@ -55,13 +54,16 @@ def fill_out_contribution_form(
     mailing_country: str,
     mailing_country_selector: str,
     page_url: str = CHECKOUT_PAGE_URL,
-) -> str:
-    """Loads contribution page, and fills out first form, submits it, then fills out Stripe Payment element."""
+) -> bytes | None:
+    """Fill out the initial revengine form followed by Stripe payment element.
+
+    Returns page screenshot bytes object.
+    """
     browser = None
     page = None
     logger.info("Loading page %s", page_url)
-    try:
-        with sync_playwright() as p:
+    with sync_playwright() as p:
+        try:
             browser = p.chromium.launch()
             page = browser.new_page()
             page.goto(page_url)
@@ -102,24 +104,19 @@ def fill_out_contribution_form(
             page.click("text=/Give \\$\\d+\\.\\d{2} USD once/")
             # Thank you page is separate and proof we made it through the whole flow
             page.wait_for_selector("text=Thank you")
-            # make this predictable -- static method on CommitStatus?
-            screenshot_path = ""
-            page.screenshot(screenshot_path)
-            return screenshot_path
-    except playwright._impl._errors.Error as e:
-        kwargs = {}
-        if page:
-            screenshot_path = ""
-            page.screenshot(screenshot_path)
-            kwargs["screenshot_path"] = screenshot_path
-        raise E2EError("Error in playwright", **kwargs) from e
-    finally:
-        if browser:
-            browser.close()
+            return page.screenshot()
+        except playwright._impl._errors.Error as e:
+            kwargs = {}
+            if page:
+                kwargs["screenshot"] = page.screenshot()
+            raise E2EError("Error in playwright", **kwargs) from e
+        finally:
+            if browser:
+                browser.close()
 
 
 def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
-    """Asserts that a contribution was created in the DB with the expected values."""
+    """Assers that a contribution was created in the DB with the expected values."""
     logger.info("Checking DB side effects")
     try:
         contributor = Contributor.objects.get(email=email)
@@ -150,7 +147,7 @@ def assert_stripe_side_effects_for_subscription(
     payment_intent: stripe.PaymentIntent | None,
     subscription: stripe.Subscription | None,
 ):
-    """Asserts that the Stripe side effects of a subscription are as expected."""
+    """Assert that the Stripe side effects of a subscription are as expected."""
     if not payment_intent:
         raise E2EError("No PaymentIntent ID")
     assert payment_intent.status == "succeeded"
@@ -181,7 +178,6 @@ def assert_stripe_side_effects_for_one_time(pi_id: str, stripe_account_id: str, 
     ):
         if not getattr(stripe_pi, attr, None) == val:
             raise E2EError(f"Expected {attr} to be {val}, got {getattr(stripe_pi, attr)}")
-    # TODO: Assert about the metadata
 
 
 def make_email():
@@ -192,20 +188,14 @@ AMOUNT = 100
 INTERVAL = "one_time"
 
 
-@dataclass
-class E2eOutcome:
-    state: str
-    decription: str
-    screenshot_path: str
-
-
-@register_flow()
-def confirm_contribution_checkout_implementation() -> E2eOutcome:
+def test_e2e() -> E2eOutcome:
     """End-to-end user flow for making a contribution."""
     logger.info("Starting checkout flow")
     email = make_email()
+    details = None
+    screenshot = None
     try:
-        screenshot_path = fill_out_contribution_form(
+        screenshot = fill_out_contribution_form(
             email=email,
             amount=AMOUNT,
             interval=INTERVAL,
@@ -226,12 +216,8 @@ def confirm_contribution_checkout_implementation() -> E2eOutcome:
         logger.info("Checking side effects of checkout")
         contribution = assert_contribution(email, AMOUNT, INTERVAL)
         assert_stripe_side_effects(contribution)
-    except E2EError as e:
-        logger.exception("Error in checkout db side effects")
-        state = CommitStatusState.FAILURE
-        description = str(e)
-        screenshot_path = e.screenshot_path
-    else:
         state = CommitStatusState.SUCCESS
-        description = "Checkout flow succeeded"
-    return E2eOutcome(state=state, description=description, screenshot_path=screenshot_path)
+    except E2EError as e:
+        details = str(e)
+        state = CommitStatusState.FAILURE
+    return E2eOutcome(state=state, details=details, screenshot=screenshot)

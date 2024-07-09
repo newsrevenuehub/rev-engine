@@ -1,7 +1,7 @@
-from enum import Enum
+from django.db import models
 
 
-class CommitStatusState(Enum):
+class CommitStatusState(models.TextChoices):
     SUCCESS = "success"
     FAILURE = "failure"
     PENDING = "pending"

@@ -104,6 +104,7 @@ addopts = "--ruff --reuse-db -p no:warnings"
 DJANGO_SETTINGS_MODULE = "revengine.settings.local"
 testpaths = ["apps", "revengine"]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
+ignore = ["apps/e2e/flows/*py"]
 
 
 [tool.bandit]

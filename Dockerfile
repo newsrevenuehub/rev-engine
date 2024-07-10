@@ -54,11 +54,10 @@ RUN set -ex \
     && pip install poetry \
     && poetry config virtualenvs.create false \
     && poetry install --no-root --no-dev \
+    && playwright install-deps \
+    && playwright install chromium \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
-
-
-RUN playwright install-deps && playwright install
 
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/

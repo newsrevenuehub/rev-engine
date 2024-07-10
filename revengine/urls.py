@@ -8,6 +8,7 @@ from django.urls import path, re_path
 from django.views.generic.base import RedirectView
 
 from apps.api.urls import urlpatterns as api_urlpatterns
+from apps.e2e.views import commit_status_detail
 from apps.emails.urls import debug_urlpatterns as debug_email_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
@@ -51,6 +52,7 @@ urlpatterns = [
         read_apple_developer_merchant_id,
         name="apple_dev_merchantid_domain",
     ),
+    path("e2e/<str:commit_sha>/commit_status/<str:status_id>", commit_status_detail, name="e2e-detail"),
 ]
 
 

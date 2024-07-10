@@ -1,13 +1,8 @@
 import logging
-from functools import cached_property
 
 from django.conf import settings
 from django.db import models
-from django.urls import reverse
 
-from github.CommitStatus import CommitStatus
-
-from apps.common.github import get_github_client
 from apps.common.models import IndexedTimeStampedModel
 from apps.e2e.choices import CommitStatusState
 
@@ -28,23 +23,7 @@ class CommitStatus(IndexedTimeStampedModel):
     state = models.CharField(max_length=10, choices=CommitStatusState.choices, default=CommitStatusState.PENDING)
 
     def __str__(self):
-        return f"Commit status {self.name} {self.id} for SHA {self.commit_sha}"
-
-    @cached_property
-    def _client(self):
-        return get_github_client()
-
-    @cached_property
-    def _ref_statuses(self):
-        return (x for x in self._client.get_repo(settings.GITHUB_REPO).get_commit(self.commit_sha).get_statuses())
-
-    @cached_property
-    def upstream(self) -> CommitStatus | None:
-        return next((x for x in self._ref_statuses if x.id == self.id), None)
-
-    @property
-    def target_url(self) -> str:
-        return reverse("e2e:commit-status-detail", args=[self.id])
+        return f"Commit status {self.name} {self.id} for SHA {self.commit_sha} and context {self.context}"
 
     @property
     def context(self) -> str:

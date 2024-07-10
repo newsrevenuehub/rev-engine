@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.urls import reverse
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -20,7 +21,7 @@ def _report_results(status: CommitStatus) -> GhCommitStatus:
     return repo.get_commit(status.commit_sha).create_status(
         state=status.state.value,
         description=status.description,
-        target_url=status.target_url,
+        target_url=reverse("e2e-detail", args=[status.commit_sha, status.id]),
         context=status.context,
     )
 

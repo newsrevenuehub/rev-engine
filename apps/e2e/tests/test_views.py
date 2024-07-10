@@ -3,19 +3,10 @@ from django.urls import reverse
 import pytest
 from bs4 import BeautifulSoup
 
-from apps.users.tests.factories import UserFactory
-
 
 @pytest.mark.django_db()
-class TestE2EViewSet:
-
-    @pytest.fixture()
-    def e2e_user(self, settings):
-        user = UserFactory()
-        settings.E2E_USER = user.email
-        return user
-
-    def test_get(self, client, commit_status):
+class Test_commit_status_detail:
+    def test_happy_path(self, client, commit_status):
         response = client.get(reverse("e2e-detail", args=(commit_status.commit_sha, commit_status.github_id)))
         assert response.status_code == 200
         soup = BeautifulSoup(response.content, "html.parser")

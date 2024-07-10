@@ -57,6 +57,9 @@ RUN set -ex \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
+
+RUN playwright install-deps && playwright install
+
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/
 WORKDIR /code/

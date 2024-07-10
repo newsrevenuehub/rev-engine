@@ -63,14 +63,9 @@ if [ "$POSTDEPLOY_DONE" != "true" ]; then
   curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
   -H "Content-Type: application/json" \
   -H "Accept: application/vnd.heroku+json; version=3" \
-  -H "Authorization: Bearer $HEROKU_API_KEY" \
+  -H "Authorization: Bpearer $HEROKU_API_KEY" \
   -d '{"POSTDEPLOY_DONE":"true"}'
 fi
-
-
-echo "Installing playwright dependencies"
-python -m playwright install
-
 
 
 if [ -z "$SOURCE_VERSION" ]; then

@@ -154,7 +154,9 @@ def assert_stripe_side_effects_for_subscription(
 
 def assert_stripe_side_effects(contribution):
     if contribution.interval == ContributionInterval.ONE_TIME:
-        assert_stripe_side_effects_for_one_time(contribution=contribution)
+        assert_stripe_side_effects_for_one_time(
+            pi_id=contribution.provider_payment_id, stripe_account_id=contribution.stripe_account, amount=AMOUNT
+        )
     else:
         assert_stripe_side_effects_for_subscription(contribution=contribution)
 

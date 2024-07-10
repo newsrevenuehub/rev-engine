@@ -11,7 +11,11 @@ POSTDEPLOY_DONE=$(echo $CONFIG_VARS | grep -o '"POSTDEPLOY_DONE":[^,]*' | sed 's
 
 if [ "$POSTDEPLOY_DONE" = "true" ]; then
   echo "Postdeploy script has run. Proceeding with release actions..."
-  # Your release actions here
+  python manage.py trigger_e2e_check \
+        --module test_contribution_checkout \
+        --commit-sha $SOURCE_VERSION \
+        --async \
+        --report-results
 else
   echo "Skipping E2E check for contribution checkout flow because initial deployment has not occurred"
   exit 0

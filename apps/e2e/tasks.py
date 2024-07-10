@@ -18,7 +18,7 @@ def _report_results(status: CommitStatus) -> GhCommitStatus:
     logger.info("Reporting results for commit %s to GitHub", status.commit_sha)
     client = get_github_client()
     repo = client.get_repo(settings.GITHUB_REPO)
-    target_url = f"https://{settings.DOMAIN_APEX}{reverse('e2e-detail', args=[status.commit_sha, status.id])}"
+    target_url = f"{settings.SITE_URL}{reverse('e2e-detail', args=[status.commit_sha, status.id])}"
     return repo.get_commit(status.commit_sha).create_status(
         state=status.state.value,
         description=status.details,

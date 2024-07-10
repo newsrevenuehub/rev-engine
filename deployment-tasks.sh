@@ -21,6 +21,7 @@ if [ "$POSTDEPLOY_DONE" = "true" ]; then
         --module test_contribution_checkout \
         --commit-sha $SOURCE_VERSION \
         --report-results
+        --async
 else
   echo "Skipping E2E check for contribution checkout flow because initial deployment has not occurred"
   exit 0

@@ -149,7 +149,6 @@ def assert_stripe_side_effects_for_subscription(
     assert payment_intent.amount == AMOUNT * 100
     assert subscription.status == "active"
     assert subscription.items.data[0].price.product == settings.STRIPE_PRODUCT_ID_CONTRIBUTIONS
-    # subscription metadata
 
 
 def assert_stripe_side_effects(contribution):
@@ -216,6 +215,7 @@ def test_e2e() -> E2eOutcome:
         contribution = assert_contribution(email, AMOUNT * 100, INTERVAL)
         assert_stripe_side_effects(contribution)
         state = CommitStatusState.SUCCESS
+        details = f"Success: Contribution {contribution.id} created"
     except E2EError as e:
         details = str(e)
         state = CommitStatusState.FAILURE

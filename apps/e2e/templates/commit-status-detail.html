@@ -1,37 +1,36 @@
-{% extends "base.html" %}
+{% extends "nrh-user-base-template.html" %}
 {% block title %}Commit Status {{ commit_status.id }}{% endblock %}
-
 {% block content %}
-<style>
-  table {
+  <style>
+    table {
       width: 100%;
       border-collapse: collapse;
       margin: 20px 0;
       font-size: 18px;
       text-align: left;
-  }
-  th, td {
-      padding: 12px;
-      border: 1px solid #ddd;
-  }
-  th {
-      background-color: #f4f4f4;
-      font-weight: bold;
-  }
-  tr:nth-child(even) {
-      background-color: #f9f9f9;
-  }
-  img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-  }
-  .table-container {
-      overflow-x: auto;
-      margin: 0 auto;
-      max-width: 800px;
-  }
-</style>
+      }
+      th, td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        }
+        th {
+          background-color: #f4f4f4;
+          font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+            }
+            img {
+              max-width: 100%;
+              height: auto;
+              display: block;
+              }
+              .table-container {
+                overflow-x: auto;
+                margin: 0 auto;
+                max-width: 800px;
+                }
+  </style>
 <table>
   <tr>
       <th>Name</th>
@@ -48,7 +47,7 @@
 
   <tr>
       <th>Screenshot</th>
-      <td>{% if commit_Status.screenshot %}<img src="{{ commit_status.screenshot.url }}" alt="Screenshot">{% else %} {% endif %}</td>
+      <td>{% if commit_status.screenshot %}<img src="{{ commit_status.screenshot.url }}" alt="Screenshot">{% else %}No screenshot{% endif %}</td>
   </tr>
   <tr>
     <th>Details</th>

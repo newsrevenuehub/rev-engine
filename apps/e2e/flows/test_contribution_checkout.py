@@ -98,6 +98,7 @@ def fill_out_contribution_form(
             page.wait_for_selector("text=Thank you")
             return page.screenshot()
         except playwright._impl._errors.Error as e:
+            logger.exception("Error in playwright")
             kwargs = {}
             if page:
                 kwargs["screenshot"] = page.screenshot()

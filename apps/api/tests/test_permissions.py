@@ -60,8 +60,3 @@ def test_IsSwitchboardAccount(is_authenticated, email, settings_email, expected,
     request.user.email = email
     settings.SWITCHBOARD_ACCOUNT_EMAIL = settings_email
     assert IsSwitchboardAccount().has_permission(request, None) is expected
-
-
-@pytest.mark.django_db()
-def test_IsE2EUser():
-    pass

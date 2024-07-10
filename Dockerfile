@@ -55,7 +55,7 @@ RUN set -ex \
     && poetry config virtualenvs.create false \
     && poetry install --no-root --no-dev \
     && playwright install-deps \
-    && playwright install chromium \
+    && playwright install \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
 

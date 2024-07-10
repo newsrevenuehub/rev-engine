@@ -45,9 +45,10 @@
     <th>State</th>
     <td>{{ commit_status.state }}</td>
   </tr>
+
   <tr>
       <th>Screenshot</th>
-      <td><img src="{{ commit_status.screenshot.url }}" alt="Screenshot"></td>
+      <td>{% if commit_Status.screenshot %}<img src="{{ commit_status.screenshot.url }}" alt="Screenshot">{% else %} {% endif %}</td>
   </tr>
   <tr>
     <th>Details</th>

@@ -58,7 +58,8 @@ RUN set -ex \
     && rm -rf /var/lib/apt/lists/*
 
 
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Install playwright dependencies and set the browsers path
+ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
 RUN set -ex \
     && python -m playwright install-deps \
     && python -m playwright install

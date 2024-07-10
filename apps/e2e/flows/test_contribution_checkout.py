@@ -176,7 +176,7 @@ def assert_stripe_side_effects_for_one_time(pi_id: str, stripe_account_id: str, 
 
 
 def make_email():
-    return f"{str(uuid.uuid4())[:10]}{settings.E2E_CONTRIBUTOR_EMAIL_SUFFIX}@{settings.E2E_CONTRIBUTOR_EMAIL_DOMAIN}"
+    return f"{str(uuid.uuid4())[:10]}{settings.quit}@{settings.E2E_CONTRIBUTOR_EMAIL_DOMAIN}"
 
 
 AMOUNT = 100
@@ -209,7 +209,7 @@ def test_e2e() -> E2eOutcome:
         logger.info("Sleeping for 5 seconds to allow for async side effects to complete")
         time.sleep(5)
         logger.info("Checking side effects of checkout")
-        contribution = assert_contribution(email, AMOUNT, INTERVAL)
+        contribution = assert_contribution(email, AMOUNT * 100, INTERVAL)
         assert_stripe_side_effects(contribution)
         state = CommitStatusState.SUCCESS
     except E2EError as e:

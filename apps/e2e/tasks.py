@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from github.CommitStatus import CommitStatus as GhCommitStatus
+from github import CommitStatus as GhCommitStatus
 
 from apps.common.github import get_github_client
 from apps.e2e.models import CommitStatus

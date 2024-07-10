@@ -67,7 +67,7 @@ echo "Running e2e tests for commit: $SOURCE_VERSION"
 # Since this is first deploy, we will not have had a e2e run on initial release, so
 # we will trigger one here.
 python manage.py trigger_e2e_check \
-    --flow contribution_checkout \
+    --module contribution_checkout \
     --commit-sha $SOURCE_VERSION \
     --async \
     --report-results

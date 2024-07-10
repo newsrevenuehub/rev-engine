@@ -124,7 +124,9 @@ def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
         "amount": lambda x: x.amount == amount,
         "interval": lambda x: x.interval == interval,
         "subscription_id": lambda x: (
-            x.subscription_id is None if interval == ContributionInterval.ONE_TIME else bool(x.subscription_id)
+            x.provider_subscription_id is None
+            if interval == ContributionInterval.ONE_TIME
+            else bool(x.provider_subscription_id)
         ),
         "status": lambda x: x.status == ContributionStatus.PAID,
     }.items():

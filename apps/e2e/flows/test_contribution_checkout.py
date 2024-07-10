@@ -21,7 +21,7 @@ STANDING_NAMES = ("test", "staging", "sandbox", "dev", "demo")
 _rp = RevenueProgram.objects.get(name=settings.E2E_RP_NAME)
 CHECKOUT_PAGE_URL = os.environ.get(
     "CHECKOUT_PAGE_URL",
-    f"https://{_rp.slug}{f'-{ENV}' if ENV not in STANDING_NAMES else ''}.{settings.DOMAIN_APEX}/{_rp.default_donation_page.slug}/",
+    f"https://{_rp.slug}.{settings.DOMAIN_APEX}/{_rp.default_donation_page.slug}/",
 )
 STRIPE_API_KEY = settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
 VISA = "4242424242424242"

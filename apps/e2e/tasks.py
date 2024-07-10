@@ -1,7 +1,6 @@
 from django.conf import settings
 
 from celery import shared_task
-from celery.exceptions import Ignore
 from celery.utils.log import get_task_logger
 from github.CommitStatus import CommitStatus as GhCommitStatus
 
@@ -37,9 +36,6 @@ def do_ci_e2e_flow_run(
     Results in creation of a revengine CommitStatus model instance
     """
     logger.info("Running E2E flow %s for commit %s", name, commit_sha)
-    if report_results and not commit_sha:
-        logger.error(msg := "commit_sha is required when report_results is True")
-        raise Ignore(msg)
     logger.info("Getting E2E runner for flow %s", name)
     runner = E2eTestRunner(name=name, commit_sha=commit_sha)
     commit_status = runner.run()

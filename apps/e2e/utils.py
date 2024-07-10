@@ -62,5 +62,5 @@ class E2eTestRunner:
             commit_sha=self.commit_sha,
             name=self.name,
             state=outcome.state,
-            details=outcome.details,
+            details=outcome.details or "No details provided",
         )

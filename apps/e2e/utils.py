@@ -31,13 +31,13 @@ class E2eOutcome:
 @dataclass
 class E2eTestRunner:
     name: str
-    commit_sha: str = None
+    commit_sha: str
     module_path: InitVar[str] = "apps/e2e/flows"
     function_name: InitVar[str] = "test_e2e"
 
     def run(self) -> CommitStatus:
         """Run the E2E test flow."""
-        if not Path.exists(self.module_path):
+        if not Path(self.module_path).exists():
             logger.warning("Module path not found at %s", self.module_path)
             return None
         module = load_module(self.name, f"{self.module_path}/{self.name}.py")

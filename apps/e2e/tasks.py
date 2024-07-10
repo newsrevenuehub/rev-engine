@@ -29,7 +29,7 @@ def _report_results(status: CommitStatus) -> GhCommitStatus:
 @shared_task
 def do_ci_e2e_flow_run(
     name: str,
-    commit_sha: str = None,
+    commit_sha: str,
     report_results: bool = False,
 ) -> None:
     """Run a named e2e flow and optionally reports results back to GitHub.
@@ -47,4 +47,4 @@ def do_ci_e2e_flow_run(
         gh_status = _report_results(commit_status)
         commit_status.github_id = gh_status.id
         commit_status.save()
-    logger.info("E2E test %s for commit %s created commit status %s on GH", name, commit_sha, gh_status.id)
+    logger.info("E2E test %s for commit %s created commit status %s on GH", name, commit_sha, commit_status.id)

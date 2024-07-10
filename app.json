@@ -28,9 +28,6 @@
     },
     "ALLOWED_HOSTS": {
       "value": ".herokuapp.com"
-    },
-    "SOURCE_VERSION": {
-      "required": true
     }
   },
   "formation": {

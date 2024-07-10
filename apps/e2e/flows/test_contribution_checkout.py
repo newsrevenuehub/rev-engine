@@ -109,7 +109,7 @@ def fill_out_contribution_form(
 
 
 def assert_contribution(email: str, amount: int, interval: str) -> Contribution:
-    """Assers that a contribution was created in the DB with the expected values."""
+    """Assert that a contribution was created in the DB with the expected values."""
     logger.info("Checking DB side effects")
     try:
         contributor = Contributor.objects.get(email=email)

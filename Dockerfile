@@ -24,6 +24,7 @@ RUN set -ex \
     postgresql-client \
     vim \
     curl \
+    jq \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \

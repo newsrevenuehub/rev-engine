@@ -56,7 +56,7 @@ CONFIG_VARS=$(curl -n -X GET https://api.heroku.com/apps/$HEROKU_APP_NAME/config
 -H "Accept: application/vnd.heroku+json; version=3" \
 -H "Authorization: Bearer $HEROKU_API_KEY")
 
-POSTDEPLOY_DONE=$(echo $CONFIG_VARS | grep -o '"POSTDEPLOY_DONE":[^,]*' | sed 's/"POSTDEPLOY_DONE":"\([^"]*\)"/\1/')
+POSTDEPLOY_DONE=$(echo $CONFIG_VARS | jq -r '.POSTDEPLOY_DONE')
 
 if [ "$POSTDEPLOY_DONE" != "true" ]; then
   # Set an environment variable to indicate postdeploy completion using the Heroku API

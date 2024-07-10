@@ -5,12 +5,15 @@ set -e
 >&2 echo "Running Migrations in deployment-tasks.sh"
 python manage.py migrate --noinput
 
+# Fetch the configuration variables from Heroku
 CONFIG_VARS=$(curl -n -X GET https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
 -H "Content-Type: application/json" \
 -H "Accept: application/vnd.heroku+json; version=3" \
 -H "Authorization: Bearer $HEROKU_API_KEY")
 
-POSTDEPLOY_DONE=$(echo $CONFIG_VARS | grep -o '"POSTDEPLOY_DONE":[^,]*' | sed 's/"POSTDEPLOY_DONE":"\([^"]*\)"/\1/')
+# Extract the value of POSTDEPLOY_DONE using jq
+POSTDEPLOY_DONE=$(echo $CONFIG_VARS | jq -r '.POSTDEPLOY_DONE')
+
 
 if [ "$POSTDEPLOY_DONE" = "true" ]; then
   echo "Postdeploy script has run. Proceeding with release actions..."

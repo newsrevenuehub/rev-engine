@@ -3,7 +3,6 @@ from django.urls import reverse
 import pytest
 from bs4 import BeautifulSoup
 
-from apps.e2e.tests.factories import CommitStatusFactory
 from apps.users.tests.factories import UserFactory
 
 
@@ -15,10 +14,6 @@ class TestE2EViewSet:
         user = UserFactory()
         settings.E2E_USER = user.email
         return user
-
-    @pytest.fixture()
-    def commit_status(self):
-        return CommitStatusFactory()
 
     def test_get(self, client, commit_status):
         response = client.get(reverse("e2e-detail", args=(commit_status.commit_sha, commit_status.github_id)))

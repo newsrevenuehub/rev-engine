@@ -14,7 +14,7 @@ class CommitStatus(IndexedTimeStampedModel):
     # For saving the GitHub ID of the status. This will only exist if we succesfully create a commit
     # status on GH for the corresponding revengine commit status instance. Our system allows for the
     # existence of a revengine commit status without a corresponding GH commit status.
-    github_id = models.IntegerField(null=True, blank=True)
+    github_id = models.BigIntegerField(null=True, blank=True)
     name = models.CharField(max_length=50)
     commit_sha = models.CharField(max_length=40)
     # This is where we can store our internal notes on what happened in the test run

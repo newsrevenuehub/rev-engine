@@ -51,11 +51,6 @@ mailchimp-marketing = "^3.0.80"
 newrelic = "^8.4.0"
 phonenumbers = "^8.13.34"
 psycopg2-binary = "^2"
-peewee = "^3.17.0"
-pytest-celery = "^0"
-pytest-playwright = "^0.4.3"
-pytest-django = "*"
-pytest-mock = "*"
 pycountry = "^22.3.5"
 pydantic = "^2.2.0"
 pygments = "^2.13.0"
@@ -70,11 +65,7 @@ tldextract = "^5.1.1"
 uwsgi = "^2"
 uwsgitop = "^0.11"
 whitenoise = "^6.2.0"
-pytest-asyncio = "^0.23.7"
-pytest = "^8.2.2"
-factory-boy = "^3.3.0"
-pytest-json-report = "^1.5.0"
-pygithub = "^2.3.0"
+pytest-playwright = "^0.5.1"
 
 [tool.poetry.dev-dependencies]
 Faker = "*"
@@ -88,7 +79,11 @@ drf-yasg = "*" # Swagger generator
 factory_boy = "*"
 ipython = "*"
 pre-commit = "*"
+pytest = "^7"  # temporarily pinned due to pytest-asyncio not support pytest 8 https://github.com/pytest-dev/pytest-asyncio/issues/737
+pytest-celery = "^0"
 pytest-cov = "*"
+pytest-django = "*"
+pytest-mock = "*"
 pytest-ruff = "*"
 pytest-xdist = "*"
 pyyaml = "*"
@@ -136,7 +131,6 @@ exclude = '''
 line-length = 140
 target-version = "py310"
 include = ["*py", "apps/*py", "revengine/*py", "scripts/*py"]
-
 
 [tool.ruff.format]
 quote-style = "double"

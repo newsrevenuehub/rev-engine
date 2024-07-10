@@ -52,7 +52,7 @@ urlpatterns = [
         read_apple_developer_merchant_id,
         name="apple_dev_merchantid_domain",
     ),
-    path("e2e/<str:commit_sha>/commit_status/<str:status_id>", commit_status_detail, name="e2e-detail"),
+    path("e2e/commit/<str:commit_sha>/commit_status/<str:id>/", commit_status_detail, name="e2e-detail"),
 ]
 
 

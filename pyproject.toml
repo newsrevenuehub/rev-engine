@@ -66,6 +66,7 @@ uwsgi = "^2"
 uwsgitop = "^0.11"
 whitenoise = "^6.2.0"
 pytest-playwright = "^0.5.1"
+pygithub = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 Faker = "*"

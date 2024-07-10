@@ -12,6 +12,7 @@ from playwright.sync_api import expect, sync_playwright
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor
 from apps.e2e.choices import CommitStatusState
+from apps.e2e.exceptions import E2EError
 from apps.e2e.utils import E2eOutcome
 from apps.organizations.models import RevenueProgram
 
@@ -29,17 +30,6 @@ MASTER_CARD = "5555555555554444"
 REVENUE_PROGRAM_NAME = _rp.name
 
 logger = logging.getLogger(__name__)
-
-
-class E2EError(Exception):
-    """Base class for E2E errors.
-
-    Contains a screenshot if available.
-    """
-
-    def __init__(self, message, screenshot: bytes = None, **kwargs):
-        super().__init__(message)
-        self.screenshot = screenshot
 
 
 def fill_out_contribution_form(

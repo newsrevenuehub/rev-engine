@@ -22,6 +22,9 @@ class CommitStatus(IndexedTimeStampedModel):
     screenshot = models.ImageField(upload_to="e2e/screenshots/", null=True, blank=True)
     state = models.CharField(max_length=10, choices=CommitStatusState.choices, default=CommitStatusState.PENDING)
 
+    class Meta:
+        verbose_name_plural = "Commit statuses"
+
     def __str__(self):
         return f"Commit status {self.name} {self.id} for SHA {self.commit_sha} and context {self.context}"
 

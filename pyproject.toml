@@ -67,6 +67,7 @@ uwsgitop = "^0.11"
 whitenoise = "^6.2.0"
 pytest-playwright = "^0.5.1"
 pygithub = "^2.3.0"
+django-celery-results = "^2.5.1"
 
 [tool.poetry.dev-dependencies]
 Faker = "*"
@@ -93,6 +94,9 @@ ruff = "*"
 
 [tool.poetry.extras]
 bandit = ["toml"]
+
+[tool.poetry.group.dev.dependencies]
+faker-file = "^0.17.11"
 
 [tool.pytest.ini_options]
 addopts = "--ruff --reuse-db -p no:warnings --ignore=apps/e2e/flows"

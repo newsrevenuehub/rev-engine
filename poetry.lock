@@ -864,6 +864,21 @@ python-crontab = ">=2.3.4"
 tzdata = "*"
 
 [[package]]
+name = "django-celery-results"
+version = "2.5.1"
+description = "Celery result backends for Django."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django_celery_results-2.5.1-py3-none-any.whl", hash = "sha256:0da4cd5ecc049333e4524a23fcfc3460dfae91aa0a60f1fae4b6b2889c254e01"},
+    {file = "django_celery_results-2.5.1.tar.gz", hash = "sha256:3ecb7147f773f34d0381bac6246337ce4cf88a2ea7b82774ed48e518b67bb8fd"},
+]
+
+[package.dependencies]
+celery = ">=5.2.7,<6.0"
+Django = ">=3.2.18"
+
+[[package]]
 name = "django-csp"
 version = "3.8"
 description = "Django Content Security Policy support."
@@ -1297,6 +1312,44 @@ files = [
 
 [package.dependencies]
 python-dateutil = ">=2.4"
+
+[[package]]
+name = "faker-file"
+version = "0.17.11"
+description = "Generate files with fake data."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "faker-file-0.17.11.tar.gz", hash = "sha256:6ea67b5083b29edbe4f3d808d6aa13fea58bde5e01d306ec44af6f4aeff367cb"},
+    {file = "faker_file-0.17.11-py2.py3-none-any.whl", hash = "sha256:8a805d1731f98ae9cab580da4c5899e3669a531065534c2ca1d7edd51d434193"},
+]
+
+[package.dependencies]
+Faker = "*"
+
+[package.extras]
+all = ["Faker", "WeasyPrint", "edge-tts", "gtts", "imgkit", "nlpaug", "nltk", "odfpy", "openpyxl", "paramiko", "pathy[all]", "pdf2image", "pdfkit", "python-docx", "python-pptx", "reportlab", "tablib", "textaugment", "tika", "torch", "transformers", "xml2epub"]
+azure = ["pathy[azure]"]
+bmp = ["WeasyPrint", "pdf2image"]
+common = ["Faker", "WeasyPrint", "edge-tts", "gtts", "imgkit", "odfpy", "openpyxl", "paramiko", "pathy[all]", "pdf2image", "pdfkit", "python-docx", "python-pptx", "reportlab", "tablib", "xml2epub"]
+data-augmentation = ["nlpaug", "nltk", "textaugment", "tika", "torch", "transformers"]
+django = ["Django (>=2.2)"]
+docx = ["python-docx"]
+epub = ["xml2epub"]
+gcs = ["pathy[gcs]"]
+gif = ["WeasyPrint", "pdf2image"]
+images = ["imgkit"]
+mp3 = ["edge-tts", "gtts"]
+odp = ["odfpy"]
+ods = ["odfpy", "tablib"]
+odt = ["odfpy"]
+pdf = ["pdfkit", "reportlab"]
+pptx = ["python-pptx"]
+s3 = ["pathy[s3]"]
+sftp = ["paramiko"]
+sqlalchemy = ["SQLAlchemy (>=1.0)", "SQLAlchemy-Utils (>=0.37.0)"]
+tiff = ["WeasyPrint", "pdf2image"]
+xlsx = ["openpyxl", "tablib"]
 
 [[package]]
 name = "filelock"
@@ -3661,4 +3714,4 @@ bandit = []
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "27d44f861b0a00156c86713bee17d16941d5669daef5a3df0b3ac97378813e03"
+content-hash = "fae603ecf585e0438de235db0b295e7974e744dfa4d7feda247bc98a97f032b4"

@@ -43,7 +43,6 @@
   "name": "rev-engine",
   "stack": "container",
   "scripts": {
-    "postdeploy": "./scripts/heroku-postdeploy.sh",
-    "release": "./scripts/heroku-release.sh"
+    "postdeploy": "./scripts/heroku-postdeploy.sh"
   }
 }

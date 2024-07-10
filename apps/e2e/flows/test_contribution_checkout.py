@@ -176,7 +176,7 @@ def assert_stripe_side_effects_for_one_time(pi_id: str, stripe_account_id: str, 
 
 
 def make_email():
-    return f"{str(uuid.uuid4())[:10]}{settings.quit}@{settings.E2E_CONTRIBUTOR_EMAIL_DOMAIN}"
+    return f"{str(uuid.uuid4())[:10]}{settings.E2E_CONTRIBUTOR_EMAIL_SUFFIX}@{settings.E2E_CONTRIBUTOR_EMAIL_DOMAIN}"
 
 
 AMOUNT = 100

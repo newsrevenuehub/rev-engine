@@ -68,6 +68,6 @@ echo "Running e2e tests for commit: $SOURCE_VERSION"
 # we will trigger one here.
 python manage.py trigger_e2e_check \
     --flow contribution_checkout \
-    --commit-sha $SHA \
+    --commit-sha $SOURCE_VERSION \
     --async \
     --report-results

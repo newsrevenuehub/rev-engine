@@ -48,8 +48,24 @@ python manage.py migrate
 
 echo "Bootstrapping review app"
 python manage.py bootstrap-review-app
-# We toggle this so that in subsequent release phases, we can trigger e2e checks.
-heroku config:set REVIEW_APP_FIRST_DEPLOY_DONE=true
+
+
+# Fetch current config vars
+CONFIG_VARS=$(curl -n -X GET https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
+-H "Content-Type: application/json" \
+-H "Accept: application/vnd.heroku+json; version=3" \
+-H "Authorization: Bearer $HEROKU_API_KEY")
+
+POSTDEPLOY_DONE=$(echo $CONFIG_VARS | grep -o '"POSTDEPLOY_DONE":[^,]*' | sed 's/"POSTDEPLOY_DONE":"\([^"]*\)"/\1/')
+
+if [ "$POSTDEPLOY_DONE" != "true" ]; then
+  # Set an environment variable to indicate postdeploy completion using the Heroku API
+  curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/vnd.heroku+json; version=3" \
+  -H "Authorization: Bearer $HEROKU_API_KEY" \
+  -d '{"POSTDEPLOY_DONE":"true"}'
+fi
 
 
 echo "Installing playwright dependencies"

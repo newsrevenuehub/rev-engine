@@ -115,6 +115,8 @@ E2E_USERNAME = os.getenv("E2E_USERNAME", "")
 E2E_PASSWORD = os.getenv("E2E_PASSWORD", "")
 E2E_CONTRIBUTOR_EMAIL_SUFFIX = os.getenv("E2E_CONTRIBUTOR_EMAIL_SUFFIX", "")
 E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "fundjournalism.org")
+# Note that e2e test assumes this has a default donation page set
+E2E_RP_NAME = os.getenv("E2E_RP_NAME", "")
 
 # Application definition
 INSTALLED_APPS = [
@@ -677,11 +679,5 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
 SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
-
-# Account that is allowed to do E2E testing
-E2E_ACCOUNT_EMAIL = os.getenv("E2E_ACCOUNT_EMAIL", "")
-# Note that e2e test assumes this has a default donation page set
-E2E_RP_NAME = os.getenv("E2E_RP_NAME", "")
-
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", None)
 GITHUB_REPO = os.getenv("GITHUB_REPO", None)

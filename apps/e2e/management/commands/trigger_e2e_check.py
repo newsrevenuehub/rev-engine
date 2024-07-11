@@ -6,10 +6,7 @@ from apps.e2e.tasks import do_ci_e2e_flow_run
 
 
 class Command(BaseCommand):
-    """Trigger async run of E2E checks.
-
-    Defaults to checks in `FLOWS` dict.
-    """
+    """Trigger async run of E2E checks."""
 
     @property
     def name(self):

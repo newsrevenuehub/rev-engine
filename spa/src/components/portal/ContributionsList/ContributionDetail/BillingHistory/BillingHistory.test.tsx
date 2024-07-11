@@ -117,6 +117,31 @@ describe('BillingHistory', () => {
     expect(sendEmailReceipt).toBeCalledTimes(1);
   });
 
+  describe('when there are no payments (no billing history)', () => {
+    it('shows a message with the revenue program name', () => {
+      usePortalMock.mockReturnValue({
+        page: { revenue_program: { name: 'Test Program' } }
+      } as any);
+      tree({ payments: [] });
+
+      expect(
+        screen.getByText('Please contact Test Program for billing history and prior receipts for this contribution.')
+      ).toBeInTheDocument();
+    });
+
+    it('disables the resend receipt button', () => {
+      tree({ payments: [] });
+
+      expect(screen.getByRole('button', { name: 'Resend receipt' })).toBeDisabled();
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree({ payments: [] });
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
+  });
+
   it('is accessible', async () => {
     const { container } = tree();
 

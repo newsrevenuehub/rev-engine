@@ -32,6 +32,15 @@ export const SectionControlButton = styled(Button)`
       color: ${({ theme }) => theme.basePalette.primary.engineBlue};
     }
   }
+
+  &&.Mui-disabled {
+    background-color: unset;
+
+    .NreButtonLabel {
+      cursor: not-allowed;
+      color: ${({ theme }) => theme.basePalette.greyscale.grey2};
+    }
+  }
 `;
 
 export const SectionEditButton = styled(Button)`

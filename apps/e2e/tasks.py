@@ -20,7 +20,7 @@ def _report_results(status: CommitStatus) -> GhCommitStatus:
     repo = client.get_repo(settings.GITHUB_REPO)
     target_url = f"{settings.SITE_URL}{reverse('e2e-detail', args=[status.commit_sha, status.id])}"
     return repo.get_commit(status.commit_sha).create_status(
-        state=status.state.value,
+        state=status.state,
         description=status.details,
         target_url=target_url,
         context=status.context,

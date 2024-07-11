@@ -51,9 +51,10 @@ urlpatterns = [
         read_apple_developer_merchant_id,
         name="apple_dev_merchantid_domain",
     ),
-    path("e2e/commit/<str:commit_sha>/commit_status/<str:status_id>/", commit_status_detail, name="e2e-detail"),
 ]
 
+if settings.E2E_ENABLED:
+    urlpatterns.append(path("e2e/<str:commit_sha>/<int:commit_status_id>/", commit_status_detail, name="e2e-detail"))
 
 if settings.DEBUG:  # pragma: no cover Is covered, but reimport confuses coverage
     from django.conf.urls.static import static

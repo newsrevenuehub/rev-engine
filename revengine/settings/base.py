@@ -152,7 +152,6 @@ INSTALLED_APPS = [
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
-    "django_celery_results",
 ]
 
 if ENABLE_API_BROWSER:
@@ -369,8 +368,6 @@ DTM_IGNORED_MIGRATIONS = {
     ("django_celery_beat", "*"),
 }
 
-
-CELERY_RESULT_BACKEND = "django-db"
 
 ### Django-CSP Settings
 

@@ -27,8 +27,9 @@ def _report_results(status: CommitStatus) -> GhCommitStatus:
     )
 
 
-@shared_task
+@shared_task(max_retries=3, bind=True, default_retry_delay=10)
 def do_ci_e2e_flow_run(
+    self,
     name: str,
     commit_sha: str,
     report_results: bool = False,

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 
 from apps.e2e.tasks import do_ci_e2e_flow_run
@@ -24,6 +25,9 @@ class Command(BaseCommand):
                 f"Running `{self.name} with module `{options['module']}` and commit sha `{options['commit_sha'] or '<none>'}"
             )
         )
+        if not settings.E2E_ENABLED:
+            self.stdout.write(self.style.ERROR("E2E tests are not enabled. Exiting."))
+            return
         (do_ci_e2e_flow_run.delay if options["async"] else do_ci_e2e_flow_run)(
             name=options["module"],
             report_results=options["report_results"],

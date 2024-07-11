@@ -19,6 +19,7 @@ def test_do_ci_e2e_flow_run(report_results, mocker):
 @pytest.mark.django_db()
 def test__report_results(mocker, commit_status: CommitStatus, settings):
     settings.GITHUB_REPO = "repo"
+    settings.E2E_ENABLED = True
     mock_get_github_client = mocker.patch("apps.e2e.tasks.get_github_client")
     mock_get_github_client.return_value.get_repo.return_value.get_commit.return_value.create_status.return_value = (
         gh_status := mocker.Mock()

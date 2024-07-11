@@ -69,9 +69,3 @@ if [ "$POSTDEPLOY_DONE" != "true" ]; then
   -H "Authorization: Bearer $HEROKU_API_KEY" \
   -d '{"POSTDEPLOY_DONE":"true"}'
 fi
-
-
-if [ -z "$SOURCE_VERSION" ]; then
-    echo "SOURCE_VERSION is not set."
-    exit 1
-fi

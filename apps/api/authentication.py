@@ -1,7 +1,6 @@
 from django.conf import settings
 
-from rest_framework import status
-from rest_framework.authentication import CSRFCheck
+from rest_framework import authentication, status
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
@@ -16,7 +15,7 @@ class MagicLinkAuthenticationFailed(AuthenticationFailed):
 
 def enforce_csrf(request):
     """Enforce CSRF validation. From drf source, authentication.py."""
-    check = CSRFCheck()
+    check = authentication.CSRFCheck(request)
     check.process_request(request)
     reason = check.process_view(request, None, (), {})
     if reason:

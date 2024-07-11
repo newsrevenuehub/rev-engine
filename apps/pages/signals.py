@@ -11,7 +11,7 @@ from apps.google_cloud.pubsub import Message, Publisher
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-page_published = Signal(providing_args=["instance"])
+page_published = Signal()
 
 
 @receiver(page_published)

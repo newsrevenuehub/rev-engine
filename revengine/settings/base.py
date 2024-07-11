@@ -147,6 +147,7 @@ INSTALLED_APPS = [
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
+    "corsheaders",
 ]
 
 if ENABLE_API_BROWSER:
@@ -157,6 +158,7 @@ if ENABLE_API_BROWSER:
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -501,6 +503,18 @@ HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOU
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 HEALTHCHECK_URL_MARK_ABANDONED_CARTS = os.getenv("HEALTHCHECK_URL_MARK_ABANDONED_CARTS", "")
 
+### django-cors-headers settings
+# These allow CORS requests to *only* public-facing API endpoints related to
+# making a contribution, so that users can embed contribution widgets on an
+# external site. The allowed origins are set by environment variable. Note: the
+# separator used here is a comma, not a colon as with DASHBOARD_SUBDOMAINS
+# because colons will be part of the values (e.g. `https://fundjournalism.org`).
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"^/api/v1/(pages/live-detail|payments)/"
+CORS_ALLOW_METHODS = ["GET", "POST", "DELETE", "OPTIONS"]
+CORS_ALLOWED_ORIGINS = [SITE_URL.rstrip("/")] + [
+    origin for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin != ""
+]
 
 ### Google Tag Manager ID
 

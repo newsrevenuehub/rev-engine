@@ -114,7 +114,7 @@ E2E_ENABLED = os.getenv("E2E_ENABLED", "false").lower() == "true"
 E2E_USERNAME = os.getenv("E2E_USERNAME", "")
 E2E_PASSWORD = os.getenv("E2E_PASSWORD", "")
 E2E_CONTRIBUTOR_EMAIL_SUFFIX = os.getenv("E2E_CONTRIBUTOR_EMAIL_SUFFIX", "")
-E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "fundjournalism.org")
+E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "")
 # Note that e2e test assumes this has a default donation page set
 E2E_RP_NAME = os.getenv("E2E_RP_NAME", "")
 

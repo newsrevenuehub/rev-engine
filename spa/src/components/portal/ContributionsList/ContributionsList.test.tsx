@@ -39,7 +39,10 @@ describe('ContributionsList', () => {
 
   beforeEach(() => {
     useParamsMock.mockReturnValue({});
-    usePortalMock.mockReturnValue({ page: { id: 'mock-page-id', revenue_program: { id: 'mock-rp-id' } } } as any);
+    usePortalMock.mockReturnValue({
+      page: { id: 'mock-page-id', revenue_program: { id: 'mock-rp-id' } },
+      pageIsFetched: true
+    } as any);
     usePortalContributorImpactMock.mockReturnValue({ impact: { total: 123000 } } as any);
     usePortalContributionsListMock.mockReturnValue({
       contributions: [],
@@ -62,14 +65,23 @@ describe('ContributionsList', () => {
     expect(header.dataset.rp).toBe('mock-rp-id');
   });
 
-  it('shows Impact Tracker', () => {
-    tree();
-    expect(screen.getByText('Impact Tracker')).toBeInTheDocument();
-    expect(screen.getByText('$1,230.00')).toBeInTheDocument();
+  // TODO: DEV-4981 Enable Impact Tracker as soon as it's available
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('Impact Tracker', () => {
+    it('shows Impact Tracker', () => {
+      tree();
+      expect(screen.getByText('Impact Tracker')).toBeInTheDocument();
+      expect(screen.getByText('$1,230.00')).toBeInTheDocument();
+    });
+
+    it('hides Impact Tracker when impact is loading', () => {
+      usePortalContributorImpactMock.mockReturnValue({ isLoading: true } as any);
+      tree();
+      expect(screen.queryByText('Impact Tracker')).not.toBeInTheDocument();
+    });
   });
 
-  it('hides Impact Tracker when impact is loading', () => {
-    usePortalContributorImpactMock.mockReturnValue({ isLoading: true } as any);
+  it('Impact Tracker is not shown', () => {
     tree();
     expect(screen.queryByText('Impact Tracker')).not.toBeInTheDocument();
   });
@@ -81,7 +93,7 @@ describe('ContributionsList', () => {
 
   it('fetches contributions for the current user', () => {
     tree();
-    expect(usePortalContributionsListMock).toBeCalledWith(1, expect.anything());
+    expect(usePortalContributionsListMock).toBeCalledWith(1, expect.anything(), expect.anything());
   });
 
   it('shows a spinner', () => {
@@ -214,7 +226,9 @@ describe('ContributionsList', () => {
   describe('Sorting contributions', () => {
     it('should sort contributions by date by default', () => {
       tree();
-      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
+        ordering: '-created'
+      });
     });
 
     it.each([
@@ -231,7 +245,9 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('option', { name: option }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering},-created` });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
+          ordering: `-${ordering},-created`
+        });
       });
     });
   });
@@ -239,7 +255,9 @@ describe('ContributionsList', () => {
   describe("Filtering contributions (Tabs: by 'All', 'Recurring', or 'One-time')", () => {
     it('should show all contributions by default', () => {
       tree();
-      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
+        ordering: '-created'
+      });
     });
 
     it('should show all contributions when moving to "All" tab', async () => {
@@ -247,7 +265,7 @@ describe('ContributionsList', () => {
 
       userEvent.click(screen.getByRole('tab', { name: 'Recurring' }));
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
           ordering: '-created',
           interval: 'recurring'
         });
@@ -255,7 +273,9 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('tab', { name: 'All' }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
+          ordering: '-created'
+        });
       });
     });
 
@@ -268,9 +288,17 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('tab', { name: tab }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created', interval });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
+          ordering: '-created',
+          interval
+        });
       });
     });
+  });
+
+  it('should filter contributions by RP', () => {
+    tree();
+    expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), 'mock-rp-id', expect.anything());
   });
 
   it('is accessible', async () => {

@@ -41,7 +41,8 @@ export const Layout = styled.div`
   gap: 25px 20px;
   grid-template-areas:
     'header _'
-    'tracker _'
+    /* TODO: DEV-4981 Enable Impact Tracker as soon as it's available */
+    /* 'tracker _' */
     'legend _'
     'list detail';
   grid-template-columns: 1fr 1fr;

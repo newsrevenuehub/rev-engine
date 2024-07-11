@@ -62,7 +62,8 @@ class TestMakeSendThankYouEmailData:
     def contribution(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_happy_path(self, contribution, mocker):
+    @pytest.mark.parametrize("show_billing_history", [False, True])
+    def test_happy_path(self, contribution, show_billing_history, mocker):
         mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
@@ -85,8 +86,10 @@ class TestMakeSendThankYouEmailData:
             style=asdict(contribution.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
             show_upgrade_prompt=False,
+            billing_history=contribution.get_billing_history(),
+            show_billing_history=show_billing_history,
         )
-        actual = make_send_thank_you_email_data(contribution)
+        actual = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
         assert expected == actual
 
     def test_when_no_provider_customer_id(self, mocker):
@@ -113,19 +116,31 @@ class TestSendThankYouEmail:
             lambda: ContributionFactory(monthly_subscription=True),
         ],
     )
-    def test_happy_path(self, make_contribution_fn, mocker):
+    @pytest.mark.parametrize("show_billing_history", [False, True])
+    def test_happy_path(self, make_contribution_fn, show_billing_history, mocker):
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
         contribution = make_contribution_fn()
-        data = make_send_thank_you_email_data(contribution)
+        data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+
         send_thank_you_email(data)
+
+        email_html = render_to_string("nrh-default-contribution-confirmation-email.html", context=data)
+
+        if show_billing_history and data["billing_history"]:
+            assert "Billing History" in email_html
+            for history in data["billing_history"]:
+                assert f"<p class=\"billing-history-value\">{history['payment_status']}</p>" in email_html
+        else:
+            assert "Billing History" not in email_html
+
         mock_send_mail.assert_called_once_with(
             subject="Thank you for your contribution!",
             message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=data),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[contribution.contributor.email],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=data),
+            html_message=email_html,
         )
 
     @pytest.fixture(

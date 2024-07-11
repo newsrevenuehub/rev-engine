@@ -14,7 +14,6 @@ import {
   AlignPositionWrapper,
   ContactInfoWrapper,
   Detail,
-  Impact,
   Layout,
   Legend,
   List,
@@ -24,7 +23,6 @@ import {
   Subhead,
   Tabs
 } from './ContributionsList.styled';
-import ImpactTracker from './ImpactTracker/ImpactTracker';
 import NoContributions from './NoContributions';
 
 const CONTRIBUTION_SORT_OPTIONS = [
@@ -55,13 +53,17 @@ export function ContributionsList() {
   const [tab, setTab] = useState(0);
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
-  const { page } = usePortal();
+  const { page, pageIsFetched } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
-  const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
-    ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
-    // If the tab is 'All', we don't need to pass an interval
-    ...(tab !== 0 && { interval: CONTRIBUTIONS_TABS[tab].toLowerCase().replace('-', '_') })
-  });
+  const { contributions, isError, isLoading, refetch } = usePortalContributionList(
+    contributor?.id,
+    page?.revenue_program.id,
+    {
+      ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
+      // If the tab is 'All', we don't need to pass an interval
+      ...(tab !== 0 && { interval: CONTRIBUTIONS_TABS[tab].toLowerCase().replace('-', '_') })
+    }
+  );
   const selectedContribution =
     contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
   // This needs to be state instead of a ref to trigger effects in
@@ -85,7 +87,7 @@ export function ContributionsList() {
     }
   }, [selectedContribution]);
 
-  if (isLoading) {
+  if (isLoading || !pageIsFetched) {
     content = (
       <Loading {...contentProps}>
         <CircularProgress aria-label="Loading contributions" variant="indeterminate" />
@@ -127,9 +129,10 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
-          <Impact>
+          {/* TODO: DEV-4981 Enable Impact Tracker as soon as it's available */}
+          {/* <Impact>
             <ImpactTracker contributorId={contributor?.id} />
-          </Impact>
+          </Impact> */}
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>

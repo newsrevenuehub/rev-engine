@@ -12,15 +12,15 @@ from apps.e2e.models import CommitStatus
 
 fake = Faker()
 
-NOW = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
-THEN = NOW - datetime.timedelta(weeks=52)
+YESTERDAY = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
+YEAR_AGO = YESTERDAY - datetime.timedelta(weeks=52)
 
 
 class CommitStatusFactory(DjangoModelFactory):
     class Meta:
         model = CommitStatus
 
-    created = LazyFunction(lambda: generate_random_datetime(THEN, NOW))
+    created = LazyFunction(lambda: generate_random_datetime(YEAR_AGO, YESTERDAY))
     state = LazyFunction(lambda: random.choice(CommitStatusState.choices)[0])
     github_id = LazyFunction(lambda: random.randint(1, 10000))
     name = LazyFunction(lambda: fake.word())

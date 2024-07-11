@@ -59,7 +59,7 @@ CONFIG_VARS=$(curl -n -X GET https://api.heroku.com/apps/$HEROKU_APP_NAME/config
 POSTDEPLOY_DONE=$(echo $CONFIG_VARS | jq -r '.POSTDEPLOY_DONE')
 
 if [ "$POSTDEPLOY_DONE" != "true" ]; then
-  # Set an environment variable to indicate postdeploy completion using the Heroku API
+  echo "Setting POSTDEPLOY_DONE to true"
   curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
   -H "Content-Type: application/json" \
   -H "Accept: application/vnd.heroku+json; version=3" \

@@ -80,5 +80,4 @@ echo "Running e2e tests for commit: $SOURCE_VERSION"
 python manage.py trigger_e2e_check \
     --module test_contribution_checkout \
     --commit-sha $SOURCE_VERSION \
-    --async \
     --report-results

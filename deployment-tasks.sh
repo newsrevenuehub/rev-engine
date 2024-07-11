@@ -20,8 +20,7 @@ if [ "$POSTDEPLOY_DONE" = "true" ]; then
   python manage.py trigger_e2e_check \
         --module test_contribution_checkout \
         --commit-sha $SOURCE_VERSION \
-        --report-results \
-        --async
+        --report-results
 else
   echo "Skipping E2E check for contribution checkout flow because initial deployment has not occurred"
   exit 0

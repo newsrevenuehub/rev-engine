@@ -118,6 +118,9 @@ E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "fundjo
 INSTALLED_APPS = [
     "apps.common",
     "apps.api",
+    # TODO @<benjaminEwhite>: Conditionally add only when E2E_ENABLED is True
+    # DEV-4994
+    # note on this causing problems when tried to do
     "apps.e2e",
     "apps.users",
     "apps.organizations",

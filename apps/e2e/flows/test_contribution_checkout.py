@@ -149,6 +149,8 @@ def assert_stripe_side_effects_for_subscription(
     assert payment_intent.amount == AMOUNT * 100
     assert subscription.status == "active"
     assert subscription.items.data[0].price.product == settings.STRIPE_PRODUCT_ID_CONTRIBUTIONS
+    # TODO @<benjaminEwhite>: Assert about metadata
+    # DEV-4996
 
 
 def assert_stripe_side_effects(contribution):
@@ -170,6 +172,8 @@ def assert_stripe_side_effects_for_one_time(pi_id: str, stripe_account_id: str, 
         stripe_account=stripe_account_id,
         api_key=STRIPE_API_KEY,
     )
+    # TODO @<benjaminEwhite>: Assert about metadata
+    # DEV-4995
     for attr, val in (
         ("status", "succeeded"),
         ("amount", amount * 100),
@@ -186,6 +190,10 @@ AMOUNT = 100
 INTERVAL = "one_time"
 
 
+# TODO @<benjaminEwhite>: Test recurring, approved contribution
+# DEV-4993
+# TODO @<benjaminEwhite>: Test flagged contributions
+# DEV-4994
 def test_e2e() -> E2eOutcome:
     """End-to-end user flow for making a contribution."""
     logger.info("Starting checkout flow")

@@ -59,6 +59,8 @@ RUN set -ex \
 
 
 # Install playwright dependencies and set the browsers path
+# TODO @BW: Do not install playwright in production
+# DEV-4992
 ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
 RUN set -ex \
     && python -m playwright install-deps \

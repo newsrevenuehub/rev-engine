@@ -59,6 +59,9 @@ CONFIG_VARS=$(curl -n -X GET https://api.heroku.com/apps/$HEROKU_APP_NAME/config
 POSTDEPLOY_DONE=$(echo $CONFIG_VARS | jq -r '.POSTDEPLOY_DONE')
 
 if [ "$POSTDEPLOY_DONE" != "true" ]; then
+# Note that setting this will trigger a subsequent release
+# and when release phase runs deployment-tasks.sh, it will find this
+# var set to true, and run the E2E check
   echo "Setting POSTDEPLOY_DONE to true"
   curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
   -H "Content-Type: application/json" \
@@ -72,12 +75,3 @@ if [ -z "$SOURCE_VERSION" ]; then
     echo "SOURCE_VERSION is not set."
     exit 1
 fi
-
-echo "Running e2e tests for commit: $SOURCE_VERSION"
-
-# Since this is first deploy, we will not have had a e2e run on initial release, so
-# we will trigger one here.
-python manage.py trigger_e2e_check \
-    --module test_contribution_checkout \
-    --commit-sha $SOURCE_VERSION \
-    --report-results

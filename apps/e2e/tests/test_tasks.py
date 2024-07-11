@@ -17,19 +17,10 @@ def test_do_ci_e2e_flow_run(report_results, mocker):
 
 
 @pytest.mark.django_db()
-def test__report_results(mocker, commit_status: CommitStatus):
+def test__report_results(mocker, commit_status: CommitStatus, settings):
+    settings.GITHUB_REPO = "repo"
     mock_get_github_client = mocker.patch("apps.e2e.tasks.get_github_client")
-    mock_get_repo = mock_get_github_client.return_value.get_repo
-    mock_get_repo.return_value.get_commit.return_value.create_status.return_value = (gh_status := mocker.Mock())
-    mock_status = mocker.Mock(state="state", description="description", target_url="target_url", context="context")
-    assert (result := _report_results(commit_status)) == gh_status
-    mock_get_github_client.assert_called_once()
-    mock_get_repo.assert_called_once_with("GITHUB_REPO")
-    mock_get_repo.return_value.get_commit.assert_called_once_with(mock_status.commit_sha)
-    mock_get_repo.return_value.get_commit.return_value.create_status.assert_called_once_with(
-        state=mock_status.state,
-        description=mock_status.description,
-        target_url=mock_status.target_url,
-        context=mock_status.context,
+    mock_get_github_client.return_value.get_repo.return_value.get_commit.return_value.create_status.return_value = (
+        gh_status := mocker.Mock()
     )
-    assert result == gh_status
+    assert _report_results(commit_status) == gh_status

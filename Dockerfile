@@ -90,6 +90,7 @@ ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
 
 # Use SOURCE_VERSION as an environment variable
+# THis will be set in build phase environment on Heroku.
 ARG SOURCE_VERSION
 ENV SOURCE_VERSION=$SOURCE_VERSION
 

@@ -110,6 +110,7 @@ GS_CREDENTIALS = __ensure_gs_credentials(
     raise_on_unset=os.getenv("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", "true").lower() == "true",
 )
 
+# e2e test settings
 E2E_ENABLED = os.getenv("E2E_ENABLED", "false").lower() == "true"
 E2E_USERNAME = os.getenv("E2E_USERNAME", "")
 E2E_PASSWORD = os.getenv("E2E_PASSWORD", "")
@@ -117,6 +118,10 @@ E2E_CONTRIBUTOR_EMAIL_SUFFIX = os.getenv("E2E_CONTRIBUTOR_EMAIL_SUFFIX", "")
 E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "")
 # Note that e2e test assumes this has a default donation page set
 E2E_RP_NAME = os.getenv("E2E_RP_NAME", "")
+# for creating commit statuses when reporting on e2e test runs
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "")
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -679,6 +684,3 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
 SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
-
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_REPO = os.getenv("GITHUB_REPO", "")

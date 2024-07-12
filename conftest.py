@@ -34,7 +34,6 @@ from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
-from apps.e2e.tests.factories import CommitStatusFactory
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,
@@ -1253,8 +1252,3 @@ def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
 def charge_succeeded_event():
     with Path("apps/contributions/tests/fixtures/charge-succeeded-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture()
-def commit_status():
-    return CommitStatusFactory()

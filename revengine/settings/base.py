@@ -129,7 +129,8 @@ INSTALLED_APPS = [
     "apps.api",
     # TODO @<benjaminEwhite>: Conditionally add only when E2E_ENABLED is True
     # DEV-4994
-    # note on this causing problems when tried to do
+    # The issue is that we have fixtures defined in e2e/tests/conftest.py, and those
+    # are loaded at beginning of test run, and if this app is not loaded, then error is thrown.
     "apps.e2e",
     "apps.users",
     "apps.organizations",

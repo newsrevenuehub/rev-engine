@@ -14,10 +14,10 @@ class TestPortalContributionFilter:
         return PortalContributionFilter()
 
     def test_allowed_filter_fields(self, filter_):
-        assert [
+        assert filter_.ALLOWED_FILTER_FIELDS == [
             "status",
             "revenue_program",
-        ] == filter_.ALLOWED_FILTER_FIELDS
+        ]
 
     @pytest.fixture()
     def contributions(self, valid_metadata_factory):

@@ -797,14 +797,14 @@ class TestUserViewSet:
         api_client.force_authenticate(user=user)
         response = api_client.get(reverse("user-request-account-verification"))
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert {"detail": "Account already verified"} == response.json()
+        assert response.json() == {"detail": "Account already verified"}
 
     def test_request_account_verification_when_user_inactive(self, api_client):
         user = create_test_user(email_verified=False, is_active=False)
         api_client.force_authenticate(user=user)
         response = api_client.get(reverse("user-request-account-verification"))
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert {"detail": "Account inactive"} == response.json()
+        assert response.json() == {"detail": "Account inactive"}
 
     def test_request_account_verification_when_unauthed(self, api_client):
         response = api_client.get(reverse("user-request-account-verification"))
@@ -853,7 +853,7 @@ class TestAccountVerificationFlow:
         # Request verification email.
         response = api_client.get(reverse("user-request-account-verification"))
         assert response.status_code == status.HTTP_200_OK
-        assert {"detail": "Success"} == response.json()
+        assert response.json() == {"detail": "Success"}
         # Email sent.
         assert len(mail.outbox) == 1
         email = mail.outbox[0]

@@ -897,12 +897,12 @@ class TestContributionModel:
     @pytest.mark.parametrize(("name", "symbol"), settings.CURRENCIES.items())
     def test_get_currency_dict(self, name, symbol):
         contribution = ContributionFactory(currency=name, provider_payment_method_id=None)
-        assert {"code": name, "symbol": symbol} == contribution.get_currency_dict()
+        assert contribution.get_currency_dict() == {"code": name, "symbol": symbol}
 
     def test_get_currency_dict_bad_value(self, mocker):
         logger_spy = mocker.spy(logger, "exception")
         contribution = ContributionFactory(currency="???", provider_payment_method_id=None)
-        assert {"code": "", "symbol": ""} == contribution.get_currency_dict()
+        assert contribution.get_currency_dict() == {"code": "", "symbol": ""}
         logger_spy.assert_called_once_with(
             'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
             contribution.stripe_account_id,

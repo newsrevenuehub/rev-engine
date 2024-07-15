@@ -35,4 +35,5 @@ export const EmptyBillingHistory = styled.p`
   color: ${({ theme }) => theme.basePalette.greyscale.grey1};
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
   font-weight: 400;
+  margin: 0;
 `;

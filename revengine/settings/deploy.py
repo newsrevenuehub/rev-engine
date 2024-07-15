@@ -28,20 +28,36 @@ EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
+# We need to set global Google Cloud settings so that when sorl-thumbnail
+# instantiates storages.backends.gcloud.GoogleCloudStorage to save thumbnails,
+# that class sees them. It doesn't appear to use the OPTIONS configuration
+# below.
+#
+# Hardcoded values here are not configurable per environment.
+#
+# See the `get_default_settings` method of
+# https://github.com/jschneier/django-storages/blob/master/storages/backends/gcloud.py.
+
+GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
+GS_DEFAULT_ACL = None
+GS_LOCATION = os.getenv("GS_LOCATION", "")
+GS_PROJECT_ID = os.getenv("GS_PROJECT_ID", "revenue-engine")
+GS_QUERYSTRING_AUTH = False
 
 ### Google Cloud Storage ###
+# See sorl-thumbnail-related comments above as to why we are configuring this twice.
 STORAGES = {
     # Store user-uploaded files in Google Cloud.
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
         "OPTIONS": {
-            "bucket_name": os.getenv("GS_BUCKET_NAME", "rev-engine-media"),
-            "location": os.getenv("GS_LOCATION", ""),
-            "project_id": os.getenv("GS_PROJECT_ID", "revenue-engine"),
-            "querystring_auth": False,
+            "bucket_name": GS_BUCKET_NAME,
+            "location": GS_LOCATION,
+            "project_id": GS_PROJECT_ID,
+            "querystring_auth": GS_QUERYSTRING_AUTH,
             "credentials": GS_CREDENTIALS,
-            "default_acl": None,
+            "default_acl": GS_DEFAULT_ACL,
         },
     },
     # Store static files, like SPA assets, locally.

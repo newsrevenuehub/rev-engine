@@ -327,6 +327,8 @@ LOGGING = {
         "level": LOG_LEVEL,
     },
 }
+# Used below if HOST_MAP fails to parse as JSON
+logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
 
 
 ### Request ID Settings
@@ -636,7 +638,6 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 try:
     HOST_MAP = json.loads(os.getenv("HOST_MAP", "{}"))
 except json.JSONDecodeError:
-    logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
     logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
     HOST_MAP = {}
 
@@ -660,7 +661,7 @@ SPA_ENV_VARS = {
     "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
     "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
-    "HOST_MAP": HOST_MAP,
+    "HOST_MAP": os.getenv("HOST_MAP", "{}"),  # @njh SPA expects a string, not already parsed JSON
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
     "ENVIRONMENT": ENVIRONMENT,

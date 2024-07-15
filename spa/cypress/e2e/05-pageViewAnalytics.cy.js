@@ -5,7 +5,8 @@ import {
   DONATIONS_SLUG,
   EDITOR_ROUTE,
   SIGN_IN,
-  CONTENT_SLUG
+  CONTENT_SLUG,
+  PORTAL
 } from 'routes';
 
 import { VERIFY_TOKEN } from 'ajax/endpoints';
@@ -23,7 +24,7 @@ const PAGE_NAME = 'mypage/';
 
 const EDITOR_ROUTE_PAGE = join([EDITOR_ROUTE, REVENUE_PROGRAM, PAGE_NAME, '/']);
 
-const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [SIGN_IN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
+const HUB_TRACKED_PAGES_REQUIRING_NO_LOGIN = [SIGN_IN, PORTAL.ENTRY, PORTAL.VERIFY];
 
 const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE];
 
@@ -49,7 +50,7 @@ describe('Pages that are only tracked by Hub', () => {
     ).as('trackPageViewOnHubGaV3');
   });
 
-  HUB_TRACKED_PAGES_REQURING_NO_LOGIN.forEach((page) => {
+  HUB_TRACKED_PAGES_REQUIRING_NO_LOGIN.forEach((page) => {
     it(`should track a page view for ${page}`, () => {
       cy.visit(page);
       cy.wait('@trackPageViewOnHubGaV3').then((interception) => {

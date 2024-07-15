@@ -28,6 +28,12 @@ EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
+# Set global settings so that when sorl-thumbnail instantiates
+# storages.backends.gcloud.GoogleCloudStorage, that class sees them.
+
+GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
+GS_LOCATION = os.getenv("GS_LOCATION", "")
+GS_PROJECT_ID = os.getenv("GS_PROJECT_ID", "revenue-engine")
 
 ### Google Cloud Storage ###
 STORAGES = {
@@ -36,9 +42,9 @@ STORAGES = {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
         "OPTIONS": {
-            "bucket_name": os.getenv("GS_BUCKET_NAME", "rev-engine-media"),
-            "location": os.getenv("GS_LOCATION", ""),
-            "project_id": os.getenv("GS_PROJECT_ID", "revenue-engine"),
+            "bucket_name": GS_BUCKET_NAME,
+            "location": GS_LOCATION,
+            "project_id": GS_PROJECT_ID,
             "querystring_auth": False,
             "credentials": GS_CREDENTIALS,
             "default_acl": None,

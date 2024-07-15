@@ -1,13 +1,14 @@
+import { PortalAuthContextProvider } from 'hooks/usePortalAuth';
+import { usePortalPendo } from 'hooks/usePortalPendo';
 import { SentryRoute } from 'hooks/useSentry';
 import { lazy } from 'react';
-import { Redirect } from 'react-router-dom';
+import { Redirect, useLocation } from 'react-router-dom';
 import * as ROUTES from 'routes';
 import componentLoader from 'utilities/componentLoader';
+import TrackPageView from './analytics/TrackPageView';
 import ProtectedRoute from './authentication/ProtectedRoute';
 import PortalPage from './portal/PortalPage';
 import RouterSetup from './routes/RouterSetup';
-import { PortalAuthContextProvider } from 'hooks/usePortalAuth';
-import { usePortalPendo } from 'hooks/usePortalPendo';
 
 // Split bundles
 const PortalEntry = lazy(() => componentLoader(() => import('components/portal/PortalEntry')));
@@ -17,6 +18,7 @@ const TransactionsList = lazy(() =>
 );
 
 function InnerPortalRouter() {
+  const { search } = useLocation();
   usePortalPendo();
 
   return (
@@ -50,6 +52,32 @@ function InnerPortalRouter() {
           </PortalPage>
         )}
       />
+      {/* Legacy Contributor Portal - Adds redirects to new Portal */}
+      <SentryRoute
+        path={ROUTES.CONTRIBUTOR_DASHBOARD}
+        render={() => (
+          <TrackPageView>
+            <Redirect to={ROUTES.PORTAL.CONTRIBUTIONS} />
+          </TrackPageView>
+        )}
+      />
+      <SentryRoute
+        path={ROUTES.CONTRIBUTOR_ENTRY}
+        render={() => (
+          <TrackPageView>
+            <Redirect to={ROUTES.PORTAL.ENTRY} />
+          </TrackPageView>
+        )}
+      />
+      <SentryRoute
+        path={ROUTES.CONTRIBUTOR_VERIFY}
+        render={() => (
+          <TrackPageView>
+            <Redirect to={{ pathname: ROUTES.PORTAL.VERIFY, search }} />
+          </TrackPageView>
+        )}
+      />
+      {/* End of Legacy Contributor Portal redirect */}
       <Redirect to={ROUTES.PORTAL.ENTRY} />
     </RouterSetup>
   );

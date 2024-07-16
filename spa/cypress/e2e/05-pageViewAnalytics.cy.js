@@ -50,7 +50,7 @@ describe('Pages that are only tracked by Hub', () => {
     ).as('trackPageViewOnHubGaV3');
   });
 
-  HUB_TRACKED_PAGES_REQUIRING_NO_LOGIN.forEach((page) => {
+  for (const page of HUB_TRACKED_PAGES_REQUIRING_NO_LOGIN) {
     it(`should track a page view for ${page}`, () => {
       cy.visit(page);
       cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
@@ -59,9 +59,9 @@ describe('Pages that are only tracked by Hub', () => {
         expect(trackedUrl.pathname).to.equal(page);
       });
     });
-  });
+  }
 
-  HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((page) => {
+  for (const page of HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN) {
     it(`should track a page view for ${page}`, () => {
       cy.forceLogin(hubAdminUser);
       cy.visit(page);
@@ -71,7 +71,7 @@ describe('Pages that are only tracked by Hub', () => {
         cy.wrap(trackedUrl.pathname).should('equal', page);
       });
     });
-  });
+  }
 });
 
 // This test sometimes passes and sometimes fails. It seems to stem from fact that need to

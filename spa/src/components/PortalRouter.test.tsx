@@ -104,29 +104,16 @@ describe('PortalRouter', () => {
   });
 
   describe('Legacy Contributor Portal', () => {
-    it('track access at /contributor/contributions/', async () => {
-      tree('/contributor/contributions/');
+    it.each(['/contributor/contributions/', '/contributor/', '/contributor-verify/'])(
+      'track access at %s',
+      async (path) => {
+        tree(path);
 
-      expect(
-        within(screen.getByTestId('mock-sentry-route-/contributor/contributions/')).getByTestId('mock-track-page-view')
-      ).toBeInTheDocument();
-    });
-
-    it('track access at /contributor/', async () => {
-      tree('/contributor/');
-
-      expect(
-        within(screen.getByTestId('mock-sentry-route-/contributor/')).getByTestId('mock-track-page-view')
-      ).toBeInTheDocument();
-    });
-
-    it('track access at /contributor-verify/', async () => {
-      tree('/contributor-verify/');
-
-      expect(
-        within(screen.getByTestId('mock-sentry-route-/contributor-verify/')).getByTestId('mock-track-page-view')
-      ).toBeInTheDocument();
-    });
+        expect(
+          within(screen.getByTestId(`mock-sentry-route-${path}`)).getByTestId('mock-track-page-view')
+        ).toBeInTheDocument();
+      }
+    );
 
     it.each([
       ['/contributor/contributions/', '/portal/my-contributions/', false],

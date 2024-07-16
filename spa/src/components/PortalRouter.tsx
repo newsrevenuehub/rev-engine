@@ -21,6 +21,12 @@ function InnerPortalRouter() {
   const { search } = useLocation();
   usePortalPendo();
 
+  const redirects = [
+    { from: ROUTES.CONTRIBUTOR_DASHBOARD, to: ROUTES.PORTAL.CONTRIBUTIONS },
+    { from: ROUTES.CONTRIBUTOR_ENTRY, to: ROUTES.PORTAL.ENTRY },
+    { from: ROUTES.CONTRIBUTOR_VERIFY, to: { pathname: ROUTES.PORTAL.VERIFY, search } }
+  ];
+
   return (
     <RouterSetup>
       {/* These don't get wrapped in <PortalPage> because the component styles it. */}
@@ -53,31 +59,17 @@ function InnerPortalRouter() {
         )}
       />
       {/* Legacy Contributor Portal - Adds redirects to new Portal */}
-      <SentryRoute
-        path={ROUTES.CONTRIBUTOR_DASHBOARD}
-        render={() => (
-          <TrackPageView>
-            <Redirect to={ROUTES.PORTAL.CONTRIBUTIONS} />
-          </TrackPageView>
-        )}
-      />
-      <SentryRoute
-        path={ROUTES.CONTRIBUTOR_ENTRY}
-        render={() => (
-          <TrackPageView>
-            <Redirect to={ROUTES.PORTAL.ENTRY} />
-          </TrackPageView>
-        )}
-      />
-      <SentryRoute
-        path={ROUTES.CONTRIBUTOR_VERIFY}
-        render={() => (
-          <TrackPageView>
-            <Redirect to={{ pathname: ROUTES.PORTAL.VERIFY, search }} />
-          </TrackPageView>
-        )}
-      />
-      {/* End of Legacy Contributor Portal redirect */}
+      {redirects.map(({ from, to }) => (
+        <SentryRoute
+          key={from}
+          path={from}
+          render={() => (
+            <TrackPageView>
+              <Redirect to={to} />
+            </TrackPageView>
+          )}
+        />
+      ))}
       <Redirect to={ROUTES.PORTAL.ENTRY} />
     </RouterSetup>
   );

@@ -63,12 +63,12 @@ describe('MainLayout', () => {
       expect(screen.getByTestId('mock-dashboard-router')).toBeInTheDocument();
     });
 
-    it('should render DashboardRouter when isContributorAppPath is true', () => {
+    it('should not render DashboardRouter when isContributorAppPath is true', () => {
       isContributorAppPathMock.mockReturnValue(true);
 
       tree();
 
-      expect(screen.getByTestId('mock-dashboard-router')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-dashboard-router')).not.toBeInTheDocument();
     });
 
     it('should not render DashboardRouter when isPortalAppPath is true', () => {
@@ -126,12 +126,12 @@ describe('MainLayout', () => {
       expect(screen.getByTestId('mock-portal-router')).toBeInTheDocument();
     });
 
-    it('should not render PortalRouter when isContributorAppPath is true', () => {
+    it('should render PortalRouter when isContributorAppPath is true', () => {
       isContributorAppPathMock.mockReturnValue(true);
 
       tree();
 
-      expect(screen.queryByTestId('mock-portal-router')).not.toBeInTheDocument();
+      expect(screen.getByTestId('mock-portal-router')).toBeInTheDocument();
     });
 
     it('should not render PortalRouter when isPortalAppPath is false', () => {

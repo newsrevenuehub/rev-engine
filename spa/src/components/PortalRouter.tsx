@@ -1,13 +1,14 @@
+import { PortalAuthContextProvider } from 'hooks/usePortalAuth';
+import { usePortalPendo } from 'hooks/usePortalPendo';
 import { SentryRoute } from 'hooks/useSentry';
 import { lazy } from 'react';
-import { Redirect } from 'react-router-dom';
+import { Redirect, useLocation } from 'react-router-dom';
 import * as ROUTES from 'routes';
 import componentLoader from 'utilities/componentLoader';
+import TrackPageView from './analytics/TrackPageView';
 import ProtectedRoute from './authentication/ProtectedRoute';
 import PortalPage from './portal/PortalPage';
 import RouterSetup from './routes/RouterSetup';
-import { PortalAuthContextProvider } from 'hooks/usePortalAuth';
-import { usePortalPendo } from 'hooks/usePortalPendo';
 
 // Split bundles
 const PortalEntry = lazy(() => componentLoader(() => import('components/portal/PortalEntry')));
@@ -17,7 +18,14 @@ const TransactionsList = lazy(() =>
 );
 
 function InnerPortalRouter() {
+  const { search } = useLocation();
   usePortalPendo();
+
+  const redirects = [
+    { from: ROUTES.CONTRIBUTOR_DASHBOARD, to: ROUTES.PORTAL.CONTRIBUTIONS },
+    { from: ROUTES.CONTRIBUTOR_ENTRY, to: ROUTES.PORTAL.ENTRY },
+    { from: ROUTES.CONTRIBUTOR_VERIFY, to: { pathname: ROUTES.PORTAL.VERIFY, search } }
+  ];
 
   return (
     <RouterSetup>
@@ -50,6 +58,18 @@ function InnerPortalRouter() {
           </PortalPage>
         )}
       />
+      {/* Legacy Contributor Portal - Adds redirects to new Portal */}
+      {redirects.map(({ from, to }) => (
+        <SentryRoute
+          key={from}
+          path={from}
+          render={() => (
+            <TrackPageView>
+              <Redirect to={to} />
+            </TrackPageView>
+          )}
+        />
+      ))}
       <Redirect to={ROUTES.PORTAL.ENTRY} />
     </RouterSetup>
   );

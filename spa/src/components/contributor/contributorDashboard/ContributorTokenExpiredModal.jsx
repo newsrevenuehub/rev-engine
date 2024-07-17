@@ -1,4 +1,4 @@
-import { CONTRIBUTOR_ENTRY } from 'routes';
+import { PORTAL } from 'routes';
 import Modal from 'elements/modal/Modal';
 import { ExpiredMessage, Icon, Message, Root } from './ContributorTokenExpiredModal.styled';
 
@@ -9,7 +9,7 @@ function ContributorTokenExpiredModal({ isOpen }) {
         <ExpiredMessage>
           <Icon />
           <Message>
-            Your session has expired. <a href={CONTRIBUTOR_ENTRY}>Get another magic link?</a>
+            Your session has expired. <a href={PORTAL.ENTRY}>Get another magic link?</a>
           </Message>
         </ExpiredMessage>
       </Root>

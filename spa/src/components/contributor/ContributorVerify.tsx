@@ -8,7 +8,7 @@ import { Contributor } from 'hooks/usePortalAuth';
 import queryString from 'query-string';
 import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { PORTAL } from 'routes';
+import { CONTRIBUTOR_DASHBOARD, CONTRIBUTOR_ENTRY } from 'routes';
 import { ContributorVerifyWrapper } from './ContributorVerify.styled';
 
 function ContributorVerify() {
@@ -25,7 +25,7 @@ function ContributorVerify() {
       sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CSRF_TOKEN, response.data.csrftoken);
-      history.replace(PORTAL.CONTRIBUTIONS);
+      history.replace(CONTRIBUTOR_DASHBOARD);
     },
     [history]
   );
@@ -53,8 +53,8 @@ function ContributorVerify() {
         <div>
           <p>We were unable to log you in.</p>
           <p>
-            Magic links have short expiration times. If your link expired, <a href={PORTAL.ENTRY}>click here</a> to get
-            another.
+            Magic links have short expiration times. If your link expired, <a href={CONTRIBUTOR_ENTRY}>click here</a> to
+            get another.
           </p>
         </div>
       ) : (

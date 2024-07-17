@@ -10,6 +10,7 @@ import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
+import { useConfigureAnalytics } from 'components/analytics';
 
 const PortalPagePropTypes = {
   children: PropTypes.any,
@@ -30,6 +31,7 @@ function PortalPage({ children, className }: PortalPageProps) {
   const renderCustomStyles = !isFreeOrg && hasDefaultDonationPage;
 
   useWebFonts(page?.styles?.font);
+  useConfigureAnalytics();
 
   // If rp has no default page, normal contributor page is shown
   if (enablePageFetch && !page && !pageIsFetched) return null;

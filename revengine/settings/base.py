@@ -54,7 +54,6 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 # COUNTRIES is not Django setting, is used in model choice fields, related to I18N.
 # First in this list will be default.
@@ -91,7 +90,10 @@ MEDIA_URL = "/media/"
 # django-storages Settings
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
 MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
-DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 # Google cloud
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
@@ -198,7 +200,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": "revengine",
         "USER": "",
         "PASSWORD": "",
@@ -540,7 +542,7 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = 3
 
 ## Contributor page / auth Settings.
 # Magic Link URL
-CONTRIBUTOR_VERIFY_URL = "contributor-verify"
+CONTRIBUTOR_VERIFY_URL = "portal/verification/"
 # In format num/[second, minute, hour, day]
 # https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")

@@ -1122,11 +1122,11 @@ class TestPaymentProvider:
     @pytest.mark.parametrize(("name", "symbol"), settings.CURRENCIES.items())
     def test_get_currency_dict(self, name, symbol):
         t = PaymentProvider(currency=name)
-        assert {"code": name, "symbol": symbol} == t.get_currency_dict()
+        assert t.get_currency_dict() == {"code": name, "symbol": symbol}
 
     def test_bad_money_get_currency_dict(self):
         t = PaymentProvider(currency="StarBucks")
-        assert {"code": "", "symbol": ""} == t.get_currency_dict()
+        assert t.get_currency_dict() == {"code": "", "symbol": ""}
 
 
 @pytest.fixture()

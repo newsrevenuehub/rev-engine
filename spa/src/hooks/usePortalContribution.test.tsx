@@ -34,7 +34,8 @@ const mockContributionResponse = {
   next_payment_date: '',
   payment_type: 'mock-payment-type-1',
   revenue_program: 1,
-  status: 'paid'
+  status: 'paid',
+  transaction_time: 'mock-transaction-time-1'
 };
 
 function hook(contributorId: number, contributionId: number) {

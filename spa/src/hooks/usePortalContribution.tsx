@@ -13,7 +13,8 @@ export interface PortalContributionPayment {
    */
   amount_refunded: number;
   /**
-   * Timestamp when the payment occurred.
+   * Timestamp when the payment was created. This may *not* be the same as when
+   * the payment actually occurred.
    */
   created: string;
   /**
@@ -28,6 +29,11 @@ export interface PortalContributionPayment {
    * Type of payment.
    */
   status: 'paid' | 'refunded';
+  /**
+   * Timestamp of when the transaction occurred. If omitted, this data isn't
+   * available and we should fall back to `created`.
+   */
+  transaction_time?: string;
 }
 
 export interface PortalContributionDetail extends PortalContribution {

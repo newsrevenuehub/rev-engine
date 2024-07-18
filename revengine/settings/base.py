@@ -330,6 +330,13 @@ LOGGING = {
     },
 }
 
+if os.getenv("ENABLE_WHITENOISE_LOGGING", "false").lower() == "true":
+    LOGGING["loggers"]["whitenoise"] = {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+        "propagate": True,
+    }
+
 ### Request ID Settings
 # Ref: https://django-request-id.readthedocs.io/en/latest/
 # For Heroku environments, REQUEST_ID_HEADER will have to be set to "X-Request-ID"

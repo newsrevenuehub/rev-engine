@@ -129,6 +129,19 @@ describe('BillingHistory', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows the revenue program email', () => {
+      usePortalMock.mockReturnValue({
+        page: { revenue_program: { name: 'Test Program', contact_email: 'mock@email.com' } }
+      } as any);
+      tree({ payments: [] });
+
+      expect(screen.getByText('Please contact Test Program', { exact: false })).toBeInTheDocument();
+      expect(
+        screen.getByText('for billing history and prior receipts for this contribution.', { exact: false })
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'mock@email.com' })).toHaveAttribute('href', 'mailto:mock@email.com');
+    });
+
     it('disables the resend receipt button', () => {
       tree({ payments: [] });
 

@@ -1,4 +1,4 @@
-import { Table, TableBody } from 'components/base';
+import { Link, Table, TableBody } from 'components/base';
 import { PortalContributionPayment } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
@@ -63,8 +63,18 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
             <TableRow>
               <TableCell colSpan={3}>
                 <EmptyBillingHistory>
-                  Please contact {page?.revenue_program.name} for billing history and prior receipts for this
-                  contribution.
+                  Please contact {page?.revenue_program.name}
+                  {page?.revenue_program.contact_email ? (
+                    <>
+                      at{' '}
+                      <Link href={`mailto:${page?.revenue_program.contact_email}`}>
+                        {page?.revenue_program.contact_email}
+                      </Link>
+                    </>
+                  ) : (
+                    ''
+                  )}{' '}
+                  for billing history and prior receipts for this contribution.
                 </EmptyBillingHistory>
               </TableCell>
             </TableRow>

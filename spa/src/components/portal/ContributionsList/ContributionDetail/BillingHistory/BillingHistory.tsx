@@ -66,6 +66,7 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
                   Please contact {page?.revenue_program.name}
                   {page?.revenue_program.contact_email ? (
                     <>
+                      {' '}
                       at{' '}
                       <Link href={`mailto:${page?.revenue_program.contact_email}`}>
                         {page?.revenue_program.contact_email}

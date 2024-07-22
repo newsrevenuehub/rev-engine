@@ -60,25 +60,21 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
               </TableRow>
             ))
           ) : (
-            <TableRow>
-              <TableCell colSpan={3}>
-                <EmptyBillingHistory>
-                  Please contact {page?.revenue_program.name}
-                  {page?.revenue_program.contact_email ? (
-                    <>
-                      {' '}
-                      at{' '}
-                      <Link href={`mailto:${page?.revenue_program.contact_email}`}>
-                        {page?.revenue_program.contact_email}
-                      </Link>
-                    </>
-                  ) : (
-                    ''
-                  )}{' '}
-                  for billing history and prior receipts for this contribution.
-                </EmptyBillingHistory>
-              </TableCell>
-            </TableRow>
+            <EmptyBillingHistory>
+              Please contact {page?.revenue_program.name}
+              {page?.revenue_program.contact_email ? (
+                <>
+                  {' '}
+                  at{' '}
+                  <Link href={`mailto:${page?.revenue_program.contact_email}`}>
+                    {page?.revenue_program.contact_email}
+                  </Link>
+                </>
+              ) : (
+                ''
+              )}{' '}
+              for billing history and prior receipts for this contribution.
+            </EmptyBillingHistory>
           )}
         </TableBody>
       </Table>

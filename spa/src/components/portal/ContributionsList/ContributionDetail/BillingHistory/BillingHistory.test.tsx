@@ -34,7 +34,7 @@ describe('BillingHistory', () => {
 
   beforeEach(() => {
     usePortalMock.mockReturnValue({
-      page: { revenue_program: { organization: { send_receipt_email_via_nre: true } } }
+      page: { revenue_program: { name: 'Test Program', organization: { send_receipt_email_via_nre: true } } }
     } as any);
   });
 
@@ -119,9 +119,6 @@ describe('BillingHistory', () => {
 
   describe('when there are no payments (no billing history)', () => {
     it('shows a message with the revenue program name', () => {
-      usePortalMock.mockReturnValue({
-        page: { revenue_program: { name: 'Test Program' } }
-      } as any);
       tree({ payments: [] });
 
       expect(

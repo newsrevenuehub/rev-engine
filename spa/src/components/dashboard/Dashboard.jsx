@@ -14,7 +14,8 @@ import {
   EDITOR_ROUTE_PAGE_REDIRECT,
   MAILCHIMP_OAUTH_SUCCESS_ROUTE,
   PROFILE,
-  SETTINGS
+  SETTINGS,
+  DONATIONS_CHURN_SLUG
 } from 'routes';
 
 // Children
@@ -44,6 +45,7 @@ import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import Churn from 'components/donations/Churn';
 
 function Dashboard() {
   const { user } = useUser();
@@ -73,6 +75,11 @@ function Dashboard() {
               <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
                 <MailchimpOAuthSuccess />
               </SentryRoute>
+              {hasContributionsSectionAccess(user) ? (
+                <SentryRoute path={DONATIONS_CHURN_SLUG}>
+                  <Churn />
+                </SentryRoute>
+              ) : null}
               {hasContributionsSectionAccess(user) ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />

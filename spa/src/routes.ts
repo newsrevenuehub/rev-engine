@@ -2,6 +2,7 @@ import join from 'url-join';
 
 export const DASHBOARD_SLUG = '/dashboard/';
 export const DONATIONS_SLUG = '/contributions/';
+export const DONATIONS_CHURN_SLUG = '/contributions/churn/';
 export const CONTENT_SLUG = '/pages/';
 export const CUSTOMIZE_SLUG = '/customize/';
 export const CONTRIBUTOR_PORTAL_SLUG = '/contributor-portal/';

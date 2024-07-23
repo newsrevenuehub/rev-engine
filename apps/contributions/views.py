@@ -1,4 +1,6 @@
+import json
 import logging
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -296,6 +298,10 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, Contributor):
             return serializers.PaymentProviderContributionSerializer
         return serializers.ContributionSerializer
+
+    @action(methods=["get"], url_path="churn", detail=False, permission_classes=[])
+    def churn(self, request):
+        return Response(data=json.loads(Path("./churn-demo.json").read_text()), status=status.HTTP_200_OK)
 
     @action(
         methods=["post"],

@@ -1,16 +1,12 @@
-import PropTypes, { InferProps } from 'prop-types';
+import { ScatterPlotNodeProps } from '@nivo/scatterplot';
 
-const ChurnDataPointPropTypes = {
-  node: {
-    data: { value: PropTypes.number.isRequired },
-    x: PropTypes.number.isRequired,
-    y: PropTypes.number.isRequired
-  }
-};
+interface ChurnDatum {
+  x: number;
+  y: number;
+  value: number;
+}
 
-export type ChurnDataPointProps = InferProps<typeof ChurnDataPointPropTypes>;
-
-export function ChurnDataPoint({ node }: ChurnDataPointProps) {
+export function ChurnDataPoint({ node }: ScatterPlotNodeProps<ChurnDatum>) {
   return (
     <>
       <rect fill="#CEBDD6" x={node.x} y={node.y} width={40} height={22} rx={4} />
@@ -27,5 +23,4 @@ export function ChurnDataPoint({ node }: ChurnDataPointProps) {
   );
 }
 
-ChurnDataPoint.propTypes = ChurnDataPointPropTypes;
 export default ChurnDataPoint;

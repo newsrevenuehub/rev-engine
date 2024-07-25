@@ -900,17 +900,22 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
     provider_payment_method_id = serializers.CharField(write_only=True, required=False)
+    amount = serializers.IntegerField(required=False)
 
     class Meta:
         model = Contribution
         fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
-    def update(self, instance, validated_data) -> Contribution:
+    def update(self, instance: Contribution, validated_data) -> Contribution:
         if validated_data:
             if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
                 instance.update_payment_method_for_subscription(
                     provider_payment_method_id=provider_payment_method_id,
+                )
+            if amount := validated_data.get("amount", None):
+                instance.update_amount_for_subscription(
+                    amount=amount,
                 )
             for key, value in validated_data.items():
                 setattr(instance, key, value)

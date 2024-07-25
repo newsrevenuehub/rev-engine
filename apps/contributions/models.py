@@ -264,6 +264,12 @@ class Contribution(IndexedTimeStampedModel):
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
+    ACTIVE_SUBSCRIPTION_STATUSES = (
+        ContributionStatus.PAID,
+        ContributionStatus.FAILED,
+        ContributionStatus.REFUNDED,
+    )
+
     CANCELABLE_SUBSCRIPTION_STATUSES = (
         "trialing",
         "active",
@@ -1163,6 +1169,77 @@ class Contribution(IndexedTimeStampedModel):
                 )
 
             raise
+
+    def update_amount_for_subscription(self, amount: int) -> None:
+        """Update Stripe's Subscription Item amount to the new value.
+
+        If it's a recurring subscription, update the amount of the next payment
+        without proration (paying difference of existing month).
+        """
+        if amount <= 0:
+            raise ValueError("Amount value must be greater than 0")
+        if self.status not in self.ACTIVE_SUBSCRIPTION_STATUSES:
+            raise ValueError("Cannot update amount for inactive subscription")
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("Cannot update amount for one-time contribution")
+        if not (sub_id := self.provider_subscription_id):
+            raise ValueError("Cannot update amount for contribution without a subscription ID")
+
+        try:
+            logger.info(
+                "fetching subscription items from sub %s",
+                sub_id,
+            )
+            items = stripe.SubscriptionItem.list(subscription=sub_id, stripe_account=self.stripe_account_id)
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to fetch subscription items on sub_id: %s",
+                sub_id,
+            )
+            raise
+
+        if len(items["data"]) != 1:
+            raise ValueError("Subscription should have only one item")
+
+        item = items["data"][0]
+        metadata = self.contribution_metadata
+        metadata["donor_selected_amount"] = amount
+
+        try:
+            logger.info(
+                "Updating Stripe Subscription's %s (item %s), amount to %s",
+                sub_id,
+                item["id"],
+                amount,
+            )
+
+            stripe.Subscription.modify(
+                sub_id,
+                items=[
+                    {
+                        "id": item["id"],
+                        "price_data": {
+                            "unit_amount": amount,
+                            "currency": item["price"]["currency"],
+                            "product": item["price"]["product"],
+                            "recurring": {
+                                "interval": item["price"]["recurring"]["interval"],
+                            },
+                        },
+                    }
+                ],
+                metadata=metadata,
+                stripe_account=self.stripe_account_id,
+                proration_behavior="none",
+            )
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                self.id,
+            )
+            raise
+
+        self.save(update_fields={"contribution_metadata"})
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

@@ -1705,6 +1705,101 @@ class TestContributionModel:
         # Ensure that the exception is raised but not logged/sent to Sentry
         assert logger_spy.call_count == 0
 
+    def test_update_amount_for_subscription_when_one_time(self, one_time_contribution: Contribution):
+        with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
+            one_time_contribution.update_amount_for_subscription(amount=100)
+
+    @pytest.mark.parametrize(
+        "amount",
+        [0, -100],
+    )
+    def test_update_amount_for_subscription_when_invalid_amount(self, amount, monthly_contribution: Contribution):
+        with pytest.raises(ValueError, match="Amount value must be greater than 0"):
+            monthly_contribution.update_amount_for_subscription(amount)
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            ContributionStatus.PROCESSING,
+            ContributionStatus.CANCELED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+            ContributionStatus.ABANDONED,
+        ],
+    )
+    def test_update_amount_for_subscription_when_inactive_subscription(
+        self, status, monthly_contribution: Contribution
+    ):
+        monthly_contribution.status = status
+        with pytest.raises(ValueError, match="Cannot update amount for inactive subscription"):
+            monthly_contribution.update_amount_for_subscription(amount=123)
+
+    def test_update_amount_for_subscription_when_no_subscription_id(self, monthly_contribution: Contribution):
+        monthly_contribution.provider_subscription_id = None
+        with pytest.raises(ValueError, match="Cannot update amount for contribution without a subscription ID"):
+            monthly_contribution.update_amount_for_subscription(amount=123)
+
+    def test_update_amount_for_subscription_when_error_on_sub_item_retrieval(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mock_sub_item_list = mocker.patch(
+            "stripe.SubscriptionItem.list", side_effect=stripe.error.StripeError("something")
+        )
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_amount_for_subscription(amount=123)
+        mock_sub_item_list.assert_called_once_with(
+            subscription=sub_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_amount_for_subscription_when_error_on_subscription_modify(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": (item_id := "si_123"),
+                        "price": {
+                            "currency": (curr := "usd"),
+                            "product": (prod_id := "prod_123"),
+                            "recurring": {
+                                "interval": (interval := "month"),
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mock_sub_modify = mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_amount_for_subscription(amount := 123)
+
+        metadata = monthly_contribution.contribution_metadata
+        metadata["amount"] = amount
+
+        mock_sub_modify.assert_called_once_with(
+            sub_id,
+            stripe_account=monthly_contribution.stripe_account_id,
+            metadata=metadata,
+            proration_behavior="none",
+            items=[
+                {
+                    "id": item_id,
+                    "price_data": {
+                        "unit_amount": amount,
+                        "currency": curr,
+                        "product": prod_id,
+                        "recurring": {
+                            "interval": interval,
+                        },
+                    },
+                }
+            ],
+        )
+
     @pytest.mark.parametrize(
         ("payment_data", "expected"),
         [

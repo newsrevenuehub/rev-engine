@@ -6,6 +6,10 @@ import usePortal from 'hooks/usePortal';
 
 jest.mock('../DetailSection/DetailSection');
 jest.mock('hooks/usePortal');
+jest.mock('@material-ui/lab', () => ({
+  ...jest.requireActual('@material-ui/lab'),
+  Skeleton: () => <div data-testid="mock-skeleton" />
+}));
 
 const sendEmailReceipt = jest.fn();
 const mockPayments: PortalContributionPayment[] = [
@@ -143,6 +147,13 @@ describe('BillingHistory', () => {
       tree({ payments: [] });
 
       expect(screen.getByRole('button', { name: 'Resend receipt' })).toBeDisabled();
+    });
+
+    it('displays a skeleton if the revenue program name is not available (still loading)', () => {
+      usePortalMock.mockReturnValue({ page: { revenue_program: {} } } as any);
+      tree({ payments: [] });
+
+      expect(screen.getByTestId('mock-skeleton')).toBeInTheDocument();
     });
 
     it('is accessible', async () => {

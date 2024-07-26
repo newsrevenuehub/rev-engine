@@ -1204,6 +1204,7 @@ class Contribution(IndexedTimeStampedModel):
         item = items["data"][0]
         metadata = self.contribution_metadata
         metadata["donor_selected_amount"] = amount
+        self.amount = amount
 
         try:
             logger.info(
@@ -1239,7 +1240,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             raise
 
-        self.save(update_fields={"contribution_metadata"})
+        self.save(update_fields={"contribution_metadata", "amount", "modified"})
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

@@ -1800,6 +1800,35 @@ class TestContributionModel:
             ],
         )
 
+    def test_update_amount_for_subscription_when_success_update_contribution(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        new_amount = monthly_contribution.amount * 2
+        monthly_contribution.update_amount_for_subscription(new_amount)
+        metadata = monthly_contribution.contribution_metadata
+        metadata["amount"] = new_amount
+
+        assert monthly_contribution.amount == new_amount
+        assert monthly_contribution.contribution_metadata == metadata
+
     @pytest.mark.parametrize(
         ("payment_data", "expected"),
         [

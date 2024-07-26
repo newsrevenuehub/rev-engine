@@ -542,7 +542,7 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = 3
 
 ## Contributor page / auth Settings.
 # Magic Link URL
-CONTRIBUTOR_VERIFY_URL = "portal/verification/"
+CONTRIBUTOR_VERIFY_URL = "contributor-verify"
 # In format num/[second, minute, hour, day]
 # https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")

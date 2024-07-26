@@ -5,8 +5,7 @@ import {
   DONATIONS_SLUG,
   EDITOR_ROUTE,
   SIGN_IN,
-  CONTENT_SLUG,
-  PORTAL
+  CONTENT_SLUG
 } from 'routes';
 
 import { VERIFY_TOKEN } from 'ajax/endpoints';
@@ -24,7 +23,7 @@ const PAGE_NAME = 'mypage/';
 
 const EDITOR_ROUTE_PAGE = join([EDITOR_ROUTE, REVENUE_PROGRAM, PAGE_NAME, '/']);
 
-const HUB_TRACKED_PAGES_REQUIRING_NO_LOGIN = [SIGN_IN, PORTAL.ENTRY, PORTAL.VERIFY];
+const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [SIGN_IN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
 
 const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE];
 
@@ -50,7 +49,7 @@ describe('Pages that are only tracked by Hub', () => {
     ).as('trackPageViewOnHubGaV3');
   });
 
-  for (const page of HUB_TRACKED_PAGES_REQUIRING_NO_LOGIN) {
+  HUB_TRACKED_PAGES_REQURING_NO_LOGIN.forEach((page) => {
     it(`should track a page view for ${page}`, () => {
       cy.visit(page);
       cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
@@ -59,9 +58,9 @@ describe('Pages that are only tracked by Hub', () => {
         expect(trackedUrl.pathname).to.equal(page);
       });
     });
-  }
+  });
 
-  for (const page of HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN) {
+  HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((page) => {
     it(`should track a page view for ${page}`, () => {
       cy.forceLogin(hubAdminUser);
       cy.visit(page);
@@ -71,7 +70,7 @@ describe('Pages that are only tracked by Hub', () => {
         cy.wrap(trackedUrl.pathname).should('equal', page);
       });
     });
-  }
+  });
 });
 
 // This test sometimes passes and sometimes fails. It seems to stem from fact that need to

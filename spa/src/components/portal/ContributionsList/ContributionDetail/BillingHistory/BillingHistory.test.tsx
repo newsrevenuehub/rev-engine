@@ -14,7 +14,8 @@ const mockPayments: PortalContributionPayment[] = [
     created: new Date('1/1/2001').toISOString(),
     gross_amount_paid: 12345,
     net_amount_paid: 12345,
-    status: 'paid'
+    status: 'paid',
+    transaction_time: new Date('1/1/3001').toISOString()
   },
   {
     amount_refunded: 678,
@@ -22,6 +23,7 @@ const mockPayments: PortalContributionPayment[] = [
     gross_amount_paid: 678,
     net_amount_paid: 678,
     status: 'refunded'
+    // transaction_time omitted intentionally to test fallback.
   }
 ];
 
@@ -66,12 +68,14 @@ describe('BillingHistory', () => {
     expect(screen.getAllByRole('row').length).toBe(mockPayments.length + 1);
   });
 
-  it('shows formatted dates in the first column', () => {
+  it('shows formatted transaction dates in the first column, falling back to creation time if not present', () => {
     tree();
 
     const rows = screen.getAllByRole('row');
 
-    expect(within(rows[1]).getAllByRole('cell')[0]).toHaveTextContent('1/1/2001');
+    // Our second mock payment has no transaction_time.
+
+    expect(within(rows[1]).getAllByRole('cell')[0]).toHaveTextContent('1/1/3001');
     expect(within(rows[2]).getAllByRole('cell')[0]).toHaveTextContent('1/2/2001');
   });
 

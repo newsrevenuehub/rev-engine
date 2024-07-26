@@ -24,6 +24,7 @@ RUN set -ex \
     postgresql-client \
     vim \
     curl \
+    jq \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \
@@ -56,6 +57,16 @@ RUN set -ex \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
+
+# Install playwright dependencies and set the browsers path
+# TODO @BW: Do not install playwright in production
+# DEV-4992
+ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
+RUN set -ex \
+    && python -m playwright install-deps \
+    && python -m playwright install
+
+
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/
 WORKDIR /code/
@@ -76,6 +87,13 @@ ENV PORT=8000
 
 # Add any static environment variables needed by Django or your settings file here:
 ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
+
+
+# Use SOURCE_VERSION as an environment variable
+# This will be set in build phase environment on Heroku.
+ARG SOURCE_VERSION
+ENV SOURCE_VERSION=$SOURCE_VERSION
+
 
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env

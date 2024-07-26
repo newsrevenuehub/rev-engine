@@ -110,10 +110,28 @@ GS_CREDENTIALS = __ensure_gs_credentials(
     raise_on_unset=os.getenv("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", "true").lower() == "true",
 )
 
+# e2e test settings
+E2E_ENABLED = os.getenv("E2E_ENABLED", "false").lower() == "true"
+E2E_USERNAME = os.getenv("E2E_USERNAME", "")
+E2E_PASSWORD = os.getenv("E2E_PASSWORD", "")
+E2E_CONTRIBUTOR_EMAIL_SUFFIX = os.getenv("E2E_CONTRIBUTOR_EMAIL_SUFFIX", "")
+E2E_CONTRIBUTOR_EMAIL_DOMAIN = os.getenv("E2E_CONTRIBUTOR_EMAIL_DOMAIN", "")
+# Note that e2e test assumes this has a default donation page set
+E2E_RP_NAME = os.getenv("E2E_RP_NAME", "")
+# for creating commit statuses when reporting on e2e test runs
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "")
+
+
 # Application definition
 INSTALLED_APPS = [
     "apps.common",
     "apps.api",
+    # TODO @<benjaminEwhite>: Conditionally add only when E2E_ENABLED is True
+    # DEV-4994
+    # The issue is that we have fixtures defined in e2e/tests/conftest.py, and those
+    # are loaded at beginning of test run, and if this app is not loaded, then error is thrown.
+    "apps.e2e",
     "apps.users",
     "apps.organizations",
     "apps.pages",
@@ -150,9 +168,7 @@ INSTALLED_APPS = [
 ]
 
 if ENABLE_API_BROWSER:
-    INSTALLED_APPS += [
-        "drf_yasg",
-    ]
+    INSTALLED_APPS.append("drf_yasg")
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",

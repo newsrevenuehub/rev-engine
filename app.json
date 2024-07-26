@@ -16,6 +16,10 @@
     }
   ],
   "env": {
+    "POSTDEPLOY_DONE": {
+      "description": "Flag indicating if initial postdeploy has run",
+      "value": false
+    },
     "DJANGO_SETTINGS_MODULE": {
       "value": "revengine.settings.deploy"
     },

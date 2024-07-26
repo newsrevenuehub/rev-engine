@@ -9,6 +9,7 @@ from apps.config.tests.factories import DenyListWordFactory
 from apps.contributions.admin import ContributionAdmin, ContributorAdmin
 from apps.contributions.models import Contribution, Contributor, Payment
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.e2e.models import CommitStatus
 from apps.organizations.admin import (
     BenefitAdmin,
     BenefitLevelAdmin,
@@ -47,6 +48,7 @@ def test_expected_models_are_registered_with_django_reversion():
         Benefit,
         BenefitLevel,
         BenefitLevelBenefit,
+        CommitStatus,
         Contribution,
         Contributor,
         DenyListWord,

@@ -7,6 +7,7 @@ from django.urls import include, path, re_path
 from django.views.generic.base import RedirectView
 
 from apps.api.urls import urlpatterns as api_urlpatterns
+from apps.e2e.views import commit_status_detail
 from apps.emails.urls import debug_urlpatterns as debug_email_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
@@ -52,6 +53,10 @@ urlpatterns = [
     ),
 ]
 
+if settings.E2E_ENABLED:
+    urlpatterns.append(
+        path("e2e/commit/<commit_sha>/commit_status/<status_id>/", commit_status_detail, name="e2e-detail")
+    )
 
 if settings.DEBUG:  # pragma: no cover Is covered, but reimport confuses coverage
     from django.conf.urls.static import static

@@ -56,7 +56,7 @@ describe('ContributorVerify', () => {
     it('should redirect to dashboard', async () => {
       render(<ContributorVerify />);
       await waitFor(() => {
-        expect(useHistoryMock().replace).toHaveBeenCalledWith('/portal/my-contributions/');
+        expect(useHistoryMock().replace).toHaveBeenCalledWith('/contributor/contributions/');
       });
     });
 
@@ -99,7 +99,7 @@ describe('ContributorVerify', () => {
       render(<ContributorVerify />);
 
       await waitFor(() => {
-        expect(screen.getByRole('link', { name: /click here/i })).toHaveAttribute('href', '/portal/');
+        expect(screen.getByRole('link', { name: /click here/i })).toHaveAttribute('href', '/contributor/');
       });
     });
   });

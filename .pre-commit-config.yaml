@@ -44,7 +44,7 @@ repos:
         language_version: python3.10
   # Ruff code linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.1
+    rev: v0.5.4
     hooks:
       - id: ruff
         args: [ --fix ]
@@ -55,7 +55,6 @@ repos:
       - id: python-safety-dependencies-check
         files: pyproject.toml
         args: [
-          "--ignore=60956", # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
           "--ignore=66963", # djangorestframework-simplejwt <= 5.3.1, no fixed version available yet
         ]
   # Checks no secrets in code.

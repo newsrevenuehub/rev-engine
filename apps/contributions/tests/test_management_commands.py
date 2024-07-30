@@ -7,6 +7,9 @@ import pytest
 import reversion
 import stripe
 
+from apps.contributions.management.commands.fix_dev_5064 import (
+    Command as FixDev5064Command,
+)
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
     REVISION_COMMENT,
 )
@@ -678,3 +681,32 @@ class Test_fix_incident_2445:
         contribution.refresh_from_db()
         assert contribution.provider_payment_method_id == TEMP_PM_ID
         assert contribution.provider_payment_method_details is None
+
+
+@pytest.mark.django_db()
+class Test_fix_dev_5064:
+
+    @pytest.fixture()
+    def command(self):
+        return FixDev5064Command()
+
+    # test stripe logs part
+
+    # conditionality around if both queries turn up
+    # mo k get_stripe_accounts_and_their_connection_status
+    def test_get_contributions(self, command):
+        contribution = ContributionFactory()
+        assert command.get_contributions(contribution.id) == contribution
+
+    def test_handle_relevant_via_metadata(self, command):
+        contribution = ContributionFactory()
+        assert command.handle_relevant(contribution) == contribution
+
+    def test_handle_relevant_via_revision_comment(self, command):
+        pass
+
+    def test_handle_account(self, command):
+        pass
+
+    def test_handle(self, command):
+        pass

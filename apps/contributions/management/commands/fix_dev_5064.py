@@ -50,7 +50,7 @@ class Command(BaseCommand):
     def get_contributions(self) -> tuple[QuerySet[Contribution], QuerySet[Contribution]]:
         """Get relevant contributions to be updated by this command.
 
-        Revelancy criteria:
+        Relevancy criteria:
         - if one-time, must have provider_payment_id
         - if recurring, must have provider_subscription_id
         - parent stripe account must be connected

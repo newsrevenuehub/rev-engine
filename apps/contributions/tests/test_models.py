@@ -12,6 +12,7 @@ from django.core import mail
 from django.db import IntegrityError
 
 import pytest
+import reversion
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
@@ -1957,6 +1958,15 @@ class TestContributionQuerySetMethods:
         assert set(Contribution.objects.with_stripe_account().values_list("stripe_account", flat=True)) == {
             contribution_1.stripe_account_id
         }
+
+    def test_get_via_reversion_comment(self):
+        expected_contribution = ContributionFactory()
+        # this one won't have the message
+        ContributionFactory()
+        with reversion.create_revision():
+            expected_contribution.save()
+            reversion.set_comment(msg := "foo")
+        assert set(Contribution.objects.get_via_reversion_comment(msg)) == {expected_contribution}
 
 
 @pytest.fixture()

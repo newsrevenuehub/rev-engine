@@ -264,10 +264,12 @@ class Contribution(IndexedTimeStampedModel):
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
-    ACTIVE_SUBSCRIPTION_STATUSES = (
-        ContributionStatus.PAID,
-        ContributionStatus.FAILED,
-        ContributionStatus.REFUNDED,
+    INACTIVE_SUBSCRIPTION_STATUSES = (
+        "paused",
+        "incomplete_expired",
+        "past_due",
+        "canceled",
+        "unpaid",
     )
 
     CANCELABLE_SUBSCRIPTION_STATUSES = (
@@ -790,7 +792,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_modifiable(self) -> bool:
-        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+        return getattr(self.stripe_subscription, "status", None) in self.MODIFIABLE_SUBSCRIPTION_STATUSES
 
     @property
     # TODO @BW: Update this to be .last_payment_date when no longer in conflict with db model field
@@ -1170,26 +1172,26 @@ class Contribution(IndexedTimeStampedModel):
 
             raise
 
-    def update_amount_for_subscription(self, amount: int) -> None:
+    def update_subscription_amount(self, amount: int) -> None:
         """Update Stripe's Subscription Item amount to the new value.
 
         If it's a recurring subscription, update the amount of the next payment
         without proration (paying difference of existing month).
         """
-        if amount <= 0:
-            raise ValueError("Amount value must be greater than 0")
-        if self.status not in self.ACTIVE_SUBSCRIPTION_STATUSES:
+        if amount < 100:
+            raise ValueError("Amount value must be greater than 99 cents")
+        if getattr(self.stripe_subscription, "status", None) in self.INACTIVE_SUBSCRIPTION_STATUSES:
             raise ValueError("Cannot update amount for inactive subscription")
         if self.interval == ContributionInterval.ONE_TIME:
             raise ValueError("Cannot update amount for one-time contribution")
         if not (sub_id := self.provider_subscription_id):
             raise ValueError("Cannot update amount for contribution without a subscription ID")
 
+        logger.info(
+            "fetching subscription items from sub %s",
+            sub_id,
+        )
         try:
-            logger.info(
-                "fetching subscription items from sub %s",
-                sub_id,
-            )
             items = stripe.SubscriptionItem.list(subscription=sub_id, stripe_account=self.stripe_account_id)
         except StripeError:
             logger.exception(
@@ -1204,16 +1206,14 @@ class Contribution(IndexedTimeStampedModel):
         item = items["data"][0]
         metadata = self.contribution_metadata
         metadata["donor_selected_amount"] = amount
-        self.amount = amount
 
+        logger.info(
+            "Updating Stripe Subscription's %s (item %s), amount to %s",
+            sub_id,
+            item["id"],
+            amount,
+        )
         try:
-            logger.info(
-                "Updating Stripe Subscription's %s (item %s), amount to %s",
-                sub_id,
-                item["id"],
-                amount,
-            )
-
             stripe.Subscription.modify(
                 sub_id,
                 items=[
@@ -1240,7 +1240,11 @@ class Contribution(IndexedTimeStampedModel):
             )
             raise
 
-        self.save(update_fields={"contribution_metadata", "amount", "modified"})
+        with reversion.create_revision():
+            self.save(update_fields={"contribution_metadata", "modified"})
+            reversion.set_comment(
+                f"`Contribution.update_subscription_amount` saved changes to contribution with ID {self.id}"
+            )
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

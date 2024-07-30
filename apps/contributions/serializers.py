@@ -900,7 +900,15 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
     provider_payment_method_id = serializers.CharField(write_only=True, required=False)
-    amount = serializers.IntegerField(required=False)
+    amount = serializers.IntegerField(
+        required=False,
+        min_value=REVENGINE_MIN_AMOUNT,
+        max_value=STRIPE_MAX_AMOUNT,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+    )
 
     class Meta:
         model = Contribution
@@ -914,7 +922,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                     provider_payment_method_id=provider_payment_method_id,
                 )
             if amount := validated_data.get("amount", None):
-                instance.update_amount_for_subscription(
+                instance.update_subscription_amount(
                     amount=amount,
                 )
             for key, value in validated_data.items():

@@ -107,7 +107,7 @@ class Command(BaseCommand):
             self.style.HTTP_INFO(f"Processing relevant via metadata for account {importer.stripe_account_id}")
         )
         if not contributions.exists():
-            self.stdout(self.style.HTTP_INFO("No contributions to process, so will not list and cache resources"))
+            self.stdout.write(self.style.HTTP_INFO("No contributions to process, so will not list and cache resources"))
             return
 
         for _version in METADATA_VERSIONS:
@@ -243,16 +243,26 @@ class Command(BaseCommand):
         command_name = Path(__file__).stem
         self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
+
+        # Fetch contributions
         relevant_via_metadata, relevant_via_revision_comment = self.get_contributions()
-        for account in (
-            (relevant_via_metadata | relevant_via_revision_comment).values_list("stripe_account", flat=True).distinct()
-        ):
+
+        # Combine and distinct
+        combined_qs = relevant_via_metadata | relevant_via_revision_comment
+        distinct_accounts = combined_qs.values_list("stripe_account", flat=True).distinct()
+
+        # Convert to set to ensure uniqueness
+        unique_accounts = set(distinct_accounts)
+
+        # Process each unique account
+        for account in unique_accounts:
+            _via_metadata = relevant_via_metadata.with_stripe_account().filter(stripe_account=account)
+            _via_revision_comment = relevant_via_revision_comment.with_stripe_account().filter(stripe_account=account)
             self.handle_account(
                 account_id=account,
-                relevant_via_metadata=relevant_via_metadata.with_stripe_account().filter(stripe_account=account),
-                relevant_via_revision_comment=relevant_via_revision_comment.with_stripe_account().filter(
-                    stripe_account=account
-                ),
+                relevant_via_metadata=_via_metadata,
+                relevant_via_revision_comment=_via_revision_comment,
             )
             self.stdout.write(self.style.SUCCESS(f"Account {account} is done"))
+
         self.stdout.write(self.style.SUCCESS(f"{command_name} is done"))

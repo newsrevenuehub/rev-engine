@@ -1947,6 +1947,17 @@ class TestContributionQuerySetMethods:
             c.id for c in unmarked_abandoned_contributions
         }
 
+    def test_with_stripe_account(self):
+        contribution_1 = ContributionFactory(one_time=True)
+        contribution_2 = ContributionFactory(
+            one_time=True, donation_page=None, _revenue_program=contribution_1.donation_page.revenue_program
+        )
+        assert contribution_1.stripe_account_id
+        assert contribution_2.stripe_account_id
+        assert set(Contribution.objects.with_stripe_account().values_list("stripe_account", flat=True)) == {
+            contribution_1.stripe_account_id
+        }
+
 
 @pytest.fixture()
 def charge_refunded_one_time_event():

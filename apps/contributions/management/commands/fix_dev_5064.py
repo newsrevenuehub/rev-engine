@@ -246,16 +246,15 @@ class Command(BaseCommand):
 
         # Fetch contributions
         relevant_via_metadata, relevant_via_revision_comment = self.get_contributions()
-
         # Combine and distinct
         combined_qs = relevant_via_metadata | relevant_via_revision_comment
         distinct_accounts = combined_qs.values_list("stripe_account", flat=True).distinct()
-
         # Convert to set to ensure uniqueness
         unique_accounts = set(distinct_accounts)
-
         # Process each unique account
         for account in unique_accounts:
+            # not sure why, but need to re-call `with_stripe_account` here even though the original queryset should already have it
+            # in practice it seems to drop out (maybe because of the union and some weird side effect?)
             _via_metadata = relevant_via_metadata.with_stripe_account().filter(stripe_account=account)
             _via_revision_comment = relevant_via_revision_comment.with_stripe_account().filter(stripe_account=account)
             self.handle_account(

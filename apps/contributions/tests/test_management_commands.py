@@ -8,6 +8,12 @@ import reversion
 import stripe
 
 from apps.contributions.management.commands.fix_dev_5064 import (
+    METADATA_VERSIONS,
+)
+from apps.contributions.management.commands.fix_dev_5064 import (
+    REVISION_COMMENT as FIX_DEV_5064_REVISION_COMMENT,
+)
+from apps.contributions.management.commands.fix_dev_5064 import (
     Command as FixDev5064Command,
 )
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
@@ -23,6 +29,7 @@ from apps.contributions.management.commands.fix_incident_2445 import (
     ContributionOutcome as Incident2445Outcome,
 )
 from apps.contributions.models import Contribution, Payment
+from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -690,17 +697,47 @@ class Test_fix_dev_5064:
     def command(self):
         return FixDev5064Command()
 
-    # test stripe logs part
+    @pytest.fixture()
+    def importer(self):
+        return StripeTransactionsImporter(stripe_account_id="acct_1")
+
+    @pytest.mark.parametrize("suppress", [True, False])
+    def test_configrure_stripe_log_level(self, suppress, command):
+        command.configure_stripe_log_level(suppress_stripe_info_logs=suppress)
 
     # conditionality around if both queries turn up
     # mo k get_stripe_accounts_and_their_connection_status
-    def test_get_contributions(self, command):
-        contribution = ContributionFactory()
-        assert command.get_contributions(contribution.id) == contribution
+    @pytest.mark.parametrize(("count_via_metadata", "count_via_revision_comment"), [(1, 1), (0, 1)])
+    def test_get_contributions(self, count_via_metadata, count_via_revision_comment, command, mocker):
+        via_metadata = []
+        for _ in range(count_via_metadata):
+            con = ContributionFactory(one_time=True)
+
+            con.contribution_metadata["schema_version"] = METADATA_VERSIONS[0]
+            con.save()
+            via_metadata.append(con)
+        via_reversion = []
+        for _ in range(count_via_revision_comment):
+            con = ContributionFactory(one_time=True, contribution_metadata__schema_version="1.4")
+            with reversion.create_revision():
+                con.save()
+                reversion.set_comment(FIX_DEV_5064_REVISION_COMMENT)
+                via_reversion.append(con)
+        assert via_metadata + via_reversion
+        mocker.patch(
+            "apps.contributions.management.commands.fix_dev_5064.get_stripe_accounts_and_their_connection_status",
+            return_value=({c.stripe_account_id: True for c in via_metadata + via_reversion}),
+        )
+        actual_via_metadata, actual_via_reversion = command.get_contributions()
+
+        assert set(actual_via_metadata.values_list("id", flat=True)) == {c.id for c in via_metadata}
+        assert set(actual_via_reversion.values_list("id", flat=True)) == {c.id for c in via_reversion}
 
     def test_handle_relevant_via_metadata(self, command):
-        contribution = ContributionFactory()
-        assert command.handle_relevant(contribution) == contribution
+        pass
+
+    def test_handle_relevant_via_metadata_when_none(self, command, importer):
+        command.handle_relevant_via_metadata(Contribution.objects.none(), importer=importer)
 
     def test_handle_relevant_via_revision_comment(self, command):
         pass

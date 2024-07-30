@@ -393,7 +393,7 @@ class StripeTransactionsImporter:
                 return ContributionStatus.PROCESSING
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
-    def search_stripe_entity(self, entity_name: str, query: str) -> Iterable[Any]:
+    def search_stripe_entity(self, entity_name: str, query: str | None = None) -> Iterable[Any]:
         logger.debug("Searching %s for account %s with query %s", entity_name, self.stripe_account_id, query)
         return (
             getattr(stripe, entity_name)

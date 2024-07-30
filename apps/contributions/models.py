@@ -12,6 +12,7 @@ from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
@@ -21,6 +22,7 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
+from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
@@ -140,6 +142,19 @@ class ContributionQuerySet(models.QuerySet):
             )
         return self
 
+    def with_stripe_account(self):
+        """Annotate stripe_account_id as "stripe_account".
+
+        stripe_account even though it is the id and not object instead of *_id because Contribution had existing
+        property "stripe_account_id."
+        """
+        return self.annotate(
+            stripe_account=models.functions.Coalesce(
+                "_revenue_program__payment_provider__stripe_account_id",
+                "donation_page__revenue_program__payment_provider__stripe_account_id",
+            ),
+        )
+
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
         return self.exclude(
@@ -222,6 +237,21 @@ class ContributionQuerySet(models.QuerySet):
             created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
             provider_payment_method_id__isnull=True,
         )
+
+    def get_via_reversion_comment(self, comment: str) -> models.QuerySet[Contribution]:
+        """Return contributions with a specific reversion comment."""
+        # Filter versions based on the revision comment
+        versions_with_comment = Version.objects.filter(revision__comment=comment)
+        # Get the content type for the Contribution model
+        contribution_ct = ContentType.objects.get_for_model(Contribution)
+        # Cast object_id to integer if it's not already
+        contribution_ids = versions_with_comment.filter(content_type=contribution_ct).values_list(
+            "object_id", flat=True
+        )
+        # Ensure IDs are integers
+        contribution_ids = list(map(int, contribution_ids))
+        # Return filtered Contribution objects
+        return Contribution.objects.filter(id__in=contribution_ids)
 
 
 class ContributionManager(models.Manager):

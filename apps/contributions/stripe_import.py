@@ -393,6 +393,37 @@ class StripeTransactionsImporter:
                 return ContributionStatus.PROCESSING
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
+    def search_stripe_entity(self, entity_name: str, query: str) -> Iterable[Any]:
+        logger.debug("Searching %s for account %s with query %s", entity_name, self.stripe_account_id, query)
+        return (
+            getattr(stripe, entity_name)
+            .search(stripe_account=self.stripe_account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, query=query)
+            .auto_paging_iter()
+        )
+
+    def list_and_cache_subscriptions_with_metadata_version(
+        self, metadata_version: str, prune_fn: Callable | None = None
+    ) -> Iterable[stripe.Subscription]:
+        """Get and cache subsriptions with given metadata version for a given stripe account."""
+        self.list_and_cache_entities(  # pragma: no branch False positive `exitline... didn't jump to the function exit`
+            entity_name="Subscription",
+            prune_fn=prune_fn,
+            list_kwargs={"query": f'metadata["schema_version"]:"{metadata_version}"'},
+            use_search_api=True,
+        )
+
+    def list_and_cache_payment_intents_with_metadata_version(
+        self, metadata_version: str, prune_fn: Callable | None = None
+    ) -> Iterable[stripe.PaymentIntent]:
+        """Get and cache payment intents with given metadata version for a given stripe account."""
+        self.list_and_cache_entities(  # pragma: no branch False positive `exitline... didn't jump to the function exit`
+            entity_name="PaymentIntent",
+            prune_fn=prune_fn,
+            list_kwargs={"query": f'metadata["schema_version"]:"{metadata_version}"'},
+            use_search_api=True,
+        )
+
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
     def list_stripe_entity(self, entity_name: str, **kwargs) -> Iterable[Any]:
         """List stripe entities for a given stripe account."""
         logger.debug("Listing %s for account %s", entity_name, self.stripe_account_id)
@@ -420,11 +451,13 @@ class StripeTransactionsImporter:
         prune_fn: Callable | None = None,
         exclude_fn: Callable | None = None,
         list_kwargs: dict | None = None,
+        use_search_api: bool = False,
     ) -> None:
         """List and cache entities for a given stripe account."""
         logger.info("Listing and caching %ss for account %s", entity_name, self.stripe_account_id)
+        resource_fn = self.list_stripe_entity if not use_search_api else self.search_stripe_entity
         self.cache_stripe_resources(  # pragma: no branch False positive `exitline... didn't jump to the function exit`
-            resources=self.list_stripe_entity(entity_name, **(list_kwargs or {})),
+            resources=resource_fn(entity_name, **(list_kwargs or {})),
             entity_name=entity_name,
             exclude_fn=exclude_fn,
             prune_fn=prune_fn,
@@ -813,6 +846,8 @@ class StripeTransactionsImporter:
         payment_method_id: str | None,
     ) -> dict:
         """Get default contribution data for a given stripe entity."""
+        # TODO(BW): DEV-5074 - set first_payment_date here
+        # https://news-revenue-hub.atlassian.net/browse/DEV-5074
         shared = {
             "contributor": contributor,
             "contribution_metadata": stripe_entity["metadata"],
@@ -871,7 +906,7 @@ class StripeTransactionsImporter:
         """Upsert a contribution for a given stripe entity."""
         entity_name = "payment intent" if is_one_time else "subscription"
         logger.info("Upserting contribution for %s %s", entity_name, stripe_entity["id"])
-        self.validate_metadata(metadata := stripe_entity.get("metadata"))
+        self.validate_metadata(metadata := stripe_entity.get("metadata", {}))
         self.validate_referer_or_revenue_program(metadata)
         cust_id = stripe_entity.get("customer")
         if not cust_id:

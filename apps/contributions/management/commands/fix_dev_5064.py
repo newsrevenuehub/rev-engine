@@ -160,6 +160,7 @@ class Command(BaseCommand):
                             f"Could not find PaymentIntent for contribution {con.id} with provider_payment_id {con.provider_payment_id}"
                         )
                     )
+        self.stdout.write(self.style.HTTP_INFO(f"Bulk updating {len(to_update)} contributions"))
         Contribution.objects.bulk_update(to_update, ["first_payment_date", "modified"])
 
     def handle_relevant_via_revision_comment(
@@ -212,6 +213,7 @@ class Command(BaseCommand):
                         sub["start_date"], tz=datetime.timezone.utc
                     )
                     to_update.append(con)
+        self.stdout.write(self.style.HTTP_INFO(f"Bulk pdating {len(to_update)} contributions"))
         Contribution.objects.bulk_update(to_update, ["first_payment_date", "modified"])
 
     def handle_account(

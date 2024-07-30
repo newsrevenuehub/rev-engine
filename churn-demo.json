@@ -1,0 +1,96 @@
+{
+    "2023": {
+        "1": {
+            "churn_rate": 0.11764705882352941,
+            "num_active": 51,
+            "num_canceled": 6
+        },
+        "2": {
+            "churn_rate": 0.12307692307692308,
+            "num_active": 65,
+            "num_canceled": 8
+        },
+        "3": {
+            "churn_rate": 0.2235294117647059,
+            "num_active": 85,
+            "num_canceled": 19
+        },
+        "4": {
+            "churn_rate": 0.09345794392523364,
+            "num_active": 107,
+            "num_canceled": 10
+        },
+        "5": {
+            "churn_rate": 0.09090909090909091,
+            "num_active": 121,
+            "num_canceled": 11
+        },
+        "6": {
+            "churn_rate": 0.09696969696969697,
+            "num_active": 165,
+            "num_canceled": 16
+        },
+        "7": {
+            "churn_rate": 0.07575757575757576,
+            "num_active": 198,
+            "num_canceled": 15
+        },
+        "8": {
+            "churn_rate": 0.020833333333333332,
+            "num_active": 1056,
+            "num_canceled": 22
+        },
+        "9": {
+            "churn_rate": 0.04143646408839779,
+            "num_active": 1086,
+            "num_canceled": 45
+        },
+        "10": {
+            "churn_rate": 0.032403240324032405,
+            "num_active": 1111,
+            "num_canceled": 36
+        },
+        "11": {
+            "churn_rate": 0.023376623376623377,
+            "num_active": 1155,
+            "num_canceled": 27
+        },
+        "12": {
+            "churn_rate": 0.024493243243243243,
+            "num_active": 1184,
+            "num_canceled": 29
+        }
+    },
+    "2024": {
+        "1": {
+            "churn_rate": 0.030452674897119343,
+            "num_active": 1215,
+            "num_canceled": 37
+        },
+        "2": {
+            "churn_rate": 0.02034174125305126,
+            "num_active": 1229,
+            "num_canceled": 25
+        },
+        "3": {
+            "churn_rate": 0.020064205457463884,
+            "num_active": 1246,
+            "num_canceled": 25
+        },
+        "4": {
+            "churn_rate": 0.020750199521149242,
+            "num_active": 1253,
+            "num_canceled": 26
+        },
+        "5": {
+            "churn_rate": 0.014218009478672985,
+            "num_active": 1266,
+            "num_canceled": 18
+        },
+        "6": {
+            "churn_rate": 0.02147239263803681,
+            "num_active": 1304,
+            "num_canceled": 28
+        }
+    }
+}

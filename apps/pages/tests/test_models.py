@@ -60,7 +60,7 @@ class TestDonationPage:
     def user(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_filtered_by_role_assignment(self, user, revenue_program):
+    def test_filter_by_role_assignment(self, user, revenue_program):
         # this will be viewable by all three users
         one = DonationPageFactory(revenue_program=revenue_program)
         # this will be viewable by hub admin and org user, but not rp
@@ -81,7 +81,7 @@ class TestDonationPage:
                 expected = [
                     one.id,
                 ]
-        query = DonationPage.objects.filtered_by_role_assignment(user.roleassignment)
+        query = DonationPage.objects.filter_by_role_assignment(user.roleassignment)
         assert query.count() == len(expected)
         assert set(query.values_list("id", flat=True)) == set(expected)
 
@@ -229,7 +229,7 @@ class TestStyle:
     def user(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_style_filtered_by_role_assignment(self, user, revenue_program):
+    def test_style_filter_by_role_assignment(self, user, revenue_program):
         # this will be viewable by all three users
         one = StyleFactory(revenue_program=revenue_program)
         # this will be viewable by hub admin and org user, but not rp
@@ -250,7 +250,7 @@ class TestStyle:
                 expected = [
                     one.id,
                 ]
-        query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+        query = Style.objects.filter_by_role_assignment(user.roleassignment)
         assert query.count() == len(expected)
         assert set(query.values_list("id", flat=True)) == set(expected)
 

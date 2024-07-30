@@ -45,9 +45,9 @@ class ValidateFkReferenceOwnership:
                 has_default_access_fn.__code__.co_varnames,
             )
             raise serializers.ValidationError(f"{self.__class__} initialized with function with unexpected signature")
-        if not getattr(self.model.objects, "filtered_by_role_assignment", None):
+        if not getattr(self.model.objects, "filter_by_role_assignment", None):
             logger.warning(
-                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filtered_by_role_assignment`, "
+                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filter_by_role_assignment`, "
                 " which is required.",
                 self.model.__name__,
             )
@@ -72,7 +72,7 @@ class ValidateFkReferenceOwnership:
 
         instance = value.get(self.fk_attribute, None)
         # validate has method
-        if instance and instance not in type(instance).objects.filtered_by_role_assignment(ra):
+        if instance and instance not in type(instance).objects.filter_by_role_assignment(ra):
             logger.warning(
                 "User with role assignment [%s] attempted to access unowned resource: [%s]: [%s]",
                 ra,

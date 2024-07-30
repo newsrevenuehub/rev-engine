@@ -195,7 +195,7 @@ class TestOrganization:
     def user(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_organization_filtered_by_role_assignment(self, user):
+    def test_organization_filter_by_role_assignment(self, user):
         # ensure there will be unowned organizations
         OrganizationFactory.create_batch(size=2)
         owned_orgs = (
@@ -205,13 +205,13 @@ class TestOrganization:
                 user.roleassignment.organization,
             ]
         )
-        query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
+        query = Organization.objects.filter_by_role_assignment(user.roleassignment)
         assert query.count() == len(owned_orgs)
         assert set(query.values_list("id", flat=True)) == {x.id for x in owned_orgs}
 
-    def test_organization_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
+    def test_organization_filter_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         OrganizationFactory.create_batch(3)
-        assert Organization.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
+        assert Organization.objects.filter_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
 
     def test_generate_unique_name_when_not_already_exist(self):
         assert Organization.generate_unique_name("test") == "test"
@@ -812,7 +812,7 @@ class TestRevenueProgram:
     def user(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_filtered_by_role_assignment(self, user):
+    def test_filter_by_role_assignment(self, user):
         # ensure unowned RevenuePrograms in case of org and RP user
         RevenueProgramFactory.create_batch(size=2)
         owned_rps = (
@@ -820,13 +820,13 @@ class TestRevenueProgram:
             if user.roleassignment.role_type == Roles.HUB_ADMIN
             else RevenueProgram.objects.filter(id__in=user.roleassignment.revenue_programs.values_list("id", flat=True))
         )
-        query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+        query = RevenueProgram.objects.filter_by_role_assignment(user.roleassignment)
         assert query.count() == len(owned_rps)
         assert set(query.values_list("id", flat=True)) == {x.id for x in owned_rps}
 
-    def test_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
+    def test_filter_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         RevenueProgramFactory.create_batch(3)
-        assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
+        assert RevenueProgram.objects.filter_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
 
     @pytest.mark.parametrize(
         ("mailchimp_server_prefix", "mailchimp_access_token", "expect_connected"),

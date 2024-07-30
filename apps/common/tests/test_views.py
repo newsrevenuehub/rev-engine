@@ -114,11 +114,11 @@ class TestFilterForSuperUserOrRoleAssignmentUserMixin:
         if user.is_superuser:
             view.model.objects.all.assert_called_once()
             view.model.objects.none.assert_not_called()
-            view.model.objects.filtered_by_role_assignment.assert_not_called()
+            view.model.objects.filter_by_role_assignment.assert_not_called()
         elif ra := user.get_role_assignment():
             assert view.model.objects.filtered_by_role_asssignment.called_once(ra)
             view.model.objects.all.assert_not_called()
             view.model.objects.none.assert_not_called()
         else:
-            view.model.objects.filtered_by_role_assignment.assert_not_called()
+            view.model.objects.filter_by_role_assignment.assert_not_called()
             view.model.objects.none.assert_called_once()

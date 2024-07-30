@@ -132,7 +132,7 @@ class TestOrganizationViewSet:
     def test_retrieve_when_expected_user(self, user, api_client, mocker):
         """Show that expected users can retrieve only permitted organizations.
 
-        NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        NB: This test treats Organization.objects.filter_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
         """
         # ensure there will be organizations that org admin and rp admin won't be able to access, but that superuser and hub admin
@@ -147,8 +147,8 @@ class TestOrganizationViewSet:
                 response = api_client.get(reverse("organization-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_200_OK
         else:
-            query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
+            query = Organization.objects.filter_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(OrganizationQuerySet, "filter_by_role_assignment")
             unpermitted = Organization.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             if user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -161,7 +161,7 @@ class TestOrganizationViewSet:
             for id_ in unpermitted.values_list("id", flat=True):
                 response = api_client.get(reverse("organization-detail", args=(id_,)))
                 assert response.status_code == status.HTTP_404_NOT_FOUND
-            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # this test is valid insofar as the spyed on method `filter_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
             # an Organization.
             assert spy.call_count == Organization.objects.count()
@@ -187,7 +187,7 @@ class TestOrganizationViewSet:
     def test_list_when_expected_user(self, user, api_client, mocker):
         """Show that expected users can list only permitted organizations.
 
-        NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        NB: This test treats Organization.objects.filter_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
         """
         # ensure there will be organizations that org admin and rp admin won't be able to access, but that superuser and hub admin
@@ -206,8 +206,8 @@ class TestOrganizationViewSet:
             assert {x["id"] for x in orgs} == set(query.values_list("id", flat=True))
 
         else:
-            query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
+            query = Organization.objects.filter_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(OrganizationQuerySet, "filter_by_role_assignment")
             unpermitted = Organization.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             if user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -219,7 +219,7 @@ class TestOrganizationViewSet:
             assert len(orgs) == query.count()
             assert {x["id"] for x in orgs} == set(query.values_list("id", flat=True))
 
-            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # this test is valid insofar as the spyed on method `filter_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
 
@@ -275,7 +275,7 @@ class TestOrganizationViewSet:
                 for key in data:
                     assert response.json()[key] == getattr(organization, key)
         else:
-            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
+            spy = mocker.spy(OrganizationQuerySet, "filter_by_role_assignment")
             assert organization.id != patch_user.roleassignment.organization
             unpermitted_response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data=data)
             assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND
@@ -657,7 +657,7 @@ class TestRevenueProgramViewSet:
     def test_retrieve_rp_when_expected_user(self, user, api_client, mocker):
         """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't.
 
-        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        NB: This test treats RevenueProgram.objects.filter_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
         """
         # ensure there will be RPs that org admin and rp admin won't be able to access, but that superuser should be able to
@@ -674,8 +674,8 @@ class TestRevenueProgramViewSet:
                 response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
                 assert response.status_code == status.HTTP_200_OK
         else:
-            query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
+            query = RevenueProgram.objects.filter_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(RevenueProgramQuerySet, "filter_by_role_assignment")
             unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -685,7 +685,7 @@ class TestRevenueProgramViewSet:
             for rp_id in unpermitted.values_list("id", flat=True):
                 response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
                 assert response.status_code == status.HTTP_404_NOT_FOUND
-            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # this test is valid insofar as the spyed on method `filter_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
             # an RP.
             assert spy.call_count == RevenueProgram.objects.count()
@@ -704,7 +704,7 @@ class TestRevenueProgramViewSet:
     def test_retrieve_rp_when_unexpected_user(self, unsupported_user, api_client, revenue_program):
         """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't.
 
-        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        NB: This test treats RevenueProgram.objects.filter_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
         """
         api_client.force_authenticate(unsupported_user)
@@ -714,7 +714,7 @@ class TestRevenueProgramViewSet:
     def test_list_when_expected_user(self, user, api_client, mocker):
         """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't.
 
-        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        NB: This test treats RevenueProgram.objects.filter_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
         """
         # ensure there will be RPs that org admin and rp admin won't be able to access, but that superuser should be able to
@@ -735,8 +735,8 @@ class TestRevenueProgramViewSet:
             assert {x["id"] for x in rps} == set(query.values_list("id", flat=True))
 
         else:
-            query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
+            query = RevenueProgram.objects.filter_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(RevenueProgramQuerySet, "filter_by_role_assignment")
             unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -744,7 +744,7 @@ class TestRevenueProgramViewSet:
             rps = response.json()
             assert len(rps) == query.count()
             assert {x["id"] for x in rps} == set(query.values_list("id", flat=True))
-            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # this test is valid insofar as the spyed on method `filter_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
 

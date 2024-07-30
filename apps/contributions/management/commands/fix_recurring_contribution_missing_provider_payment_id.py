@@ -1,7 +1,6 @@
 import logging
 
 from django.core.management.base import BaseCommand
-from django.db.models import Q
 
 import reversion
 import stripe
@@ -19,8 +18,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `fix_recurring_contribution_missing_provider_payment_id`"))
-        contributions = Contribution.objects.recurring().filter(
-            provider_payment_id=None, provider_subscription_id__isnull=False
+        contributions = (
+            Contribution.objects.recurring()
+            .filter(provider_payment_id=None, provider_subscription_id__isnull=False)
+            .with_stripe_account()
         )
         if not contributions.exists():
             self.stdout.write(
@@ -28,30 +29,15 @@ class Command(BaseCommand):
             )
             return
         account_ids = set(
-            list(
-                contributions.filter(donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
-                .values_list("donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
-                .distinct()
-            )
-            + list(
-                contributions.filter(_revenue_program__payment_provider__stripe_account_id__isnull=False)
-                .values_list("_revenue_program__payment_provider__stripe_account_id", flat=True)
-                .distinct()
-            )
+            contributions.filter(stripe_account__isnull=False).values_list("stripe_account", flat=True).distinct()
         )
         accounts = get_stripe_accounts_and_their_connection_status(account_ids)
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
 
-        fixable_contributions = contributions.filter(
-            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
-            | Q(_revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
-        )
+        fixable_contributions = contributions.filter(stripe_account__in=connected_accounts)
         fixable_contributions_count = fixable_contributions.count()
-        ineligible_because_of_account = contributions.filter(
-            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts)
-            | Q(_revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts),
-        )
+        ineligible_because_of_account = contributions.filter(stripe_account__in=unretrievable_accounts)
         self.stdout.write(
             self.style.HTTP_INFO(
                 f"Found {fixable_contributions_count} eligible contribution{'' if fixable_contributions_count == 1 else 's'} to fix"

@@ -28,7 +28,7 @@ def _get_screenshot_upload_path(instance, filename):
 
 
 class PagesAppQuerySet(models.QuerySet):
-    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+    def filter_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
                 return self.all()

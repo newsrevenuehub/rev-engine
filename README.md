@@ -182,7 +182,7 @@ echo "export STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS=whsec_9xx" >> .envrc
 
 Obs 1: Make sure you have revengine and celery running. You can do that by having 2 terminals running. One with `make run-redis` and the other with `make start-celery`
 
-Obs 2: You will probably need to add `"https://*.stripe.com/"` to `CSRF_TRUSTED_ORIGINS` list
+Obs 2: You will probably need to add `"https://*.stripe.com/"` to `CSRF_TRUSTED_ORIGINS` list (added in django 4.x)
 
 ### 6. Set up subdomains in `/etc/hosts`
 

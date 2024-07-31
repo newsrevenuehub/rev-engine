@@ -29,3 +29,8 @@ Default.args = {
     }
   ]
 };
+
+export const NoPayments: Story = {};
+NoPayments.args = {
+  payments: []
+};

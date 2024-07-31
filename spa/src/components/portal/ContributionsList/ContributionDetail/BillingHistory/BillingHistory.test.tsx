@@ -6,6 +6,10 @@ import usePortal from 'hooks/usePortal';
 
 jest.mock('../DetailSection/DetailSection');
 jest.mock('hooks/usePortal');
+jest.mock('@material-ui/lab', () => ({
+  ...jest.requireActual('@material-ui/lab'),
+  Skeleton: () => <div data-testid="mock-skeleton" />
+}));
 
 const sendEmailReceipt = jest.fn();
 const mockPayments: PortalContributionPayment[] = [
@@ -36,7 +40,7 @@ describe('BillingHistory', () => {
 
   beforeEach(() => {
     usePortalMock.mockReturnValue({
-      page: { revenue_program: { organization: { send_receipt_email_via_nre: true } } }
+      page: { revenue_program: { name: 'Test Program', organization: { send_receipt_email_via_nre: true } } }
     } as any);
   });
 
@@ -119,6 +123,48 @@ describe('BillingHistory', () => {
     screen.getByRole('button', { name: 'Resend receipt' }).click();
 
     expect(sendEmailReceipt).toBeCalledTimes(1);
+  });
+
+  describe('when there are no payments (no billing history)', () => {
+    it('shows a message with the revenue program name', () => {
+      tree({ payments: [] });
+
+      expect(
+        screen.getByText('Please contact Test Program for billing history and prior receipts for this contribution.')
+      ).toBeInTheDocument();
+    });
+
+    it('shows the revenue program email', () => {
+      usePortalMock.mockReturnValue({
+        page: { revenue_program: { name: 'Test Program', contact_email: 'mock@email.com' } }
+      } as any);
+      tree({ payments: [] });
+
+      expect(screen.getByText('Please contact Test Program', { exact: false })).toBeInTheDocument();
+      expect(
+        screen.getByText('for billing history and prior receipts for this contribution.', { exact: false })
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'mock@email.com' })).toHaveAttribute('href', 'mailto:mock@email.com');
+    });
+
+    it('disables the resend receipt button', () => {
+      tree({ payments: [] });
+
+      expect(screen.getByRole('button', { name: 'Resend receipt' })).toBeDisabled();
+    });
+
+    it('displays a skeleton if the revenue program name is not available (still loading)', () => {
+      usePortalMock.mockReturnValue({ page: { revenue_program: {} } } as any);
+      tree({ payments: [] });
+
+      expect(screen.getByTestId('mock-skeleton')).toBeInTheDocument();
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree({ payments: [] });
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 
   it('is accessible', async () => {

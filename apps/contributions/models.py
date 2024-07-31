@@ -195,6 +195,17 @@ class ContributionQuerySet(models.QuerySet):
     def exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:
         return self.exclude(status__in=self.CONTRIBUTOR_HIDDEN_STATUSES)
 
+    def exclude_recurring_missing_provider_subscription_id(self) -> models.QuerySet[Contribution]:
+        """Exclude contributions that are recurring and that don't have a provider subscription ID.
+
+        See this comment in JIRA for explanation of why this is necessary:
+        https://news-revenue-hub.atlassian.net/browse/DEV-5037?focusedCommentId=120074
+        """
+        return self.exclude(
+            models.Q(provider_subscription_id="") | models.Q(provider_subscription_id__isnull=True),
+            interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
+        )
+
     def exclude_paymentless_canceled(self) -> models.QuerySet[Contribution]:
         return self.annotate(num_payments=models.Count("payment")).exclude(
             num_payments=0, status=ContributionStatus.CANCELED

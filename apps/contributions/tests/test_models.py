@@ -1791,6 +1791,14 @@ class TestContributionModel:
             contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
         )
 
+    def test_exclude_recurring_missing_provider_subscription_id(self, mocker):
+        ContributionFactory(provider_subscription_id=None, monthly_subscription=True, status=ContributionStatus.PAID)
+        expected = ContributionFactory(
+            provider_subscription_id="something", monthly_subscription=True, status=ContributionStatus.PAID
+        )
+        assert (returned := Contribution.objects.exclude_recurring_missing_provider_subscription_id()).count() == 1
+        assert returned.first() == expected
+
     @pytest.mark.parametrize("status", ContributionQuerySet.CONTRIBUTOR_HIDDEN_STATUSES)
     def test_exclude_hidden_statuses(self, status):
         ContributionFactory(status=status)

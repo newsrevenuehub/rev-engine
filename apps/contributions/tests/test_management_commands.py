@@ -1,4 +1,6 @@
 import datetime
+import logging
+from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
 from django.core.management import call_command
@@ -7,6 +9,7 @@ import pytest
 import reversion
 import stripe
 
+from apps.contributions.choices import ContributionInterval
 from apps.contributions.management.commands.fix_dev_5064 import (
     METADATA_VERSIONS,
 )
@@ -701,49 +704,149 @@ class Test_fix_dev_5064:
     def importer(self):
         return StripeTransactionsImporter(stripe_account_id="acct_1")
 
-    @pytest.mark.parametrize("suppress", [True, False])
-    def test_configrure_stripe_log_level(self, suppress, command):
-        command.configure_stripe_log_level(suppress_stripe_info_logs=suppress)
+    @pytest.fixture()
+    def one_time_contribution(self):
+        return ContributionFactory(interval=ContributionInterval.ONE_TIME)
 
-    # conditionality around if both queries turn up
-    # mo k get_stripe_accounts_and_their_connection_status
+    @pytest.fixture()
+    def recurring_contribution(self):
+        return ContributionFactory(interval=ContributionInterval.MONTHLY)
+
+    def test_add_arguments(self, command):
+        parser = MagicMock()
+        command.add_arguments(parser)
+        parser.add_argument.assert_called_with("--suppress-stripe-info-logs", action="store_true", default=False)
+
+    @pytest.mark.parametrize("suppress", [True, False])
+    def test_configure_stripe_log_level(self, suppress, command, mocker):
+        logger = logging.getLogger("stripe")
+        set_level_mock = mocker.patch.object(logger, "setLevel")
+        command.configure_stripe_log_level(suppress_stripe_info_logs=suppress)
+        if suppress:
+            set_level_mock.assert_called_with(logging.ERROR)
+        else:
+            set_level_mock.assert_not_called()
+
     @pytest.mark.parametrize(("count_via_metadata", "count_via_revision_comment"), [(1, 1), (0, 1)])
     def test_get_contributions(self, count_via_metadata, count_via_revision_comment, command, mocker):
         via_metadata = []
         for _ in range(count_via_metadata):
-            con = ContributionFactory(one_time=True)
+            contribution = ContributionFactory(one_time=True)
 
-            con.contribution_metadata["schema_version"] = METADATA_VERSIONS[0]
-            con.save()
-            via_metadata.append(con)
+            contribution.contribution_metadata["schema_version"] = METADATA_VERSIONS[0]
+            contribution.save()
+            via_metadata.append(contribution)
         via_reversion = []
         for _ in range(count_via_revision_comment):
-            con = ContributionFactory(one_time=True, contribution_metadata__schema_version="1.4")
+            contribution = ContributionFactory(one_time=True, contribution_metadata__schema_version="1.4")
             with reversion.create_revision():
-                con.save()
+                contribution.save()
                 reversion.set_comment(FIX_DEV_5064_REVISION_COMMENT)
-                via_reversion.append(con)
+                via_reversion.append(contribution)
         assert via_metadata + via_reversion
         mocker.patch(
             "apps.contributions.management.commands.fix_dev_5064.get_stripe_accounts_and_their_connection_status",
             return_value=({c.stripe_account_id: True for c in via_metadata + via_reversion}),
         )
         actual_via_metadata, actual_via_reversion = command.get_contributions()
-
         assert set(actual_via_metadata.values_list("id", flat=True)) == {c.id for c in via_metadata}
         assert set(actual_via_reversion.values_list("id", flat=True)) == {c.id for c in via_reversion}
 
-    def test_handle_relevant_via_metadata(self, command):
-        pass
+    def test_handle_account_happy_path(self, command, one_time_contribution, recurring_contribution, mocker):
+        # Picking arbitrary dates so they can be distinguished in the result.
+        mock_created = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
+        mock_start_date = datetime.datetime(2002, 1, 1, tzinfo=datetime.timezone.utc)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value={
+                "created": mock_created.timestamp(),
+                "id": "mock-id",
+                "start_date": mock_start_date.timestamp(),
+            },
+        )
+        # This bends the rules by passing a list of contributions, not a
+        # queryset as the method is expecting, but all it needs is to be able to iterate over it.
+        command.handle_account("mock-account-id", [one_time_contribution, recurring_contribution])
+        assert one_time_contribution.first_payment_date == mock_created
+        assert recurring_contribution.first_payment_date == mock_start_date
 
-    def test_handle_relevant_via_metadata_when_none(self, command, importer):
-        command.handle_relevant_via_metadata(Contribution.objects.none(), importer=importer)
+    def test_handle_account_no_contributions(self, command):
+        command.handle_account("mock-account-id", [])
+        # Shouldn't raise an exception.
 
-    def test_handle_relevant_via_revision_comment(self, command):
-        pass
+    @pytest.mark.parametrize(("fixture"), [("one_time_contribution"), ("recurring_contribution")])
+    def test_handle_account_stripe_object_not_found(self, command, fixture, mocker, request):
+        contribution = request.getfixturevalue(fixture)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        old_first_payment_date = contribution.first_payment_date
+        command.handle_account("mock-account-id", [contribution])
+        assert contribution.first_payment_date == old_first_payment_date
 
-    def test_handle_account(self, command):
-        pass
+    @pytest.mark.parametrize(("suppress_stripe_info_logs"), [(True), (False)])
+    def test_command_happy_path(self, suppress_stripe_info_logs, one_time_contribution, recurring_contribution, mocker):
+        # We need to imitate the annotation added by get_contributions().
+        relevant_via_metadata = Contribution.objects.filter(id=one_time_contribution.id).with_stripe_account()
+        relevant_via_revision_comment = Contribution.objects.filter(id=recurring_contribution.id).with_stripe_account()
+        # If this isn't true, we'll get 1 call to handle_account below, not 2.
+        assert relevant_via_metadata[0].stripe_account != relevant_via_revision_comment[0].stripe_account
+        mocker.patch(
+            "apps.contributions.management.commands.fix_dev_5064.Command.get_contributions",
+            return_value=(
+                relevant_via_metadata,
+                relevant_via_revision_comment,
+            ),
+        )
+        configure_stripe_log_level_mock = mocker.patch(
+            "apps.contributions.management.commands.fix_dev_5064.Command.configure_stripe_log_level"
+        )
+        handle_account_mock = mocker.patch("apps.contributions.management.commands.fix_dev_5064.Command.handle_account")
+        call_command("fix_dev_5064", suppress_stripe_info_logs=suppress_stripe_info_logs)
+        configure_stripe_log_level_mock.assert_called_once_with(suppress_stripe_info_logs)
 
-    def test_handle(self, command):
-        pass
+        # We need to assert loosely that the right calls were made because the
+        # method is creating new querysets, e.g. a strict equality check won't
+        # work.
+        assert handle_account_mock.call_count == 2
+        for expected in [relevant_via_metadata, relevant_via_revision_comment]:
+            assert (
+                len(
+                    [
+                        call
+                        for call in handle_account_mock.call_args_list
+                        if call.kwargs["account_id"] == expected[0].stripe_account
+                        and len(call.kwargs["contributions"]) == 1
+                        and call.kwargs["contributions"][0].id == expected[0].id
+                    ]
+                )
+                == 1
+            )
+
+    def test_command_dedupes_stripe_accounts(self, one_time_contribution, mocker):
+        # We need to imitate the annotation added by get_contributions().
+        contributions = Contribution.objects.filter(id=one_time_contribution.id).with_stripe_account()
+        mocker.patch(
+            "apps.contributions.management.commands.fix_dev_5064.Command.get_contributions",
+            return_value=(
+                contributions,
+                contributions,
+            ),
+        )
+        handle_account_mock = mocker.patch("apps.contributions.management.commands.fix_dev_5064.Command.handle_account")
+        call_command("fix_dev_5064")
+        handle_account_mock.assert_called_once()
+        # See note above about why we assert about call args in a roundabout way.
+        assert (
+            len(
+                [
+                    call
+                    for call in handle_account_mock.call_args_list
+                    if call.kwargs["account_id"] == contributions[0].stripe_account
+                    and len(call.kwargs["contributions"]) == 1
+                    and call.kwargs["contributions"][0].id == contributions[0].id
+                ]
+            )
+            == 1
+        )

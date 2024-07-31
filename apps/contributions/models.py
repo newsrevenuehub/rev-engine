@@ -144,6 +144,7 @@ class ContributionQuerySet(models.QuerySet):
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
         return self.exclude(
             status__in=[
+                ContributionStatus.ABANDONED,
                 ContributionStatus.FLAGGED,
                 ContributionStatus.REJECTED,
                 ContributionStatus.PROCESSING,

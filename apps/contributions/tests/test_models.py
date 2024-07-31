@@ -1862,8 +1862,13 @@ class TestContributionQuerySetMethods:
         assert {pi_1.id} == {item.id for item in results}
         spy.assert_not_called()
 
+    @pytest.fixture()
+    def abandoned_contribution(self):
+        return ContributionFactory(abandoned=True)
+
     def test_having_org_viewable_status(
         self,
+        abandoned_contribution,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -1872,6 +1877,17 @@ class TestContributionQuerySetMethods:
         processing_contribution,
     ):
         """Show that this method excludes the expected statuses and includes the right ones."""
+        assert (
+            Contribution.objects.filter(
+                id__in=[
+                    abandoned_contribution.id,
+                    flagged_contribution.id,
+                    rejected_contribution.id,
+                    processing_contribution.id,
+                ]
+            ).count()
+            == 4
+        )
         assert set(Contribution.objects.having_org_viewable_status().values_list("id", flat=True)) == {
             canceled_contribution.id,
             refunded_contribution.id,

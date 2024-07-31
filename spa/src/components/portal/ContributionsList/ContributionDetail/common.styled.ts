@@ -17,7 +17,7 @@ export const Columns = styled.div`
 /**
  * Buttons that appear in the header of each section.
  */
-export const SectionControlButton = styled(Button)`
+export const SectionControlButton = styled(Button)<{ $cursorNotAllowed?: boolean }>`
   && {
     background: none;
     box-shadow: none;
@@ -30,6 +30,15 @@ export const SectionControlButton = styled(Button)`
 
     .NreButtonLabel {
       color: ${({ theme }) => theme.basePalette.primary.engineBlue};
+    }
+  }
+
+  &&.Mui-disabled {
+    background-color: unset;
+
+    .NreButtonLabel {
+      ${({ $cursorNotAllowed }) => $cursorNotAllowed && 'cursor: not-allowed;'}
+      color: ${({ theme }) => theme.basePalette.greyscale.grey2};
     }
   }
 `;

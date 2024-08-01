@@ -6,7 +6,7 @@ from .base import *  # noqa: F403
 
 
 # For more information about deploy settings, see:
-# See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 #### Critical settings
 

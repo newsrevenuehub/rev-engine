@@ -752,10 +752,16 @@ class Test_fix_dev_5064:
         assert set(actual_via_metadata.values_list("id", flat=True)) == {c.id for c in via_metadata}
         assert set(actual_via_reversion.values_list("id", flat=True)) == {c.id for c in via_reversion}
 
-    def test_handle_account_happy_path(self, command, one_time_contribution, recurring_contribution, mocker):
+    def test_handle_account_happy_path_all_cached(self, command, one_time_contribution, recurring_contribution, mocker):
         # Picking arbitrary dates so they can be distinguished in the result.
         mock_created = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
         mock_start_date = datetime.datetime(2002, 1, 1, tzinfo=datetime.timezone.utc)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
             return_value={
@@ -770,20 +776,87 @@ class Test_fix_dev_5064:
         assert one_time_contribution.first_payment_date == mock_created
         assert recurring_contribution.first_payment_date == mock_start_date
 
-    def test_handle_account_no_contributions(self, command):
+    def test_handle_account_no_contributions(self, command, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
         command.handle_account("mock-account-id", [])
         # Shouldn't raise an exception.
 
-    @pytest.mark.parametrize(("fixture"), [("one_time_contribution"), ("recurring_contribution")])
-    def test_handle_account_stripe_object_not_found(self, command, fixture, mocker, request):
-        contribution = request.getfixturevalue(fixture)
+    def test_handle_account_payment_intent_not_in_cache(self, command, one_time_contribution, mocker):
+        mock_created = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
             return_value=None,
         )
-        old_first_payment_date = contribution.first_payment_date
-        command.handle_account("mock-account-id", [contribution])
-        assert contribution.first_payment_date == old_first_payment_date
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve", return_value={"created": mock_created.timestamp(), "id": "mock-id"}
+        )
+        command.handle_account("mock-account-id", [one_time_contribution])
+        assert one_time_contribution.first_payment_date == mock_created
+
+    def test_handle_account_nonexistent_payment_intent(self, command, one_time_contribution, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve", side_effect=stripe.error.InvalidRequestError(message="test", param={})
+        )
+        old_first_payment_date = one_time_contribution.first_payment_date
+        command.handle_account("mock-account-id", [one_time_contribution])
+        assert one_time_contribution.first_payment_date == old_first_payment_date
+
+    def test_handle_account_subscription_not_in_cache(self, command, recurring_contribution, mocker):
+        mock_start_date = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.Subscription.retrieve", return_value={"start_date": mock_start_date.timestamp(), "id": "mock-id"}
+        )
+        command.handle_account("mock-account-id", [recurring_contribution])
+        assert recurring_contribution.first_payment_date == mock_start_date
+
+    def test_handle_account_nonexistent_subscription(self, command, recurring_contribution, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.Subscription.retrieve", side_effect=stripe.error.InvalidRequestError(message="test", param={})
+        )
+        old_first_payment_date = recurring_contribution.first_payment_date
+        command.handle_account("mock-account-id", [recurring_contribution])
+        assert recurring_contribution.first_payment_date == old_first_payment_date
 
     @pytest.mark.parametrize(("suppress_stripe_info_logs"), [(True), (False)])
     def test_command_happy_path(self, suppress_stripe_info_logs, one_time_contribution, recurring_contribution, mocker):

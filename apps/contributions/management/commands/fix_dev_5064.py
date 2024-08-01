@@ -5,6 +5,8 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandParser
 from django.db.models import Q, QuerySet
 
+import stripe
+
 from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import ContributionInterval
 from apps.contributions.models import Contribution
@@ -105,7 +107,7 @@ class Command(BaseCommand):
     def handle_account(self, account_id: str, contributions: QuerySet[Contribution]) -> None:
         """Handle contributions for a single Stripe account."""
         self.stdout.write(self.style.HTTP_INFO(f"Processing account {account_id}"))
-        # Use Redis cache for speed.
+        # Preload Stripe data where it can be bulk requested.
         importer = StripeTransactionsImporter(
             from_date=None,
             to_date=None,
@@ -113,20 +115,45 @@ class Command(BaseCommand):
             retrieve_payment_method=False,
             sentry_profiler=False,
         )
+        for version in METADATA_VERSIONS:
+            self.stdout.write(
+                self.style.HTTP_INFO(
+                    f"Caching Stripe subs and PIs for account {account_id}, metadata version {version}"
+                )
+            )
+            importer.list_and_cache_payment_intents_with_metadata_version(
+                metadata_version=version, prune_fn=lambda x: {"id": x["id"], "created": x["created"]}
+            )
+            importer.list_and_cache_subscriptions_with_metadata_version(
+                metadata_version=version, prune_fn=lambda x: {"id": x["id"], "start_date": x["start_date"]}
+            )
+        # Update contributions.
         to_update = []
         for contribution in contributions:
+            self.stdout.write(self.style.HTTP_INFO(f"Processing contribution ID {contribution.id}"))
+            # Try to retrieve data from the import cache if possible. Only
+            # contributions eligible via metadata version will have this,
+            # though. Otherwise, we need to make a request to Stripe.
             if contribution.interval == ContributionInterval.ONE_TIME:
                 pi = importer.get_resource_from_cache(
                     key=importer.make_key(entity_name="PaymentIntent", entity_id=contribution.provider_payment_id)
                 )
                 if not pi:
                     self.stdout.write(
-                        self.style.WARNING(
-                            f"Could not find PaymentIntent for contribution {contribution.id} with "
-                            f"provider_payment_id {contribution.provider_payment_id}"
-                        )
+                        self.style.HTTP_INFO(f"Contribution {contribution.id} isn't in cache, retrieving from Stripe")
                     )
-                    continue
+                    try:
+                        pi = stripe.PaymentIntent.retrieve(
+                            contribution.provider_payment_id, stripe_account=contribution.stripe_account_id
+                        )
+                    except stripe.error.InvalidRequestError:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"Could not find PaymentIntent for contribution {contribution.id} with "
+                                f"provider_payment_id {contribution.provider_payment_id}"
+                            )
+                        )
+                        continue
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"Found PaymentIntent {pi['id']} for contribution {contribution.id}. "
@@ -143,12 +170,20 @@ class Command(BaseCommand):
                 )
                 if not sub:
                     self.stdout.write(
-                        self.style.WARNING(
-                            f"Could not find PaymentIntent for contribution {contribution.id} with "
-                            f"provider_payment_id {contribution.provider_payment_id}"
-                        )
+                        self.style.HTTP_INFO(f"Contribution {contribution.id} isn't in cache, retrieving from Stripe")
                     )
-                    continue
+                    try:
+                        sub = stripe.Subscription.retrieve(
+                            contribution.provider_subscription_id, stripe_account=contribution.stripe_account_id
+                        )
+                    except stripe.error.InvalidRequestError:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"Could not find subscription for contribution {contribution.id} with "
+                                f"provider_subscription_id {contribution.provider_subscription_id}"
+                            )
+                        )
+                        continue
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"Found subscription {sub['id']} for contribution {contribution.id}. "

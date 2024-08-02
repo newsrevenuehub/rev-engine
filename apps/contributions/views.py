@@ -617,7 +617,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         return Response(impact, status=status.HTTP_200_OK)
 
     def get_contributor_queryset(self, contributor):
-        return contributor.contribution_set.all().exclude_hidden_statuses().exclude_paymentless_canceled()
+        return (
+            contributor.contribution_set.all()
+            .exclude_hidden_statuses()
+            .exclude_paymentless_canceled()
+            .exclude_recurring_missing_provider_subscription_id()
+        )
 
     @action(
         methods=["get"],

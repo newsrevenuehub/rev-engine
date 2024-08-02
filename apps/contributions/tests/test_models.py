@@ -1791,6 +1791,14 @@ class TestContributionModel:
             contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
         )
 
+    def test_exclude_recurring_missing_provider_subscription_id(self, mocker):
+        ContributionFactory(provider_subscription_id=None, monthly_subscription=True, status=ContributionStatus.PAID)
+        expected = ContributionFactory(
+            provider_subscription_id="something", monthly_subscription=True, status=ContributionStatus.PAID
+        )
+        assert (returned := Contribution.objects.exclude_recurring_missing_provider_subscription_id()).count() == 1
+        assert returned.first() == expected
+
     @pytest.mark.parametrize("status", ContributionQuerySet.CONTRIBUTOR_HIDDEN_STATUSES)
     def test_exclude_hidden_statuses(self, status):
         ContributionFactory(status=status)
@@ -1866,8 +1874,13 @@ class TestContributionQuerySetMethods:
         assert {pi_1.id} == {item.id for item in results}
         spy.assert_not_called()
 
+    @pytest.fixture()
+    def abandoned_contribution(self):
+        return ContributionFactory(abandoned=True)
+
     def test_having_org_viewable_status(
         self,
+        abandoned_contribution,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -1876,6 +1889,17 @@ class TestContributionQuerySetMethods:
         processing_contribution,
     ):
         """Show that this method excludes the expected statuses and includes the right ones."""
+        assert (
+            Contribution.objects.filter(
+                id__in=[
+                    abandoned_contribution.id,
+                    flagged_contribution.id,
+                    rejected_contribution.id,
+                    processing_contribution.id,
+                ]
+            ).count()
+            == 4
+        )
         assert set(Contribution.objects.having_org_viewable_status().values_list("id", flat=True)) == {
             canceled_contribution.id,
             refunded_contribution.id,

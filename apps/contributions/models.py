@@ -247,7 +247,7 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
-    first_payment_date = models.DateTimeField(null=False)
+    first_payment_date = models.DateTimeField(null=False, default=timezone.now)
     # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
     # DEV-4333
     last_payment_date = models.DateTimeField(null=True)
@@ -691,12 +691,6 @@ class Contribution(IndexedTimeStampedModel):
             render_to_string(f"{template_name}.txt", data),
             render_to_string(f"{template_name}.html", data),
         )
-
-    def save(self, *args, **kwargs):
-        """Force first_payment_date to have the same value as created if not already set."""
-        if not self.first_payment_date:
-            self.first_payment_date = self.created
-        super().save(*args, **kwargs)
 
     def send_recurring_contribution_canceled_email(self) -> None:
         self.send_recurring_contribution_change_email("Canceled contribution", "recurring-contribution-canceled")

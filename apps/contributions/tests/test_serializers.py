@@ -42,7 +42,6 @@ class TestContributionSerializer:
             "created",
             "currency",
             "donation_page_id",
-            "first_payment_date",
             "flagged_date",
             "formatted_payment_provider_used",
             "id",

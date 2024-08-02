@@ -1810,10 +1810,6 @@ class TestContributionModel:
         assert contribution.payment_set.count() == 0
         assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 
-    def test_first_billing_date_defaults_to_created(self):
-        contribution = ContributionFactory()
-        assert contribution.first_payment_date == contribution.created
-
 
 @pytest.mark.django_db()
 class TestContributionQuerySetMethods:

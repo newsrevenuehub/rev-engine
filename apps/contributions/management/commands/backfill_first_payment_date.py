@@ -77,12 +77,8 @@ class Command(BaseCommand):
         relevant_via_metadata = qs.filter(contribution_metadata__schema_version__in=METADATA_VERSIONS)
         self.stdout.write(self.style.HTTP_INFO(f"Found {relevant_via_metadata.count()} with relevant metadata"))
         # as distinct from first query
-        via_metadata_ids = relevant_via_metadata.values_list("id", flat=True)
-        _exclude_kwargs = {}
-        if via_metadata_ids := relevant_via_metadata.values_list("id", flat=True):
-            _exclude_kwargs["id__in"] = via_metadata_ids
         relevant_via_revision_comment = qs.get_via_reversion_comment(comment=REVISION_COMMENT).exclude(
-            **_exclude_kwargs
+            id__in=relevant_via_metadata.values_list("id", flat=True)
         )
         self.stdout.write(
             self.style.HTTP_INFO(

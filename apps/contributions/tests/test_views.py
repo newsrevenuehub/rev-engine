@@ -2355,9 +2355,13 @@ class TestPortalContributorsViewSet:
     def test_get_contributor_queryset(self, mocker):
         exclude_hidden_spy = mocker.spy(ContributionQuerySet, "exclude_hidden_statuses")
         exclude_paymentless_spy = mocker.spy(ContributionQuerySet, "exclude_paymentless_canceled")
+        exclude_missing_stripe_sub_id = mocker.spy(
+            ContributionQuerySet, "exclude_recurring_missing_provider_subscription_id"
+        )
         contributions_views.PortalContributorsViewSet().get_contributor_queryset(contributor=ContributorFactory())
         exclude_hidden_spy.assert_called_once()
         exclude_paymentless_spy.assert_called_once()
+        exclude_missing_stripe_sub_id.assert_called_once()
 
 
 @pytest.mark.django_db()

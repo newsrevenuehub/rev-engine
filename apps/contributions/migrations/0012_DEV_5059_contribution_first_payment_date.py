@@ -6,9 +6,11 @@ from django.db import migrations, models
 def set_first_payment_date_default(apps, schema_editor):
     # cribbed from
     # https://stackoverflow.com/questions/29787853/django-migrations-add-field-with-default-as-function-of-model
-    for contribution in apps.get_model("contributions", "contribution").objects.all().iterator():
+    Contribution = apps.get_model("contributions", "contribution")
+    all_contributions = Contribution.objects.all()
+    for contribution in all_contributions:
         contribution.first_payment_date = contribution.created
-        contribution.save()
+    Contribution.objects.bulk_update(all_contributions, ["first_payment_date"])
 
 
 class Migration(migrations.Migration):

@@ -10,7 +10,7 @@ def set_first_payment_date_default(apps, schema_editor):
     all_contributions = Contribution.objects.all()
     for contribution in all_contributions:
         contribution.first_payment_date = contribution.created
-    Contribution.objects.bulk_update(all_contributions, ["first_payment_date"])
+    Contribution.objects.bulk_update(all_contributions, ["first_payment_date"], batch_size=1000)
 
 
 class Migration(migrations.Migration):

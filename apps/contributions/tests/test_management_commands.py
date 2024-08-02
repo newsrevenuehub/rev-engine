@@ -10,15 +10,11 @@ import reversion
 import stripe
 
 from apps.contributions.choices import ContributionInterval
-from apps.contributions.management.commands.fix_dev_5064 import (
-    METADATA_VERSIONS,
+from apps.contributions.management.commands.backfill_first_payment_date import METADATA_VERSIONS
+from apps.contributions.management.commands.backfill_first_payment_date import (
+    REVISION_COMMENT as BACKFILL_FIRST_PAYMENT_DATE_REVISION_COMMENT,
 )
-from apps.contributions.management.commands.fix_dev_5064 import (
-    REVISION_COMMENT as FIX_DEV_5064_REVISION_COMMENT,
-)
-from apps.contributions.management.commands.fix_dev_5064 import (
-    Command as FixDev5064Command,
-)
+from apps.contributions.management.commands.backfill_first_payment_date import Command as BackfillFirstPaymentCommand
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
     REVISION_COMMENT,
 )
@@ -694,11 +690,11 @@ class Test_fix_incident_2445:
 
 
 @pytest.mark.django_db()
-class Test_fix_dev_5064:
+class Test_backfill_first_payment_date:
 
     @pytest.fixture()
     def command(self):
-        return FixDev5064Command()
+        return BackfillFirstPaymentCommand()
 
     @pytest.fixture()
     def importer(self):
@@ -741,11 +737,11 @@ class Test_fix_dev_5064:
             contribution = ContributionFactory(one_time=True, contribution_metadata__schema_version="1.4")
             with reversion.create_revision():
                 contribution.save()
-                reversion.set_comment(FIX_DEV_5064_REVISION_COMMENT)
+                reversion.set_comment(BACKFILL_FIRST_PAYMENT_DATE_REVISION_COMMENT)
                 via_reversion.append(contribution)
         assert via_metadata + via_reversion
         mocker.patch(
-            "apps.contributions.management.commands.fix_dev_5064.get_stripe_accounts_and_their_connection_status",
+            "apps.contributions.management.commands.backfill_first_payment_date.get_stripe_accounts_and_their_connection_status",
             return_value=({c.stripe_account_id: True for c in via_metadata + via_reversion}),
         )
         actual_via_metadata, actual_via_reversion = command.get_contributions()
@@ -866,17 +862,19 @@ class Test_fix_dev_5064:
         # If this isn't true, we'll get 1 call to handle_account below, not 2.
         assert relevant_via_metadata[0].stripe_account != relevant_via_revision_comment[0].stripe_account
         mocker.patch(
-            "apps.contributions.management.commands.fix_dev_5064.Command.get_contributions",
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.get_contributions",
             return_value=(
                 relevant_via_metadata,
                 relevant_via_revision_comment,
             ),
         )
         configure_stripe_log_level_mock = mocker.patch(
-            "apps.contributions.management.commands.fix_dev_5064.Command.configure_stripe_log_level"
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.configure_stripe_log_level"
         )
-        handle_account_mock = mocker.patch("apps.contributions.management.commands.fix_dev_5064.Command.handle_account")
-        call_command("fix_dev_5064", suppress_stripe_info_logs=suppress_stripe_info_logs)
+        handle_account_mock = mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.handle_account"
+        )
+        call_command("backfill_first_payment_date", suppress_stripe_info_logs=suppress_stripe_info_logs)
         configure_stripe_log_level_mock.assert_called_once_with(suppress_stripe_info_logs)
 
         # We need to assert loosely that the right calls were made because the
@@ -901,14 +899,16 @@ class Test_fix_dev_5064:
         # We need to imitate the annotation added by get_contributions().
         contributions = Contribution.objects.filter(id=one_time_contribution.id).with_stripe_account()
         mocker.patch(
-            "apps.contributions.management.commands.fix_dev_5064.Command.get_contributions",
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.get_contributions",
             return_value=(
                 contributions,
                 contributions,
             ),
         )
-        handle_account_mock = mocker.patch("apps.contributions.management.commands.fix_dev_5064.Command.handle_account")
-        call_command("fix_dev_5064")
+        handle_account_mock = mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.handle_account"
+        )
+        call_command("backfill_first_payment_date")
         handle_account_mock.assert_called_once()
         # See note above about why we assert about call args in a roundabout way.
         assert (

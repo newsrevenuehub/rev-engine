@@ -1178,8 +1178,13 @@ class Contribution(IndexedTimeStampedModel):
         If it's a recurring subscription, update the amount of the next payment
         without proration (paying difference of existing month).
         """
-        if amount < 100:
-            raise ValueError("Amount value must be greater than 99 cents")
+        # vs circular import
+        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
+
+        if amount < REVENGINE_MIN_AMOUNT:
+            raise ValueError("Amount value must be greater than $0.99")
+        if amount > STRIPE_MAX_AMOUNT:
+            raise ValueError("Amount value must be smaller than $999,999.99")
         if getattr(self.stripe_subscription, "status", None) in self.INACTIVE_SUBSCRIPTION_STATUSES:
             raise ValueError("Cannot update amount for inactive subscription")
         if self.interval == ContributionInterval.ONE_TIME:

@@ -30,6 +30,7 @@ from apps.contributions.models import (
     logger,
     send_thank_you_email,
 )
+from apps.contributions.serializers import STRIPE_MAX_AMOUNT
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import (
     ContributionFactory,
@@ -1721,8 +1722,13 @@ class TestContributionModel:
     )
     def test_update_subscription_amount_when_invalid_amount(self, amount, monthly_contribution: Contribution):
         monthly_contribution.stripe_subscription = MockSubscription("active")
-        with pytest.raises(ValueError, match="Amount value must be greater than 99 cents"):
+        with pytest.raises(ValueError, match=r"Amount value must be greater than \$0.99"):
             monthly_contribution.update_subscription_amount(amount)
+
+    def test_update_subscription_amount_when_invalid_amount_above_max(self, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match=r"Amount value must be smaller than \$999,999.99"):
+            monthly_contribution.update_subscription_amount(STRIPE_MAX_AMOUNT + 1)
 
     @pytest.mark.parametrize(
         "status",

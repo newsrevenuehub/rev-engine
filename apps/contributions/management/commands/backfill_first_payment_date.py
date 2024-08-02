@@ -50,10 +50,8 @@ class Command(BaseCommand):
             stripe_logger = logging.getLogger("stripe")
             stripe_logger.setLevel(logging.ERROR)
 
-    def get_contributions(self) -> tuple[QuerySet[Contribution], QuerySet[Contribution]]:
+    def get_contributions(self) -> QuerySet[Contribution]:
         """Get relevant contributions to be updated by this command.
-
-        These contributions are annotated by with_stripe_account() along the way.
 
         Relevancy criteria:
         - if one-time, must have provider_payment_id
@@ -104,10 +102,9 @@ class Command(BaseCommand):
                 f"{unfixable.values_list('id', flat=True)}"
             )
         )
-        return (
-            relevant_via_metadata.exclude(id__in=(_ids := unfixable.values_list("id", flat=True))),
-            relevant_via_revision_comment.exclude(id__in=_ids),
-        )
+        return relevant_via_metadata.exclude(
+            id__in=(_ids := unfixable.values_list("id", flat=True))
+        ) | relevant_via_revision_comment.exclude(id__in=_ids)
 
     def handle_account(self, account_id: str, contributions: QuerySet[Contribution]) -> None:
         """Handle contributions for a single Stripe account."""
@@ -206,12 +203,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running {self.name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
-        relevant_via_metadata, relevant_via_revision_comment = self.get_contributions()
-
-        # Although get_contributions() annotates the querysets with
-        # stripe_account, we need to re-annotate after unioning the querysets.
-
-        contributions = (relevant_via_metadata | relevant_via_revision_comment).with_stripe_account()
+        contributions = self.get_contributions().with_stripe_account()
         account_ids = set(contributions.values_list("stripe_account", flat=True))
         for stripe_account_id in account_ids:
             self.handle_account(

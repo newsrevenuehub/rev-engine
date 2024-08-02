@@ -723,30 +723,21 @@ class Test_backfill_first_payment_date:
         else:
             set_level_mock.assert_not_called()
 
-    @pytest.mark.parametrize(("count_via_metadata", "count_via_revision_comment"), [(1, 1), (0, 1)])
-    def test_get_contributions(self, count_via_metadata, count_via_revision_comment, command, mocker):
-        via_metadata = []
-        for _ in range(count_via_metadata):
-            contribution = ContributionFactory(one_time=True)
-
-            contribution.contribution_metadata["schema_version"] = METADATA_VERSIONS[0]
-            contribution.save()
-            via_metadata.append(contribution)
-        via_reversion = []
-        for _ in range(count_via_revision_comment):
-            contribution = ContributionFactory(one_time=True, contribution_metadata__schema_version="1.4")
-            with reversion.create_revision():
-                contribution.save()
-                reversion.set_comment(BACKFILL_FIRST_PAYMENT_DATE_REVISION_COMMENT)
-                via_reversion.append(contribution)
-        assert via_metadata + via_reversion
+    def test_get_contributions(self, one_time_contribution, recurring_contribution, command, mocker):
+        one_time_contribution.contribution_metadata["schema_version"] = METADATA_VERSIONS[0]
+        one_time_contribution.provider_payment_id = "mock-id"
+        one_time_contribution.save()
+        with reversion.create_revision():
+            recurring_contribution.save()
+            reversion.set_comment(BACKFILL_FIRST_PAYMENT_DATE_REVISION_COMMENT)
         mocker.patch(
             "apps.contributions.management.commands.backfill_first_payment_date.get_stripe_accounts_and_their_connection_status",
-            return_value=({c.stripe_account_id: True for c in via_metadata + via_reversion}),
+            return_value=({c.stripe_account_id: True for c in [one_time_contribution, recurring_contribution]}),
         )
-        actual_via_metadata, actual_via_reversion = command.get_contributions()
-        assert set(actual_via_metadata.values_list("id", flat=True)) == {c.id for c in via_metadata}
-        assert set(actual_via_reversion.values_list("id", flat=True)) == {c.id for c in via_reversion}
+        contributions = command.get_contributions()
+        assert set(contributions.values_list("id", flat=True)) == {
+            c.id for c in [one_time_contribution, recurring_contribution]
+        }
 
     def test_handle_account_happy_path_all_cached(self, command, one_time_contribution, recurring_contribution, mocker):
         mock_created = one_time_contribution.created + datetime.timedelta(days=1)
@@ -856,16 +847,12 @@ class Test_backfill_first_payment_date:
     @pytest.mark.parametrize(("suppress_stripe_info_logs"), [(True), (False)])
     def test_command_happy_path(self, suppress_stripe_info_logs, one_time_contribution, recurring_contribution, mocker):
         # We need to imitate the annotation added by get_contributions().
-        relevant_via_metadata = Contribution.objects.filter(id=one_time_contribution.id).with_stripe_account()
-        relevant_via_revision_comment = Contribution.objects.filter(id=recurring_contribution.id).with_stripe_account()
-        # If this isn't true, we'll get 1 call to handle_account below, not 2.
-        assert relevant_via_metadata[0].stripe_account != relevant_via_revision_comment[0].stripe_account
+        contributions = Contribution.objects.filter(
+            id__in=[one_time_contribution.id, recurring_contribution.id]
+        ).with_stripe_account()
         mocker.patch(
             "apps.contributions.management.commands.backfill_first_payment_date.Command.get_contributions",
-            return_value=(
-                relevant_via_metadata,
-                relevant_via_revision_comment,
-            ),
+            return_value=contributions,
         )
         configure_stripe_log_level_mock = mocker.patch(
             "apps.contributions.management.commands.backfill_first_payment_date.Command.configure_stripe_log_level"
@@ -880,15 +867,15 @@ class Test_backfill_first_payment_date:
         # method is creating new querysets, e.g. a strict equality check won't
         # work.
         assert handle_account_mock.call_count == 2
-        for expected in [relevant_via_metadata, relevant_via_revision_comment]:
+        for expected in contributions:
             assert (
                 len(
                     [
                         call
                         for call in handle_account_mock.call_args_list
-                        if call.kwargs["account_id"] == expected[0].stripe_account
+                        if call.kwargs["account_id"] == expected.stripe_account
                         and len(call.kwargs["contributions"]) == 1
-                        and call.kwargs["contributions"][0].id == expected[0].id
+                        and call.kwargs["contributions"][0].id == expected.id
                     ]
                 )
                 == 1
@@ -899,10 +886,7 @@ class Test_backfill_first_payment_date:
         contributions = Contribution.objects.filter(id=one_time_contribution.id).with_stripe_account()
         mocker.patch(
             "apps.contributions.management.commands.backfill_first_payment_date.Command.get_contributions",
-            return_value=(
-                contributions,
-                contributions,
-            ),
+            return_value=contributions,
         )
         handle_account_mock = mocker.patch(
             "apps.contributions.management.commands.backfill_first_payment_date.Command.handle_account"

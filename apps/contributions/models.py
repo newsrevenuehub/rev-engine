@@ -297,6 +297,9 @@ class Contribution(IndexedTimeStampedModel):
                     | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)
                 ),
             ),
+            models.CheckConstraint(
+                name="first_payment_date_after_created", check=models.Q(first_payment_date__gte=models.F("created"))
+            ),
         ]
 
     def __str__(self):

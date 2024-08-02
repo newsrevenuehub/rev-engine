@@ -33,4 +33,10 @@ class Migration(migrations.Migration):
             name="first_payment_date",
             field=models.DateTimeField(null=False),
         ),
+        migrations.AddConstraint(
+            model_name="contribution",
+            constraint=models.CheckConstraint(
+                name="first_payment_date_after_created", check=models.Q(first_payment_date__gte=models.F("created"))
+            ),
+        ),
     ]

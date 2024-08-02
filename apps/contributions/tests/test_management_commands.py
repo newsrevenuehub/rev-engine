@@ -749,9 +749,8 @@ class Test_backfill_first_payment_date:
         assert set(actual_via_reversion.values_list("id", flat=True)) == {c.id for c in via_reversion}
 
     def test_handle_account_happy_path_all_cached(self, command, one_time_contribution, recurring_contribution, mocker):
-        # Picking arbitrary dates so they can be distinguished in the result.
-        mock_created = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
-        mock_start_date = datetime.datetime(2002, 1, 1, tzinfo=datetime.timezone.utc)
+        mock_created = one_time_contribution.created + datetime.timedelta(days=1)
+        mock_start_date = recurring_contribution.created + datetime.timedelta(days=1)
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
         )
@@ -783,7 +782,7 @@ class Test_backfill_first_payment_date:
         # Shouldn't raise an exception.
 
     def test_handle_account_payment_intent_not_in_cache(self, command, one_time_contribution, mocker):
-        mock_created = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
+        mock_created = one_time_contribution.created + datetime.timedelta(days=1)
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
         )
@@ -819,7 +818,7 @@ class Test_backfill_first_payment_date:
         assert one_time_contribution.first_payment_date == old_first_payment_date
 
     def test_handle_account_subscription_not_in_cache(self, command, recurring_contribution, mocker):
-        mock_start_date = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
+        mock_start_date = recurring_contribution.created + datetime.timedelta(days=1)
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
         )

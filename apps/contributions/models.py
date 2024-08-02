@@ -244,7 +244,6 @@ class ContributionQuerySet(models.QuerySet):
         versions_with_comment = Version.objects.filter(revision__comment=comment)
         # Get the content type for the Contribution model
         contribution_ct = ContentType.objects.get_for_model(Contribution)
-        # Cast object_id to integer if it's not already
         contribution_ids = versions_with_comment.filter(content_type=contribution_ct).values_list(
             "object_id", flat=True
         )

@@ -60,7 +60,12 @@ class Command(BaseCommand):
         - if recurring, must have provider_subscription_id
         - parent Stripe account must be connected
         """
-        self.stdout.write(self.style.HTTP_INFO("Retrieving contributions with relevant metadata or revision comment"))
+        self.stdout.write(
+            self.style.HTTP_INFO(
+                f"Retrieving contributions with relevant metadata versions {METADATA_VERSIONS} "
+                f"or revision comment '{REVISION_COMMENT}'"
+            )
+        )
         qs = Contribution.objects.with_stripe_account().filter(
             Q(
                 Q(provider_payment_id__isnull=False, interval=ContributionInterval.ONE_TIME)

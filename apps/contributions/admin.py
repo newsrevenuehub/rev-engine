@@ -104,6 +104,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
             {
                 "fields": (
                     "status",
+                    "first_payment_date",
                     "payment_provider_used",
                     "provider_payment_link",
                     "provider_subscription_link",
@@ -162,6 +163,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "contributor",
         "currency",
         "donation_page",
+        "first_payment_date",
         "flagged_date",
         "interval",
         "payment_provider_used",

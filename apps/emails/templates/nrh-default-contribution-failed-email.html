@@ -1,0 +1,177 @@
+{% extends "nrh-default-contribution-base-template.html" %}
+
+{% block custom_style %}
+<style type="text/css">
+  .header-background {
+    width: 600px;
+    height: 80px;
+    text-align: center;
+    vertical-align: middle;
+    background: #ffffff;
+    {% if style.header_color %}
+    background: {{ style.header_color }} !important;
+    {% endif %}
+  }
+
+  .header-background.default {
+    background: none !important;
+    text-align: left;
+  }
+
+  .header-logo {
+    height: 56px;
+    margin-top: 17px;
+    margin-bottom: 17px;
+    max-width: 100%;
+    width: auto;
+  }
+
+  .header-logo.default {
+    height: 50px;
+    width: auto;
+  }
+
+  .thank-you-title {
+    font-family: Roboto, sans-serif;
+    color: #25192B;
+    font-size: 30px;
+    margin-top: 37px;
+    margin-bottom: 25px;
+  }
+
+  .user-info {
+    font-family: Roboto, sans-serif;
+    color: #282828;
+    font-size: 16px;
+  }
+
+  .user-info-second-line {
+    margin-top: 28px;
+    margin-bottom: 25px;
+  }
+
+  .outer-center {
+    margin-left: 34px;
+    margin-right: 34px;
+  }
+
+  .billing-history-header {
+    font-family: Roboto, sans-serif;
+    font-size: 18px;
+    color: #282828;
+    margin-bottom: 20px;
+  }
+
+  .billing-history-label {
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #282828;
+    margin-bottom: 6px;
+  }
+
+  .billing-history-value {
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #282828;
+    margin-bottom: 12px;
+  }
+
+  .button-wrapper {
+      padding-top: 40px;
+      padding-bottom: 35px;
+    }
+
+  .button {
+    margin-left: 160px;
+    margin-right: 160px;
+    text-transform: uppercase;
+    background: #523A5E;
+    color: #ffffff !important;
+    border-radius: 6px;
+    font-family: 'Roboto';
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 16px;
+    text-decoration: none;
+    text-transform: uppercase;
+    padding: 15px 50px;
+    width: 270px;
+    {% if style.button_color %}
+    background: {{ style.button_color }} !important;
+    color: #ffffff !important;
+    {% endif %}
+  }
+</style>
+{% endblock custom_style %}
+
+{% block header %}
+{% if style.is_default_logo == True and style.logo_url %}
+<tr>
+  <td class="header-background default">
+    <img class="header-logo inner-center default" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
+  </td>
+</tr>
+{% elif style.logo_url %}
+<tr>
+  <td class="header-background">
+    <img class="header-logo" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
+  </td>
+</tr>
+{% endif %}
+<tr>
+  <td style="padding-right: 0px;padding-left: 0px;" align="left">
+    <h1 class="thank-you-title inner-center">Failed Contribution</h1>
+  </td>
+</tr>
+<tr>
+  <td style="padding-right: 0px;padding-left: 0px;" align="left">
+    <p class="user-info inner-center">
+      Dear {{ contributor_name }},
+    </p>
+    <p class="user-info user-info-second-line inner-center">
+      A recurring contribution to {{ rp_name }} failed to process on {{ timestamp }}. Please update the payment method on the Contributor Portal or reach out to {{ rp_name }} for assistance.
+    </p>
+  </td>
+</tr>
+{% endblock header %}
+
+{% block contribution_header %}Failed Contribution{% endblock contribution_header %}
+{% block timestamp_label %}Failed{% endblock timestamp_label %}
+
+{% block contribution_footer %}
+<tr>
+  <td>
+    <p class="inner-center user-info" style="font-weight: bold;">
+      Your contribution has a direct impact on the work that we do.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td class="button-wrapper">
+    <a data-testid="magic-link" href="{{ magic_link }}" target="_blank" class="button">
+      Manage Contributions
+    </a>
+  </td>
+</tr>
+{% if rp_email %}
+<tr>
+  <td>
+    <p class="inner-center user-info" style="text-align: center;">
+      Or <span style="font-weight: bold;">email {{ rp_email }}</span>.
+    </p>
+  </td>
+</tr>
+{% endif %}
+<tr>
+  <td>
+    <p class="inner-center user-info" style="margin-top: 40px; margin-bottom: 60px;">
+      Already fixed this contribution? Please ignore this email.
+    </p>
+  </td>
+</tr>
+{% endblock contribution_footer %}
+
+{% block update_contribution %}
+{% endblock update_contribution %}

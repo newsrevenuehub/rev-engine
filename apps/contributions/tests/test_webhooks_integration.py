@@ -12,9 +12,12 @@ are grouped together in the `TestPaymentIntentSucceeded` class.
 
 import datetime
 import json
+from dataclasses import asdict
 from pathlib import Path
 
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.timezone import make_aware
 
 import pytest
@@ -31,6 +34,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
 from apps.contributions.types import StripeEventData
+from apps.emails.tasks import generate_magic_link, send_templated_email
 
 
 @pytest.fixture(autouse=True)
@@ -244,7 +248,82 @@ class TestPaymentIntentCanceled:
 
 @pytest.mark.django_db()
 class TestPaymentIntentPaymentFailed:
+    def test_salesforce_connected(self, client, payment_intent_payment_failed, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        mock_subscription_create = mocker.patch("stripe.Customer.retrieve")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"],
+        )
+        contribution.revenue_program.organization.show_connected_to_salesforce = True
+        contribution.revenue_program.organization.save()
+        contribution.refresh_from_db()
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_subscription_create.assert_not_called()
+        send_email_spy.assert_not_called()
+
+    def test_send_failed_email(self, client, payment_intent_payment_failed, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        mock_subscription_create = mocker.patch(
+            "stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"})
+        )
+        mocker.patch(
+            "apps.api.serializers.ContributorObtainTokenSerializer.get_token",
+            return_value=AttrDict({"short_lived_access_token": "mock-token"}),
+        )
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"],
+        )
+        contribution.revenue_program.organization.show_connected_to_salesforce = False
+        contribution.revenue_program.organization.save()
+        contribution.refresh_from_db()
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_subscription_create.assert_called_with(
+            contribution.provider_customer_id, stripe_account=contribution.revenue_program.stripe_account_id
+        )
+
+        magic_link = generate_magic_link(
+            contribution.contributor,
+            contribution.revenue_program,
+            next_url=f"/portal/my-contributions/{contribution.id}/",
+        )
+
+        data = {
+            "contribution_amount": contribution.formatted_amount,
+            "contribution_interval_display_value": contribution.interval,
+            "contributor_email": contribution.contributor.email,
+            "contributor_name": "some customer name",
+            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
+            "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
+            "fiscal_status": contribution.revenue_program.fiscal_status,
+            "magic_link": mark_safe(magic_link),
+            "non_profit": contribution.revenue_program.non_profit,
+            "rp_name": contribution.revenue_program.name,
+            "style": asdict(contribution.revenue_program.transactional_email_style),
+            "tax_id": contribution.revenue_program.tax_id,
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y"),
+            "rp_email": contribution.revenue_program.contact_email,
+        }
+
+        assert send_email_spy.call_count == 1
+        assert send_email_spy.call_args[0][0] == contribution.contributor.email
+        assert send_email_spy.call_args[0][1] == "Failed payment"
+        assert send_email_spy.call_args[0][2] == render_to_string("nrh-default-contribution-failed-email.txt", data)
+        assert send_email_spy.call_args[0][3] == render_to_string("nrh-default-contribution-failed-email.html", data)
+
     def test_when_contribution_found(self, client, payment_intent_payment_failed, mocker):
+        mocker.patch("stripe.Customer.retrieve")
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(

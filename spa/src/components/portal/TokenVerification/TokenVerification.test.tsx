@@ -31,6 +31,12 @@ describe('TokenVerification', () => {
     expect(screen.getByTestId('mock-redirect').dataset.to).toBe('/portal/my-contributions/');
   });
 
+  it('redirects to the custom URL if redirect is a query param', () => {
+    useLocationMock.mockReturnValue({ search: '?email=mock-email&token=mock-token&redirect=/mock-redirect/' });
+    tree({ contributor: { mockContributor: true } as any });
+    expect(screen.getByTestId('mock-redirect').dataset.to).toBe('/mock-redirect/');
+  });
+
   describe("When the user isn't authenticated", () => {
     it.each([
       ['email', '?token=mock-token'],

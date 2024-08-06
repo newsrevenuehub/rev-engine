@@ -3,7 +3,7 @@
 {% endblock header %}
 
 ------------------------
-Contribution Details:
+{% block contribution_header %}Contribution Details:{% endblock contribution_header %}
 
 {% block timestamp_label %}{% endblock timestamp_label %}: {{ timestamp }}
 Email: {{ contributor_email }}
@@ -26,4 +26,6 @@ All contributions or gifts to {{ rp_name }} are tax deductible through our fisca
 Contributions to {{ rp_name }} are not deductible as charitable donations.
 {% endif %}{% endblock contribution_footer %}
 
+{% block update_contribution %}
 Need to make changes to your contribution? {% autoescape off %}{{ magic_link }}{% endautoescape %}
+{% endblock update_contribution %}

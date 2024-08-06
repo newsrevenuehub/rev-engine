@@ -149,8 +149,9 @@ class RequestContributorTokenEmailView(APIView):
     throttle_classes = [ContributorRateThrottle]
 
     @staticmethod
-    def get_magic_link(domain, token, email):
-        return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
+    def get_magic_link(domain, token, email, next_url=None):
+        redirect = f"&redirect={quote_plus(next_url)}" if next_url else ""
+        return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}{redirect}"
 
     def post(self, request, *args, **kwargs):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)

@@ -276,13 +276,7 @@ class Contribution(IndexedTimeStampedModel):
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
-    INACTIVE_SUBSCRIPTION_STATUSES = (
-        "paused",
-        "incomplete_expired",
-        "past_due",
-        "canceled",
-        "unpaid",
-    )
+    ACTIVE_SUBSCRIPTION_STATUSES = ("active",)
 
     CANCELABLE_SUBSCRIPTION_STATUSES = (
         "trialing",
@@ -1197,7 +1191,7 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Amount value must be greater than $0.99")
         if amount > STRIPE_MAX_AMOUNT:
             raise ValueError("Amount value must be smaller than $999,999.99")
-        if getattr(self.stripe_subscription, "status", None) in self.INACTIVE_SUBSCRIPTION_STATUSES:
+        if getattr(self.stripe_subscription, "status", None) not in self.ACTIVE_SUBSCRIPTION_STATUSES:
             raise ValueError("Cannot update amount for inactive subscription")
         if self.interval == ContributionInterval.ONE_TIME:
             raise ValueError("Cannot update amount for one-time contribution")
@@ -1221,8 +1215,7 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Subscription should have only one item")
 
         item = items["data"][0]
-        metadata = self.contribution_metadata
-        metadata["donor_selected_amount"] = amount
+        self.contribution_metadata["donor_selected_amount"] = amount
 
         logger.info(
             "Updating Stripe Subscription's %s (item %s), amount to %s",
@@ -1246,7 +1239,7 @@ class Contribution(IndexedTimeStampedModel):
                         },
                     }
                 ],
-                metadata=metadata,
+                metadata=self.contribution_metadata,
                 stripe_account=self.stripe_account_id,
                 proration_behavior="none",
             )

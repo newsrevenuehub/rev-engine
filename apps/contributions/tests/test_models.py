@@ -1738,6 +1738,8 @@ class TestContributionModel:
             "past_due",
             "canceled",
             "unpaid",
+            "incomplete",
+            "trialing",
         ],
     )
     def test_update_subscription_amount_when_inactive_subscription(self, status, monthly_contribution: Contribution):

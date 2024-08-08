@@ -1571,7 +1571,7 @@ class TestPortalContributorsViewSet:
 
     @pytest.fixture()
     def portal_contributor_with_multiple_contributions_over_multiple_rps(
-        self, portal_contributor_with_multiple_contributions
+        self, portal_contributor_with_multiple_contributions, stripe_subscription, faker
     ):
         contributor, _, _, _ = portal_contributor_with_multiple_contributions
         rp2 = RevenueProgramFactory()
@@ -1580,6 +1580,10 @@ class TestPortalContributorsViewSet:
             status=ContributionStatus.PAID,
             donation_page__revenue_program=rp2,
             contributor=contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
         return contributor
 
@@ -1649,7 +1653,10 @@ class TestPortalContributorsViewSet:
         self, api_client, portal_contributor_with_multiple_contributions_over_multiple_rps
     ):
         contributor = portal_contributor_with_multiple_contributions_over_multiple_rps
-        rps = contributor.contribution_set.values_list("donation_page__revenue_program", flat=True).distinct()
+        # "Set" initial list to get unique revenue programs, than transform back to "list" for indexing
+        rps = list(
+            set(contributor.contribution_set.values_list("donation_page__revenue_program", flat=True).distinct())
+        )
         assert len(rps) > 1
         api_client.force_authenticate(contributor)
 
@@ -2118,6 +2125,55 @@ class TestPortalContributorsViewSet:
             )
         else:
             mock_pm_attach.assert_not_called()
+            mock_update_sub.assert_not_called()
+
+    @pytest.mark.parametrize("request_data", [{}, {"amount": 100}])
+    def test_contribution_detail_patch_amount(
+        self,
+        request_data,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        mock_sub_item_list = mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mock_update_sub = mocker.patch("stripe.Subscription.modify")
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contribution.id,
+                ),
+            ),
+            data=request_data,
+        )
+        assert response.status_code == status.HTTP_200_OK
+        contribution.refresh_from_db()
+        if amount := request_data.get("amount"):
+            assert contribution.amount == amount
+            assert contribution.contribution_metadata["donor_selected_amount"] == amount
+            mock_update_sub.assert_called()
+        else:
+            mock_sub_item_list.assert_not_called()
             mock_update_sub.assert_not_called()
 
     def test_contribution_detail_patch_when_not_own_contribution(

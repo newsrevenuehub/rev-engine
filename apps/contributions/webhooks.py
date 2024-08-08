@@ -237,63 +237,67 @@ class StripeWebhookProcessor:
     def handle_payment_intent_failed(self):
         # Only send failed email if org not connected to Salesforce
         if not self.contribution.revenue_program.organization.show_connected_to_salesforce:
-            logger.info(
-                "[StripeWebhookProcessor][handle_payment_intent_failed] Salesforce not connected for %s",
-                self.contribution.id,
-            )
-            logger.info(
-                "[StripeWebhookProcessor][handle_payment_intent_failed] Retrieving customer for account: %s",
-                self.contribution.stripe_account_id,
-            )
-            try:
-                customer = stripe.Customer.retrieve(
-                    self.contribution.provider_customer_id,
-                    stripe_account=self.contribution.stripe_account_id,
-                )
-            except StripeError:
-                logger.exception(
-                    "Something went wrong retrieving Stripe customer for contribution with ID %s",
-                    self.contribution.id,
-                )
-                return
+            self.send_failed_contribution_email()
 
-            magic_link = generate_magic_link(
-                self.contribution.contributor,
-                self.contribution.revenue_program,
-                next_url=f"/portal/my-contributions/{self.contribution.id}/",
-            )
-
-            data = {
-                "contribution_amount": self.contribution.formatted_amount,
-                "contribution_interval_display_value": self.contribution.interval,
-                "contributor_email": self.contribution.contributor.email,
-                "contributor_name": customer.name,
-                "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
-                "fiscal_sponsor_name": self.contribution.revenue_program.fiscal_sponsor_name,
-                "fiscal_status": self.contribution.revenue_program.fiscal_status,
-                "magic_link": mark_safe(magic_link),
-                "non_profit": self.contribution.revenue_program.non_profit,
-                "rp_name": self.contribution.revenue_program.name,
-                "style": asdict(self.contribution.revenue_program.transactional_email_style),
-                "tax_id": self.contribution.revenue_program.tax_id,
-                "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y"),
-                "rp_email": self.contribution.revenue_program.contact_email,
-            }
-
-            logger.info(
-                "[StripeWebhookProcessor][handle_payment_intent_failed] Sending failed email to %s with data: %s",
-                data["contributor_email"],
-                data,
-            )
-            send_templated_email.delay(
-                data["contributor_email"],
-                "Failed payment",
-                render_to_string("nrh-default-contribution-failed-email.txt", data),
-                render_to_string("nrh-default-contribution-failed-email.html", data),
-            )
         self._handle_contribution_update(
             {"status": ContributionStatus.FAILED},
             "`StripeWebhookProcessor.handle_payment_intent_failed` updated contribution",
+        )
+
+    def send_failed_contribution_email(self):
+        logger.info(
+            "[StripeWebhookProcessor][handle_payment_intent_failed] Salesforce not connected for %s",
+            self.contribution.id,
+        )
+        logger.info(
+            "[StripeWebhookProcessor][handle_payment_intent_failed] Retrieving customer for account: %s",
+            self.contribution.stripe_account_id,
+        )
+        try:
+            customer = stripe.Customer.retrieve(
+                self.contribution.provider_customer_id,
+                stripe_account=self.contribution.stripe_account_id,
+            )
+        except StripeError:
+            logger.exception(
+                "Something went wrong retrieving Stripe customer for contribution with ID %s",
+                self.contribution.id,
+            )
+            return
+
+        magic_link = generate_magic_link(
+            self.contribution.contributor,
+            self.contribution.revenue_program,
+            next_url=f"/portal/my-contributions/{self.contribution.id}/",
+        )
+
+        data = {
+            "contribution_amount": self.contribution.formatted_amount,
+            "contribution_interval_display_value": self.contribution.interval,
+            "contributor_email": self.contribution.contributor.email,
+            "contributor_name": customer.name if customer else None,
+            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
+            "fiscal_sponsor_name": self.contribution.revenue_program.fiscal_sponsor_name,
+            "fiscal_status": self.contribution.revenue_program.fiscal_status,
+            "magic_link": mark_safe(magic_link),
+            "non_profit": self.contribution.revenue_program.non_profit,
+            "rp_name": self.contribution.revenue_program.name,
+            "style": asdict(self.contribution.revenue_program.transactional_email_style),
+            "tax_id": self.contribution.revenue_program.tax_id,
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y"),
+            "rp_email": self.contribution.revenue_program.contact_email,
+        }
+
+        logger.info(
+            "[StripeWebhookProcessor][handle_payment_intent_failed] Sending failed email to %s with data: %s",
+            data["contributor_email"],
+            data,
+        )
+        send_templated_email.delay(
+            data["contributor_email"],
+            "Failed payment",
+            render_to_string("nrh-default-contribution-failed-email.txt", data),
+            render_to_string("nrh-default-contribution-failed-email.html", data),
         )
 
     def handle_payment_intent_succeeded(self):

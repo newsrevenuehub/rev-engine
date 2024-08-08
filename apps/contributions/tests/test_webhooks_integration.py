@@ -267,6 +267,28 @@ class TestPaymentIntentPaymentFailed:
         mock_subscription_create.assert_not_called()
         send_email_spy.assert_not_called()
 
+    def test_failed_customer_retrieval(self, client, payment_intent_payment_failed, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError("Some other error"))
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"],
+        )
+        contribution.revenue_program.organization.show_connected_to_salesforce = False
+        contribution.revenue_program.organization.save()
+        contribution.refresh_from_db()
+        spy = mocker.spy(Contribution, "save")
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
+        spy.assert_called_once_with(contribution, update_fields={"status", "modified"})
+
+        assert response.status_code == status.HTTP_200_OK
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.FAILED
+        send_email_spy.assert_not_called()
+
     def test_send_failed_email(self, client, payment_intent_payment_failed, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         mock_subscription_create = mocker.patch(

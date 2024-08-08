@@ -30,6 +30,7 @@ from apps.contributions.serializers import (
     PortalContributionDetailSerializer,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.test_models import MockSubscription
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
@@ -1694,6 +1695,7 @@ class TestPortalContributionBaseSerializer:
 @pytest.mark.django_db()
 class TestPortalContributionDetailSerializer:
     def test_update_amount_monthly_contribution(self, mocker, monthly_contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
         mocker.patch(
             "stripe.SubscriptionItem.list",
             return_value={
@@ -1718,6 +1720,7 @@ class TestPortalContributionDetailSerializer:
         assert updated_contribution.amount == 123
 
     def test_update_amount_one_time_contribution(self, mocker, one_time_contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
         mocker.patch(
             "stripe.SubscriptionItem.list",
             return_value={

@@ -102,7 +102,7 @@
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
     <p class="user-info inner-center">
-      Dear {{ contributor_name }},
+      Dear {% if contributor_name %}{{ contributor_name }}{% else %}contributor{% endif %},
     </p>
     <p class="user-info user-info-second-line inner-center">
       Thank you for supporting {{ rp_name }}.

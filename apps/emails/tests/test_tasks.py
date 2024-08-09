@@ -117,9 +117,10 @@ class TestSendThankYouEmail:
         ],
     )
     @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_happy_path(self, make_contribution_fn, show_billing_history, mocker):
+    @pytest.mark.parametrize("contributor_name", ["John Doe", None])
+    def test_happy_path(self, make_contribution_fn, show_billing_history, contributor_name, mocker):
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
         contribution = make_contribution_fn()
         data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
@@ -134,6 +135,8 @@ class TestSendThankYouEmail:
                 assert f"<p class=\"billing-history-value\">{history['payment_status']}</p>" in email_html
         else:
             assert "Billing History" not in email_html
+
+        assert f"Dear {contributor_name}," if contributor_name else "Dear contributor," in email_html
 
         mock_send_mail.assert_called_once_with(
             subject="Thank you for your contribution!",

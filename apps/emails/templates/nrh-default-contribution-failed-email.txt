@@ -3,7 +3,7 @@
 {% block header %}
 Failed Contribution
 
-Dear {{ contributor_name }},
+Dear {% if contributor_name %}{{ contributor_name }}{% else %}contributor{% endif %},
 A recurring contribution to {{ rp_name }} failed to process on {{ timestamp }}. Please update the payment method on the Contributor Portal or reach out to {{ rp_name }} for assistance.
 {% endblock header %}
 

@@ -289,10 +289,11 @@ class TestPaymentIntentPaymentFailed:
         assert contribution.status == ContributionStatus.FAILED
         send_email_spy.assert_not_called()
 
-    def test_send_failed_email(self, client, payment_intent_payment_failed, mocker):
+    @pytest.mark.parametrize("customer_name", ["Josh Doe", None])
+    def test_send_failed_email(self, client, payment_intent_payment_failed, mocker, customer_name):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         mock_subscription_create = mocker.patch(
-            "stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"})
+            "stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name})
         )
         mocker.patch(
             "apps.api.serializers.ContributorObtainTokenSerializer.get_token",
@@ -325,7 +326,7 @@ class TestPaymentIntentPaymentFailed:
             "contribution_amount": contribution.formatted_amount,
             "contribution_interval_display_value": contribution.interval,
             "contributor_email": contribution.contributor.email,
-            "contributor_name": "some customer name",
+            "contributor_name": customer_name,
             "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
             "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
             "fiscal_status": contribution.revenue_program.fiscal_status,
@@ -343,6 +344,7 @@ class TestPaymentIntentPaymentFailed:
         assert send_email_spy.call_args[0][1] == "Failed payment"
         assert send_email_spy.call_args[0][2] == render_to_string("nrh-default-contribution-failed-email.txt", data)
         assert send_email_spy.call_args[0][3] == render_to_string("nrh-default-contribution-failed-email.html", data)
+        assert f"Dear {customer_name}," if customer_name else "Dear contributor," in send_email_spy.call_args[0][2]
 
     def test_when_contribution_found(self, client, payment_intent_payment_failed, mocker):
         mocker.patch("stripe.Customer.retrieve")

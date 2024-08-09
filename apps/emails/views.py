@@ -17,6 +17,7 @@ PERMITTED_TEMPLATES = tuple(
             "recurring-contribution-canceled",
             "recurring-contribution-payment-updated",
             "nrh-default-contribution-confirmation-email",
+            "nrh-default-contribution-failed-email",
         ]
         for ext in ["html", "txt"]
     ]
@@ -43,11 +44,12 @@ def preview_contribution_email_template(request, template_name: str):
         "contribution_interval_display_value": "year",
         "timestamp": datetime.datetime.now(datetime.timezone.utc),
         "contribution_amount": "$123.45",
-        "contributor_name": "Contributor Name",
+        "contributor_name": "John Doe",
         "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
         "contributor_email": "nobody@fundjournalism.org",
         "magic_link": "https://magic-link",
         "rp_name": rp.name,
+        "rp_email": rp.contact_email,
         "style": rp_style,
         "default_contribution_page_url": rp.default_donation_page.page_url if rp.default_donation_page else None,
         "show_billing_history": True,

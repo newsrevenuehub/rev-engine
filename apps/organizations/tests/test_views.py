@@ -1358,7 +1358,7 @@ class TestSendTestEmail:
     ):
         rp = hub_admin_user_with_rps_in_ra.roleassignment.revenue_programs.first()
         api_client.force_authenticate(hub_admin_user_with_rps_in_ra)
-        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        mocker.patch("apps.emails.tasks.generate_magic_link", return_value="fake_magic_link")
         send_email_spy = mocker.spy(send_templated_email, "delay")
 
         api_client.post(
@@ -1408,7 +1408,7 @@ class TestSendTestEmail:
             else revenue_program
         )
 
-        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        mocker.patch("apps.emails.tasks.generate_magic_link", return_value="fake_magic_link")
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
         expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
@@ -1428,7 +1428,7 @@ class TestSendTestEmail:
         )
 
         send_email_spy = mocker.spy(send_templated_email, "delay")
-        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        mocker.patch("apps.emails.tasks.generate_magic_link", return_value="fake_magic_link")
         expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
         api_client.post(
@@ -1452,7 +1452,7 @@ class TestSendTestEmail:
         )
 
         send_email_spy = mocker.spy(send_templated_email, "delay")
-        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        mocker.patch("apps.emails.tasks.generate_magic_link", return_value="fake_magic_link")
         expected_data = make_send_test_magic_link_email_data(test_email_user, rp)
         expected_data["style"]["logo_url"] = f"{settings.SITE_URL}/static/nre-logo-white.png"
         api_client.post(

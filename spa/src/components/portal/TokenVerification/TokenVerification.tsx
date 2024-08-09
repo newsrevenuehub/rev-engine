@@ -7,10 +7,10 @@ import TokenError from './TokenError';
 
 export function TokenVerification() {
   const { search } = useLocation();
-  const { email, token } = useMemo(() => {
+  const { email, token, redirect } = useMemo(() => {
     const params = new URLSearchParams(search);
 
-    return { email: params.get('email'), token: params.get('token') };
+    return { email: params.get('email'), token: params.get('token'), redirect: params.get('redirect') };
   }, [search]);
   const [error, setError] = useState<Error | undefined>(
     !email || !token ? new Error('Missing querystring params') : undefined
@@ -32,7 +32,7 @@ export function TokenVerification() {
   }, [email, token, verifyToken]);
 
   if (contributor) {
-    return <Redirect to={PORTAL.CONTRIBUTIONS} />;
+    return <Redirect to={redirect ?? PORTAL.CONTRIBUTIONS} />;
   }
 
   if (error) {

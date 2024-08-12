@@ -119,11 +119,14 @@ class Command(BaseCommand):
                     f"Caching Stripe subs and PIs for account {account_id}, metadata version {version}"
                 )
             )
+            # no cover pragmas below are because testing these lambdas has a low ROI.
             importer.list_and_cache_payment_intents_with_metadata_version(
-                metadata_version=version, prune_fn=lambda x: {"id": x["id"], "created": x["created"]}
+                metadata_version=version,
+                prune_fn=lambda x: {"id": x["id"], "created": x["created"]},  # pragma: no cover
             )
             importer.list_and_cache_subscriptions_with_metadata_version(
-                metadata_version=version, prune_fn=lambda x: {"id": x["id"], "start_date": x["start_date"]}
+                metadata_version=version,
+                prune_fn=lambda x: {"id": x["id"], "start_date": x["start_date"]},  # pragma: no cover
             )
         # Update contributions.
         to_update = []

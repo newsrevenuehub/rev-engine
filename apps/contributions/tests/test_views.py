@@ -1571,7 +1571,7 @@ class TestPortalContributorsViewSet:
 
     @pytest.fixture()
     def portal_contributor_with_multiple_contributions_over_multiple_rps(
-        self, portal_contributor_with_multiple_contributions
+        self, portal_contributor_with_multiple_contributions, stripe_subscription, faker
     ):
         contributor, _, _, _ = portal_contributor_with_multiple_contributions
         rp2 = RevenueProgramFactory()
@@ -1580,6 +1580,10 @@ class TestPortalContributorsViewSet:
             status=ContributionStatus.PAID,
             donation_page__revenue_program=rp2,
             contributor=contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
         return contributor
 
@@ -1649,7 +1653,10 @@ class TestPortalContributorsViewSet:
         self, api_client, portal_contributor_with_multiple_contributions_over_multiple_rps
     ):
         contributor = portal_contributor_with_multiple_contributions_over_multiple_rps
-        rps = contributor.contribution_set.values_list("donation_page__revenue_program", flat=True).distinct()
+        # "Set" initial list to get unique revenue programs, than transform back to "list" for indexing
+        rps = list(
+            set(contributor.contribution_set.values_list("donation_page__revenue_program", flat=True).distinct())
+        )
         assert len(rps) > 1
         api_client.force_authenticate(contributor)
 

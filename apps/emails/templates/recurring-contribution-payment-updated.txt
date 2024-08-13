@@ -3,7 +3,7 @@
 {% block header %}
 New Change to Your Contribution
 
-Dear {% if contributor_name %}{{ contributor_name }}{% else %}contributor{% endif %},
+Dear {{ contributor_name }},
 
 You've recently changed your payment method for a contribution to {{ rp_name }}.
 {% endblock header %}

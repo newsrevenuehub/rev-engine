@@ -3,7 +3,7 @@
 {% block header %}
 Canceled Contribution
 
-Dear {% if contributor_name %}{{ contributor_name }}{% else %}contributor{% endif %},
+Dear {{ contributor_name }},
 
 You've canceled your contribution to {{ rp_name }}.
 {% endblock header %}

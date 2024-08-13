@@ -63,8 +63,9 @@ class TestMakeSendThankYouEmailData:
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_happy_path(self, contribution, show_billing_history, mocker):
-        mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
+    @pytest.mark.parametrize("contributor_name", ["customer_name", None])
+    def test_happy_path(self, contribution, show_billing_history, contributor_name, mocker):
+        mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
@@ -76,7 +77,7 @@ class TestMakeSendThankYouEmailData:
             ),
             contribution_interval=contribution.interval,
             contributor_email=contribution.contributor.email,
-            contributor_name=mock_fetch_customer.return_value.name,
+            contributor_name=mock_fetch_customer.return_value.name or "contributor",
             copyright_year=contribution.created.year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,

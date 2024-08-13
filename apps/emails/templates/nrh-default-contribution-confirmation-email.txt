@@ -3,7 +3,7 @@
 {% block header %}
 Thank you for your contribution!
 
-Dear  {% if contributor_name %}{{ contributor_name }}{% else %}contributor{% endif %},
+Dear {{ contributor_name }},
 Thank you for supporting {{ rp_name }}.
 {% endblock header %}
 

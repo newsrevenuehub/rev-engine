@@ -78,6 +78,7 @@ class SendContributionEmailData(TypedDict):
     contribution_interval_display_value: str
     copyright_year: int
     rp_name: str
+    rp_email: str
     contributor_name: str
     non_profit: bool
     fiscal_status: Literal[FiscalStatuses.FISCALLY_SPONSORED, FiscalStatuses.FOR_PROFIT, FiscalStatuses.NON_PROFIT]
@@ -100,7 +101,10 @@ class SendMagicLinkEmailData(TypedDict):
 
 
 def make_send_thank_you_email_data(
-    contribution: Contribution, show_billing_history: bool = False
+    contribution: Contribution,
+    show_billing_history: bool = False,
+    custom_magic_link: str | None = None,
+    custom_timestamp: str | None = None,
 ) -> SendContributionEmailData:
     logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
 
@@ -126,7 +130,7 @@ def make_send_thank_you_email_data(
 
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
-        timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+        timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
         contribution_interval_display_value=(
             contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
         ),
@@ -136,9 +140,10 @@ def make_send_thank_you_email_data(
         copyright_year=contribution.created.year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
-        magic_link=Contributor.create_magic_link(contribution),
+        magic_link=custom_magic_link or Contributor.create_magic_link(contribution),
         non_profit=contribution.revenue_program.non_profit,
         rp_name=contribution.revenue_program.name,
+        rp_email=contribution.revenue_program.contact_email,
         style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
         show_upgrade_prompt=False,

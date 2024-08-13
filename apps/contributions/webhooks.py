@@ -1,7 +1,7 @@
 import datetime
 import logging
 import operator
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from functools import cached_property, reduce
 
 from django.conf import settings
@@ -13,7 +13,6 @@ from django.utils.timezone import make_aware
 
 import reversion
 import stripe
-from stripe.error import StripeError
 
 from apps.contributions.models import (
     Contribution,
@@ -22,7 +21,12 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.types import StripeEventData
-from apps.emails.tasks import generate_magic_link, send_templated_email
+from apps.emails.tasks import (
+    EmailTaskException,
+    generate_magic_link,
+    make_send_thank_you_email_data,
+    send_templated_email,
+)
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -249,21 +253,6 @@ class StripeWebhookProcessor:
             "[StripeWebhookProcessor][handle_payment_intent_failed] Salesforce not connected for %s",
             self.contribution.id,
         )
-        logger.info(
-            "[StripeWebhookProcessor][handle_payment_intent_failed] Retrieving customer for account: %s",
-            self.contribution.stripe_account_id,
-        )
-        try:
-            customer = stripe.Customer.retrieve(
-                self.contribution.provider_customer_id,
-                stripe_account=self.contribution.stripe_account_id,
-            )
-        except StripeError:
-            logger.exception(
-                "Something went wrong retrieving Stripe customer for contribution with ID %s",
-                self.contribution.id,
-            )
-            return
 
         magic_link = generate_magic_link(
             self.contribution.contributor,
@@ -271,22 +260,17 @@ class StripeWebhookProcessor:
             next_url=f"/portal/my-contributions/{self.contribution.id}/",
         )
 
-        data = {
-            "contribution_amount": self.contribution.formatted_amount,
-            "contribution_interval_display_value": self.contribution.interval,
-            "contributor_email": self.contribution.contributor.email,
-            "contributor_name": customer.name if customer else None,
-            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
-            "fiscal_sponsor_name": self.contribution.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.contribution.revenue_program.fiscal_status,
-            "magic_link": mark_safe(magic_link),
-            "non_profit": self.contribution.revenue_program.non_profit,
-            "rp_name": self.contribution.revenue_program.name,
-            "style": asdict(self.contribution.revenue_program.transactional_email_style),
-            "tax_id": self.contribution.revenue_program.tax_id,
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y"),
-            "rp_email": self.contribution.revenue_program.contact_email,
-        }
+        try:
+            data = make_send_thank_you_email_data(
+                self.contribution,
+                custom_magic_link=mark_safe(magic_link),
+                custom_timestamp=datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y"),
+            )
+        except EmailTaskException:
+            logger.exception(
+                "[StripeWebhookProcessor][handle_payment_intent_failed] Something went wrong while creating data for email",
+            )
+            return
 
         logger.info(
             "[StripeWebhookProcessor][handle_payment_intent_failed] Sending failed email to %s with data: %s",

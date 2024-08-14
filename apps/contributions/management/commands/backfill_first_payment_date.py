@@ -64,12 +64,19 @@ class Command(BaseCommand):
                 f"or revision comment '{REVISION_COMMENT}'"
             )
         )
-        qs = Contribution.objects.with_stripe_account().filter(
-            Q(
-                Q(provider_payment_id__isnull=False, interval=ContributionInterval.ONE_TIME)
-                | Q(
-                    provider_subscription_id__isnull=False,
-                    interval__in=(ContributionInterval.MONTHLY, ContributionInterval.YEARLY),
+        # Removing ordering here (which defaults to creation date) so that we
+        # can later use distinct() to get distinct account IDs. If we leave it
+        # in, the created column is selected which defeats the purpose of the distinct.
+        qs = (
+            Contribution.objects.order_by()
+            .with_stripe_account()
+            .filter(
+                Q(
+                    Q(provider_payment_id__isnull=False, interval=ContributionInterval.ONE_TIME)
+                    | Q(
+                        provider_subscription_id__isnull=False,
+                        interval__in=(ContributionInterval.MONTHLY, ContributionInterval.YEARLY),
+                    )
                 )
             )
         )
@@ -203,7 +210,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO(f"Running {self.name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
         contributions = self.get_contributions().with_stripe_account()
-        account_ids = set(contributions.values_list("stripe_account", flat=True))
+        account_ids = contributions.values_list("stripe_account", flat=True).distinct()
         for stripe_account_id in account_ids:
             self.handle_account(
                 account_id=stripe_account_id, contributions=contributions.filter(stripe_account=stripe_account_id)

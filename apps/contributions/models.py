@@ -244,11 +244,11 @@ class ContributionQuerySet(models.QuerySet):
         versions_with_comment = Version.objects.filter(revision__comment=comment)
         # Get the content type for the Contribution model
         contribution_ct = ContentType.objects.get_for_model(Contribution)
-        contribution_ids = versions_with_comment.filter(content_type=contribution_ct).values_list(
-            "object_id", flat=True
+        contribution_ids = (
+            versions_with_comment.annotate(integer_id=models.functions.Cast("object_id", models.IntegerField()))
+            .filter(content_type=contribution_ct)
+            .values_list("integer_id", flat=True)
         )
-        # Ensure IDs are integers
-        contribution_ids = list(map(int, contribution_ids))
         # Return filtered Contribution objects
         return Contribution.objects.filter(id__in=contribution_ids)
 

@@ -11,4 +11,6 @@ jobs:
       - name: 'Checkout Repository'
         uses: actions/checkout@v3
       - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v2
+        uses: actions/dependency-review-action@v4
+        with:
+          allow-ghsas: GHSA-g92j-qhmh-64v2  # Sentry-sdk - to be addressed on DEV-5102

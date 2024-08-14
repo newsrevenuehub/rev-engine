@@ -404,7 +404,7 @@ class StripeTransactionsImporter:
     def list_and_cache_subscriptions_with_metadata_version(
         self, metadata_version: str, prune_fn: Callable | None = None
     ) -> Iterable[stripe.Subscription]:
-        """Get and cache subsriptions with given metadata version for a given stripe account."""
+        """Get and cache subscriptions with given metadata version for a given stripe account."""
         self.list_and_cache_entities(  # pragma: no branch False positive `exitline... didn't jump to the function exit`
             entity_name="Subscription",
             prune_fn=prune_fn,

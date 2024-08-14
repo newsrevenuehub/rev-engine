@@ -172,36 +172,36 @@ class Command(BaseCommand):
                     pi["created"], tz=datetime.timezone.utc
                 )
                 to_update.append(contribution)
-            else:
-                sub = importer.get_resource_from_cache(
-                    key=importer.make_key(entity_name="Subscription", entity_id=contribution.provider_subscription_id)
-                )
-                if not sub:
-                    self.stdout.write(
-                        self.style.HTTP_INFO(f"Contribution {contribution.id} isn't in cache, retrieving from Stripe")
-                    )
-                    try:
-                        sub = stripe.Subscription.retrieve(
-                            contribution.provider_subscription_id, stripe_account=contribution.stripe_account_id
-                        )
-                    except stripe.error.InvalidRequestError:
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f"Could not find subscription for contribution {contribution.id} with "
-                                f"provider_subscription_id {contribution.provider_subscription_id}"
-                            )
-                        )
-                        continue
+                continue
+            sub = importer.get_resource_from_cache(
+                key=importer.make_key(entity_name="Subscription", entity_id=contribution.provider_subscription_id)
+            )
+            if not sub:
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Found subscription {sub['id']} for contribution {contribution.id}. "
-                        f"Setting first_billing_date to subscription first ({sub['start_date']})"
+                    self.style.HTTP_INFO(f"Contribution {contribution.id} isn't in cache, retrieving from Stripe")
+                )
+                try:
+                    sub = stripe.Subscription.retrieve(
+                        contribution.provider_subscription_id, stripe_account=contribution.stripe_account_id
                     )
+                except stripe.error.InvalidRequestError:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Could not find subscription for contribution {contribution.id} with "
+                            f"provider_subscription_id {contribution.provider_subscription_id}"
+                        )
+                    )
+                    continue
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Found subscription {sub['id']} for contribution {contribution.id}. "
+                    f"Setting first_billing_date to subscription first ({sub['start_date']})"
                 )
-                contribution.first_payment_date = datetime.datetime.fromtimestamp(
-                    sub["start_date"], tz=datetime.timezone.utc
-                )
-                to_update.append(contribution)
+            )
+            contribution.first_payment_date = datetime.datetime.fromtimestamp(
+                sub["start_date"], tz=datetime.timezone.utc
+            )
+            to_update.append(contribution)
         self.stdout.write(self.style.HTTP_INFO(f"Bulk updating {len(to_update)} contributions"))
         Contribution.objects.bulk_update(to_update, ["first_payment_date", "modified"])
         self.stdout.write(self.style.SUCCESS(f"Account {account_id} is done"))

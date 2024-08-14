@@ -554,7 +554,10 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.stripe_account_id,
             metadata=metadata,
             payment_behavior="error_if_incomplete" if error_if_incomplete else "default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
+            payment_settings={
+                "save_default_payment_method": "on_subscription",
+                "payment_method_types": ["card"],
+            },
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
             idempotency_key=f"{self.uuid}-subscription",

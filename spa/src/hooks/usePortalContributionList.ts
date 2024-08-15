@@ -28,9 +28,14 @@ export interface PortalContribution {
    */
   card_last_4: string;
   /**
-   * Timestamp of when the contribution was created.
+   * Timestamp of when the contribution was created. This is *not* necessarily
+   * when the transaction occurred.
    */
   created: string;
+  /**
+   * Timestamp of when the first related payment occurred.
+   */
+  first_payment_date: string;
   /**
    * Internal ID of the contribution.
    */
@@ -47,7 +52,6 @@ export interface PortalContribution {
    * Can the contribution be modified? (e.g. to change its payment method)
    */
   is_modifiable: boolean;
-
   /**
    * Timestamp of when the last related payment occurred. This may be null in
    * recurring contributions that have been migrated from legacy subscriptions.

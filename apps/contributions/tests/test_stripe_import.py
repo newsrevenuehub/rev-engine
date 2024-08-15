@@ -465,6 +465,44 @@ class TestStripeTransactionsImporter:
             kwargs["exclude_fn"] = mock_should_exclude
         mock_list_and_cache.assert_called_once_with(**kwargs)
 
+    def test_list_and_cache_payment_intents_with_metadata_version(self, mocker):
+        mock_list_and_patch = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_entities"
+        )
+        StripeTransactionsImporter(stripe_account_id="test").list_and_cache_payment_intents_with_metadata_version(
+            metadata_version=(version := "v1"),
+            prune_fn=(prune_fn := mocker.Mock()),
+        )
+        mock_list_and_patch.assert_called_once_with(
+            entity_name="PaymentIntent",
+            prune_fn=prune_fn,
+            list_kwargs={"query": f'metadata["schema_version"]:"{version}"'},
+            use_search_api=True,
+        )
+
+    def test_list_and_cache_subscriptions_with_metadata_version(self, mocker):
+        mock_list_and_patch = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_entities"
+        )
+        StripeTransactionsImporter(stripe_account_id="test").list_and_cache_subscriptions_with_metadata_version(
+            metadata_version=(version := "v1"),
+            prune_fn=(prune_fn := mocker.Mock()),
+        )
+        mock_list_and_patch.assert_called_once_with(
+            entity_name="Subscription",
+            prune_fn=prune_fn,
+            list_kwargs={"query": f'metadata["schema_version"]:"{version}"'},
+            use_search_api=True,
+        )
+
+    def test_search_stripe_entity(self, mocker):
+        entity_name = "PaymentIntent"
+        instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
+        mock_list = mocker.patch("stripe.PaymentIntent.search")
+        mock_list.return_value.auto_paging_iter.return_value = (result := [mocker.Mock()])
+        assert instance.search_stripe_entity(entity_name) == result
+        mock_list.assert_called_once_with(stripe_account=stripe_id, limit=mocker.ANY, query=None)
+
     def test_get_redis_pipeline(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")

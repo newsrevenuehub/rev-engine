@@ -7,11 +7,19 @@ from django.db import migrations, models
 def set_first_payment_date_default(apps, schema_editor):
     # cribbed from
     # https://stackoverflow.com/questions/29787853/django-migrations-add-field-with-default-as-function-of-model
+    # and optimized for memory usage with chatgpt
     Contribution = apps.get_model("contributions", "contribution")
-    all_contributions = Contribution.objects.all()
-    for contribution in all_contributions:
-        contribution.first_payment_date = contribution.created
-    Contribution.objects.bulk_update(all_contributions, ["first_payment_date"], batch_size=1000)
+    batch_size = 1000
+    contributions_count = Contribution.objects.count()
+
+    for start in range(0, contributions_count, batch_size):
+        contributions = list(Contribution.objects.all()[start : start + batch_size])
+
+        for contribution in contributions:
+            contribution.first_payment_date = contribution.created
+
+        Contribution.objects.bulk_update(contributions, ["first_payment_date"], batch_size=batch_size)
+        del contributions  # Explicitly delete the processed contributions to free memory
 
 
 class Migration(migrations.Migration):

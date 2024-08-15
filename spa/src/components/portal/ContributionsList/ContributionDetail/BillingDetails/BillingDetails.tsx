@@ -29,7 +29,7 @@ export const INTERVAL_NAMES: Record<ContributionInterval, string> = {
 
 export function BillingDetails({ contribution, disabled }: BillingDetailsProps) {
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
-    new Date(contribution.created)
+    new Date(contribution.first_payment_date)
   );
 
   return (
@@ -47,7 +47,7 @@ export function BillingDetails({ contribution, disabled }: BillingDetailsProps) 
         </div>
         <div>
           <Subheading>Billing Date</Subheading>
-          <Detail data-testid="created">{formattedDate}</Detail>
+          <Detail data-testid="first-billing-date">{formattedDate}</Detail>
         </div>
         <div>
           <Subheading>Frequency</Subheading>

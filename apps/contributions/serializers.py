@@ -832,7 +832,6 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "card_expiration_date",
     "card_last_4",
     "created",
-    "first_payment_date",
     "interval",
     "is_cancelable",
     "is_modifiable",

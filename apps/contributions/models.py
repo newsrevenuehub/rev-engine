@@ -12,7 +12,6 @@ from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
@@ -22,7 +21,6 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
-from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
@@ -142,19 +140,6 @@ class ContributionQuerySet(models.QuerySet):
             )
         return self
 
-    def with_stripe_account(self):
-        """Annotate stripe_account_id as "stripe_account".
-
-        stripe_account even though it is the id and not object instead of *_id because Contribution had existing
-        property "stripe_account_id."
-        """
-        return self.annotate(
-            stripe_account=models.functions.Coalesce(
-                "_revenue_program__payment_provider__stripe_account_id",
-                "donation_page__revenue_program__payment_provider__stripe_account_id",
-            ),
-        )
-
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
         return self.exclude(
@@ -238,20 +223,6 @@ class ContributionQuerySet(models.QuerySet):
             provider_payment_method_id__isnull=True,
         )
 
-    def get_via_reversion_comment(self, comment: str) -> models.QuerySet[Contribution]:
-        """Return contributions with a specific reversion comment."""
-        # Filter versions based on the revision comment
-        versions_with_comment = Version.objects.filter(revision__comment=comment)
-        # Get the content type for the Contribution model
-        contribution_ct = ContentType.objects.get_for_model(Contribution)
-        contribution_ids = (
-            versions_with_comment.annotate(integer_id=models.functions.Cast("object_id", models.IntegerField()))
-            .filter(content_type=contribution_ct)
-            .values_list("integer_id", flat=True)
-        )
-        # Return filtered Contribution objects
-        return Contribution.objects.filter(id__in=contribution_ids)
-
 
 class ContributionManager(models.Manager):
     pass
@@ -276,7 +247,6 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
-    first_payment_date = models.DateTimeField(null=False, default=timezone.now)
     # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
     # DEV-4333
     last_payment_date = models.DateTimeField(null=True)

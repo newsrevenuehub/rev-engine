@@ -34,9 +34,11 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 COOKIE_PATH = "/"
 
 
-def is_url_absolute(url):
-    """Check if URL is absolute."""
-    return bool(urlparse(url).netloc)
+def is_url_absolute(url: str):
+    """Check if URL is absolute. Remove spaces before checking."""
+    if not url:
+        return False
+    return bool(urlparse(url.replace(" ", "")).netloc)
 
 
 def construct_rp_domain(subdomain, referer=None):

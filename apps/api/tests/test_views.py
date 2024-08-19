@@ -248,6 +248,9 @@ def revenue_program(request):
         "https://example.com/next",
         "https://example.com/next?foo=bar",
         "http://example.com/next?foo=bar",
+        " http://example.com/next?foo=bar",
+        " http ://example.com/next?foo=bar",
+        "ftp://example.com/next?foo=bar",
         "//www.example.com/some/path",
         "//www.example.com/some/path?foo=bar",
     ],
@@ -265,6 +268,8 @@ def test_get_magic_link_invalid_next_url(next_url):
 @pytest.mark.parametrize(
     "next_url",
     [
+        "next-url",
+        "next-url/",
         "/next-url",
         "/next-url/",
         "/next-url?foo=bar",

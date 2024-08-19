@@ -12,7 +12,6 @@ from django.core import mail
 from django.db import IntegrityError
 
 import pytest
-import reversion
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
@@ -1943,26 +1942,6 @@ class TestContributionQuerySetMethods:
         assert set(Contribution.objects.unmarked_abandoned_carts().values_list("id", flat=True)) == {
             c.id for c in unmarked_abandoned_contributions
         }
-
-    def test_with_stripe_account(self):
-        contribution_1 = ContributionFactory(one_time=True)
-        contribution_2 = ContributionFactory(
-            one_time=True, donation_page=None, _revenue_program=contribution_1.donation_page.revenue_program
-        )
-        assert contribution_1.stripe_account_id
-        assert contribution_2.stripe_account_id
-        assert set(Contribution.objects.with_stripe_account().values_list("stripe_account", flat=True)) == {
-            contribution_1.stripe_account_id
-        }
-
-    def test_get_via_reversion_comment(self):
-        expected_contribution = ContributionFactory()
-        # this one won't have the message
-        ContributionFactory()
-        with reversion.create_revision():
-            expected_contribution.save()
-            reversion.set_comment(msg := "foo")
-        assert set(Contribution.objects.get_via_reversion_comment(msg)) == {expected_contribution}
 
 
 @pytest.fixture()

@@ -1875,9 +1875,9 @@ class TestPortalContributorsViewSet:
                     case "revenue_program":
                         assert response.json()[k] == x.donation_page.revenue_program.id
 
-                    case "created" | "first_payment_date" | "last_payment_date":
+                    case "created" | "last_payment_date":
                         compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=ZoneInfo("UTC"))
-                        assert compare_val == getattr(x, k if k != "last_payment_date" else "_last_payment_date")
+                        assert compare_val == getattr(x, k if k == "created" else "_last_payment_date")
 
                     case "next_payment_date":
                         compare_val = (

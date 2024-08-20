@@ -17,7 +17,7 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
     SendContributionEmailData,
-    get_test_magic_link,
+    generate_magic_link,
     logger,
     make_send_thank_you_email_data,
     send_templated_email_with_attachment,
@@ -31,7 +31,11 @@ from apps.users.tests.factories import UserFactory
 
 @pytest.mark.django_db()
 class TestMagicLink:
-    def test_get_test_magic_link(self, mocker):
+    @pytest.mark.parametrize(
+        "next_url",
+        [None, "/mock-url/", "/mock-url/next/?mock=param"],
+    )
+    def test_generate_magic_link(self, mocker, next_url):
         user = UserFactory()
         revenue_program = RevenueProgramFactory()
 
@@ -52,8 +56,9 @@ class TestMagicLink:
             "apps.api.views.construct_rp_domain",
             return_value="mock-domain",
         )
-        expected = f"https://{mock_construct_rp_domain.return_value}/{settings.CONTRIBUTOR_VERIFY_URL}?token={mock_contributor_serializer().validated_data['access']}&email={quote_plus(user.email)}"
-        assert expected == get_test_magic_link(user, revenue_program)
+        redirect = f"&redirect={quote_plus(next_url)}" if next_url else ""
+        expected = f"https://{mock_construct_rp_domain.return_value}/{settings.CONTRIBUTOR_VERIFY_URL}?token={mock_contributor_serializer().validated_data['access']}&email={quote_plus(user.email)}{redirect}"
+        assert expected == generate_magic_link(user, revenue_program, next_url=next_url)
 
 
 @pytest.mark.django_db()
@@ -62,15 +67,17 @@ class TestMakeSendThankYouEmailData:
     def contribution(self, request):
         return request.getfixturevalue(request.param)
 
+    @pytest.mark.parametrize("custom_magic_link", ["custom-magic-link", None])
+    @pytest.mark.parametrize("custom_timestamp", ["custom-timestamp", None])
     @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_happy_path(self, contribution, show_billing_history, mocker):
+    def test_happy_path(self, contribution, custom_magic_link, custom_timestamp, show_billing_history, mocker):
         mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
         expected = SendContributionEmailData(
             contribution_amount=contribution.formatted_amount,
-            timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+            timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
             contribution_interval_display_value=(
                 contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
             ),
@@ -80,16 +87,22 @@ class TestMakeSendThankYouEmailData:
             copyright_year=contribution.created.year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
-            magic_link=mock_get_magic_link.return_value,
+            magic_link=custom_magic_link or mock_get_magic_link.return_value,
             non_profit=contribution.revenue_program.non_profit,
             rp_name=contribution.revenue_program.name,
+            rp_email=contribution.revenue_program.contact_email,
             style=asdict(contribution.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
             show_upgrade_prompt=False,
             billing_history=contribution.get_billing_history(),
             show_billing_history=show_billing_history,
         )
-        actual = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        actual = make_send_thank_you_email_data(
+            contribution,
+            show_billing_history=show_billing_history,
+            custom_magic_link=custom_magic_link,
+            custom_timestamp=custom_timestamp,
+        )
         assert expected == actual
 
     def test_when_no_provider_customer_id(self, mocker):

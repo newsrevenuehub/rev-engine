@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from time import time
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote_plus, urlparse
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -237,6 +237,57 @@ class TestTokenObtainPairCookieView:
 @pytest.fixture(params=["free_plan_revenue_program", "core_plan_revenue_program", "plus_plan_revenue_program"])
 def revenue_program(request):
     return request.getfixturevalue(request.param)
+
+
+@pytest.mark.parametrize(
+    "next_url",
+    [
+        None,
+        "",
+        "https://example.com",
+        "https://example.com/next",
+        "https://example.com/next?foo=bar",
+        "http://example.com/next?foo=bar",
+        " http://example.com/next?foo=bar",
+        " http ://example.com/next?foo=bar",
+        "ftp://example.com/next?foo=bar",
+        "//www.example.com/some/path",
+        "//www.example.com/some/path?foo=bar",
+    ],
+)
+def test_get_magic_link_invalid_next_url(next_url):
+    domain = "mock-domain"
+    token = "mock-token"
+    email = "mock-email"
+    magic_link = RequestContributorTokenEmailView.get_magic_link(
+        domain=domain, token=token, email=email, next_url=next_url
+    )
+    assert magic_link == f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
+
+
+@pytest.mark.parametrize(
+    "next_url",
+    [
+        "next-url",
+        "next-url/",
+        "/next-url",
+        "/next-url/",
+        "/next-url?foo=bar",
+        "/next-url/?foo=bar",
+        "/next-url/bla/?foo=bar",
+    ],
+)
+def test_get_magic_link_valid_next_url(next_url):
+    domain = "mock-domain"
+    token = "mock-token"
+    email = "mock-email"
+    magic_link = RequestContributorTokenEmailView.get_magic_link(
+        domain=domain, token=token, email=email, next_url=next_url
+    )
+    assert (
+        magic_link
+        == f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}&redirect={quote_plus(next_url)}"
+    )
 
 
 @pytest.mark.parametrize(

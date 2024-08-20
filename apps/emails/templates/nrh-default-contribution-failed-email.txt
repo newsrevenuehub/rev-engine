@@ -1,0 +1,27 @@
+{% extends "nrh-default-contribution-base-template.txt" %}
+
+{% block header %}
+Failed Contribution
+
+Dear {{ contributor_name }},
+A recurring contribution to {{ rp_name }} failed to process on {{ timestamp }}. Please update the payment method on the Contributor Portal or reach out to {{ rp_name }} for assistance.
+{% endblock header %}
+
+{% block contribution_header %}Failed Contribution:{% endblock contribution_header %}
+
+{% block timestamp_label %}
+Failed
+{% endblock timestamp_label %}
+
+{% block contribution_footer %}
+Your contribution has a direct impact on the work that we do.
+Manage Contributions here: {{ magic_link }} {% if rp_email %} or email {{ rp_email }}{% endif %}.
+
+Already fixed this contribution? Please ignore this email.
+{% endblock contribution_footer %}
+
+{% block footer %}
+{% endblock footer %}
+
+{% block update_contribution %}
+{% endblock update_contribution %}

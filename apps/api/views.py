@@ -34,6 +34,13 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 COOKIE_PATH = "/"
 
 
+def is_url_absolute(url: str):
+    """Check if URL is absolute. Remove spaces before checking."""
+    if not url:
+        return False
+    return bool(urlparse(url.replace(" ", "")).netloc)
+
+
 def construct_rp_domain(subdomain, referer=None):
     """Find Revenue Program specific subdomain and use it to construct magic link host.
 
@@ -149,8 +156,16 @@ class RequestContributorTokenEmailView(APIView):
     throttle_classes = [ContributorRateThrottle]
 
     @staticmethod
-    def get_magic_link(domain, token, email):
-        return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
+    def get_magic_link(domain, token, email, next_url=None):
+        if is_url_absolute(next_url):
+            logger.warning(
+                "[RequestContributorTokenEmailView][get_magic_link] next_url (%s) is absolute, ignoring redirect",
+                next_url,
+            )
+            next_url = None
+
+        redirect = f"&redirect={quote_plus(next_url)}" if next_url else ""
+        return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}{redirect}"
 
     def post(self, request, *args, **kwargs):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)

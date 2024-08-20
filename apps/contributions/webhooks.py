@@ -7,6 +7,8 @@ from functools import cached_property, reduce
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
 from django.utils.timezone import make_aware
 
 import reversion
@@ -19,6 +21,12 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.types import StripeEventData
+from apps.emails.tasks import (
+    EmailTaskException,
+    generate_magic_link,
+    make_send_thank_you_email_data,
+    send_templated_email,
+)
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -231,9 +239,49 @@ class StripeWebhookProcessor:
         )
 
     def handle_payment_intent_failed(self):
+        # Only send failed email if org not connected to Salesforce
+        if not self.contribution.revenue_program.organization.show_connected_to_salesforce:
+            self.send_failed_contribution_email()
+
         self._handle_contribution_update(
             {"status": ContributionStatus.FAILED},
             "`StripeWebhookProcessor.handle_payment_intent_failed` updated contribution",
+        )
+
+    def send_failed_contribution_email(self):
+        logger.info(
+            "[StripeWebhookProcessor][handle_payment_intent_failed] Salesforce not connected for %s",
+            self.contribution.id,
+        )
+
+        magic_link = generate_magic_link(
+            self.contribution.contributor,
+            self.contribution.revenue_program,
+            next_url=f"/portal/my-contributions/{self.contribution.id}/",
+        )
+
+        try:
+            data = make_send_thank_you_email_data(
+                self.contribution,
+                custom_magic_link=mark_safe(magic_link),
+                custom_timestamp=datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y"),
+            )
+        except EmailTaskException:
+            logger.exception(
+                "[StripeWebhookProcessor][handle_payment_intent_failed] Something went wrong while creating data for email",
+            )
+            return
+
+        logger.info(
+            "[StripeWebhookProcessor][handle_payment_intent_failed] Sending failed email to %s with data: %s",
+            data["contributor_email"],
+            data,
+        )
+        send_templated_email.delay(
+            data["contributor_email"],
+            "Failed payment",
+            render_to_string("nrh-default-contribution-failed-email.txt", data),
+            render_to_string("nrh-default-contribution-failed-email.html", data),
         )
 
     def handle_payment_intent_succeeded(self):

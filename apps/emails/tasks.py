@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, TypedDict
-from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -79,6 +78,7 @@ class SendContributionEmailData(TypedDict):
     contribution_interval_display_value: str
     copyright_year: int
     rp_name: str
+    rp_email: str
     contributor_name: str
     non_profit: bool
     fiscal_status: Literal[FiscalStatuses.FISCALLY_SPONSORED, FiscalStatuses.FOR_PROFIT, FiscalStatuses.NON_PROFIT]
@@ -101,7 +101,10 @@ class SendMagicLinkEmailData(TypedDict):
 
 
 def make_send_thank_you_email_data(
-    contribution: Contribution, show_billing_history: bool = False
+    contribution: Contribution,
+    show_billing_history: bool = False,
+    custom_magic_link: str | None = None,
+    custom_timestamp: str | None = None,
 ) -> SendContributionEmailData:
     logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
 
@@ -127,7 +130,7 @@ def make_send_thank_you_email_data(
 
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
-        timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+        timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
         contribution_interval_display_value=(
             contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
         ),
@@ -137,9 +140,10 @@ def make_send_thank_you_email_data(
         copyright_year=contribution.created.year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
-        magic_link=Contributor.create_magic_link(contribution),
+        magic_link=custom_magic_link or Contributor.create_magic_link(contribution),
         non_profit=contribution.revenue_program.non_profit,
         rp_name=contribution.revenue_program.name,
+        rp_email=contribution.revenue_program.contact_email,
         style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
         show_upgrade_prompt=False,
@@ -168,7 +172,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
         copyright_year=now.year,
         fiscal_sponsor_name=revenue_program.fiscal_sponsor_name,
         fiscal_status=revenue_program.fiscal_status,
-        magic_link=get_test_magic_link(user, revenue_program),
+        magic_link=generate_magic_link(user, revenue_program),
         non_profit=revenue_program.non_profit,
         rp_name=revenue_program.name,
         style=asdict(revenue_program.transactional_email_style),
@@ -185,26 +189,26 @@ def make_send_test_magic_link_email_data(user, revenue_program) -> SendMagicLink
     )
 
     return SendMagicLinkEmailData(
-        magic_link=get_test_magic_link(user, revenue_program),
+        magic_link=generate_magic_link(user, revenue_program),
         email=user.email,
         rp_name=revenue_program.name,
         style=asdict(revenue_program.transactional_email_style),
     )
 
 
-def get_test_magic_link(user, revenue_program) -> str:
+def generate_magic_link(user, revenue_program, next_url=None) -> str:
     # vs circular import
     from apps.api.serializers import ContributorObtainTokenSerializer
-    from apps.api.views import construct_rp_domain
+    from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
     from apps.contributions.models import Contributor
 
     serializer = ContributorObtainTokenSerializer(data={"email": user.email, "subdomain": revenue_program.slug})
     serializer.is_valid(raise_exception=True)
-    contributor = Contributor(email=user.email)
+    contributor, _ = Contributor.objects.get_or_create(email=user.email)
     serializer.update_short_lived_token(contributor)
     token = serializer.validated_data["access"]
     domain = construct_rp_domain(serializer.validated_data.get("subdomain", ""), None)
-    return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(user.email)}"
+    return RequestContributorTokenEmailView.get_magic_link(domain, token, user.email, next_url)
 
 
 @shared_task(

@@ -28,6 +28,7 @@ from apps.contributions.choices import BadActorScores, ContributionInterval, Con
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
+    EmailTaskException,
     make_send_thank_you_email_data,
     send_templated_email,
     send_thank_you_email,
@@ -645,12 +646,18 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
 
-        data = make_send_thank_you_email_data(
-            self,
-            custom_timestamp=(
-                timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
-            ),
-        )
+        try:
+            data = make_send_thank_you_email_data(
+                self,
+                custom_timestamp=(
+                    timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+                ),
+            )
+        except EmailTaskException:
+            logger.exception(
+                "[Contribution.send_recurring_contribution_change_email] encountered an error trying to generate email data"
+            )
+            return
 
         send_templated_email.delay(
             self.contributor.email,

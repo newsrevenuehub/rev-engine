@@ -187,7 +187,7 @@ class StripeOAuthTest(AbstractTestCase):
         task_verify_apple_domain.delay.assert_called_with(revenue_program_slug=self.org1_rp2.slug)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_clear_cache")
 @pytest.mark.usefixtures("default_feature_flags")
 class TestContributionsViewSet:
@@ -400,7 +400,7 @@ class TestContributionsViewSet:
             assert {x["id"] for x in response.json()["results"]} == {x.id for x in expected}
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionViewSetForContributorUser:
     """Test the ContributionsViewSet's behavior when a contributor user is interacting with relevant endpoints."""
 
@@ -462,7 +462,7 @@ class TestContributionViewSetForContributorUser:
         assert response.json()["results"] == []
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionsViewSetExportCSV:
     """Test contribution viewset functionality around triggering emailed csv exports."""
 
@@ -556,7 +556,7 @@ class TestContributionsViewSetExportCSV:
         assert api_client.get(reverse("contribution-email-contributions")).status_code == expected_status
 
 
-@pytest.fixture()
+@pytest.fixture
 def loaded_cached_subscription_factory(revenue_program, subscription_factory, subscription_data_factory):
     class Factory:
         def get(self, rp_slug=None) -> AttrDict:
@@ -570,7 +570,7 @@ def loaded_cached_subscription_factory(revenue_program, subscription_factory, su
     return Factory()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestSubscriptionViewSet:
     def test__fetch_subscriptions_when_rp_not_found(self, revenue_program, mocker):
         rp_slug = revenue_program.slug
@@ -1115,7 +1115,7 @@ class TestSubscriptionViewSet:
         (False, False, "hub_user", "superuser", status.HTTP_403_FORBIDDEN),
     ],
 )
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_contributions_api_resource_feature_flagging(
     is_active_for_everyone,
     is_active_for_superusers,
@@ -1159,7 +1159,7 @@ def test_contributions_api_resource_feature_flagging(
     assert response.status_code == expected_status_code
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_feature_flagging_when_flag_not_found():
     """Should raise ApiConfigurationError if view is accessed and flag can't be found.
 
@@ -1178,7 +1178,7 @@ def test_feature_flagging_when_flag_not_found():
     assert response.json().get("detail", None) == "There was a problem with the API"
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_create_customer_response():
     return {"id": "customer-id"}
 
@@ -1187,7 +1187,7 @@ PI_ID = "stripe_id_123"
 PI_CLIENT_SECRET = "stripe_secret_abcde123"
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_create_payment_intent_response(stripe_create_customer_response):
     return {"id": PI_ID, "client_secret": PI_CLIENT_SECRET, "customer": stripe_create_customer_response["id"]}
 
@@ -1196,7 +1196,7 @@ SUBSCRIPTION_ID = "stripe_id_456"
 SUBSCRIPTION_CLIENT_SECRET = "stripe_secret_fghij456"
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_create_subscription_response(stripe_create_customer_response):
     return {
         "id": SUBSCRIPTION_ID,
@@ -1205,7 +1205,7 @@ def stripe_create_subscription_response(stripe_create_customer_response):
     }
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPaymentViewset:
     client = APIClient()
     # this is added because bad actor serializer needs referer
@@ -1380,7 +1380,7 @@ class TestPaymentViewset:
         assert response.json() == {"detail": "Something went wrong"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def payment_method_attached_request_data():
     with Path("apps/contributions/tests/fixtures/payment-method-attached-webhook.json").open() as f:
         return json.load(f)
@@ -1430,10 +1430,10 @@ class TestProcessStripeWebhook:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_clear_cache")
 class TestPortalContributorsViewSet:
-    @pytest.fixture()
+    @pytest.fixture
     def one_time_contribution(self, revenue_program, portal_contributor, mocker, faker):
         contribution = ContributionFactory(
             interval=ContributionInterval.ONE_TIME,
@@ -1452,7 +1452,7 @@ class TestPortalContributorsViewSet:
         )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def stripe_customer_factory(self, stripe_customer_default_source_expanded):
         def _stripe_customer_expanded_factory(customer_id, customer_email):
             return stripe.Customer.construct_from(
@@ -1466,7 +1466,7 @@ class TestPortalContributorsViewSet:
 
         return _stripe_customer_expanded_factory
 
-    @pytest.fixture()
+    @pytest.fixture
     def monthly_contribution(
         self,
         revenue_program,
@@ -1496,7 +1496,7 @@ class TestPortalContributorsViewSet:
             )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def yearly_contribution(
         self,
         revenue_program,
@@ -1526,11 +1526,11 @@ class TestPortalContributorsViewSet:
             )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def portal_contributor(self):
         return ContributorFactory()
 
-    @pytest.fixture()
+    @pytest.fixture
     def portal_contributor_with_multiple_contributions(
         self,
         portal_contributor,
@@ -1569,7 +1569,7 @@ class TestPortalContributorsViewSet:
             mock_subscription_modify,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def portal_contributor_with_multiple_contributions_over_multiple_rps(
         self, portal_contributor_with_multiple_contributions, stripe_subscription, faker
     ):
@@ -2145,7 +2145,7 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
-    @pytest.fixture()
+    @pytest.fixture
     def patch_data_setting_pm_id_to_empty_string(self):
         return {"provider_payment_method_id": ""}
 
@@ -2322,39 +2322,39 @@ class TestPortalContributorsViewSet:
         exclude_missing_stripe_sub_id.assert_called_once()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestSwitchboardContributionsViewSet:
 
-    @pytest.fixture()
+    @pytest.fixture
     def switchboard_user(self, settings):
         settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
         return UserFactory(email=email)
 
-    @pytest.fixture()
+    @pytest.fixture
     def other_user(self):
         return UserFactory(is_superuser=True)
 
-    @pytest.fixture()
+    @pytest.fixture
     def organization(self):
         return OrganizationFactory()
 
-    @pytest.fixture()
+    @pytest.fixture
     def rp_1(self, organization):
         return RevenueProgramFactory(organization=organization)
 
-    @pytest.fixture()
+    @pytest.fixture
     def rp_2(self, organization):
         return RevenueProgramFactory(organization=organization)
 
-    @pytest.fixture()
+    @pytest.fixture
     def other_orgs_rp(self):
         return RevenueProgramFactory()
 
-    @pytest.fixture()
+    @pytest.fixture
     def contribution_with_donation_page(self, rp_1):
         return ContributionFactory(donation_page__revenue_program=rp_1)
 
-    @pytest.fixture()
+    @pytest.fixture
     def contribution_without_donation_page(self, rp_1):
         return ContributionFactory(donation_page=None, _revenue_program=rp_1)
 

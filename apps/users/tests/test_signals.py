@@ -18,7 +18,7 @@ from apps.users.tests.factories import create_test_user
     ],
 )
 @patch("apps.users.signals.Publisher")
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_user_post_save_handler(publisher, gcloud_configured, created, user_topic, monkeypatch):
     user_topic = "topic"
     monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", user_topic)

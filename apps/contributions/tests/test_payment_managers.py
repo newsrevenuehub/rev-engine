@@ -7,7 +7,7 @@ from apps.contributions.payment_managers import PaymentProviderError, StripePaym
 from apps.contributions.tests.factories import ContributionFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestStripePaymentManager:
     @pytest.mark.parametrize(
         "make_contribution_fn,",

@@ -45,13 +45,13 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.choices import Roles
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributorModel:
-    @pytest.fixture()
+    @pytest.fixture
     def customer_id(self, faker):
         return faker.pystr_format(string_format="cus_??????")
 
-    @pytest.fixture()
+    @pytest.fixture
     def one_time_contribution_with_payment(self, contributor_user, faker, customer_id):
         contribution = ContributionFactory(
             one_time=True,
@@ -66,7 +66,7 @@ class TestContributorModel:
         )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def one_time_contribution_with_refund(self, contributor_user, faker, customer_id):
         contribution = ContributionFactory(
             one_time=True,
@@ -87,7 +87,7 @@ class TestContributorModel:
         )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def monthly_contribution_multiple_payments(
         self,
         contributor_user,
@@ -111,7 +111,7 @@ class TestContributorModel:
             )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def portal_contributor_with_multiple_contributions_from_different_rps(
         self,
         monthly_contribution_multiple_payments,
@@ -225,14 +225,14 @@ class TestContributorModel:
 test_key = "test_key"
 
 
-@pytest.fixture()
+@pytest.fixture
 def contribution_with_no_provider_payment_method_id(one_time_contribution):
     one_time_contribution.provider_payment_method_id = None
     one_time_contribution.save()
     return one_time_contribution
 
 
-@pytest.fixture()
+@pytest.fixture
 def contribution_with_provider_payment_method_id(one_time_contribution):
     one_time_contribution.provider_payment_method_id = "something"
     one_time_contribution.save()
@@ -247,7 +247,7 @@ class MockForContributorReturn:
         self.short_lived_access_token = SHORT_LIVED_ACCESS_TOKEN
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionModel:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
     def contribution(self, request):
@@ -632,7 +632,7 @@ class TestContributionModel:
         assert contribution.modified == last_modified
         mock_stripe_method.assert_not_called()
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     @pytest.mark.parametrize("trait", ["one_time", "annual_subscription", "monthly_subscription"])
     def test_contribution_billing_details(self, trait):
         contribution = ContributionFactory(**{trait: True})
@@ -910,19 +910,19 @@ class TestContributionModel:
             settings.CURRENCIES,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def _synchronous_email_send_task(self, settings):
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
         settings.CELERY_ALWAYS_EAGER = True
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_contributor_refresh_token(self, mocker):
         mocker.patch(
             "apps.api.tokens.ContributorRefreshToken.for_contributor",
             side_effect=lambda *args, **kwargs: MockForContributorReturn(),
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
 
@@ -1454,7 +1454,7 @@ class TestContributionModel:
             mock_create_revision.assert_not_called()
             mock_set_revision_comment.assert_not_called()
 
-    @pytest.fixture()
+    @pytest.fixture
     def empty_metadata_response(self):
         return {"metadata": {}}
 
@@ -1811,7 +1811,7 @@ class TestContributionModel:
         assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionQuerySetMethods:
     """Basic unit tests for custom queryset methods that are on Contribution model."""
 
@@ -1870,7 +1870,7 @@ class TestContributionQuerySetMethods:
         assert {pi_1.id} == {item.id for item in results}
         spy.assert_not_called()
 
-    @pytest.fixture()
+    @pytest.fixture
     def abandoned_contribution(self):
         return ContributionFactory(abandoned=True)
 
@@ -1944,19 +1944,19 @@ class TestContributionQuerySetMethods:
         }
 
 
-@pytest.fixture()
+@pytest.fixture
 def charge_refunded_one_time_event():
     with Path("apps/contributions/tests/fixtures/charge-refunded-one-time-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
-@pytest.fixture()
+@pytest.fixture
 def charge_refunded_recurring_first_charge_event():
     with Path("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
-@pytest.fixture()
+@pytest.fixture
 def non_event():
     return "foo"
 
@@ -2058,10 +2058,10 @@ def test_ensure_stripe_event_when_wrong_type(value):
         my_func(event=value)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification", "_clear_cache")
 class TestPayment:
-    @pytest.fixture()
+    @pytest.fixture
     def payment(self):
         return PaymentFactory()
 
@@ -2071,28 +2071,28 @@ class TestPayment:
             f" {payment.stripe_balance_transaction_id}"
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def invalid_metadata(self):
         return {"foo": "bar"}
 
-    @pytest.fixture()
+    @pytest.fixture
     def valid_metadata(self, valid_metadata_factory):
         data = valid_metadata_factory.get() | {"schema_version": settings.METADATA_SCHEMA_VERSION_CURRENT}
         del data["t_shirt_size"]
         return data
 
-    @pytest.fixture()
+    @pytest.fixture
     def no_metadata(self):
         return None
 
-    @pytest.fixture()
+    @pytest.fixture
     def balance_transaction_for_refund_of_recurring_charge(self):
         with Path(
             "apps/contributions/tests/fixtures/balance-transaction-for-refund-of-recurring-charge.json"
         ).open() as f:
             return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
-    @pytest.fixture()
+    @pytest.fixture
     def balance_transaction_for_refund_of_subscription_creation_charge(self):
         with Path(
             "apps/contributions/tests/fixtures/balance-transaction-for-refund-of-subscription-creation-charge.json"
@@ -2184,7 +2184,7 @@ class TestPayment:
                 assert payment is None
                 assert Payment.objects.count() == count
 
-    @pytest.fixture()
+    @pytest.fixture
     def balance_transaction_for_refund_of_one_time_charge(self):
         with Path(
             "apps/contributions/tests/fixtures/balance-transaction-for-refund-of-one-time-charge.json"
@@ -2279,7 +2279,7 @@ class TestPayment:
             assert payment.amount_refunded == event.data.object.refunds.data[0].amount
             assert payment.stripe_balance_transaction_id == event.data.object.refunds.data[0].balance_transaction
 
-    @pytest.fixture()
+    @pytest.fixture
     def invoice_payment_succeeded_recurring_charge_event(self):
         with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:
             return stripe.Webhook.construct_event(f.read(), None, None)

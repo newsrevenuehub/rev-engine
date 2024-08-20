@@ -4,7 +4,6 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable, Generator
-from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Literal, TypedDict
@@ -646,43 +645,12 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
 
-        if not self.provider_customer_id:
-            logger.error("No Stripe customer ID for contribution with ID %s", self.id)
-            return
-        try:
-            customer = stripe.Customer.retrieve(
-                self.provider_customer_id,
-                stripe_account=self.stripe_account_id,
-            )
-        except StripeError:
-            logger.exception(
-                "Something went wrong retrieving Stripe customer for contribution with ID %s",
-                self.id,
-            )
-            return
-
-        data = {
-            "contribution_amount": self.formatted_amount,
-            "contribution_interval_display_value": self.interval,
-            "contributor_email": self.contributor.email,
-            "contributor_name": customer.name,
-            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
-            "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.revenue_program.fiscal_status,
-            "magic_link": Contributor.create_magic_link(self),
-            "non_profit": self.revenue_program.non_profit,
-            "rp_name": self.revenue_program.name,
-            "style": asdict(self.revenue_program.transactional_email_style),
-            "tax_id": self.revenue_program.tax_id,
-            "timestamp": (
+        data = make_send_thank_you_email_data(
+            self,
+            custom_timestamp=(
                 timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
             ),
-        }
-
-        # Almost all RPs should have a default page set, but it's possible one isn't.
-
-        if default_page := self.revenue_program.default_donation_page:
-            data["default_contribution_page_url"] = default_page.page_url
+        )
 
         send_templated_email.delay(
             self.contributor.email,

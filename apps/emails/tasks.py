@@ -91,6 +91,7 @@ class SendContributionEmailData(TypedDict):
     show_upgrade_prompt: bool
     billing_history: list[BillingHistoryItem] | None
     show_billing_history: bool
+    default_contribution_page_url: str | None
 
 
 class SendMagicLinkEmailData(TypedDict):
@@ -101,7 +102,7 @@ class SendMagicLinkEmailData(TypedDict):
 
 
 def make_send_thank_you_email_data(
-    contribution: Contribution, show_billing_history: bool = False
+    contribution: Contribution, show_billing_history: bool = False, custom_timestamp: str | None = None
 ) -> SendContributionEmailData:
     logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
 
@@ -127,7 +128,7 @@ def make_send_thank_you_email_data(
 
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
-        timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+        timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
         contribution_interval_display_value=(
             contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
         ),
@@ -145,6 +146,11 @@ def make_send_thank_you_email_data(
         show_upgrade_prompt=False,
         billing_history=contribution.get_billing_history(),
         show_billing_history=show_billing_history,
+        default_contribution_page_url=(
+            contribution.revenue_program.default_donation_page.page_url
+            if contribution.revenue_program.default_donation_page
+            else None
+        ),
     )
 
 

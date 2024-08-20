@@ -64,14 +64,22 @@ class TestMakeSendThankYouEmailData:
 
     @pytest.mark.parametrize("show_billing_history", [False, True])
     @pytest.mark.parametrize("contributor_name", ["customer_name", None])
-    def test_happy_path(self, contribution, show_billing_history, contributor_name, mocker):
+    @pytest.mark.parametrize("custom_timestamp", ["custom_timestamp", None])
+    @pytest.mark.parametrize("has_donation_page", [True, False])
+    def test_happy_path(
+        self, contribution, show_billing_history, contributor_name, custom_timestamp, has_donation_page, mocker
+    ):
         mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
+        if has_donation_page:
+            contribution.revenue_program.default_donation_page = DonationPageFactory()
+            contribution.revenue_program.default_donation_page.save()
+
         expected = SendContributionEmailData(
             contribution_amount=contribution.formatted_amount,
-            timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+            timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
             contribution_interval_display_value=(
                 contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
             ),
@@ -89,8 +97,15 @@ class TestMakeSendThankYouEmailData:
             show_upgrade_prompt=False,
             billing_history=contribution.get_billing_history(),
             show_billing_history=show_billing_history,
+            default_contribution_page_url=(
+                contribution.revenue_program.default_donation_page.page_url
+                if contribution.revenue_program.default_donation_page
+                else None
+            ),
         )
-        actual = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        actual = make_send_thank_you_email_data(
+            contribution, show_billing_history=show_billing_history, custom_timestamp=custom_timestamp
+        )
         assert expected == actual
 
     def test_when_no_provider_customer_id(self, mocker):

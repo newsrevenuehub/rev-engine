@@ -22,7 +22,6 @@ const mockContribution: PortalContributionDetail = {
   interval: 'month',
   is_cancelable: false,
   is_modifiable: false,
-  first_payment_date: new Date().toISOString(),
   last_payment_date: new Date().toISOString(),
   next_payment_date: new Date().toISOString(),
   paid_fees: false,

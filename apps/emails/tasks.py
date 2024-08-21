@@ -101,7 +101,7 @@ class SendMagicLinkEmailData(TypedDict):
     style: TransactionalEmailStyle
 
 
-def make_send_thank_you_email_data(
+def generate_email_data(
     contribution: Contribution, show_billing_history: bool = False, custom_timestamp: str | None = None
 ) -> SendContributionEmailData:
     logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
@@ -110,9 +110,7 @@ def make_send_thank_you_email_data(
     from apps.contributions.models import Contributor
 
     if not contribution.provider_customer_id:
-        logger.error(
-            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
-        )
+        logger.error("[generate_email_data]: No Stripe customer id for contribution with id %s", contribution.id)
         raise EmailTaskException("Cannot get required data from Stripe")
     try:
         customer = stripe.Customer.retrieve(
@@ -121,7 +119,7 @@ def make_send_thank_you_email_data(
         )
     except StripeError as exc:
         logger.exception(
-            "make_send_thank_you_email_data: Something went wrong retrieving Stripe customer for contribution with id %s",
+            "[generate_email_data]: Something went wrong retrieving Stripe customer for contribution with id %s",
             contribution.id,
         )
         raise EmailTaskException("Cannot get required data from Stripe") from exc

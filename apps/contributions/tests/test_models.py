@@ -38,7 +38,7 @@ from apps.contributions.tests.factories import (
 )
 from apps.contributions.types import StripeEventData
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
+from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -514,7 +514,7 @@ class TestContributionModel:
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email(show_billing_history=show_billing_history)
-        expected_data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)

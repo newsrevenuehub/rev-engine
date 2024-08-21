@@ -17,9 +17,9 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
     SendContributionEmailData,
+    generate_email_data,
     get_test_magic_link,
     logger,
-    make_send_thank_you_email_data,
     send_templated_email_with_attachment,
     send_thank_you_email,
 )
@@ -103,7 +103,7 @@ class TestMakeSendThankYouEmailData:
                 else None
             ),
         )
-        actual = make_send_thank_you_email_data(
+        actual = generate_email_data(
             contribution, show_billing_history=show_billing_history, custom_timestamp=custom_timestamp
         )
         assert expected == actual
@@ -112,15 +112,15 @@ class TestMakeSendThankYouEmailData:
         logger_spy = mocker.spy(logger, "error")
         contribution = ContributionFactory(one_time=True, provider_customer_id=None)
         with pytest.raises(EmailTaskException):
-            make_send_thank_you_email_data(contribution)
+            generate_email_data(contribution)
         logger_spy.assert_called_once_with(
-            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
+            "[generate_email_data]: No Stripe customer id for contribution with id %s", contribution.id
         )
 
     def test_when_error_retrieving_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", side_effect=StripeError("error"))
         with pytest.raises(EmailTaskException):
-            make_send_thank_you_email_data(ContributionFactory(one_time=True))
+            generate_email_data(ContributionFactory(one_time=True))
 
 
 @pytest.mark.django_db()
@@ -139,7 +139,7 @@ class TestSendThankYouEmail:
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
         contribution = make_contribution_fn()
-        data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
         send_thank_you_email(data)
 
@@ -204,7 +204,7 @@ class TestSendThankYouEmail:
             revenue_program.save()
         contribution.donation_page.revenue_program = revenue_program
         contribution.donation_page.save()
-        data = make_send_thank_you_email_data(contribution)
+        data = generate_email_data(contribution)
         send_thank_you_email(data)
 
         default_logo = f"{settings.SITE_URL}/static/nre-logo-yellow.png"
@@ -258,7 +258,7 @@ class TestSendThankYouEmail:
                 )
             ),
         )
-        data = make_send_thank_you_email_data(contribution)
+        data = generate_email_data(contribution)
         send_thank_you_email(data)
 
         non_profit_expectation = "This receipt may be used for tax purposes."

@@ -29,7 +29,7 @@ from apps.contributions.types import StripeEventData, StripePiAsPortalContributi
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
-    make_send_thank_you_email_data,
+    generate_email_data,
     send_templated_email,
     send_thank_you_email,
 )
@@ -606,7 +606,7 @@ class Contribution(IndexedTimeStampedModel):
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
-            data = make_send_thank_you_email_data(self, show_billing_history=show_billing_history)
+            data = generate_email_data(self, show_billing_history=show_billing_history)
             send_thank_you_email.delay(data)
         else:
             logger.info(
@@ -649,7 +649,7 @@ class Contribution(IndexedTimeStampedModel):
             return
 
         try:
-            data = make_send_thank_you_email_data(
+            data = generate_email_data(
                 self,
                 custom_timestamp=(
                     timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")

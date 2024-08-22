@@ -25,6 +25,7 @@ const mockContribution: PortalContribution = {
   is_cancelable: false,
   is_modifiable: false,
   card_last_4: '7890',
+  first_payment_date: new Date().toISOString(),
   last_payment_date: new Date().toISOString(),
   next_payment_date: new Date().toISOString(),
   payment_type: 'card',
@@ -81,11 +82,20 @@ describe('ContributionItem', () => {
   it("doesn't throw if the contribution has a malformed interval", () =>
     expect(() => tree({ contribution: { ...mockContribution, interval: 'bad' } as any })).not.toThrow());
 
-  it('shows the date the contribution was made', () => {
+  // TODO in DEV-5138: Only need to test first_payment_date
+
+  it('shows the date the contribution was made when first_payment_date is set', () => {
+    const first_payment_date = new Date('1/23/45').toISOString();
+
+    tree({ contribution: { ...mockContribution, first_payment_date } });
+    expect(screen.getByTestId('first-payment-date')).toHaveTextContent('January 23, 2045');
+  });
+
+  it('shows the date the contribution was made when first_payment_date is null', () => {
     const created = new Date('1/23/45').toISOString();
 
-    tree({ contribution: { ...mockContribution, created } });
-    expect(screen.getByTestId('created')).toHaveTextContent('January 23, 2045');
+    tree({ contribution: { ...mockContribution, created, first_payment_date: null } });
+    expect(screen.getByTestId('first-payment-date')).toHaveTextContent('January 23, 2045');
   });
 
   it("shows the date of the next contribution's payment if set", () => {

@@ -12,6 +12,7 @@ from django.core import mail
 from django.db import IntegrityError
 
 import pytest
+import reversion
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
@@ -30,6 +31,7 @@ from apps.contributions.models import (
     logger,
     send_thank_you_email,
 )
+from apps.contributions.serializers import STRIPE_MAX_AMOUNT
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import (
     ContributionFactory,
@@ -43,6 +45,11 @@ from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.choices import Roles
+
+
+class MockSubscription:
+    def __init__(self, status):
+        self.status = status
 
 
 @pytest.mark.django_db()
@@ -1705,6 +1712,147 @@ class TestContributionModel:
         # Ensure that the exception is raised but not logged/sent to Sentry
         assert logger_spy.call_count == 0
 
+    def test_update_subscription_amount_when_one_time(self, one_time_contribution: Contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
+            one_time_contribution.update_subscription_amount(amount=100)
+
+    @pytest.mark.parametrize(
+        "amount",
+        [99, 0, -100],
+    )
+    def test_update_subscription_amount_when_invalid_amount(self, amount, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match=r"Amount value must be greater than \$0.99"):
+            monthly_contribution.update_subscription_amount(amount)
+
+    def test_update_subscription_amount_when_invalid_amount_above_max(self, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match=r"Amount value must be smaller than \$999,999.99"):
+            monthly_contribution.update_subscription_amount(STRIPE_MAX_AMOUNT + 1)
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            "paused",
+            "incomplete_expired",
+            "past_due",
+            "canceled",
+            "unpaid",
+            "incomplete",
+            "trialing",
+        ],
+    )
+    def test_update_subscription_amount_when_inactive_subscription(self, status, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription(status)
+        with pytest.raises(ValueError, match="Cannot update amount for inactive subscription"):
+            monthly_contribution.update_subscription_amount(amount=123)
+
+    def test_update_subscription_amount_when_no_subscription_id(self, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.provider_subscription_id = None
+        with pytest.raises(ValueError, match="Cannot update amount for contribution without a subscription ID"):
+            monthly_contribution.update_subscription_amount(amount=123)
+
+    def test_update_subscription_amount_when_error_on_sub_item_retrieval(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mock_sub_item_list = mocker.patch(
+            "stripe.SubscriptionItem.list", side_effect=stripe.error.StripeError("something")
+        )
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_subscription_amount(amount=123)
+        mock_sub_item_list.assert_called_once_with(
+            subscription=sub_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_subscription_amount_when_return_multiple_sub_items(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch("stripe.SubscriptionItem.list", return_value={"data": [{"id": "si_123"}, {"id": "si_456"}]})
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match="Subscription should have only one item"):
+            monthly_contribution.update_subscription_amount(amount=123)
+
+    def test_update_subscription_amount_when_error_on_subscription_modify(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": (item_id := "si_123"),
+                        "price": {
+                            "currency": (curr := "usd"),
+                            "product": (prod_id := "prod_123"),
+                            "recurring": {
+                                "interval": (interval := "month"),
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mock_sub_modify = mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_subscription_amount(amount := 123)
+
+        metadata = monthly_contribution.contribution_metadata
+        metadata["amount"] = amount
+
+        mock_sub_modify.assert_called_once_with(
+            sub_id,
+            stripe_account=monthly_contribution.stripe_account_id,
+            metadata=metadata,
+            proration_behavior="none",
+            items=[
+                {
+                    "id": item_id,
+                    "price_data": {
+                        "unit_amount": amount,
+                        "currency": curr,
+                        "product": prod_id,
+                        "recurring": {
+                            "interval": interval,
+                        },
+                    },
+                }
+            ],
+        )
+
+    def test_update_subscription_amount_when_success_update_contribution(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        new_amount = monthly_contribution.amount * 2
+        monthly_contribution.update_subscription_amount(new_amount)
+        metadata = monthly_contribution.contribution_metadata
+        metadata["amount"] = new_amount
+        assert monthly_contribution.contribution_metadata == metadata
+
     @pytest.mark.parametrize(
         ("payment_data", "expected"),
         [
@@ -1942,6 +2090,26 @@ class TestContributionQuerySetMethods:
         assert set(Contribution.objects.unmarked_abandoned_carts().values_list("id", flat=True)) == {
             c.id for c in unmarked_abandoned_contributions
         }
+
+    def test_with_stripe_account(self):
+        contribution_1 = ContributionFactory(one_time=True)
+        contribution_2 = ContributionFactory(
+            one_time=True, donation_page=None, _revenue_program=contribution_1.donation_page.revenue_program
+        )
+        assert contribution_1.stripe_account_id
+        assert contribution_2.stripe_account_id
+        assert set(Contribution.objects.with_stripe_account().values_list("stripe_account", flat=True)) == {
+            contribution_1.stripe_account_id
+        }
+
+    def test_get_via_reversion_comment(self):
+        expected_contribution = ContributionFactory()
+        # this one won't have the message
+        ContributionFactory()
+        with reversion.create_revision():
+            expected_contribution.save()
+            reversion.set_comment(msg := "foo")
+        assert set(Contribution.objects.get_via_reversion_comment(msg)) == {expected_contribution}
 
 
 @pytest.fixture()

@@ -126,6 +126,9 @@ def generate_email_data(
 
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
+        # We are not formatting the "custom_timestamp" in "convert_to_timezone_formatted"
+        # because we have places where the format is different.
+        # Ex: upcoming charge reminders format is "MM/DD/YYYY"
         timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
         contribution_interval_display_value=(
             contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""

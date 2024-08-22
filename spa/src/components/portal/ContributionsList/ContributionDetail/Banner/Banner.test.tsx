@@ -13,6 +13,7 @@ const mockContribution: PortalContributionDetail = {
   card_last_4: '7890',
   card_owner_name: 'mock-cc-owner-name',
   created: new Date().toISOString(),
+  first_payment_date: new Date().toISOString(),
   interval: 'month',
   is_cancelable: false,
   is_modifiable: false,

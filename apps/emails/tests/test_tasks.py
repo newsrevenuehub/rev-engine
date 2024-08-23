@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import asdict
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
@@ -86,7 +87,7 @@ class TestGenerateEmailData:
             contribution_interval=contribution.interval,
             contributor_email=contribution.contributor.email,
             contributor_name=mock_fetch_customer.return_value.name or "contributor",
-            copyright_year=contribution.created.year,
+            copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
             magic_link=mock_get_magic_link.return_value,

@@ -2,6 +2,7 @@
 # ref: https://peps.python.org/pep-0563/
 from __future__ import annotations
 
+import datetime
 from dataclasses import asdict
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, TypedDict
@@ -153,7 +154,7 @@ def generate_email_data(
         contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
         contributor_name=customer.name or CONTRIBUTOR_DEFAULT_VALUE,
-        copyright_year=contribution.created.year,
+        copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
         magic_link=Contributor.create_magic_link(contribution),

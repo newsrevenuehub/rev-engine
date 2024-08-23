@@ -332,7 +332,7 @@ def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expec
     assert google_cloud_pub_sub_is_configured() == expected
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_upsert_with_diff_check:
     from apps.contributions.models import Contribution
 
@@ -342,36 +342,36 @@ class Test_upsert_with_diff_check:
 
     model = Contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def instance(self):
         from apps.contributions.tests.factories import ContributionFactory
 
         return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
 
-    @pytest.fixture()
+    @pytest.fixture
     def instance_is_none(self):
         return None
 
-    @pytest.fixture()
+    @pytest.fixture
     def update_data(self):
         return {"amount": self.UPDATE_AMOUNT, "donation_page": DonationPageFactory()}
 
-    @pytest.fixture()
+    @pytest.fixture
     def unique_identifier(self):
         return {"provider_payment_id": self.PROVIDER_PAYMENT_ID}
 
-    @pytest.fixture()
+    @pytest.fixture
     def instance_needs_update(self, instance):
         return instance
 
-    @pytest.fixture()
+    @pytest.fixture
     def instance_not_need_update(self, instance, update_data):
         for field, value in update_data.items():
             setattr(instance, field, value)
         instance.save()
         return instance
 
-    @pytest.fixture()
+    @pytest.fixture
     def instance_only_needs_amount_update(self, instance, update_data):
         for field, value in update_data.items():
             if field != "amount":

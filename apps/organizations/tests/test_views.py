@@ -57,12 +57,12 @@ user_model = get_user_model()
 fake = Faker()
 
 
-@pytest.fixture()
+@pytest.fixture
 def org_valid_patch_data():
     return {"name": fake.pystr(min_chars=1, max_chars=Organization.name.field.max_length - 1)}
 
 
-@pytest.fixture()
+@pytest.fixture
 def org_invalid_patch_data_name_too_long():
     return {
         "name": fake.pystr(
@@ -71,7 +71,7 @@ def org_invalid_patch_data_name_too_long():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_checkout_process_completed(organization):
     return {
         "id": "evt_1234567890",
@@ -115,7 +115,7 @@ def stripe_checkout_process_completed(organization):
     }
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("default_feature_flags")
 class TestOrganizationViewSet:
     @pytest.fixture(
@@ -582,69 +582,69 @@ class TestOrganizationViewSet:
         logger_spy.assert_called_once_with("No organization found with stripe subscription id %s", sub_id)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tax_id_valid():
     return fake.pystr(min_chars=TAX_ID_MIN_LENGTH, max_chars=TAX_ID_MAX_LENGTH)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tax_id_invalid_too_short():
     return fake.pystr(max_chars=TAX_ID_MIN_LENGTH - 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tax_id_invalid_too_long():
     return fake.pystr(min_chars=TAX_ID_MAX_LENGTH + 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_valid_patch_data(tax_id_valid):
     return {"tax_id": tax_id_valid}
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_invalid_patch_data_tax_id_too_short(tax_id_invalid_too_short):
     return {"tax_id": tax_id_invalid_too_short}
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_invalid_patch_data_tax_id_too_long(tax_id_invalid_too_long):
     return {"tax_id": tax_id_invalid_too_long}
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_invalid_patch_data_contact_phone():
     return {"contact_phone": "abc"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_valid_patch_data_contact_phone():
     return {"contact_phone": "+14155552671"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_invalid_patch_data_contact_email():
     return {"contact_email": "abc"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_valid_patch_data_contact_email():
     return {"contact_email": "valid@email.com"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def _mock_secret_manager(mocker):
     mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
     mocker.patch.object(GoogleCloudSecretProvider, "__set__")
     mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("default_feature_flags")
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
@@ -927,7 +927,7 @@ class FakeStripeProduct:
         self.id = id_
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestHandleStripeAccountLink:
     def test_happy_path_when_stripe_already_verified_on_payment_provider(self, org_user_free_plan, api_client):
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
@@ -1192,13 +1192,13 @@ def test_get_stripe_account_link_return_url_when_env_var_not_set(settings):
     assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def mailchimp_feature_flag(default_feature_flags):
     Flag = get_waffle_flag_model()
     return Flag.objects.get(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     mailchimp_feature_flag.everyone = None
     mailchimp_feature_flag.staff = False
@@ -1207,7 +1207,7 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     return mailchimp_feature_flag
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestHandleMailchimpOauthSuccessView:
     def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
@@ -1303,7 +1303,7 @@ def hub_admin_user_with_rps_in_ra(hub_admin_user, request):
     return hub_admin_user
 
 
-@pytest.fixture()
+@pytest.fixture
 def org_user_for_email_test(org_user_free_plan, revenue_program):
     org_user_free_plan.roleassignment.organization = revenue_program.organization
     org_user_free_plan.roleassignment.revenue_programs.add(revenue_program)
@@ -1311,7 +1311,7 @@ def org_user_for_email_test(org_user_free_plan, revenue_program):
     return org_user_free_plan
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_user_for_email_test(rp_user, revenue_program):
     rp_user.roleassignment.organization = revenue_program.organization
     rp_user.roleassignment.revenue_programs.add(revenue_program)
@@ -1328,7 +1328,7 @@ def test_email_user(request, revenue_program):
     return user
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestSendTestEmail:
     def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
         assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()

@@ -45,7 +45,7 @@ DOMAIN_APEX = "example.com"
 PAGE_SLUG = "page-slug"
 
 
-@pytest.fixture()
+@pytest.fixture
 def balance_transaction():
     return {
         "id": "bt_1",
@@ -55,17 +55,17 @@ def balance_transaction():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp(valid_metadata):
     return RevenueProgramFactory(id=valid_metadata["revenue_program_id"])
 
 
-@pytest.fixture()
+@pytest.fixture
 def page(rp):
     return DonationPageFactory(revenue_program=rp, slug=PAGE_SLUG)
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_metadata(valid_metadata, domain_apex, page, settings):
     """Shadow the valid_metadata from conftest.py.
 
@@ -77,7 +77,7 @@ def valid_metadata(valid_metadata, domain_apex, page, settings):
     return valid_metadata
 
 
-@pytest.fixture()
+@pytest.fixture
 def subscription_dict(valid_metadata):
     return {
         "id": "sub_1",
@@ -88,7 +88,7 @@ def subscription_dict(valid_metadata):
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def payment_intent_dict(valid_metadata):
     return {
         "id": "pi_1",
@@ -100,7 +100,7 @@ def payment_intent_dict(valid_metadata):
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_rate_limit_error():
     return stripe.error.RateLimitError(
         message="message",
@@ -113,19 +113,19 @@ def stripe_rate_limit_error():
 
 
 class TestRedisCachePipeline:
-    @pytest.fixture()
+    @pytest.fixture
     def redis(self, settings):
         return get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
 
-    @pytest.fixture()
+    @pytest.fixture
     def name(self):
         return "foo"
 
-    @pytest.fixture()
+    @pytest.fixture
     def batch_size(self):
         return 1
 
-    @pytest.fixture()
+    @pytest.fixture
     def redis_cache_pipeline(self, redis, name, batch_size):
         return RedisCachePipeline(
             connection_pool=redis.connection_pool,
@@ -203,9 +203,9 @@ class Test_parse_slug_from_url:
         assert str(exc.value) == f"URL {url} has a TLD that is not allowed for import"
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_upsert_payment_for_transaction:
-    @pytest.fixture()
+    @pytest.fixture
     def contribution(self):
         return ContributionFactory()
 
@@ -260,7 +260,7 @@ class Test_upsert_payment_for_transaction:
         assert action is None
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestStripeTransactionsImporter:
     @pytest.fixture(autouse=True)
     def _patch_redis(self, mocker):
@@ -310,7 +310,7 @@ class TestStripeTransactionsImporter:
             with pytest.raises(InvalidIntervalError):
                 instance.get_interval_from_plan(plan)
 
-    @pytest.fixture()
+    @pytest.fixture
     def invalid_metadata_for_schema_version(self, valid_metadata):
         metadata = deepcopy(valid_metadata)
         metadata["schema_version"] = "unsupported"
@@ -1118,7 +1118,7 @@ class TestStripeTransactionsImporter:
 
 
 class TestStripeEventProcessor:
-    @pytest.fixture()
+    @pytest.fixture
     def supported_event(self):
         event_type = settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS[0]
         return stripe.Event.construct_from(
@@ -1129,7 +1129,7 @@ class TestStripeEventProcessor:
             key="test",
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def unsupported_event(self):
         unsupported_event_type = "unsupported_event"
         assert unsupported_event_type not in settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS
@@ -1187,11 +1187,11 @@ class Test_log_backoff:
             "tries": 3,
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def invalid_details_args(self):
         return {"arbitrary": "keys"}
 
-    @pytest.fixture()
+    @pytest.fixture
     def other_error(self):
         return Exception("message")
 

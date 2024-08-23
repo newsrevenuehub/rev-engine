@@ -7,9 +7,9 @@ from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPortalContributionFilter:
-    @pytest.fixture()
+    @pytest.fixture
     def filter_(self):
         return PortalContributionFilter()
 
@@ -19,7 +19,7 @@ class TestPortalContributionFilter:
             "revenue_program",
         ]
 
-    @pytest.fixture()
+    @pytest.fixture
     def contributions(self, valid_metadata_factory):
         con1 = ContributionFactory(status=ContributionStatus.PAID)
         con2 = ContributionFactory(
@@ -31,7 +31,7 @@ class TestPortalContributionFilter:
         con4 = ContributionFactory(donation_page__revenue_program=RevenueProgramFactory())
         return [con1, con2, con3, con4]
 
-    @pytest.fixture()
+    @pytest.fixture
     def contributions_interval(self):
         rp = RevenueProgramFactory()
         con1 = ContributionFactory(

@@ -13,7 +13,7 @@ from apps.contributions.types import (
 
 
 class TestStripeMetadataSchemaBase:
-    @pytest.fixture()
+    @pytest.fixture
     def schema(self):
         class Schema(StripeMetadataSchemaBase):
             schema_version: str = "1.4"
@@ -31,7 +31,7 @@ class TestStripeMetadataSchemaBase:
 
 
 class TestCastMetadataToStripePaymentMetadataSchema:
-    @pytest.fixture()
+    @pytest.fixture
     def unknown_metadata_version(self, valid_metadata):
         return valid_metadata | {"schema_version": "foo.bar"}
 
@@ -56,7 +56,7 @@ class TestCastMetadataToStripePaymentMetadataSchema:
 
 
 class TestStripePaymentMetadataSchemas:
-    @pytest.fixture()
+    @pytest.fixture
     def v1_0_data(self):
         return {
             "agreed_to_pay_fees": "True",
@@ -77,11 +77,11 @@ class TestStripePaymentMetadataSchemas:
             "t_shirt_size": "M",
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def v1_1_data(self, v1_0_data):
         return v1_0_data | {"schema_version": "1.1"}
 
-    @pytest.fixture()
+    @pytest.fixture
     def v1_3_data(self):
         return {
             "agreed_to_pay_fees": "True",
@@ -92,7 +92,7 @@ class TestStripePaymentMetadataSchemas:
             "source": "legacy-migration",
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def v1_4_data(self):
         return {
             "agreed_to_pay_fees": "True",
@@ -113,7 +113,7 @@ class TestStripePaymentMetadataSchemas:
             "swag_choices": "hat;shirt;hoodie;",
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def v1_5_data(self, v1_4_data):
         data = v1_4_data | {
             "schema_version": "1.5",

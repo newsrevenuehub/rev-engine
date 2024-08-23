@@ -123,7 +123,7 @@ class TestPlans:
         assert Plans.get_plan(plan_name) == expected_plan
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestOrganization:
     def test_stripe_subscription_when_stripe_subscription_id_is_none(self, organization):
         assert organization.stripe_subscription_id is None
@@ -284,14 +284,14 @@ class TestBenefitLevelBenefit:
         str(t)
 
 
-@pytest.fixture()
+@pytest.fixture
 def revenue_program_with_no_default_donation_page():
     return RevenueProgramFactory(
         onboarded=True, default_donation_page=None, organization=OrganizationFactory(plus_plan=True)
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def revenue_program_with_default_donation_page_all_transactional_email_style_values():
     # need to guarantee we get a unique name property because otherwise a pre-existing style could be retrieved
     # and we want net new
@@ -310,7 +310,7 @@ def revenue_program_with_default_donation_page_all_transactional_email_style_val
     return rp
 
 
-@pytest.fixture()
+@pytest.fixture
 def revenue_program_with_default_donation_page_but_no_transactional_email_style_values():
     rp = RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
     style = StyleFactory(name="foo", revenue_program=rp)
@@ -323,7 +323,7 @@ def revenue_program_with_default_donation_page_but_no_transactional_email_style_
     return rp
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestRevenueProgramMailchimpClient:
     def test_errors_if_rp_disconnected(self, revenue_program):
         with pytest.raises(MailchimpIntegrationError):
@@ -497,7 +497,7 @@ class TestRevenueProgramMailchimpClient:
         logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestRevenueProgram:
     def test_basics(self):
         t = RevenueProgram()
@@ -978,7 +978,7 @@ class TestRevenueProgram:
         mock_delete_secret.assert_called_once()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "product_type",
     (
@@ -1042,7 +1042,7 @@ class TestRevenueProgramMailchimpProducts:
         mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.parametrize("segment_type", (("all_contributors"), ("contributor"), ("recurring_contributor")))
 class TestRevenueProgramMailchimpSegments:
     def test_property_happy_path(self, segment_type, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
@@ -1129,12 +1129,12 @@ class TestPaymentProvider:
         assert t.get_currency_dict() == {"code": "", "symbol": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def benefit_level():
     return BenefitLevelFactory(lower_limit=50, upper_limit=100)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class BenefitLevelTest:
     def test_donation_range_when_normal(self, benefit_level):
         assert benefit_level.donation_range == f"${benefit_level.lower_limit}-{benefit_level.upper_limit}"
@@ -1150,7 +1150,7 @@ class BenefitLevelTest:
             benefit_level.clean()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPaymentProviderModel:
     def test_get_dependent_pages_with_publication_date(self, live_donation_page):
         future_published_page = DonationPageFactory(

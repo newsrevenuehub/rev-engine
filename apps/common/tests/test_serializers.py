@@ -5,7 +5,7 @@ from apps.common.serializers import SocialMetaInlineSerializer
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_socialmetainlineserializer():
     rp = RevenueProgramFactory(twitter_handle="tweetzor")
     serializer = SocialMetaInlineSerializer(rp.socialmeta, context={"request": APIRequestFactory().get("/")})

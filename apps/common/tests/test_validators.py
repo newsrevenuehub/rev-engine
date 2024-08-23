@@ -52,7 +52,7 @@ class TestValidateFkReferenceOwnership:
         with pytest.raises(serializers.ValidationError, match="relationship of requesting user to request"):
             t(value, serializer)
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     def test_no_ownership(self, org_user_free_plan):
         dp = DonationPageFactory()
         value = {"id": dp}
@@ -64,7 +64,7 @@ class TestValidateFkReferenceOwnership:
         with pytest.raises(serializers.ValidationError, match="Not found"):
             t(value, serializer)
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     def test_has_ownership(self, org_user_free_plan, live_donation_page):
         live_donation_page.revenue_program.organization = org_user_free_plan.roleassignment.organization
         live_donation_page.revenue_program.save()

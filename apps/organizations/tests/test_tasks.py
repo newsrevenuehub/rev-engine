@@ -17,7 +17,7 @@ from apps.organizations.tasks import (
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-@pytest.fixture()
+@pytest.fixture
 def _mailchimp_config(settings):
     for setting in ("MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"):
         setattr(settings, setting, "something")
@@ -104,7 +104,7 @@ class TestGetMailchimpServerPrefix:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
     def test_when_revenue_program_not_found(self, revenue_program, mocker):
         logger_spy = mocker.spy(logger, "error")
@@ -241,7 +241,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         assert rp.mailchimp_server_prefix is None
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_rp_mailchimp_store_truthy(mocker):
     return mocker.patch(
         "apps.organizations.tasks.RevenueProgram.mailchimp_store",

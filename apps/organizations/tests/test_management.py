@@ -20,7 +20,7 @@ def _defaults(settings):
     settings.STRIPE_LIVE_MODE = True
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestAppleDomainVerifyCommandTest:
     def run_command(self, slug=None):
         out = StringIO()

@@ -40,7 +40,7 @@ fake = Faker()
 PAGE_DATA_EXTRA_ITEMS = {"foo": "bar", "id": "123", "created": "never"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_valid():
     """Minimally valid page creation data.
 
@@ -54,7 +54,7 @@ def page_creation_data_valid():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_invalid_because_out_of_pages(page_creation_data_valid, live_donation_page):
     org = live_donation_page.revenue_program.organization
     assert org.plan_name == Plans.FREE
@@ -62,46 +62,46 @@ def page_creation_data_invalid_because_out_of_pages(page_creation_data_valid, li
     return page_creation_data_valid | {"revenue_program": live_donation_page.revenue_program.id}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_valid_empty_name(page_creation_data_valid):
     return page_creation_data_valid | {"name": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_valid_no_name(page_creation_data_valid):
     data = {**page_creation_data_valid}
     del data["name"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_invalid_untracked_locale(page_creation_data_valid):
     return page_creation_data_valid | {"locale": "fr"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_non_unique_slug_for_rp(page_creation_data_valid, live_donation_page):
     live_donation_page.revenue_program_id = page_creation_data_valid["revenue_program"]
     live_donation_page.save()
     return page_creation_data_valid | {"slug": live_donation_page.slug}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_data_with_invalid_slug_spaces():
     return {"slug": "some invalid slug"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_data_with_invalid_slug_invalid_chars():
     return {"slug": "!"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_data_with_invalid_slug_empty_string():
     return {"slug": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_data_with_invalid_slug_too_long():
     return {"slug": "x" * (DonationPage._meta.get_field("slug").max_length + 1)}
 
@@ -119,7 +119,7 @@ def page_creation_data_with_invalid_slug(page_creation_data_valid, request):
     return page_creation_data_valid | request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_update_data_invalid_non_unique_slug_for_rp(live_donation_page):
     data = {"slug": (slug := live_donation_page.slug)}
     live_donation_page.slug = live_donation_page.slug[::-1]
@@ -140,74 +140,74 @@ def page_update_data_with_invalid_slug(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_update_data_with_invalid_locale():
     return {"locale": "fr"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_name_too_long(page_creation_data_valid):
     return page_creation_data_valid | {
         "name": "".join(random.choice(string.ascii_lowercase) for i in range(PAGE_NAME_MAX_LENGTH + 1))
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_heading_too_long(page_creation_data_valid):
     return page_creation_data_valid | {
         "heading": "".join(random.choice(string.ascii_lowercase) for i in range(PAGE_HEADING_MAX_LENGTH + 1))
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_extra_keys(page_creation_data_valid):
     return page_creation_data_valid | PAGE_DATA_EXTRA_ITEMS
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_missing_rp(page_creation_data_valid):
     data = {**page_creation_data_valid}
     del data["revenue_program"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_blank_rp(page_creation_data_valid):
     return page_creation_data_valid | {"revenue_program": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_non_existent_rp(page_creation_data_valid):
     RevenueProgram.objects.filter(pk=page_creation_data_valid["revenue_program"]).delete()
     return page_creation_data_valid
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_with_published_but_slug_empty(page_creation_data_valid):
     return {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00", "slug": ""}}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_invalid_with_published_but_no_slug_field(page_creation_data_valid):
     assert "slug" not in page_creation_data_valid
     return {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00"}}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_with_unpermitted_sidebar_elements(page_creation_data_valid):
     org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
     assert org.plan_name == Plans.FREE
     return page_creation_data_valid | {"sidebar_elements": [{"type": x} for x in PlusPlan.sidebar_elements]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_creation_data_with_unpermitted_elements(page_creation_data_valid):
     org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
     assert org.plan_name == Plans.FREE
     return page_creation_data_valid | {"elements": [{"type": x} for x in PlusPlan.page_elements]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_valid_data():
     return {
         "name": fake.company(),
@@ -223,27 +223,27 @@ def jpg_img():
     return img
 
 
-@pytest.fixture()
+@pytest.fixture
 def header_logo():
     return SimpleUploadedFile("header_logo.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def header_bg_image():
     return SimpleUploadedFile("header_bg_image.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def graphic():
     return SimpleUploadedFile("graphic.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def page_screenshot():
     return SimpleUploadedFile("screenshot.jpg", jpg_img().read(), content_type="jpeg")
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_data_with_image_fields(patch_page_valid_data, header_logo, header_bg_image, graphic):
     return patch_page_valid_data | {
         "header_logo": header_logo,
@@ -252,49 +252,49 @@ def patch_page_data_with_image_fields(patch_page_valid_data, header_logo, header
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_valid_data_extra_keys(patch_page_valid_data):
     return patch_page_valid_data | PAGE_DATA_EXTRA_ITEMS
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_unowned_style(patch_page_valid_data):
     style = StyleFactory(revenue_program=RevenueProgramFactory(name="unique-to-patch-page-unowned-style"))
     return patch_page_valid_data | {"styles": style.pk}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_unfound_style(patch_page_valid_data):
     unfound_pk = "999999"
     assert not Style.objects.filter(pk=unfound_pk).exists()
     return patch_page_valid_data | {"styles": unfound_pk}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_unowned_rp(patch_page_valid_data):
     name = "unique-to-patch-page-unowned-rp"
     rp = RevenueProgramFactory(name=name, organization=OrganizationFactory(name=name))
     return patch_page_valid_data | {"revenue_program": rp.pk}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_unfound_rp(patch_page_valid_data):
     unfound_pk = "999999"
     assert not RevenueProgram.objects.filter(pk=unfound_pk).exists()
     return patch_page_valid_data | {"revenue_program": unfound_pk}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_poorly_formed_elements(patch_page_valid_data):
     return patch_page_valid_data | {"elements": ["foo", True, None]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_poorly_formed_sidebar_elements(patch_page_valid_data):
     return patch_page_valid_data | {"sidebar_elements": ["foo", True, None]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_unpermitted_elements(patch_page_valid_data, live_donation_page):
     unpermitted_free_plan_elements = set(PlusPlan.page_elements).difference(FreePlan.page_elements)
     live_donation_page.revenue_program.organization.plan_name = Plans.FREE
@@ -302,7 +302,7 @@ def patch_page_unpermitted_elements(patch_page_valid_data, live_donation_page):
     return patch_page_valid_data | {"elements": [{"type": list(unpermitted_free_plan_elements)}]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_unpermitted_sidebar_elements(patch_page_valid_data, live_donation_page):
     unpermitted_free_plan_elements = set(PlusPlan.sidebar_elements).difference(FreePlan.sidebar_elements)
     live_donation_page.revenue_program.organization.plan_name = Plans.FREE
@@ -310,7 +310,7 @@ def patch_page_unpermitted_sidebar_elements(patch_page_valid_data, live_donation
     return patch_page_valid_data | {"sidebar_elements": [{"type": list(unpermitted_free_plan_elements)}]}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_when_publishing_and_no_slug_param(patch_page_valid_data, live_donation_page):
     live_donation_page.published_date = None
     live_donation_page.slug = None
@@ -319,7 +319,7 @@ def patch_page_when_publishing_and_no_slug_param(patch_page_valid_data, live_don
     return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_page_when_publishing_and_empty_slug_param(patch_page_valid_data, live_donation_page):
     live_donation_page.published_date = None
     live_donation_page.slug = None
@@ -327,7 +327,7 @@ def patch_page_when_publishing_and_empty_slug_param(patch_page_valid_data, live_
     return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00", "slug": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def live_donation_page_with_styles(live_donation_page):
     styles = StyleFactory(revenue_program=live_donation_page.revenue_program)
     live_donation_page.styles = styles
@@ -347,7 +347,7 @@ def unexpected_user(request):
     return request.getfixturevalue(request.param) if request.param else None
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPageViewSet:
     @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "superuser", "rp_user"])
     def user(self, request):
@@ -1152,7 +1152,7 @@ class TestPageViewSet:
         }
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_valid_data(live_donation_page):
     return {
         "name": fake.word(),
@@ -1166,62 +1166,62 @@ def create_style_valid_data(live_donation_page):
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_missing_radii(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["radii"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_missing_font(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["font"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_missing_font_sizes(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["fontSizes"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_missing_name(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["name"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_missing_revenue_program(create_style_valid_data):
     data = {**create_style_valid_data}
     del data["revenue_program"]
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_revenue_program_null(create_style_valid_data):
     return create_style_valid_data | {"revenue_program": None}
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_style_revenue_program_blank(create_style_valid_data):
     return create_style_valid_data | {"revenue_program": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_valid_data_rp_only(revenue_program):
     return {"revenue_program": revenue_program.id}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_valid_data_name_only():
     return {"name": "updated-style-name"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_valid_styles_data_only():
     return {
         "radii": [],
@@ -1230,12 +1230,12 @@ def patch_style_valid_styles_data_only():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_valid_styles_data_with_arbitrary_keys(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"foo": "bar"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_valid_data_all_keys(
     patch_style_valid_data_rp_only, patch_style_valid_data_name_only, patch_style_valid_styles_data_with_arbitrary_keys
 ):
@@ -1246,67 +1246,67 @@ def patch_style_valid_data_all_keys(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_radii_is_text(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": "foo"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_radii_is_null(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": None}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_radii_is_number(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": 123}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_radii_is_unexpected_dict(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"radii": {"foo": "bar"}}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_is_text(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": "foo"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_is_null(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": None}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_is_number(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": 123}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_is_list(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"font": []}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_sizes_is_text(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": "big"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_sizes_is_null(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": None}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_sizes_is_number(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": 123}
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_style_invalid_data_bad_font_sizes_is_dict(patch_style_valid_styles_data_only):
     return patch_style_valid_styles_data_only | {"fontSizes": {}}
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestStyleViewSet:
     @pytest.fixture(
         params=[
@@ -1702,12 +1702,12 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@pytest.fixture()
+@pytest.fixture
 def font():
     return FontFactory()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestFontViewSet:
     def test_retrieve(self, org_user_free_plan, font, api_client):
         api_client.force_authenticate(org_user_free_plan)

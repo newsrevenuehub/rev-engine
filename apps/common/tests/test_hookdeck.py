@@ -27,91 +27,91 @@ from apps.common.hookdeck import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def upsert_connection_response():
     with Path("apps/common/tests/fixtures/hookdeck-upsert-connection-success.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def upsert_archived_connection_response():
     with Path("apps/common/tests/fixtures/hookdeck-upsert-connection-when-archived.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def upsert_destination_response():
     with Path("apps/common/tests/fixtures/hookdeck-upsert-destination-success.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def upsert_archived_destination_response():
     with Path("apps/common/tests/fixtures/hookdeck-upsert-destination-when-archived.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def retrieve_connection_response():
     with Path("apps/common/tests/fixtures/hookdeck-retrieve-connection.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def retrieve_destination_response():
     with Path("apps/common/tests/fixtures/hookdeck-retrieve-destination.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def retrieve_source_response():
     with Path("apps/common/tests/fixtures/hookdeck-retrieve-source.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def search_connections_response():
     with Path("apps/common/tests/fixtures/hookdeck-search-connections.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def search_destinations_response():
     with Path("apps/common/tests/fixtures/hookdeck-search-destinations.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def search_sources_response():
     with Path("apps/common/tests/fixtures/hookdeck-search-sources.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def search_no_results_response():
     with Path("apps/common/tests/fixtures/hookdeck-search-no-results.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def archive_connection_response():
     with Path("apps/common/tests/fixtures/hookdeck-archive-connection.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def archive_destination_response():
     with Path("apps/common/tests/fixtures/hookdeck-archive-destination.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def unarchive_destination_response():
     with Path("apps/common/tests/fixtures/hookdeck-unarchive-destination.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def unarchive_connection_response():
     with Path("apps/common/tests/fixtures/hookdeck-unarchive-connection.json").open() as f:
         return json.load(f)

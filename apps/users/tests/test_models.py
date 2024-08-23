@@ -14,7 +14,7 @@ def expected_user(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def _permitted_organizations_setup(rp_user, org_user_free_plan):
     orgs = OrganizationFactory.create_batch(2)
     rp_user.roleassignment.organization = orgs[0]
@@ -23,7 +23,7 @@ def _permitted_organizations_setup(rp_user, org_user_free_plan):
     org_user_free_plan.roleassignment.save()
 
 
-@pytest.fixture()
+@pytest.fixture
 def _permitted_revenue_programs_setup(rp_user, org_user_free_plan):
     org2 = OrganizationFactory()
     RevenueProgramFactory.create_batch(2, organization=org2)
@@ -34,19 +34,19 @@ def _permitted_revenue_programs_setup(rp_user, org_user_free_plan):
     rp_user.roleassignment.save()
 
 
-@pytest.fixture()
+@pytest.fixture
 def everyone_flag():
     Flag = get_waffle_flag_model()
     return Flag.objects.create(everyone=True, name="flag_everyone", superusers=False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def superusers_flag():
     Flag = get_waffle_flag_model()
     return Flag.objects.create(superusers=True, name="flag_superusers", everyone=False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def org_user_flag(org_user_free_plan):
     Flag = get_waffle_flag_model()
     flag = Flag.objects.create(name="flag_org_user", superusers=False, everyone=False)
@@ -90,7 +90,7 @@ def ra_role_type_test_expectation(request):
     return request.getfixturevalue(request.param[0]), request.param[1]
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestUser:
     @pytest.mark.usefixtures("_permitted_organizations_setup")
     def test_permitted_organizations(self, expected_user):
@@ -157,7 +157,7 @@ class TestUser:
                 assert UserFactory.build(email=email2).full_clean()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestRoleAssignment:
     @pytest.mark.parametrize(
         ("role_type", "expected_fn"),

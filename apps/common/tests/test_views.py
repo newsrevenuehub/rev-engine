@@ -96,7 +96,7 @@ class AdminSelectOptionsTest(TestCase):
         assert option2[0] == style2.name
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestFilterForSuperUserOrRoleAssignmentUserMixin:
     @pytest.fixture(params=["superuser", "org_user_free_plan", "user_no_role_assignment"])
     def user(self, request):

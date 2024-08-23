@@ -14,31 +14,31 @@ from apps.contributions.types import StripeEventData
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestStripeWebhookProcessor:
-    @pytest.fixture()
+    @pytest.fixture
     def payment_intent_test_case(self, payment_intent_succeeded_one_time_event):
         contribution = ContributionFactory(
             provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"]
         )
         return payment_intent_succeeded_one_time_event, contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def invoice_test_case(self, invoice_upcoming_event):
         contribution = ContributionFactory(
             provider_subscription_id=invoice_upcoming_event["data"]["object"]["subscription"]
         )
         return invoice_upcoming_event, contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def charge_test_case(self, charge_refunded_recurring_charge_event):
         contribution = ContributionFactory(
             provider_payment_id=charge_refunded_recurring_charge_event["data"]["object"]["payment_intent"]
         )
         return charge_refunded_recurring_charge_event, contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def subscription_test_case(self, customer_subscription_updated_event):
         contribution = ContributionFactory(
             provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
@@ -73,7 +73,7 @@ class TestStripeWebhookProcessor:
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
         assert processor.contribution is None
 
-    @pytest.fixture()
+    @pytest.fixture
     def unexpected_event(self, payment_intent_succeeded_one_time_event):
         return StripeEventData(**payment_intent_succeeded_one_time_event | {"type": "unexpected"})
 

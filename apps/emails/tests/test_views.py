@@ -8,7 +8,7 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 from ..views import preview_contribution_email_template
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPreviewContributionEmailHappyPath:
     @pytest.mark.parametrize(
         "template_name",
@@ -35,7 +35,7 @@ class TestPreviewContributionEmailHappyPath:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPreviewContributionEmailUnhappyPath:
     def test_responds_400_when_nonpermitted_template(self):
         rp = RevenueProgramFactory()

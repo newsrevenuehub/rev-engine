@@ -27,35 +27,35 @@ from apps.contributions.tests import RedisMock
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_for_one_time_when_no_payment_method(pi_for_valid_one_time_factory):
     pi = pi_for_valid_one_time_factory.get()
     pi.payment_method = None
     return pi
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_for_imported_legacy_subscription():
     with Path("apps/contributions/tests/fixtures/example-legacy-imported-pi.json").open() as f:
         return stripe.PaymentIntent.construct_from(json.load(f), "test")
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_for_valid_one_time(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get()
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_for_active_subscription(pi_for_active_subscription_factory):
     return pi_for_active_subscription_factory.get()
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_with_unexpanded_payment_method(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(payment_method="pm_12345")
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_no_pm_no_invoice_charges_is_zero_length():
     # don't reuse the fixture from above because modifications to it will affect fixture used alone
     with Path("apps/contributions/tests/fixtures/example-legacy-imported-pi.json").open() as f:
@@ -66,58 +66,58 @@ def pi_no_pm_no_invoice_charges_is_zero_length():
     return pi
 
 
-@pytest.fixture()
+@pytest.fixture
 def card(pi_for_valid_one_time):
     return pi_for_valid_one_time.payment_method.card
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_without_invoice(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(invoice=None)
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_with_invoice_but_falsy_lines_data(pi_for_active_subscription_factory):
     pi = pi_for_active_subscription_factory.get()
     pi.invoice.lines.data = []
     return pi
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_for_canceled_subscription(pi_for_active_subscription_factory):
     pi = pi_for_active_subscription_factory.get()
     pi.invoice.subscription.status = "canceled"
     return pi
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_no_metadata(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(metadata=None)
 
 
-@pytest.fixture()
+@pytest.fixture
 def pi_no_revenue_program_in_metadata(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(metadata={"foo": "bar"})
 
 
-@pytest.fixture()
+@pytest.fixture
 def dummy_card():
     # .DUMMY_CARD is an attrdict and when trying to pass that as a parameter in tests, got an error
     # so we create a fixture to pass instead
     return StripePaymentIntent.DUMMY_CARD
 
 
-@pytest.fixture()
+@pytest.fixture
 def pm_with_card(card):
     return stripe.PaymentMethod.construct_from(AttrDict({"card": card}), "test")
 
 
-@pytest.fixture()
+@pytest.fixture
 def pm_no_card():
     return stripe.PaymentMethod.construct_from(AttrDict({}), "test")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestStripePaymentIntent:
     def test_payment_intent_with_canceled_subscription(self, pi_for_canceled_subscription):
         payment_intent = StripePaymentIntent(pi_for_canceled_subscription)
@@ -361,7 +361,7 @@ class TestStripePaymentIntent:
         assert StripePaymentIntent(pi).payment_method == get_expected_fn(pi)
 
 
-@pytest.fixture()
+@pytest.fixture
 def customer_factory(faker):
     class Factory:
         def get(self):
@@ -570,7 +570,7 @@ class TestStripeContributionsProvider:
             provider.cast_subscription_to_pi_for_portal(sub)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_redis_cache_for_pis_factory(mocker):
     class Factory:
         def get(self, cache_provider):
@@ -581,7 +581,7 @@ def mock_redis_cache_for_pis_factory(mocker):
     return Factory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_redis_cache_for_subs_factory(mocker):
     class Factory:
         def get(self, cache_provider):

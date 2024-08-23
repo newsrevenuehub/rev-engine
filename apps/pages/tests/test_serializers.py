@@ -25,7 +25,7 @@ from apps.users.models import Roles
 from apps.users.tests.factories import create_test_user
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestDonationPageFullDetailSerializer:
     def test_has_expected_fields(self, live_donation_page):
         serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
@@ -466,7 +466,7 @@ class TestDonationPageFullDetailSerializer:
         )
         assert serializer.is_valid() is True
 
-    @pytest.fixture()
+    @pytest.fixture
     def page_no_id(self):
         return DonationPage(id=None)
 
@@ -603,7 +603,7 @@ class TestDonationPageFullDetailSerializer:
             serializer.validate_locale("foo")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestStyleListSerializer:
     @pytest.mark.parametrize("plan", [Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value])
     def test_plan_style_limits_are_respected(self, plan):

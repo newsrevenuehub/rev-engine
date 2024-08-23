@@ -36,7 +36,7 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
       payments.sort((a, b) => {
         // Sort by effective date descending (e.g. most recent first).
 
-        const aDate = new Date(a.transaction_time ?? b.created);
+        const aDate = new Date(a.transaction_time ?? a.created);
         const bDate = new Date(b.transaction_time ?? b.created);
 
         return bDate.getTime() - aDate.getTime();

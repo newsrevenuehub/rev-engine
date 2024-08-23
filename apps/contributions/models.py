@@ -656,9 +656,7 @@ class Contribution(IndexedTimeStampedModel):
                 ),
             )
         except EmailTaskException:
-            logger.exception(
-                "[Contribution.send_recurring_contribution_change_email] encountered an error trying to generate email data"
-            )
+            logger.exception("Encountered an error trying to generate email data")
             return
 
         send_templated_email.delay(

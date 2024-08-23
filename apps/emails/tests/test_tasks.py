@@ -57,7 +57,7 @@ class TestMagicLink:
 
 
 @pytest.mark.django_db()
-class TestMakeSendThankYouEmailData:
+class TestGenerateEmailData:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution"])
     def contribution(self, request):
         return request.getfixturevalue(request.param)
@@ -113,9 +113,7 @@ class TestMakeSendThankYouEmailData:
         contribution = ContributionFactory(one_time=True, provider_customer_id=None)
         with pytest.raises(EmailTaskException):
             generate_email_data(contribution)
-        logger_spy.assert_called_once_with(
-            "[generate_email_data]: No Stripe customer id for contribution with id %s", contribution.id
-        )
+        logger_spy.assert_called_once_with("No Stripe customer id for contribution with id %s", contribution.id)
 
     def test_when_error_retrieving_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", side_effect=StripeError("error"))

@@ -24,6 +24,8 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.organizations.models import FiscalStatusChoices, FreePlan, TransactionalEmailStyle
 
 
+CONTRIBUTOR_DEFAULT_VALUE = "contributor"
+
 if TYPE_CHECKING:
     from apps.contributions.models import BillingHistoryItem, Contribution
 
@@ -104,13 +106,28 @@ class SendMagicLinkEmailData(TypedDict):
 def generate_email_data(
     contribution: Contribution, show_billing_history: bool = False, custom_timestamp: str | None = None
 ) -> SendContributionEmailData:
-    logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
+    """Generate the data required to send a contribution email.
+
+    Email templates supported by this function are:
+    - nrh-default-contribution-confirmation-email.html
+    - recurring-contribution-payment-updated.html
+    - recurring-contribution-email-reminder.html
+    - recurring-contribution-canceled.html
+
+    Args:
+    ----
+        contribution: Contribution object
+        show_billing_history: Whether to show the billing history in the email
+        custom_timestamp: Timestamp to override the contribution created date
+
+    """
+    logger.info("called with contribution id %s", contribution.id)
 
     # vs circular import
     from apps.contributions.models import Contributor
 
     if not contribution.provider_customer_id:
-        logger.error("[generate_email_data]: No Stripe customer id for contribution with id %s", contribution.id)
+        logger.error("No Stripe customer id for contribution with id %s", contribution.id)
         raise EmailTaskException("Cannot get required data from Stripe")
     try:
         customer = stripe.Customer.retrieve(
@@ -119,7 +136,7 @@ def generate_email_data(
         )
     except StripeError as exc:
         logger.exception(
-            "[generate_email_data]: Something went wrong retrieving Stripe customer for contribution with id %s",
+            "Something went wrong retrieving Stripe customer for contribution with id %s",
             contribution.id,
         )
         raise EmailTaskException("Cannot get required data from Stripe") from exc
@@ -135,7 +152,7 @@ def generate_email_data(
         ),
         contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
-        contributor_name=customer.name or "contributor",
+        contributor_name=customer.name or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=contribution.created.year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
@@ -171,7 +188,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
         contribution_interval_display_value=ContributionInterval.MONTHLY,
         contribution_interval=ContributionInterval.MONTHLY,
         contributor_email=user.email,
-        contributor_name=name or "contributor",
+        contributor_name=name or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=now.year,
         fiscal_sponsor_name=revenue_program.fiscal_sponsor_name,
         fiscal_status=revenue_program.fiscal_status,

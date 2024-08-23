@@ -1118,7 +1118,7 @@ class TestContributionModel:
         mock_stripe = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
         getattr(annual_contribution, email_method_name)()
         logger_spy.assert_called_once_with(
-            "[Contribution.send_recurring_contribution_change_email] encountered an error trying to generate email data",
+            "Encountered an error trying to generate email data",
             exc_info=True,
         )
         mock_stripe.assert_not_called()
@@ -1140,9 +1140,7 @@ class TestContributionModel:
         send_email_spy = mocker.spy(send_templated_email, "delay")
 
         getattr(annual_contribution, email_method_name)()
-        logger_spy.assert_called_once_with(
-            "[Contribution.send_recurring_contribution_change_email] encountered an error trying to generate email data"
-        )
+        logger_spy.assert_called_once_with("Encountered an error trying to generate email data")
         send_email_spy.assert_not_called()
 
     @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "rp_user", "user_with_unexpected_role"])

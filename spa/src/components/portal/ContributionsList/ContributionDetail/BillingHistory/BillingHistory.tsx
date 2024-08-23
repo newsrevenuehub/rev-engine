@@ -44,23 +44,31 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
     []
   );
 
-  const renderEmptyBillingHistory = () =>
-    page?.revenue_program.name ? (
-      <EmptyBillingHistory>
-        Please contact {page?.revenue_program.name}
-        {page?.revenue_program.contact_email ? (
-          <>
-            {' '}
-            at <Link href={`mailto:${page?.revenue_program.contact_email}`}>{page?.revenue_program.contact_email}</Link>
-          </>
+  const renderEmptyBillingHistory = () => (
+    <tr>
+      <td colSpan={3}>
+        {page?.revenue_program.name ? (
+          <EmptyBillingHistory>
+            Please contact {page?.revenue_program.name}
+            {page?.revenue_program.contact_email ? (
+              <>
+                {' '}
+                at{' '}
+                <Link href={`mailto:${page?.revenue_program.contact_email}`}>
+                  {page?.revenue_program.contact_email}
+                </Link>
+              </>
+            ) : (
+              ''
+            )}{' '}
+            for billing history and prior receipts for this contribution.
+          </EmptyBillingHistory>
         ) : (
-          ''
-        )}{' '}
-        for billing history and prior receipts for this contribution.
-      </EmptyBillingHistory>
-    ) : (
-      <Skeleton variant="rect" height={20} />
-    );
+          <Skeleton variant="rect" height={20} />
+        )}
+      </td>
+    </tr>
+  );
 
   return (
     <DetailSection

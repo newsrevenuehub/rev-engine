@@ -41,7 +41,7 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
 
         return bDate.getTime() - aDate.getTime();
       }),
-    []
+    [payments]
   );
 
   const renderEmptyBillingHistory = () => (

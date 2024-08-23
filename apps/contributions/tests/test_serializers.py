@@ -24,8 +24,13 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import ContributionSerializer, PortalContributionBaseSerializer
+from apps.contributions.serializers import (
+    ContributionSerializer,
+    PortalContributionBaseSerializer,
+    PortalContributionDetailSerializer,
+)
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.test_models import MockSubscription
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
@@ -1685,3 +1690,55 @@ class TestPortalContributionBaseSerializer:
     def test_unsupported_methods(self, method, kwargs):
         with pytest.raises(NotImplementedError):
             getattr(PortalContributionBaseSerializer(), method)(**kwargs)
+
+
+@pytest.mark.django_db
+class TestPortalContributionDetailSerializer:
+    def test_update_amount_monthly_contribution(self, mocker, monthly_contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        updated_contribution = serializer.update(monthly_contribution, {"amount": 123})
+
+        assert updated_contribution.amount == 123
+
+    def test_update_amount_one_time_contribution(self, mocker, one_time_contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
+        with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
+            serializer.update(one_time_contribution, {"amount": 123})

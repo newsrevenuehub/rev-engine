@@ -42,38 +42,38 @@ def _synchronous_celery(settings):
     settings.CELERY_ALWAYS_EAGER = True
 
 
-@pytest.fixture()
+@pytest.fixture
 def payment_intent_canceled():
     with Path("apps/contributions/tests/fixtures/payment-intent-canceled-webhook.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def payment_intent_payment_failed():
     with Path("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def customer_subscription_deleted():
     with Path("apps/contributions/tests/fixtures/customer-subscription-deleted-webhook.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def invoice_upcoming():
     with Path("apps/contributions/tests/fixtures/stripe-invoice-upcoming.json").open() as f:
         return json.load(f)
 
 
-@pytest.fixture()
+@pytest.fixture
 def charge_refunded():
     # also set up the corresponding contribution in revengine
     with Path("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json").open() as f:
         return json.load(f)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 def test_payment_method_attached(client, mocker, payment_method_attached_event):
     contribution = ContributionFactory(
@@ -95,7 +95,7 @@ def test_payment_method_attached(client, mocker, payment_method_attached_event):
     assert contribution.provider_payment_method_details == pm
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 def test_charge_succeeded(client, mocker, charge_succeeded_event):
     contributions = ContributionFactory.create_batch(
@@ -122,7 +122,7 @@ def test_charge_succeeded(client, mocker, charge_succeeded_event):
     assert set(touched.values_list("id", flat=True)) == {x.id for x in contributions}
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestPaymentIntentSucceeded:
     def test_when_when_one_time_and_contribution_found(
@@ -200,7 +200,7 @@ class TestPaymentIntentSucceeded:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPaymentIntentCanceled:
     @pytest.mark.parametrize("cancellation_reason", [None, "", "random-thing", "fraudulent"])
     def test_when_contribution_found(self, cancellation_reason, client, payment_intent_canceled, mocker):
@@ -242,7 +242,7 @@ class TestPaymentIntentCanceled:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPaymentIntentPaymentFailed:
     def test_when_contribution_found(self, client, payment_intent_payment_failed, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -278,7 +278,7 @@ class TestPaymentIntentPaymentFailed:
 
 
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCustomerSubscriptionUpdated:
     @pytest.mark.parametrize("payment_method_has_changed", [True, False])
     def test_when_contribution_found(
@@ -341,7 +341,7 @@ class TestCustomerSubscriptionUpdated:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCustomerSubscriptionDeleted:
     def test_when_contribution_found(self, client, customer_subscription_deleted, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -380,7 +380,7 @@ class TestCustomerSubscriptionDeleted:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_customer_subscription_untracked_event(client, customer_subscription_updated_event, mocker):
     mock_log_warning = mocker.patch("apps.contributions.webhooks.logger.warning")
     mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -398,7 +398,7 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
     )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 @pytest.mark.parametrize(
     ("interval", "expect_reminder_email"),
@@ -456,7 +456,7 @@ def test_process_stripe_webhook_when_value_error_raised(mocker, client):
     assert logger_spy.call_args == mocker.call("Invalid payload from Stripe webhook request")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestChargeRefunded:
     def test_happy_path(
@@ -486,27 +486,27 @@ class TestChargeRefunded:
         assert Payment.objects.count() == count + 1
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestInvoicePaymentSucceeded:
-    @pytest.fixture()
+    @pytest.fixture
     def invoice_payment_succeeded_for_first_payment_event(self):
         with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:
             return json.load(f)
 
-    @pytest.fixture()
+    @pytest.fixture
     def invoice_payment_succeeded_for_recurring_payment_event(self):
         with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-for-recurring-event.json").open() as f:
             return json.load(f)
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_intent_for_recurring_charge_expanded(self):
         with Path(
             "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"
         ).open() as f:
             return stripe.PaymentIntent.construct_from(json.load(f), key="test")
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_intent_for_subscription_creation_charge_expanded(self):
         with Path(
             "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"

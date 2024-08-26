@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import asdict
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
@@ -17,9 +18,9 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
     SendContributionEmailData,
+    generate_email_data,
     get_test_magic_link,
     logger,
-    make_send_thank_you_email_data,
     send_templated_email_with_attachment,
     send_thank_you_email,
 )
@@ -57,27 +58,36 @@ class TestMagicLink:
 
 
 @pytest.mark.django_db
-class TestMakeSendThankYouEmailData:
+class TestGenerateEmailData:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution"])
     def contribution(self, request):
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_happy_path(self, contribution, show_billing_history, mocker):
-        mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
+    @pytest.mark.parametrize("contributor_name", ["customer_name", None])
+    @pytest.mark.parametrize("custom_timestamp", ["custom_timestamp", None])
+    @pytest.mark.parametrize("has_donation_page", [True, False])
+    def test_happy_path(
+        self, contribution, show_billing_history, contributor_name, custom_timestamp, has_donation_page, mocker
+    ):
+        mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
+        if has_donation_page:
+            contribution.revenue_program.default_donation_page = DonationPageFactory()
+            contribution.revenue_program.default_donation_page.save()
+
         expected = SendContributionEmailData(
             contribution_amount=contribution.formatted_amount,
-            timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+            timestamp=custom_timestamp or convert_to_timezone_formatted(contribution.created, "America/New_York"),
             contribution_interval_display_value=(
                 contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
             ),
             contribution_interval=contribution.interval,
             contributor_email=contribution.contributor.email,
-            contributor_name=mock_fetch_customer.return_value.name,
-            copyright_year=contribution.created.year,
+            contributor_name=mock_fetch_customer.return_value.name or "contributor",
+            copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
             magic_link=mock_get_magic_link.return_value,
@@ -88,23 +98,28 @@ class TestMakeSendThankYouEmailData:
             show_upgrade_prompt=False,
             billing_history=contribution.get_billing_history(),
             show_billing_history=show_billing_history,
+            default_contribution_page_url=(
+                contribution.revenue_program.default_donation_page.page_url
+                if contribution.revenue_program.default_donation_page
+                else None
+            ),
         )
-        actual = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        actual = generate_email_data(
+            contribution, show_billing_history=show_billing_history, custom_timestamp=custom_timestamp
+        )
         assert expected == actual
 
     def test_when_no_provider_customer_id(self, mocker):
         logger_spy = mocker.spy(logger, "error")
         contribution = ContributionFactory(one_time=True, provider_customer_id=None)
         with pytest.raises(EmailTaskException):
-            make_send_thank_you_email_data(contribution)
-        logger_spy.assert_called_once_with(
-            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
-        )
+            generate_email_data(contribution)
+        logger_spy.assert_called_once_with("No Stripe customer id for contribution with id %s", contribution.id)
 
     def test_when_error_retrieving_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", side_effect=StripeError("error"))
         with pytest.raises(EmailTaskException):
-            make_send_thank_you_email_data(ContributionFactory(one_time=True))
+            generate_email_data(ContributionFactory(one_time=True))
 
 
 @pytest.mark.django_db
@@ -117,12 +132,13 @@ class TestSendThankYouEmail:
         ],
     )
     @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_happy_path(self, make_contribution_fn, show_billing_history, mocker):
+    @pytest.mark.parametrize("contributor_name", ["John Doe", None])
+    def test_happy_path(self, make_contribution_fn, show_billing_history, contributor_name, mocker):
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
         contribution = make_contribution_fn()
-        data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
         send_thank_you_email(data)
 
@@ -134,6 +150,8 @@ class TestSendThankYouEmail:
                 assert f"<p class=\"billing-history-value\">{history['payment_status']}</p>" in email_html
         else:
             assert "Billing History" not in email_html
+
+        assert f"Dear {contributor_name}," if contributor_name else "Dear contributor," in email_html
 
         mock_send_mail.assert_called_once_with(
             subject="Thank you for your contribution!",
@@ -185,7 +203,7 @@ class TestSendThankYouEmail:
             revenue_program.save()
         contribution.donation_page.revenue_program = revenue_program
         contribution.donation_page.save()
-        data = make_send_thank_you_email_data(contribution)
+        data = generate_email_data(contribution)
         send_thank_you_email(data)
 
         default_logo = f"{settings.SITE_URL}/static/nre-logo-yellow.png"
@@ -239,7 +257,7 @@ class TestSendThankYouEmail:
                 )
             ),
         )
-        data = make_send_thank_you_email_data(contribution)
+        data = generate_email_data(contribution)
         send_thank_you_email(data)
 
         non_profit_expectation = "This receipt may be used for tax purposes."

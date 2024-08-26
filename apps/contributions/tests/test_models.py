@@ -40,7 +40,7 @@ from apps.contributions.tests.factories import (
 )
 from apps.contributions.types import StripeEventData
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
+from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -521,7 +521,7 @@ class TestContributionModel:
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email(show_billing_history=show_billing_history)
-        expected_data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)
@@ -1125,8 +1125,8 @@ class TestContributionModel:
         mock_stripe = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
         getattr(annual_contribution, email_method_name)()
         logger_spy.assert_called_once_with(
-            "No Stripe customer ID for contribution with ID %s",
-            annual_contribution.id,
+            "Encountered an error trying to generate email data",
+            exc_info=True,
         )
         mock_stripe.assert_not_called()
         send_email_spy.assert_not_called()
@@ -1147,10 +1147,7 @@ class TestContributionModel:
         send_email_spy = mocker.spy(send_templated_email, "delay")
 
         getattr(annual_contribution, email_method_name)()
-        logger_spy.assert_called_once_with(
-            "Something went wrong retrieving Stripe customer for contribution with ID %s",
-            annual_contribution.id,
-        )
+        logger_spy.assert_called_once_with("Encountered an error trying to generate email data")
         send_email_spy.assert_not_called()
 
     @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "rp_user", "user_with_unexpected_role"])

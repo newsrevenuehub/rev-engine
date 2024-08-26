@@ -160,17 +160,29 @@ Then, in Django-admin, create an Organization for that connected stripe account 
 
 #### Running Stripe webhooks locally
 
-To set up Stripe Webhooks locally, it's a bit of fuss.
-First, download NGROK and expose whichever port your running the server on. Something like:
+To set up Stripe Webhooks locally, you can use Stripe CLI to redirect stripe events to your localhost. Ref: [Listen to Stripe Events Locally](https://dashboard.stripe.com/webhooks/create?endpoint_location=local)
+First, download Stripe CLI (if you don't have it) and login:
 
 ```sh
-./ngrok http 8000
+$ stripe login
 ```
 
-Next, copy the url its exposing your port through (example:http://610d1234567.ngrok.io) and add `SITE_URL = "http://610d1234567.ngrok.io"`, as well as adding `610d1234567.ngrok.io` to ALLOWED_HOSTS.
+Next, run command stripe listen to the correct stripe webhook URL. At the time of this edit, the correct URL is: `http://localhost:8000/api/v1/revengine-stripe-webhook/`
 
-Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe SDK to add WebhookEndpoints to the NRH Stripe account.
-For the `STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS`, you'll then need access to the Hub Stripe Dashboard — specifically, the one called `NRH (NRE, Connect, legacy donations and client ACH)`. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
+```sh
+$ stripe listen --forward-to localhost:8000/api/v1/revengine-stripe-webhook/
+```
+
+The above command will execute and return something like: `> Ready! You are using Stripe API Version [2020-08-27]. Your webhook signing secret is whsec_9xx (^C to quit)`.
+With this secret, all you have to do is add it to your `.envrc`:
+
+```
+echo "export STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS=whsec_9xx" >> .envrc
+```
+
+Obs 1: Make sure you have revengine and celery running. You can do that by having 2 terminals running. One with `make run-redis` and the other with `make start-celery`
+
+Obs 2: You will probably need to add `"https://*.stripe.com/"` to `CSRF_TRUSTED_ORIGINS` list (added in django 4.x)
 
 ### 6. Set up subdomains in `/etc/hosts`
 

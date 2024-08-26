@@ -61,7 +61,7 @@ def test_cloudflare_500_page(client):
     assert cloudflare_errors_div.findChild("div", string="::CLIENT_IP::")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_react_app_view_get_context_data_with_social_meta(mocker):
     """Show that react app view works with social meta.
 

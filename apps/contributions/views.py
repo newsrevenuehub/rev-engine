@@ -651,7 +651,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         logger.info("send receipt with contribution_id %s", contribution_id)
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = self.get_contributor_queryset(contributor).get(pk=contribution_id)
+            contribution: Contribution = self.get_contributor_queryset(contributor).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
         contribution.handle_thank_you_email(

@@ -24,24 +24,24 @@ from apps.contributions.types import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
 
-@pytest.fixture()
+@pytest.fixture
 def now():
     return timezone.now()
 
 
-@pytest.fixture()
+@pytest.fixture
 def expiring_flagged_contributions(now):
     flagged_date = now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA) - timedelta(days=1)
     return ContributionFactory.create_batch(2, status=ContributionStatus.FLAGGED, flagged_date=flagged_date)
 
 
-@pytest.fixture()
+@pytest.fixture
 def non_expiring_flagged_contributions(now):
     flagged_date = now - timedelta(days=1)
     return ContributionFactory.create_batch(2, status=ContributionStatus.FLAGGED, flagged_date=flagged_date)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class AutoAcceptFlaggedContributionsTaskTest:
     def test_successful_captures(self, non_expiring_flagged_contributions, expiring_flagged_contributions, mocker):
         expected_update_count = len(expiring_flagged_contributions)
@@ -93,7 +93,7 @@ class TestTaskPullSerializedStripeContributionsToCache:
 NEXT_PAGE = "some-page-identifier"
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_pi_search_result_factory(pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
     class Factory:
         def get(self, rp_slug: str, has_more: bool, num_with_subs: int, num_without_subs: int):
@@ -112,7 +112,7 @@ def stripe_pi_search_result_factory(pi_for_active_subscription_factory, pi_for_v
     return Factory()
 
 
-@pytest.fixture()
+@pytest.fixture
 def stripe_uninvoiced_subscription_factory(subscription_data_factory):
     class Factory:
         def get(self, rp_slug: str, *args, **kwargs) -> stripe.Subscription:
@@ -131,7 +131,7 @@ def stripe_uninvoiced_subscription_factory(subscription_data_factory):
     return Factory()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestTaskPullPaymentIntentsAndUninvoicedSubs:
     def test_happy_path(
         self, revenue_program, mocker, stripe_pi_search_result_factory, stripe_uninvoiced_subscription_factory
@@ -199,7 +199,7 @@ class TestTaskPullPaymentIntentsAndUninvoicedSubs:
         assert mock_upsert_uninvoiced_subs.call_count == 1
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestEmailContributionCsvExportToUser:
     def test_when_all_requested_contributions_found(self, monkeypatch, mocker, org_user_free_plan):
         """Show happy path behavior when all of requested contributions are found and included in export.
@@ -407,7 +407,7 @@ def test_on_process_stripe_webhook_task_failure(mocker):
     mock_logger.assert_called_once_with("process_stripe_webhook_task %s failed. Error: %s", my_id, exc)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_intent_succeeded_one_time_event, mocker):
     logger_spy = mocker.spy(contribution_tasks.logger, "info")
     Contribution.objects.all().delete()
@@ -419,7 +419,7 @@ def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_i
     )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_task_import_contributions_and_payments_for_stripe_account(mocker):
     mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments")
     contribution_tasks.task_import_contributions_and_payments_for_stripe_account(
@@ -431,7 +431,7 @@ def test_task_import_contributions_and_payments_for_stripe_account(mocker):
     )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.parametrize("abandoned_exists", [True, False])
 @pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
 def test_mark_abandoned_carts_as_abandoned(abandoned_exists, unmarked_abandoned_contributions):
@@ -450,7 +450,7 @@ def test_mark_abandoned_carts_as_abandoned(abandoned_exists, unmarked_abandoned_
             assert contribution.status == ContributionStatus.ABANDONED
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.parametrize("payment_provider_error", [True, False])
 def test_auto_accept_flagged_contributions(payment_provider_error, mocker):
     ContributionFactory(flagged=True)

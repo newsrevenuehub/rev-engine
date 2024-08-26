@@ -21,8 +21,16 @@ Default.args = {
       status: 'paid'
     },
     {
+      amount_refunded: 0,
+      created: new Date('1/1/3001').toISOString(),
+      gross_amount_paid: 12345,
+      net_amount_paid: 12345,
+      status: 'paid',
+      transaction_time: new Date('1/2/2001').toISOString()
+    },
+    {
       amount_refunded: 678,
-      created: new Date('1/2/2001').toISOString(),
+      created: new Date('1/3/2001').toISOString(),
       gross_amount_paid: 678,
       net_amount_paid: 678,
       status: 'refunded'

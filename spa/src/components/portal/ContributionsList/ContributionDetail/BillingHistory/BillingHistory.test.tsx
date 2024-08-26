@@ -101,6 +101,44 @@ describe('BillingHistory', () => {
     expect(within(rows[2]).getAllByRole('cell')[2]).toHaveTextContent('Refunded');
   });
 
+  it('sorts rows by effective date descending', () => {
+    // This data mixes transaction_times and createds, and is intentionally out of date order.
+
+    tree({
+      payments: [
+        {
+          amount_refunded: 0,
+          created: new Date('1/1/2001').toISOString(),
+          gross_amount_paid: 12345,
+          net_amount_paid: 12345,
+          status: 'paid',
+          transaction_time: new Date('1/3/2001').toISOString()
+        },
+        {
+          amount_refunded: 678,
+          created: new Date('1/1/2001').toISOString(),
+          gross_amount_paid: 678,
+          net_amount_paid: 678,
+          status: 'refunded'
+        },
+        {
+          amount_refunded: 0,
+          created: new Date('1/2/2001').toISOString(),
+          gross_amount_paid: 12345,
+          net_amount_paid: 12345,
+          status: 'paid',
+          transaction_time: new Date('1/2/2001').toISOString()
+        }
+      ]
+    });
+
+    const rows = screen.getAllByRole('row');
+
+    expect(within(rows[1]).getAllByRole('cell')[0]).toHaveTextContent('1/3/2001');
+    expect(within(rows[2]).getAllByRole('cell')[0]).toHaveTextContent('1/2/2001');
+    expect(within(rows[3]).getAllByRole('cell')[0]).toHaveTextContent('1/1/2001');
+  });
+
   it('shows a resend receipt button if org\'s "send_receipt_email_via_nre" flag is "true"', () => {
     tree();
 

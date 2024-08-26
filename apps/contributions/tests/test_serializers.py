@@ -24,14 +24,19 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import ContributionSerializer, PortalContributionBaseSerializer
+from apps.contributions.serializers import (
+    ContributionSerializer,
+    PortalContributionBaseSerializer,
+    PortalContributionDetailSerializer,
+)
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.test_models import MockSubscription
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionSerializer:
     def test_has_expected_fields(self, one_time_contribution):
         expected_fields = [
@@ -175,8 +180,8 @@ class TestAbstractPaymentSerializer:
         assert {"max_value", "min_value"}.issubset(set(amount.error_messages.keys()))
 
 
-@pytest.mark.django_db()
-@pytest.fixture()
+@pytest.mark.django_db
+@pytest.fixture
 def donation_page_with_conditionally_required_phone_element():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -192,8 +197,8 @@ def donation_page_with_conditionally_required_phone_element():
     return page
 
 
-@pytest.mark.django_db()
-@pytest.fixture()
+@pytest.mark.django_db
+@pytest.fixture
 def donation_page_with_conditionally_required_reason_for_giving_element_no_presets():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -212,8 +217,8 @@ def donation_page_with_conditionally_required_reason_for_giving_element_no_prese
 PRESET_REASONS = ["one", "two", "three"]
 
 
-@pytest.mark.django_db()
-@pytest.fixture()
+@pytest.mark.django_db
+@pytest.fixture
 def donation_page_with_conditionally_required_reason_for_giving_element_and_presets():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -234,8 +239,8 @@ def donation_page_with_conditionally_required_reason_for_giving_element_and_pres
     return page
 
 
-@pytest.mark.django_db()
-@pytest.fixture()
+@pytest.mark.django_db
+@pytest.fixture
 def donation_page_with_unrequired_reason_for_giving_element_and_presets():
     page = DonationPageFactory()
     conditionally_required_elements = [
@@ -256,8 +261,8 @@ def donation_page_with_unrequired_reason_for_giving_element_and_presets():
     return page
 
 
-@pytest.mark.django_db()
-@pytest.fixture()
+@pytest.mark.django_db
+@pytest.fixture
 def donation_page_with_ask_honoree():
     page = DonationPageFactory()
     conditionally_included_elements = [
@@ -278,8 +283,8 @@ def donation_page_with_ask_honoree():
     return page
 
 
-@pytest.mark.django_db()
-@pytest.fixture()
+@pytest.mark.django_db
+@pytest.fixture
 def donation_page_with_ask_in_memory():
     page = DonationPageFactory()
     conditionally_included_elements = [
@@ -385,14 +390,14 @@ def mock_create_stripe_customer_with_exception(*args, **kwargs):
     raise stripe.error.APIError("Something horrible has happened")
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_swag_choices_string():
     choice_1_raw = f"t-shirt{StripePaymentMetadataSchemaV1_4.SWAG_SUB_CHOICE_DELIMITER}small"
     choice_2_raw = f"hat{StripePaymentMetadataSchemaV1_4.SWAG_SUB_CHOICE_DELIMITER}huge"
     return f"{choice_1_raw}{StripePaymentMetadataSchemaV1_4.SWAG_CHOICES_DELIMITER}{choice_2_raw}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def invalid_swag_choices_string_exceed_max_length(valid_swag_choices_string, settings):
     assert settings.METADATA_MAX_SWAG_CHOICES_LENGTH
     invalid_string = ""
@@ -401,7 +406,7 @@ def invalid_swag_choices_string_exceed_max_length(valid_swag_choices_string, set
     return invalid_string
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestBaseCreatePaymentSerializer:
     serializer_class = serializers.BaseCreatePaymentSerializer
 
@@ -898,7 +903,7 @@ class TestBaseCreatePaymentSerializer:
             assert getattr(metadata, x) is None
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_stripe_metadata_v1_4_data():
     return {
         "agreed_to_pay_fees": True,
@@ -982,7 +987,7 @@ class TestStripePaymentMetadataSchemaV1_4:
         assert instance.contributor_id is None
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCreateOneTimePaymentSerializer:
     serializer_class = serializers.CreateOneTimePaymentSerializer
 
@@ -1258,7 +1263,7 @@ class TestCreateOneTimePaymentSerializer:
             serializer.create(serializer.validated_data)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCreateRecurringPaymentSerializer:
     serializer_class = serializers.CreateRecurringPaymentSerializer
 
@@ -1685,3 +1690,55 @@ class TestPortalContributionBaseSerializer:
     def test_unsupported_methods(self, method, kwargs):
         with pytest.raises(NotImplementedError):
             getattr(PortalContributionBaseSerializer(), method)(**kwargs)
+
+
+@pytest.mark.django_db
+class TestPortalContributionDetailSerializer:
+    def test_update_amount_monthly_contribution(self, mocker, monthly_contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        updated_contribution = serializer.update(monthly_contribution, {"amount": 123})
+
+        assert updated_contribution.amount == 123
+
+    def test_update_amount_one_time_contribution(self, mocker, one_time_contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
+        with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
+            serializer.update(one_time_contribution, {"amount": 123})

@@ -30,7 +30,7 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.tests.factories import UserFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestMagicLink:
     def test_get_test_magic_link(self, mocker):
         user = UserFactory()
@@ -57,7 +57,7 @@ class TestMagicLink:
         assert expected == get_test_magic_link(user, revenue_program)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestGenerateEmailData:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution"])
     def contribution(self, request):
@@ -122,7 +122,7 @@ class TestGenerateEmailData:
             generate_email_data(ContributionFactory(one_time=True))
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestSendThankYouEmail:
     @pytest.mark.parametrize(
         "make_contribution_fn",

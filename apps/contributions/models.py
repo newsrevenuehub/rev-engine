@@ -11,6 +11,7 @@ from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
@@ -20,6 +21,7 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
+from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
@@ -140,6 +142,19 @@ class ContributionQuerySet(models.QuerySet):
             )
         return self
 
+    def with_stripe_account(self):
+        """Annotate stripe_account_id as "stripe_account".
+
+        stripe_account even though it is the id and not object instead of *_id because Contribution had existing
+        property "stripe_account_id."
+        """
+        return self.annotate(
+            stripe_account=models.functions.Coalesce(
+                "_revenue_program__payment_provider__stripe_account_id",
+                "donation_page__revenue_program__payment_provider__stripe_account_id",
+            ),
+        )
+
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
         return self.exclude(
@@ -223,6 +238,20 @@ class ContributionQuerySet(models.QuerySet):
             provider_payment_method_id__isnull=True,
         )
 
+    def get_via_reversion_comment(self, comment: str) -> models.QuerySet[Contribution]:
+        """Return contributions with a specific reversion comment."""
+        # Filter versions based on the revision comment
+        versions_with_comment = Version.objects.filter(revision__comment=comment)
+        # Get the content type for the Contribution model
+        contribution_ct = ContentType.objects.get_for_model(Contribution)
+        contribution_ids = (
+            versions_with_comment.annotate(integer_id=models.functions.Cast("object_id", models.IntegerField()))
+            .filter(content_type=contribution_ct)
+            .values_list("integer_id", flat=True)
+        )
+        # Return filtered Contribution objects
+        return Contribution.objects.filter(id__in=contribution_ids)
+
 
 class ContributionManager(models.Manager):
     pass
@@ -277,6 +306,8 @@ class Contribution(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
+
+    ACTIVE_SUBSCRIPTION_STATUSES = ("active",)
 
     CANCELABLE_SUBSCRIPTION_STATUSES = (
         "trialing",
@@ -771,7 +802,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_modifiable(self) -> bool:
-        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+        return getattr(self.stripe_subscription, "status", None) in self.MODIFIABLE_SUBSCRIPTION_STATUSES
 
     @property
     # TODO @BW: Update this to be .last_payment_date when no longer in conflict with db model field
@@ -1150,6 +1181,84 @@ class Contribution(IndexedTimeStampedModel):
                 )
 
             raise
+
+    def update_subscription_amount(self, amount: int) -> None:
+        """Update Stripe's Subscription Item amount to the new value.
+
+        If it's a recurring subscription, update the amount of the next payment
+        without proration (paying difference of existing month).
+        """
+        # vs circular import
+        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
+
+        if amount < REVENGINE_MIN_AMOUNT:
+            raise ValueError("Amount value must be greater than $0.99")
+        if amount > STRIPE_MAX_AMOUNT:
+            raise ValueError("Amount value must be smaller than $999,999.99")
+        if getattr(self.stripe_subscription, "status", None) not in self.ACTIVE_SUBSCRIPTION_STATUSES:
+            raise ValueError("Cannot update amount for inactive subscription")
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("Cannot update amount for one-time contribution")
+        if not (sub_id := self.provider_subscription_id):
+            raise ValueError("Cannot update amount for contribution without a subscription ID")
+
+        logger.info(
+            "fetching subscription items from sub %s",
+            sub_id,
+        )
+        try:
+            items = stripe.SubscriptionItem.list(subscription=sub_id, stripe_account=self.stripe_account_id)
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to fetch subscription items on sub_id: %s",
+                sub_id,
+            )
+            raise
+
+        if len(items["data"]) != 1:
+            raise ValueError("Subscription should have only one item")
+
+        item = items["data"][0]
+        self.contribution_metadata["donor_selected_amount"] = amount
+
+        logger.info(
+            "Updating Stripe Subscription's %s (item %s), amount to %s",
+            sub_id,
+            item["id"],
+            amount,
+        )
+        try:
+            stripe.Subscription.modify(
+                sub_id,
+                items=[
+                    {
+                        "id": item["id"],
+                        "price_data": {
+                            "unit_amount": amount,
+                            "currency": item["price"]["currency"],
+                            "product": item["price"]["product"],
+                            "recurring": {
+                                "interval": item["price"]["recurring"]["interval"],
+                            },
+                        },
+                    }
+                ],
+                metadata=self.contribution_metadata,
+                stripe_account=self.stripe_account_id,
+                proration_behavior="none",
+            )
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                self.id,
+            )
+            raise
+
+        with reversion.create_revision():
+            self.save(update_fields={"contribution_metadata", "modified"})
+            reversion.set_comment(
+                f"`Contribution.update_subscription_amount` saved changes to contribution with ID {self.id}"
+            )
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

@@ -4,7 +4,6 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable, Generator
-from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Literal, TypedDict
@@ -31,7 +30,8 @@ from apps.contributions.choices import BadActorScores, ContributionInterval, Con
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
-    make_send_thank_you_email_data,
+    EmailTaskException,
+    generate_email_data,
     send_templated_email,
     send_thank_you_email,
 )
@@ -587,7 +587,10 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.stripe_account_id,
             metadata=metadata,
             payment_behavior="error_if_incomplete" if error_if_incomplete else "default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
+            payment_settings={
+                "save_default_payment_method": "on_subscription",
+                "payment_method_types": ["card"],
+            },
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
             idempotency_key=f"{self.uuid}-subscription",
@@ -637,7 +640,7 @@ class Contribution(IndexedTimeStampedModel):
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
-            data = make_send_thank_you_email_data(self, show_billing_history=show_billing_history)
+            data = generate_email_data(self, show_billing_history=show_billing_history)
             send_thank_you_email.delay(data)
         else:
             logger.info(
@@ -679,43 +682,16 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
 
-        if not self.provider_customer_id:
-            logger.error("No Stripe customer ID for contribution with ID %s", self.id)
-            return
         try:
-            customer = stripe.Customer.retrieve(
-                self.provider_customer_id,
-                stripe_account=self.stripe_account_id,
+            data = generate_email_data(
+                self,
+                custom_timestamp=(
+                    timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+                ),
             )
-        except StripeError:
-            logger.exception(
-                "Something went wrong retrieving Stripe customer for contribution with ID %s",
-                self.id,
-            )
+        except EmailTaskException:
+            logger.exception("Encountered an error trying to generate email data")
             return
-
-        data = {
-            "contribution_amount": self.formatted_amount,
-            "contribution_interval_display_value": self.interval,
-            "contributor_email": self.contributor.email,
-            "contributor_name": customer.name,
-            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
-            "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.revenue_program.fiscal_status,
-            "magic_link": Contributor.create_magic_link(self),
-            "non_profit": self.revenue_program.non_profit,
-            "rp_name": self.revenue_program.name,
-            "style": asdict(self.revenue_program.transactional_email_style),
-            "tax_id": self.revenue_program.tax_id,
-            "timestamp": (
-                timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
-            ),
-        }
-
-        # Almost all RPs should have a default page set, but it's possible one isn't.
-
-        if default_page := self.revenue_program.default_donation_page:
-            data["default_contribution_page_url"] = default_page.page_url
 
         send_templated_email.delay(
             self.contributor.email,

@@ -1701,9 +1701,8 @@ class TestPortalContributionBaseSerializer:
         return contribution
 
     def test_get_first_payment_date(self, contribution):
-        assert isinstance(
-            PortalContributionBaseSerializer().get_first_payment_date(instance=contribution), datetime.date
-        )
+        first_payment_date = PortalContributionBaseSerializer().get_first_payment_date(instance=contribution)
+        assert isinstance(first_payment_date, datetime.datetime)
 
 
 @pytest.mark.django_db

@@ -858,9 +858,9 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
 
-    def get_first_payment_date(self, instance) -> datetime.date:
+    def get_first_payment_date(self, instance) -> datetime:
         first_payment = instance.payment_set.order_by("transaction_time").first()
-        return (first_payment.transaction_time if first_payment else instance.created).date()
+        return first_payment.transaction_time if first_payment and first_payment.transaction_time else instance.created
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")

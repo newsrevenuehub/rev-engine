@@ -42,7 +42,7 @@ def make_valid_page_data(**kwargs):
     )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestDonationPageAdmin:
     def test_get_form(self, live_donation_page):
         request = RequestFactory().get(reverse("admin:pages_donationpage_changelist"))

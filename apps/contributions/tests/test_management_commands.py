@@ -1,4 +1,6 @@
 import datetime
+import logging
+from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
 from django.core.management import call_command
@@ -7,6 +9,12 @@ import pytest
 import reversion
 import stripe
 
+from apps.contributions.choices import ContributionInterval
+from apps.contributions.management.commands.backfill_first_payment_date import METADATA_VERSIONS
+from apps.contributions.management.commands.backfill_first_payment_date import (
+    REVISION_COMMENT as BACKFILL_FIRST_PAYMENT_DATE_REVISION_COMMENT,
+)
+from apps.contributions.management.commands.backfill_first_payment_date import Command as BackfillFirstPaymentCommand
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
     REVISION_COMMENT,
 )
@@ -20,6 +28,7 @@ from apps.contributions.management.commands.fix_incident_2445 import (
     ContributionOutcome as Incident2445Outcome,
 )
 from apps.contributions.models import Contribution, Payment
+from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -29,7 +38,7 @@ from apps.organizations.tests.factories import PaymentProviderFactory, RevenuePr
 from apps.pages.tests.factories import DonationPageFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_process_stripe_event(mocker):
     mock_processor = mocker.patch("apps.contributions.stripe_import.StripeEventProcessor")
     options = {
@@ -74,7 +83,7 @@ def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch, mocker
     mock_fix_missing_contribution_metadata.assert_called_once_with(dry_run=dry_run)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_sync_payment_transaction_time:
     DISCONNECTED_ACCOUNT_ID = "acct_disconnected"
     BALANCE_TRANSACTION_ID_WITH_ERROR = "txn_with_error"
@@ -83,18 +92,18 @@ class Test_sync_payment_transaction_time:
     ACCOUNT_ID_WITH_OTHER_ERROR = "acct_with_other_error"
     ACCOUNT_ID = "acct_1"
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_with_transaction_time(self):
         return PaymentFactory(transaction_time=datetime.datetime.now(datetime.timezone.utc))
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_no_transaction_time_eligible(self):
         return PaymentFactory(
             transaction_time=None,
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=self.ACCOUNT_ID,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_no_transaction_time_eligible_fail_with_bt_retrieval(self):
         return PaymentFactory(
             transaction_time=None,
@@ -102,28 +111,28 @@ class Test_sync_payment_transaction_time:
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=self.ACCOUNT_ID,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error(self):
         return PaymentFactory(
             transaction_time=None,
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=self.ACCOUNT_ID_WITH_PERMISSION_ERROR,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_no_transaction_time_eligible_fail_with_account_retrieval_other_error(self):
         return PaymentFactory(
             transaction_time=None,
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=self.ACCOUNT_ID_WITH_OTHER_ERROR,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_no_transaction_time_ineligible_because_of_no_account(self):
         return PaymentFactory(
             transaction_time=None,
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=None,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def payments_with_errors(
         self,
         payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error,
@@ -180,7 +189,7 @@ class Test_sync_payment_transaction_time:
         call_command("sync_payment_transaction_time")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_import_stripe_transactions_data:
     @pytest.mark.parametrize("async_mode", [False, True])
     @pytest.mark.parametrize("for_orgs", [True, False])
@@ -222,18 +231,18 @@ class Test_import_stripe_transactions_data:
             mock_task.assert_not_called()
 
 
-@pytest.fixture()
+@pytest.fixture
 def contributions():
     return ContributionFactory.create_batch(size=3, provider_payment_id=None, monthly_subscription=True)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_fix_recurring_contribution_missing_provider_payment_id:
-    @pytest.fixture()
+    @pytest.fixture
     def contribution(self):
         return ContributionFactory(provider_payment_id=None, monthly_subscription=True)
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_get_account_status(self, mocker, contribution):
         mocker.patch(
             # needed to mock at import because otherwise tests failed, seemingly because
@@ -291,18 +300,18 @@ def test_clear_stripe_transactions_import_cache(mocker):
     mock_clear_cache.assert_called_once()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_fix_imported_contributions_with_incorrect_donation_page_value:
 
-    @pytest.fixture()
+    @pytest.fixture
     def rp_1(self):
         return RevenueProgramFactory()
 
-    @pytest.fixture()
+    @pytest.fixture
     def rp_2(self):
         return RevenueProgramFactory()
 
-    @pytest.fixture()
+    @pytest.fixture
     def eligible_metadata(self, rp_1):
         return {
             "agreed_to_pay_fees": True,
@@ -313,7 +322,7 @@ class Test_fix_imported_contributions_with_incorrect_donation_page_value:
             "schema_version": "1.5",
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def ineligible_metadata(self, rp_2):
         return {
             "agreed_to_pay_fees": True,
@@ -325,7 +334,7 @@ class Test_fix_imported_contributions_with_incorrect_donation_page_value:
             "schema_version": "1.5",
         }
 
-    @pytest.fixture()
+    @pytest.fixture
     def eligible_contribution(self, rp_1, eligible_metadata):
         page = DonationPageFactory(revenue_program=rp_1)
         page.revenue_program.default_donation_page = page
@@ -339,7 +348,7 @@ class Test_fix_imported_contributions_with_incorrect_donation_page_value:
             reversion.set_comment(REVISION_COMMENT)
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def ineligible_contribution_cause_metadata(self, rp_2, ineligible_metadata):
         page = DonationPageFactory(revenue_program=rp_2)
         page.revenue_program.default_donation_page = page
@@ -367,16 +376,16 @@ class Test_fix_imported_contributions_with_incorrect_donation_page_value:
         assert ineligible_contribution_cause_metadata.modified == ineligible_modified
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_sync_missing_provider_payment_method_details:
 
-    @pytest.fixture()
+    @pytest.fixture
     def fetch_stripe_payment_method(self, mocker, payment_method):
         return mocker.patch(
             "apps.contributions.models.Contribution.fetch_stripe_payment_method", side_effect=[payment_method, None]
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def contribution_no_stripe_account_id(self):
         return ContributionFactory(
             provider_payment_method_id="pm_1",
@@ -384,18 +393,18 @@ class Test_sync_missing_provider_payment_method_details:
             donation_page__revenue_program__payment_provider__stripe_account_id=None,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def contributions_with_stripe_account_id(self):
         return ContributionFactory.create_batch(
             provider_payment_method_id="pm_1", provider_payment_method_details=None, size=3
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def contributions(self, contribution_no_stripe_account_id, contributions_with_stripe_account_id):
         return [contribution_no_stripe_account_id, *contributions_with_stripe_account_id]
 
-    @pytest.fixture()
-    @pytest.mark.parametrize()
+    @pytest.fixture
+    @pytest.mark.parametrize
     def _get_accounts(self, mocker, contributions_with_stripe_account_id):
         mocker.patch(
             "apps.common.utils.get_stripe_accounts_and_their_connection_status",
@@ -413,7 +422,7 @@ class Test_sync_missing_provider_payment_method_details:
     def test_when_no_eligible_contributions(self):
         call_command("sync_missing_provider_payment_method_details")
 
-    @pytest.fixture()
+    @pytest.fixture
     def _get_accounts_none_found(self, mocker, contributions_with_stripe_account_id):
         mocker.patch(
             "apps.common.utils.get_stripe_accounts_and_their_connection_status",
@@ -431,10 +440,10 @@ def test_mark_abandoned_carts(mocker):
     mock_mark_abandoned_carts.assert_called_once()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_fix_incident_2445:
 
-    @pytest.fixture()
+    @pytest.fixture
     def command(self):
         return FixIncident2445Command()
 
@@ -479,15 +488,15 @@ class Test_fix_incident_2445:
         )
         call_command("fix_incident_2445", payment_method_id="pm_1", original_contribution_id=99)
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_intent_with_payment_method(self, mocker):
         return mocker.Mock(id="pi_1", payment_method="pm_1")
 
-    @pytest.fixture()
+    @pytest.fixture
     def payment_intent_without_payment_method(self, mocker):
         return mocker.Mock(id="pi_2", payment_method=None)
 
-    @pytest.fixture()
+    @pytest.fixture
     def bad_payment_method_id(self):
         return "pm_X"
 
@@ -525,13 +534,13 @@ class Test_fix_incident_2445:
         else:
             assert contribution.provider_payment_method_details is None
 
-    @pytest.fixture()
+    @pytest.fixture
     def contribution_unflagged(self):
         return ContributionFactory(
             monthly_subscription=True, provider_payment_method_id=None, provider_payment_method_details=None
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def contribution_flagged(self):
         return ContributionFactory(
             monthly_subscription=True,
@@ -540,19 +549,19 @@ class Test_fix_incident_2445:
             provider_payment_method_details=None,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def subscription_with_invoice(self, mocker):
         return mocker.Mock(latest_invoice=mocker.Mock(payment_intent=mocker.Mock(payment_method="pm_1")))
 
-    @pytest.fixture()
+    @pytest.fixture
     def subscription_no_invoice(self, mocker):
         return mocker.Mock(latest_invoice=None)
 
-    @pytest.fixture()
+    @pytest.fixture
     def setup_intent_with_pm(self, mocker):
         return mocker.Mock(payment_method="pm_1")
 
-    @pytest.fixture()
+    @pytest.fixture
     def setup_intent_no_payment_method(self, mocker):
         return mocker.Mock(payment_method=None)
 
@@ -678,3 +687,222 @@ class Test_fix_incident_2445:
         contribution.refresh_from_db()
         assert contribution.provider_payment_method_id == TEMP_PM_ID
         assert contribution.provider_payment_method_details is None
+
+
+@pytest.mark.django_db
+class Test_backfill_first_payment_date:
+
+    @pytest.fixture
+    def command(self):
+        return BackfillFirstPaymentCommand()
+
+    @pytest.fixture
+    def importer(self):
+        return StripeTransactionsImporter(stripe_account_id="acct_1")
+
+    @pytest.fixture
+    def one_time_contribution(self):
+        return ContributionFactory(interval=ContributionInterval.ONE_TIME)
+
+    @pytest.fixture
+    def recurring_contribution(self):
+        return ContributionFactory(interval=ContributionInterval.MONTHLY)
+
+    def test_add_arguments(self, command):
+        parser = MagicMock()
+        command.add_arguments(parser)
+        parser.add_argument.assert_called_with("--suppress-stripe-info-logs", action="store_true", default=False)
+
+    @pytest.mark.parametrize("suppress", [True, False])
+    def test_configure_stripe_log_level(self, suppress, command, mocker):
+        logger = logging.getLogger("stripe")
+        set_level_mock = mocker.patch.object(logger, "setLevel")
+        command.configure_stripe_log_level(suppress_stripe_info_logs=suppress)
+        if suppress:
+            set_level_mock.assert_called_with(logging.ERROR)
+        else:
+            set_level_mock.assert_not_called()
+
+    def test_get_contributions(self, one_time_contribution, recurring_contribution, command, mocker):
+        one_time_contribution.contribution_metadata["schema_version"] = METADATA_VERSIONS[0]
+        one_time_contribution.provider_payment_id = "mock-id"
+        one_time_contribution.save()
+        with reversion.create_revision():
+            recurring_contribution.save()
+            reversion.set_comment(BACKFILL_FIRST_PAYMENT_DATE_REVISION_COMMENT)
+        mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.get_stripe_accounts_and_their_connection_status",
+            return_value=({c.stripe_account_id: True for c in [one_time_contribution, recurring_contribution]}),
+        )
+        contributions = command.get_contributions()
+        assert set(contributions.values_list("id", flat=True)) == {
+            c.id for c in [one_time_contribution, recurring_contribution]
+        }
+
+    def test_handle_account_happy_path_all_cached(self, command, one_time_contribution, recurring_contribution, mocker):
+        mock_created = one_time_contribution.created + datetime.timedelta(days=1)
+        mock_start_date = recurring_contribution.created + datetime.timedelta(days=1)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value={
+                "created": mock_created.timestamp(),
+                "id": "mock-id",
+                "start_date": mock_start_date.timestamp(),
+            },
+        )
+        # This bends the rules by passing a list of contributions, not a
+        # queryset as the method is expecting, but all it needs is to be able to iterate over it.
+        command.handle_account("mock-account-id", [one_time_contribution, recurring_contribution])
+        assert one_time_contribution.first_payment_date == mock_created
+        assert recurring_contribution.first_payment_date == mock_start_date
+
+    def test_handle_account_no_contributions(self, command, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        command.handle_account("mock-account-id", [])
+        # Shouldn't raise an exception.
+
+    def test_handle_account_payment_intent_not_in_cache(self, command, one_time_contribution, mocker):
+        mock_created = one_time_contribution.created + datetime.timedelta(days=1)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve", return_value={"created": mock_created.timestamp(), "id": "mock-id"}
+        )
+        command.handle_account("mock-account-id", [one_time_contribution])
+        assert one_time_contribution.first_payment_date == mock_created
+
+    def test_handle_account_nonexistent_payment_intent(self, command, one_time_contribution, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve", side_effect=stripe.error.InvalidRequestError(message="test", param={})
+        )
+        old_first_payment_date = one_time_contribution.first_payment_date
+        command.handle_account("mock-account-id", [one_time_contribution])
+        assert one_time_contribution.first_payment_date == old_first_payment_date
+
+    def test_handle_account_subscription_not_in_cache(self, command, recurring_contribution, mocker):
+        mock_start_date = recurring_contribution.created + datetime.timedelta(days=1)
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.Subscription.retrieve", return_value={"start_date": mock_start_date.timestamp(), "id": "mock-id"}
+        )
+        command.handle_account("mock-account-id", [recurring_contribution])
+        assert recurring_contribution.first_payment_date == mock_start_date
+
+    def test_handle_account_nonexistent_subscription(self, command, recurring_contribution, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions_with_metadata_version"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_resource_from_cache",
+            return_value=None,
+        )
+        mocker.patch(
+            "stripe.Subscription.retrieve", side_effect=stripe.error.InvalidRequestError(message="test", param={})
+        )
+        old_first_payment_date = recurring_contribution.first_payment_date
+        command.handle_account("mock-account-id", [recurring_contribution])
+        assert recurring_contribution.first_payment_date == old_first_payment_date
+
+    @pytest.mark.parametrize(("suppress_stripe_info_logs"), [(True), (False)])
+    def test_command_happy_path(self, suppress_stripe_info_logs, one_time_contribution, recurring_contribution, mocker):
+        # We need to imitate the annotation added by get_contributions().
+        contributions = Contribution.objects.filter(
+            id__in=[one_time_contribution.id, recurring_contribution.id]
+        ).with_stripe_account()
+        mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.get_contributions",
+            return_value=contributions,
+        )
+        configure_stripe_log_level_mock = mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.configure_stripe_log_level"
+        )
+        handle_account_mock = mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.handle_account"
+        )
+        call_command("backfill_first_payment_date", suppress_stripe_info_logs=suppress_stripe_info_logs)
+        configure_stripe_log_level_mock.assert_called_once_with(suppress_stripe_info_logs)
+
+        # We need to assert loosely that the right calls were made because the
+        # method is creating new querysets, e.g. a strict equality check won't
+        # work.
+        assert handle_account_mock.call_count == 2
+        for expected in contributions:
+            assert (
+                len(
+                    [
+                        call
+                        for call in handle_account_mock.call_args_list
+                        if call.kwargs["account_id"] == expected.stripe_account
+                        and len(call.kwargs["contributions"]) == 1
+                        and call.kwargs["contributions"][0].id == expected.id
+                    ]
+                )
+                == 1
+            )
+
+    def test_command_dedupes_stripe_accounts(self, one_time_contribution, mocker):
+        # We need to imitate the annotation added by get_contributions().
+        contributions = Contribution.objects.filter(id=one_time_contribution.id).with_stripe_account()
+        mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.get_contributions",
+            return_value=contributions,
+        )
+        handle_account_mock = mocker.patch(
+            "apps.contributions.management.commands.backfill_first_payment_date.Command.handle_account"
+        )
+        call_command("backfill_first_payment_date")
+        handle_account_mock.assert_called_once()
+        # See note above about why we assert about call args in a roundabout way.
+        assert (
+            len(
+                [
+                    call
+                    for call in handle_account_mock.call_args_list
+                    if call.kwargs["account_id"] == contributions[0].stripe_account
+                    and len(call.kwargs["contributions"]) == 1
+                    and call.kwargs["contributions"][0].id == contributions[0].id
+                ]
+            )
+            == 1
+        )

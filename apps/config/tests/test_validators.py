@@ -7,9 +7,9 @@ from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import validate_slug_against_denylist
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestDenylistValidation:
-    @pytest.fixture()
+    @pytest.fixture
     def word(self):
         return DenyListWordFactory()
 

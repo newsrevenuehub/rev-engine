@@ -158,6 +158,7 @@ class StripeWebhookProcessor:
         self, contribution_metadata: dict[str, Any], stripe_metadata: dict[str, Any]
     ) -> dict[str, Any]:
         """Get the value to update (if any) for contribution_metadata property based on its current state and state of Stripe metadata."""
+        logger.info("Getting metadata update value for contribution %s", self.contribution.id)
         cast_from_contribution = None
         cast_from_stripe = None
         if contribution_metadata:

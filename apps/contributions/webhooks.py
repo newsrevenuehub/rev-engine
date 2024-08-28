@@ -158,17 +158,19 @@ class StripeWebhookProcessor:
         self, contribution_metadata: dict[str, Any], stripe_metadata: dict[str, Any]
     ) -> dict[str, Any]:
         """Get the value to update (if any) for contribution_metadata property based on its current state and state of Stripe metadata."""
-        try:
-            cast_from_contribution = (
-                cast_metadata_to_stripe_payment_metadata_schema(contribution_metadata)
-                if contribution_metadata
-                else None
-            )
-            cast_from_stripe = (
-                cast_metadata_to_stripe_payment_metadata_schema(stripe_metadata) if stripe_metadata else None
-            )
-        except InvalidMetadataError as exc:
-            logger.info("Failed to cast metadata to schema: %s", exc)
+        cast_from_contribution = None
+        cast_from_stripe = None
+        if contribution_metadata:
+            try:
+                cast_from_contribution = cast_metadata_to_stripe_payment_metadata_schema(contribution_metadata)
+            except InvalidMetadataError as exc:
+                logger.info("Failed to cast metadata to schema: %s", exc)
+        if stripe_metadata:
+            try:
+                cast_from_stripe = cast_metadata_to_stripe_payment_metadata_schema(stripe_metadata)
+            except InvalidMetadataError as exc:
+                logger.info("Failed to cast metadata to schema: %s", exc)
+
         if cast_from_stripe and cast_from_stripe != cast_from_contribution:
             return json.loads(cast_from_stripe.model_dump_json())
 

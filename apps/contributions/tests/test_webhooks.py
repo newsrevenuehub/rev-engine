@@ -12,7 +12,11 @@ import pytest
 
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
-from apps.contributions.types import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
+from apps.contributions.types import (
+    InvalidMetadataError,
+    StripeEventData,
+    cast_metadata_to_stripe_payment_metadata_schema,
+)
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
@@ -290,3 +294,34 @@ class TestStripeWebhookProcessor:
                 )
                 is None
             )
+
+    def test_get_metadata_update_value_when_invalid_metadata_error_contribution(
+        self, payment_intent_succeeded_one_time_event, mocker, contribution_metadata
+    ):
+        mock_get_metadata = mocker.patch(
+            "apps.contributions.webhooks.cast_metadata_to_stripe_payment_metadata_schema",
+            side_effect=InvalidMetadataError("Uh oh!"),
+        )
+        processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
+        assert (
+            processor.get_metadata_update_value(contribution_metadata=contribution_metadata, stripe_metadata=None)
+            is None
+        )
+        mock_get_metadata.assert_called_once_with(contribution_metadata)
+
+    def test_get_metadata_update_value_when_invalid_metadata_error_stripe(
+        self, payment_intent_succeeded_one_time_event, mocker, contribution_metadata, subscription_metadata_changed
+    ):
+        mock_get_metadata = mocker.patch(
+            "apps.contributions.webhooks.cast_metadata_to_stripe_payment_metadata_schema",
+            side_effect=[True, InvalidMetadataError],
+        )
+        processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
+        assert (
+            processor.get_metadata_update_value(
+                contribution_metadata=contribution_metadata, stripe_metadata=subscription_metadata_changed
+            )
+            is None
+        )
+        assert mock_get_metadata.call_count == 2
+        assert mock_get_metadata.call_args_list[0] == mocker.call(contribution_metadata)

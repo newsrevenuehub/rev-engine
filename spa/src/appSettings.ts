@@ -18,6 +18,16 @@ export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = resolveConstantFromEnv(
 );
 export const CAPTURE_PAGE_SCREENSHOT = resolveConstantFromEnv('CAPTURE_PAGE_SCREENSHOT');
 
+// Conditional contributor portal access. This is a list of slugs separated by a
+// colon. We parse this here.
+export let NEW_PORTAL_ENABLED_RPS: string[] = [];
+
+const rawNewPortalEnabledRPs = resolveConstantFromEnv('NEW_PORTAL_ENABLED_RPS');
+
+if (typeof rawNewPortalEnabledRPs === 'string') {
+  NEW_PORTAL_ENABLED_RPS = rawNewPortalEnabledRPs.split(':');
+}
+
 // Analytics
 export const HUB_ANALYTICS_APP_NAME = 'rev-engine-analytics';
 export const HUB_GA_V3_PLUGIN_NAME = 'ga-v3-hub';

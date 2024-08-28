@@ -62,6 +62,10 @@ beforeAll(() => {
       assign: {
         configurable: true,
         value: jest.fn()
+      },
+      replace: {
+        configurable: true,
+        value: jest.fn()
       }
     }
   );

@@ -5,6 +5,10 @@ import MockAdapter from 'axios-mock-adapter';
 import { useHistory } from 'react-router-dom';
 import { render, screen, waitFor } from 'test-utils';
 import ContributorVerify from './ContributorVerify';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
+import { PORTAL } from 'routes';
+
+jest.mock('utilities/getRevenueProgramSlug');
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -14,11 +18,25 @@ jest.mock('react-router-dom', () => ({
   useHistory: jest.fn()
 }));
 
+const newPortalEnabledRps = jest.fn();
+
+jest.mock('appSettings', () => ({
+  HUB_GA_V3_ID: 'mock-hub-ga-v3-id',
+  LS_CONTRIBUTOR: 'mock-ls-contributor',
+  LS_CSRF_TOKEN: 'mock-ls-csrf-token',
+  SS_CONTRIBUTOR: 'mock-ss-contributor',
+  get NEW_PORTAL_ENABLED_RPS() {
+    return newPortalEnabledRps();
+  }
+}));
+
 describe('ContributorVerify', () => {
   const axiosMock = new MockAdapter(Axios);
+  const getRevenueProgramSlugMock = jest.mocked(getRevenueProgramSlug);
   const useHistoryMock = useHistory as jest.Mock;
 
   beforeEach(() => {
+    newPortalEnabledRps.mockReturnValue([]);
     useHistoryMock.mockReturnValue({ replace: jest.fn() });
   });
 
@@ -51,13 +69,30 @@ describe('ContributorVerify', () => {
   describe('Verify success (when response is 200)', () => {
     beforeEach(() => {
       axiosMock.onPost(VERIFY_TOKEN).reply(200, { contributor: 'mock-contributor', csrftoken: 'mock-token' });
+      getRevenueProgramSlugMock.mockReturnValue('mock-rp-slug');
     });
 
-    it('should redirect to dashboard', async () => {
+    it('should do a soft redirect to CONTRIBUTOR_DASHBOARD if the RP is not in NEW_PORTAL_ENABLED_RPS', async () => {
+      const locationReplaceSpy = jest.spyOn(window.location, 'replace');
+
+      locationReplaceSpy.mockImplementation();
+      newPortalEnabledRps.mockReturnValue(['other', 'other2']);
       render(<ContributorVerify />);
       await waitFor(() => {
         expect(useHistoryMock().replace).toHaveBeenCalledWith('/contributor/contributions/');
       });
+      expect(locationReplaceSpy).not.toBeCalled();
+    });
+
+    it('should do a hard redirect to PORTAL.CONTRIBUTIONS if the RP is not in NEW_PORTAL_ENABLED_RPS', async () => {
+      const locationReplaceSpy = jest.spyOn(window.location, 'replace');
+
+      locationReplaceSpy.mockImplementation();
+      newPortalEnabledRps.mockReturnValue(['other', 'other2', 'mock-rp-slug']);
+      render(<ContributorVerify />);
+      await waitFor(() => expect(locationReplaceSpy).toBeCalled());
+      expect(locationReplaceSpy.mock.calls).toEqual([[PORTAL.CONTRIBUTIONS]]);
+      expect(useHistoryMock().replace).not.toBeCalled();
     });
 
     it('should set contributor in local and session storage', async () => {

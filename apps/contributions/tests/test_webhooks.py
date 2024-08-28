@@ -6,6 +6,8 @@ In general, we try to test at API layer (in conjunction with synchronous task ex
 processor class that are worth unit testing in isolation.
 """
 
+import json
+
 import pytest
 
 from apps.contributions.models import Contribution
@@ -280,7 +282,7 @@ class TestStripeWebhookProcessor:
         if expected:
             assert processor.get_metadata_update_value(
                 contribution_metadata=contribution_metadata, stripe_metadata=stripe_metadata
-            ) == (cast_metadata_to_stripe_payment_metadata_schema(expected).model_dump())
+            ) == (json.loads(cast_metadata_to_stripe_payment_metadata_schema(expected).model_dump_json()))
         else:
             assert (
                 processor.get_metadata_update_value(

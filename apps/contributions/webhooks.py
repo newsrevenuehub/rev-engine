@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import operator
 from dataclasses import dataclass
@@ -169,7 +170,7 @@ class StripeWebhookProcessor:
         except InvalidMetadataError as exc:
             logger.info("Failed to cast metadata to schema: %s", exc)
         if cast_from_stripe and cast_from_stripe != cast_from_contribution:
-            return cast_from_stripe.model_dump()
+            return json.loads(cast_from_stripe.model_dump_json())
 
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
         """Update contribution with the given data and create a revision.
@@ -178,8 +179,11 @@ class StripeWebhookProcessor:
         """
         if self.event_type != "charge.succeeded" and not self.contribution:
             raise Contribution.DoesNotExist("No contribution found")
-        if (metadata := self.obj_data.get("metadata", None)) and (
-            update_value := self.get_metadata_update_value(metadata)
+        metadata = self.obj_data.get("metadata")
+        if metadata and (
+            update_value := self.get_metadata_update_value(
+                contribution_metadata=self.contribution.contribution_metadata, stripe_metadata=metadata
+            )
         ):
             update_data["contribution_metadata"] = update_value
         for k, v in update_data.items():

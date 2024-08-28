@@ -292,7 +292,7 @@ class TestStripeWebhookProcessor:
                 processor.get_metadata_update_value(
                     contribution_metadata=contribution_metadata, stripe_metadata=stripe_metadata
                 )
-                is None
+                == {}
             )
 
     def test_get_metadata_update_value_when_invalid_metadata_error_contribution(
@@ -304,8 +304,7 @@ class TestStripeWebhookProcessor:
         )
         processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
         assert (
-            processor.get_metadata_update_value(contribution_metadata=contribution_metadata, stripe_metadata=None)
-            is None
+            processor.get_metadata_update_value(contribution_metadata=contribution_metadata, stripe_metadata=None) == {}
         )
         mock_get_metadata.assert_called_once_with(contribution_metadata)
 
@@ -321,7 +320,8 @@ class TestStripeWebhookProcessor:
             processor.get_metadata_update_value(
                 contribution_metadata=contribution_metadata, stripe_metadata=subscription_metadata_changed
             )
-            is None
+            == {}
         )
+
         assert mock_get_metadata.call_count == 2
         assert mock_get_metadata.call_args_list[0] == mocker.call(contribution_metadata)

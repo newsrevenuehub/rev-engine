@@ -158,7 +158,9 @@ class StripeWebhookProcessor:
         self, contribution_metadata: dict[str, Any], stripe_metadata: dict[str, Any]
     ) -> dict[str, Any]:
         """Get the value to update (if any) for contribution_metadata property based on its current state and state of Stripe metadata."""
-        logger.info("Getting metadata update value for contribution %s", self.contribution.id)
+        logger.info(
+            "Getting metadata update value for contribution %s", self.contribution.id if self.contribution else None
+        )
         cast_from_contribution = None
         cast_from_stripe = None
         if contribution_metadata:
@@ -174,6 +176,7 @@ class StripeWebhookProcessor:
 
         if cast_from_stripe and cast_from_stripe != cast_from_contribution:
             return json.loads(cast_from_stripe.model_dump_json())
+        return {}
 
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
         """Update contribution with the given data and create a revision.

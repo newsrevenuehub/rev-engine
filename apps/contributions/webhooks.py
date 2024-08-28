@@ -3,6 +3,7 @@ import logging
 import operator
 from dataclasses import dataclass
 from functools import cached_property, reduce
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -18,7 +19,11 @@ from apps.contributions.models import (
     ContributionStatus,
     Payment,
 )
-from apps.contributions.types import StripeEventData
+from apps.contributions.types import (
+    InvalidMetadataError,
+    StripeEventData,
+    cast_metadata_to_stripe_payment_metadata_schema,
+)
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -148,9 +153,35 @@ class StripeWebhookProcessor:
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)
 
+    def get_metadata_update_value(
+        self, contribution_metadata: dict[str, Any], stripe_metadata: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Get the value to update (if any) for contribution_metadata property based on its current state and state of Stripe metadata."""
+        try:
+            cast_from_contribution = (
+                cast_metadata_to_stripe_payment_metadata_schema(contribution_metadata)
+                if contribution_metadata
+                else None
+            )
+            cast_from_stripe = (
+                cast_metadata_to_stripe_payment_metadata_schema(stripe_metadata) if stripe_metadata else None
+            )
+        except InvalidMetadataError as exc:
+            logger.info("Failed to cast metadata to schema: %s", exc)
+        if cast_from_stripe and cast_from_stripe != cast_from_contribution:
+            return cast_from_stripe.model_dump()
+
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
+        """Update contribution with the given data and create a revision.
+
+        Note that this method updates contribution.contribution_metadata in some cases.
+        """
         if self.event_type != "charge.succeeded" and not self.contribution:
             raise Contribution.DoesNotExist("No contribution found")
+        if (metadata := self.obj_data.get("metadata", None)) and (
+            update_value := self.get_metadata_update_value(metadata)
+        ):
+            update_data["contribution_metadata"] = update_value
         for k, v in update_data.items():
             setattr(self.contribution, k, v)
         with reversion.create_revision():

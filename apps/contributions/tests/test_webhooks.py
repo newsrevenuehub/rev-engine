@@ -10,7 +10,7 @@ import pytest
 
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
-from apps.contributions.types import StripeEventData
+from apps.contributions.types import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
@@ -138,6 +138,37 @@ class TestStripeWebhookProcessor:
         with pytest.raises(Contribution.DoesNotExist):
             processor._handle_contribution_update({}, "")
 
+    @pytest.mark.parametrize("stripe_has_metadata", [True, False])
+    def test__handle_contribution_update_metadata_updates_metadata(
+        self,
+        stripe_has_metadata,
+        mocker,
+        payment_intent_succeeded_one_time_event,
+    ):
+        mock_get_metadata_update_value = mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.get_metadata_update_value",
+            return_value={"foo": "bar"},
+        )
+        if stripe_has_metadata:
+            payment_intent_succeeded_one_time_event["data"]["object"]["metadata"] = {
+                "something": "truthy",
+            }
+        else:
+            payment_intent_succeeded_one_time_event["data"]["object"]["metadata"] = {}
+
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        mocker.patch.object(
+            processor, "contribution", new_callable=mocker.PropertyMock, return_value=ContributionFactory()
+        )
+        processor._handle_contribution_update(
+            update_data={"amount": 10000},
+            revision_comment="test",
+        )
+        if stripe_has_metadata:
+            mock_get_metadata_update_value.assert_called_once()
+        else:
+            mock_get_metadata_update_value.assert_not_called()
+
     @pytest.mark.parametrize("has_pm_id", [True, False])
     def test__add_pm_id_and_payment_method_details(self, mocker, has_pm_id, payment_intent_succeeded_one_time_event):
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
@@ -173,3 +204,87 @@ class TestStripeWebhookProcessor:
             processor.event.account,
         )
         mock_update_pm.assert_not_called()
+
+    @pytest.fixture
+    def contribution_metadata(self):
+        """Meant to represent observed saved metadata in contribution generated through normal checkout.
+
+        ...as distinct from metadata that gets stored on Stripe objects (which drops null valued entries)
+        """
+        return {
+            "source": "rev-engine",
+            "honoree": None,
+            "referer": "https://foo.bar.org/donate/",
+            "company_name": None,
+            "in_memory_of": None,
+            "swag_choices": None,
+            "swag_opt_out": False,
+            "contributor_id": "999",
+            "schema_version": "1.4",
+            "sf_campaign_id": None,
+            "comp_subscription": None,
+            "reason_for_giving": None,
+            "agreed_to_pay_fees": False,
+            "revenue_program_id": "3",
+            "revenue_program_slug": "fooobar",
+            "donor_selected_amount": 365.0,
+        }
+
+    @pytest.fixture
+    def subscription_metadata(self):
+        """Meant to represent observed Stripe subscription (or PI) metadata.
+
+        ... as distinct from Contribubtion.contribution_metadata, which is used to create metadata on Stripe,
+        but which does not drop null-valued entries.
+        """
+        return {
+            "agreed_to_pay_fees": "False",
+            "contributor_id": "999",
+            "donor_selected_amount": "365.0",
+            "referer": "https://foo.bar.org/donate/",
+            "revenue_program_id": "3",
+            "revenue_program_slug": "fooobar",
+            "schema_version": "1.4",
+            "source": "rev-engine",
+            "swag_opt_out": "False",
+        }
+
+    @pytest.fixture
+    def subscription_metadata_changed(self, subscription_metadata):
+        return subscription_metadata | {
+            "agreed_to_pay_fees": "False",
+            "donor_selected_amount": "399.0",
+            "swag_opt_out": "True",
+            "reason_for_giving": "I love the cause",
+        }
+
+    @pytest.mark.parametrize(
+        ("meta_con", "meta_stripe", "expected"),
+        [
+            (None, None, None),
+            (None, "subscription_metadata", "subscription_metadata"),
+            ("contribution_metadata", "subscription_metadata", None),
+            ("contribution_metadata", "subscription_metadata_changed", "subscription_metadata_changed"),
+            ("contribution_metadata", None, None),
+        ],
+    )
+    def test_get_metadata_update_value(
+        self, request, payment_intent_succeeded_one_time_event, meta_con, meta_stripe, expected
+    ):
+        contribution_metadata = request.getfixturevalue(meta_con) if meta_con else None
+        stripe_metadata = request.getfixturevalue(meta_stripe) if meta_stripe else None
+        expected = request.getfixturevalue(expected) if expected else None
+
+        processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
+
+        if expected:
+            assert processor.get_metadata_update_value(
+                contribution_metadata=contribution_metadata, stripe_metadata=stripe_metadata
+            ) == (cast_metadata_to_stripe_payment_metadata_schema(expected).model_dump())
+        else:
+            assert (
+                processor.get_metadata_update_value(
+                    contribution_metadata=contribution_metadata, stripe_metadata=stripe_metadata
+                )
+                is None
+            )

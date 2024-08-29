@@ -877,14 +877,21 @@ PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
     "transaction_time",
     "gross_amount_paid",
     "net_amount_paid",
+    "status",
 ]
 
 
 class PortalContributionPaymentSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Payment
         fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
         read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
+
+    def get_status(self, obj):
+        # If the amount refunded is 0, then the payment status is "paid", otherwise it is "refunded"
+        return "paid" if obj.amount_refunded == 0 else "refunded"
 
 
 PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = [

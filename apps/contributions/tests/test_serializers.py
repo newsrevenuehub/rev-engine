@@ -29,7 +29,7 @@ from apps.contributions.serializers import (
     PortalContributionBaseSerializer,
     PortalContributionDetailSerializer,
 )
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.tests.test_models import MockSubscription
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
@@ -1742,3 +1742,45 @@ class TestPortalContributionDetailSerializer:
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
             serializer.update(one_time_contribution, {"amount": 123})
+
+
+@pytest.fixture
+def paid_payment():
+    return PaymentFactory()
+
+
+@pytest.fixture
+def refunded_payment():
+    return PaymentFactory(refund=True)
+
+
+@pytest.mark.django_db
+class TestPortalContributionPaymentSerializer:
+    @pytest.mark.parametrize(
+        "payment",
+        [
+            "paid_payment",
+            "refunded_payment",
+        ],
+    )
+    def test_has_expected_fields(self, payment, request):
+        _payment = request.getfixturevalue(payment)
+        expected_fields = [
+            "id",
+            "amount_refunded",
+            "created",
+            "transaction_time",
+            "gross_amount_paid",
+            "net_amount_paid",
+            "status",
+        ]
+        serialized = serializers.PortalContributionPaymentSerializer(instance=_payment)
+        assert set(serialized.data.keys()) == set(expected_fields)
+
+    def test_status_paid(self, paid_payment):
+        serialized = serializers.PortalContributionPaymentSerializer(instance=paid_payment)
+        assert serialized.data["status"] == "paid"
+
+    def test_status_refunded(self, refunded_payment):
+        serialized = serializers.PortalContributionPaymentSerializer(instance=refunded_payment)
+        assert serialized.data["status"] == "refunded"

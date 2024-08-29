@@ -1678,6 +1678,7 @@ class TestStripeMetadataSchemaBase:
             StripeMetadataSchemaBase.normalize_boolean(value)
 
 
+@pytest.mark.django_db
 class TestPortalContributionBaseSerializer:
     @pytest.mark.parametrize(
         ("method", "kwargs"),
@@ -1690,6 +1691,18 @@ class TestPortalContributionBaseSerializer:
     def test_unsupported_methods(self, method, kwargs):
         with pytest.raises(NotImplementedError):
             getattr(PortalContributionBaseSerializer(), method)(**kwargs)
+
+    @pytest.fixture(params=[True, False])
+    def contribution(self, request):
+        contribution = ContributionFactory()
+        if request.param:
+            PaymentFactory(contribution=contribution, transaction_time=timezone.now())
+            contribution.refresh_from_db()
+        return contribution
+
+    def test_get_first_payment_date(self, contribution):
+        first_payment_date = PortalContributionBaseSerializer().get_first_payment_date(instance=contribution)
+        assert isinstance(first_payment_date, datetime.datetime)
 
 
 @pytest.mark.django_db

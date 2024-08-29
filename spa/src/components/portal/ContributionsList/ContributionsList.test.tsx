@@ -227,7 +227,7 @@ describe('ContributionsList', () => {
     it('should sort contributions by date by default', () => {
       tree();
       expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
-        ordering: '-created'
+        ordering: '-first_payment_date'
       });
     });
 
@@ -246,7 +246,7 @@ describe('ContributionsList', () => {
 
       await waitFor(() => {
         expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
-          ordering: `-${ordering},-created`
+          ordering: `-${ordering},-first_payment_date`
         });
       });
     });
@@ -256,7 +256,7 @@ describe('ContributionsList', () => {
     it('should show all contributions by default', () => {
       tree();
       expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
-        ordering: '-created'
+        ordering: '-first_payment_date'
       });
     });
 
@@ -266,7 +266,7 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('tab', { name: 'Recurring' }));
       await waitFor(() => {
         expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
-          ordering: '-created',
+          ordering: '-first_payment_date',
           interval: 'recurring'
         });
       });
@@ -274,7 +274,7 @@ describe('ContributionsList', () => {
 
       await waitFor(() => {
         expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
-          ordering: '-created'
+          ordering: '-first_payment_date'
         });
       });
     });
@@ -289,7 +289,7 @@ describe('ContributionsList', () => {
 
       await waitFor(() => {
         expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), expect.anything(), {
-          ordering: '-created',
+          ordering: '-first_payment_date',
           interval
         });
       });

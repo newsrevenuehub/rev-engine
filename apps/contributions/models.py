@@ -276,8 +276,6 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
-    first_payment_date = models.DateTimeField(null=True)
-
     # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
     # DEV-4333
     last_payment_date = models.DateTimeField(null=True)

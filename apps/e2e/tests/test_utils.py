@@ -12,10 +12,10 @@ def test_load_module(mocker):
     load_module("test_module", "test_module.py")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestE2eTestRunner:
 
-    @pytest.fixture()
+    @pytest.fixture
     def image(self):
         from PIL import Image
 
@@ -24,7 +24,7 @@ class TestE2eTestRunner:
         image.save(img_byte_arr, format="PNG")
         return img_byte_arr.getvalue()
 
-    @pytest.fixture()
+    @pytest.fixture
     def outcome(self, image):
         return E2eOutcome(
             screenshot=image,

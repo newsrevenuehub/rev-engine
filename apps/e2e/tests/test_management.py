@@ -5,7 +5,7 @@ import pytest
 from apps.e2e.models import CommitStatus
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class Test_trigger_e2e_check:
 
     def test_happy_path(self, commit_status: CommitStatus, mocker):

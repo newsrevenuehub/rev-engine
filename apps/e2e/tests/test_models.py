@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCommitStatus:
     def test___str__(self, commit_status):
         assert str(commit_status) == (

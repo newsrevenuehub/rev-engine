@@ -114,7 +114,7 @@ def test_expected_model_admins_are_registered_with_django_reversion():
         (StyleFactory, "name", "new name"),
     ],
 )
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_registered_model_changed_via_other_not_have_revisions(factory, update_attr, update_value):
     """Show that models registered with django-reversion don't have history saved when via `.save()` outside of admin or...
 

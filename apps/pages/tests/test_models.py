@@ -30,7 +30,7 @@ def test__get_screenshot_upload_path(mocker):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def default_logo():
     default_logo = DefaultPageLogo.get_solo()
     default_logo.logo = get_test_image_file_jpeg()
@@ -38,17 +38,17 @@ def default_logo():
     return default_logo
 
 
-@pytest.fixture()
+@pytest.fixture
 def donation_page_no_published_date():
     return DonationPageFactory(published_date=None)
 
 
-@pytest.fixture()
+@pytest.fixture
 def donation_with_published_date():
     return DonationPageFactory(published_date=datetime.datetime.now(datetime.timezone.utc))
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestDonationPage:
     @pytest.fixture(
         params=[
@@ -214,7 +214,7 @@ class TestDonationPage:
             mock_publisher.publish.assert_not_called()
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestStyle:
     def test_to_string(self, style):
         assert style.name == str(style)
@@ -255,7 +255,7 @@ class TestStyle:
         assert set(query.values_list("id", flat=True)) == set(expected)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestFont:
     def test_to_string(self):
         font = FontFactory(name=(name := "bob"), source=(source := "bigboys"))

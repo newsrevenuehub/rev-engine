@@ -4,7 +4,6 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable, Generator
-from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Literal, TypedDict
@@ -12,6 +11,7 @@ from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
@@ -21,6 +21,7 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
+from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
@@ -29,7 +30,8 @@ from apps.contributions.choices import BadActorScores, ContributionInterval, Con
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
-    make_send_thank_you_email_data,
+    EmailTaskException,
+    generate_email_data,
     send_templated_email,
     send_thank_you_email,
 )
@@ -140,10 +142,24 @@ class ContributionQuerySet(models.QuerySet):
             )
         return self
 
+    def with_stripe_account(self):
+        """Annotate stripe_account_id as "stripe_account".
+
+        stripe_account even though it is the id and not object instead of *_id because Contribution had existing
+        property "stripe_account_id."
+        """
+        return self.annotate(
+            stripe_account=models.functions.Coalesce(
+                "_revenue_program__payment_provider__stripe_account_id",
+                "donation_page__revenue_program__payment_provider__stripe_account_id",
+            ),
+        )
+
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset."""
         return self.exclude(
             status__in=[
+                ContributionStatus.ABANDONED,
                 ContributionStatus.FLAGGED,
                 ContributionStatus.REJECTED,
                 ContributionStatus.PROCESSING,
@@ -194,6 +210,17 @@ class ContributionQuerySet(models.QuerySet):
     def exclude_hidden_statuses(self) -> models.QuerySet[Contribution]:
         return self.exclude(status__in=self.CONTRIBUTOR_HIDDEN_STATUSES)
 
+    def exclude_recurring_missing_provider_subscription_id(self) -> models.QuerySet[Contribution]:
+        """Exclude contributions that are recurring and that don't have a provider subscription ID.
+
+        See this comment in JIRA for explanation of why this is necessary:
+        https://news-revenue-hub.atlassian.net/browse/DEV-5037?focusedCommentId=120074
+        """
+        return self.exclude(
+            models.Q(provider_subscription_id="") | models.Q(provider_subscription_id__isnull=True),
+            interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
+        )
+
     def exclude_paymentless_canceled(self) -> models.QuerySet[Contribution]:
         return self.annotate(num_payments=models.Count("payment")).exclude(
             num_payments=0, status=ContributionStatus.CANCELED
@@ -210,6 +237,20 @@ class ContributionQuerySet(models.QuerySet):
             created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
             provider_payment_method_id__isnull=True,
         )
+
+    def get_via_reversion_comment(self, comment: str) -> models.QuerySet[Contribution]:
+        """Return contributions with a specific reversion comment."""
+        # Filter versions based on the revision comment
+        versions_with_comment = Version.objects.filter(revision__comment=comment)
+        # Get the content type for the Contribution model
+        contribution_ct = ContentType.objects.get_for_model(Contribution)
+        contribution_ids = (
+            versions_with_comment.annotate(integer_id=models.functions.Cast("object_id", models.IntegerField()))
+            .filter(content_type=contribution_ct)
+            .values_list("integer_id", flat=True)
+        )
+        # Return filtered Contribution objects
+        return Contribution.objects.filter(id__in=contribution_ids)
 
 
 class ContributionManager(models.Manager):
@@ -234,6 +275,8 @@ class Contribution(IndexedTimeStampedModel):
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
+
+    first_payment_date = models.DateTimeField(null=True)
 
     # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
     # DEV-4333
@@ -263,6 +306,8 @@ class Contribution(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
+
+    ACTIVE_SUBSCRIPTION_STATUSES = ("active",)
 
     CANCELABLE_SUBSCRIPTION_STATUSES = (
         "trialing",
@@ -542,7 +587,10 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.stripe_account_id,
             metadata=metadata,
             payment_behavior="error_if_incomplete" if error_if_incomplete else "default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
+            payment_settings={
+                "save_default_payment_method": "on_subscription",
+                "payment_method_types": ["card"],
+            },
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
             idempotency_key=f"{self.uuid}-subscription",
@@ -592,7 +640,7 @@ class Contribution(IndexedTimeStampedModel):
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
-            data = make_send_thank_you_email_data(self, show_billing_history=show_billing_history)
+            data = generate_email_data(self, show_billing_history=show_billing_history)
             send_thank_you_email.delay(data)
         else:
             logger.info(
@@ -634,43 +682,16 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
 
-        if not self.provider_customer_id:
-            logger.error("No Stripe customer ID for contribution with ID %s", self.id)
-            return
         try:
-            customer = stripe.Customer.retrieve(
-                self.provider_customer_id,
-                stripe_account=self.stripe_account_id,
+            data = generate_email_data(
+                self,
+                custom_timestamp=(
+                    timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
+                ),
             )
-        except StripeError:
-            logger.exception(
-                "Something went wrong retrieving Stripe customer for contribution with ID %s",
-                self.id,
-            )
+        except EmailTaskException:
+            logger.exception("Encountered an error trying to generate email data")
             return
-
-        data = {
-            "contribution_amount": self.formatted_amount,
-            "contribution_interval_display_value": self.interval,
-            "contributor_email": self.contributor.email,
-            "contributor_name": customer.name,
-            "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
-            "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.revenue_program.fiscal_status,
-            "magic_link": Contributor.create_magic_link(self),
-            "non_profit": self.revenue_program.non_profit,
-            "rp_name": self.revenue_program.name,
-            "style": asdict(self.revenue_program.transactional_email_style),
-            "tax_id": self.revenue_program.tax_id,
-            "timestamp": (
-                timestamp if timestamp else datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")
-            ),
-        }
-
-        # Almost all RPs should have a default page set, but it's possible one isn't.
-
-        if default_page := self.revenue_program.default_donation_page:
-            data["default_contribution_page_url"] = default_page.page_url
 
         send_templated_email.delay(
             self.contributor.email,
@@ -784,7 +805,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_modifiable(self) -> bool:
-        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+        return getattr(self.stripe_subscription, "status", None) in self.MODIFIABLE_SUBSCRIPTION_STATUSES
 
     @property
     # TODO @BW: Update this to be .last_payment_date when no longer in conflict with db model field
@@ -1163,6 +1184,84 @@ class Contribution(IndexedTimeStampedModel):
                 )
 
             raise
+
+    def update_subscription_amount(self, amount: int) -> None:
+        """Update Stripe's Subscription Item amount to the new value.
+
+        If it's a recurring subscription, update the amount of the next payment
+        without proration (paying difference of existing month).
+        """
+        # vs circular import
+        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
+
+        if amount < REVENGINE_MIN_AMOUNT:
+            raise ValueError("Amount value must be greater than $0.99")
+        if amount > STRIPE_MAX_AMOUNT:
+            raise ValueError("Amount value must be smaller than $999,999.99")
+        if getattr(self.stripe_subscription, "status", None) not in self.ACTIVE_SUBSCRIPTION_STATUSES:
+            raise ValueError("Cannot update amount for inactive subscription")
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("Cannot update amount for one-time contribution")
+        if not (sub_id := self.provider_subscription_id):
+            raise ValueError("Cannot update amount for contribution without a subscription ID")
+
+        logger.info(
+            "fetching subscription items from sub %s",
+            sub_id,
+        )
+        try:
+            items = stripe.SubscriptionItem.list(subscription=sub_id, stripe_account=self.stripe_account_id)
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to fetch subscription items on sub_id: %s",
+                sub_id,
+            )
+            raise
+
+        if len(items["data"]) != 1:
+            raise ValueError("Subscription should have only one item")
+
+        item = items["data"][0]
+        self.contribution_metadata["donor_selected_amount"] = amount
+
+        logger.info(
+            "Updating Stripe Subscription's %s (item %s), amount to %s",
+            sub_id,
+            item["id"],
+            amount,
+        )
+        try:
+            stripe.Subscription.modify(
+                sub_id,
+                items=[
+                    {
+                        "id": item["id"],
+                        "price_data": {
+                            "unit_amount": amount,
+                            "currency": item["price"]["currency"],
+                            "product": item["price"]["product"],
+                            "recurring": {
+                                "interval": item["price"]["recurring"]["interval"],
+                            },
+                        },
+                    }
+                ],
+                metadata=self.contribution_metadata,
+                stripe_account=self.stripe_account_id,
+                proration_behavior="none",
+            )
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                self.id,
+            )
+            raise
+
+        with reversion.create_revision():
+            self.save(update_fields={"contribution_metadata", "modified"})
+            reversion.set_comment(
+                f"`Contribution.update_subscription_amount` saved changes to contribution with ID {self.id}"
+            )
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

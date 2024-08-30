@@ -832,6 +832,7 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "card_expiration_date",
     "card_last_4",
     "created",
+    "first_payment_date",
     "interval",
     "is_cancelable",
     "is_modifiable",
@@ -849,12 +850,17 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
     next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
+    first_payment_date = serializers.SerializerMethodField()
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Contribution
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+
+    def get_first_payment_date(self, instance) -> datetime:
+        first_payment = instance.payment_set.order_by("transaction_time").first()
+        return first_payment.transaction_time if first_payment and first_payment.transaction_time else instance.created
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")
@@ -900,17 +906,30 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
     provider_payment_method_id = serializers.CharField(write_only=True, required=False)
+    amount = serializers.IntegerField(
+        required=False,
+        min_value=REVENGINE_MIN_AMOUNT,
+        max_value=STRIPE_MAX_AMOUNT,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+    )
 
     class Meta:
         model = Contribution
         fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
-    def update(self, instance, validated_data) -> Contribution:
+    def update(self, instance: Contribution, validated_data) -> Contribution:
         if validated_data:
             if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
                 instance.update_payment_method_for_subscription(
                     provider_payment_method_id=provider_payment_method_id,
+                )
+            if amount := validated_data.get("amount", None):
+                instance.update_subscription_amount(
+                    amount=amount,
                 )
             for key, value in validated_data.items():
                 setattr(instance, key, value)

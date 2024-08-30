@@ -42,7 +42,7 @@ from apps.users.tests.factories import create_test_user
 from apps.users.views import AccountVerification, UserViewset
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_customize_account_request_data():
     return {
         "first_name": "Test",
@@ -63,7 +63,7 @@ class MockResponseObject:
         return self.json_data
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_create_request_data(valid_password, valid_email, faker):
     return {
         "email": valid_email,
@@ -72,37 +72,37 @@ def valid_create_request_data(valid_password, valid_email, faker):
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_email():
     return "foo@bar.com"
 
 
-@pytest.fixture()
+@pytest.fixture
 def password_too_long(faker):
     return faker.password(length=PASSWORD_MAX_LENGTH + 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def password_too_short(faker):
     return faker.password(length=PASSWORD_MIN_LENGTH - 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def password_too_common():
     return "passWord!"
 
 
-@pytest.fixture()
+@pytest.fixture
 def password_too_similar_to_email(valid_email):
     return valid_email
 
 
-@pytest.fixture()
+@pytest.fixture
 def password_is_numeric():
     return "19283746501234568686"
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_password(faker):
     return faker.password(length=PASSWORD_MIN_LENGTH + 1)
 
@@ -116,7 +116,7 @@ def user(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_for_email(valid_create_request_data, valid_password):
     existing = create_test_user(email="bizz@bang.com", password=valid_password, email_verified=True)
     return valid_create_request_data | {"email": existing.email}
@@ -135,12 +135,12 @@ def create_data_invalid_for_password(request, valid_create_request_data):
     return valid_create_request_data | {"password": request.getfixturevalue(request.param)}
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_tos_empty(valid_create_request_data):
     return valid_create_request_data | {"accepted_terms_of_service": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_tos_missing(valid_create_request_data):
     return {k: v for k, v in valid_create_request_data.items() if k != "accepted_terms_of_service"}
 
@@ -150,22 +150,22 @@ def create_data_invalid_for_tos(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_no_email_field(valid_create_request_data):
     return {k: v for k, v in valid_create_request_data.items() if k != "email"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_email_random_string(valid_create_request_data):
     return valid_create_request_data | {"email": "cats"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_empty_string(valid_create_request_data):
     return valid_create_request_data | {"email": ""}
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_data_invalid_email_case_insensitive_same(valid_create_request_data):
     create_test_user(email=(email := valid_create_request_data["email"].lower()))
     return valid_create_request_data | {"email": email.upper()}
@@ -183,7 +183,7 @@ def invalid_create_data_for_email(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def valid_update_data(faker):
     return {
         "email": faker.email(),
@@ -204,19 +204,19 @@ def invalid_update_data_for_password(request):
     return {"password": request.getfixturevalue(request.param)}
 
 
-@pytest.fixture()
+@pytest.fixture
 def invalid_email_already_taken(faker):
     email = faker.email()
     create_test_user(email=email, email_verified=True)
     return {"email": email}
 
 
-@pytest.fixture()
+@pytest.fixture
 def invalid_email_none():
     return {"email": None}
 
 
-@pytest.fixture()
+@pytest.fixture
 def invalid_email_random_string():
     return {"email": "cats"}
 
@@ -231,7 +231,7 @@ def invalid_update_data_for_email(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture()
+@pytest.fixture
 def org_user(org_user_free_plan, valid_password):
     org_user_free_plan.email_verified = True
     org_user_free_plan.accepted_terms_of_service = timezone.now()
@@ -240,7 +240,7 @@ def org_user(org_user_free_plan, valid_password):
     return org_user_free_plan
 
 
-@pytest.fixture()
+@pytest.fixture
 def staff_user(hub_admin_user, valid_password):
     hub_admin_user.is_staff = True
     hub_admin_user.email_verified = True
@@ -255,9 +255,9 @@ def custom_password_reset_view_user(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestAccountVerificationClass:
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     def test_validation_happy_path(self):
         user = create_test_user(is_active=True, email_verified=False)
         t = AccountVerification()
@@ -265,7 +265,7 @@ class TestAccountVerificationClass:
         email, token = t.generate_token(user.email)
         assert user == t.validate(email, token)
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     def test_validation_happy_path_with_expiry(self):
         user = create_test_user(is_active=True, email_verified=False)
         t = AccountVerification()
@@ -273,7 +273,7 @@ class TestAccountVerificationClass:
         encoded_email, token = t.generate_token(user.email)
         assert user == t.validate(encoded_email, token)
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     def test_inactive_validation(self):
         user = create_test_user(is_active=False)
         t = AccountVerification()
@@ -282,7 +282,7 @@ class TestAccountVerificationClass:
         assert not t.validate(encoded_email, token)
         assert t.fail_reason == "inactive"
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     def test_unknown_validation(self):
         t = AccountVerification()
         t.max_age = None
@@ -353,7 +353,7 @@ class TestAccountVerificationClass:
         assert re.match(r"^[=a-zA-Z0-9._~-]*$", encoded)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.parametrize("is_valid", [True, False])
 def test_account_verification(is_valid, api_client, mocker, valid_email):
     """For testing apps.users.views.account_verification, not to be confused with.
@@ -378,7 +378,7 @@ def test_account_verification(is_valid, api_client, mocker, valid_email):
         assert response.url == reverse("spa_account_verification_fail", args=(mock_verifier.fail_reason,))
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCustomPasswordResetView:
     def test_password_reset_email(self, settings, custom_password_reset_view_user, client):
         """When org admin trigger p/w reset via custom org admin password reset.
@@ -398,7 +398,7 @@ class TestCustomPasswordResetView:
         assert expect in mail.outbox[0].body
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestCustomPasswordResetConfirm:
     def test_happy_path(self, org_user, client, valid_password, settings):
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
@@ -420,7 +420,7 @@ class TestCustomPasswordResetConfirm:
         assert org_user.check_password(valid_password)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestAPIRequestPasswordResetEmail:
     def test_happy_path(self, org_user, api_client, settings):
         """Show that we get a 200, and that email containing link with reset token gets sent."""
@@ -444,7 +444,7 @@ class TestAPIRequestPasswordResetEmail:
         assert len(mail.outbox) == 0
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestUserViewSet:
     @pytest.fixture(autouse=True)
     def _setup_and_teardown(self, settings):
@@ -833,7 +833,7 @@ class TestUserViewSet:
             UserViewset().validate_password(valid_email, valid_password)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestAccountVerificationFlow:
     """Test is meant to span the full user flow.
 

@@ -6,9 +6,9 @@ from apps.config.models import DenyListWord
 from apps.config.tests.factories import DenyListWordFactory
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestDenyListWord:
-    @pytest.fixture()
+    @pytest.fixture
     def word(self):
         return DenyListWordFactory()
 

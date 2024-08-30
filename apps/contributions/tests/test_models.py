@@ -12,6 +12,7 @@ from django.core import mail
 from django.db import IntegrityError
 
 import pytest
+import reversion
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
@@ -30,6 +31,7 @@ from apps.contributions.models import (
     logger,
     send_thank_you_email,
 )
+from apps.contributions.serializers import STRIPE_MAX_AMOUNT
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import (
     ContributionFactory,
@@ -38,20 +40,25 @@ from apps.contributions.tests.factories import (
 )
 from apps.contributions.types import StripeEventData
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
+from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.choices import Roles
 
 
-@pytest.mark.django_db()
+class MockSubscription:
+    def __init__(self, status):
+        self.status = status
+
+
+@pytest.mark.django_db
 class TestContributorModel:
-    @pytest.fixture()
+    @pytest.fixture
     def customer_id(self, faker):
         return faker.pystr_format(string_format="cus_??????")
 
-    @pytest.fixture()
+    @pytest.fixture
     def one_time_contribution_with_payment(self, contributor_user, faker, customer_id):
         contribution = ContributionFactory(
             one_time=True,
@@ -66,7 +73,7 @@ class TestContributorModel:
         )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def one_time_contribution_with_refund(self, contributor_user, faker, customer_id):
         contribution = ContributionFactory(
             one_time=True,
@@ -87,7 +94,7 @@ class TestContributorModel:
         )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def monthly_contribution_multiple_payments(
         self,
         contributor_user,
@@ -111,7 +118,7 @@ class TestContributorModel:
             )
         return contribution
 
-    @pytest.fixture()
+    @pytest.fixture
     def portal_contributor_with_multiple_contributions_from_different_rps(
         self,
         monthly_contribution_multiple_payments,
@@ -225,14 +232,14 @@ class TestContributorModel:
 test_key = "test_key"
 
 
-@pytest.fixture()
+@pytest.fixture
 def contribution_with_no_provider_payment_method_id(one_time_contribution):
     one_time_contribution.provider_payment_method_id = None
     one_time_contribution.save()
     return one_time_contribution
 
 
-@pytest.fixture()
+@pytest.fixture
 def contribution_with_provider_payment_method_id(one_time_contribution):
     one_time_contribution.provider_payment_method_id = "something"
     one_time_contribution.save()
@@ -247,7 +254,7 @@ class MockForContributorReturn:
         self.short_lived_access_token = SHORT_LIVED_ACCESS_TOKEN
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionModel:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
     def contribution(self, request):
@@ -464,7 +471,7 @@ class TestContributionModel:
             stripe_account=contribution.revenue_program.stripe_account_id,
             metadata=metadata,
             payment_behavior="default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
+            payment_settings={"save_default_payment_method": "on_subscription", "payment_method_types": ["card"]},
             expand=["latest_invoice.payment_intent"],
             off_session=False,
             default_payment_method=None,
@@ -514,7 +521,7 @@ class TestContributionModel:
 
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email(show_billing_history=show_billing_history)
-        expected_data = make_send_thank_you_email_data(contribution, show_billing_history=show_billing_history)
+        expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
         if send_receipt_email_via_nre:
             send_thank_you_email_spy.assert_called_once_with(expected_data)
@@ -632,7 +639,7 @@ class TestContributionModel:
         assert contribution.modified == last_modified
         mock_stripe_method.assert_not_called()
 
-    @pytest.mark.django_db()
+    @pytest.mark.django_db
     @pytest.mark.parametrize("trait", ["one_time", "annual_subscription", "monthly_subscription"])
     def test_contribution_billing_details(self, trait):
         contribution = ContributionFactory(**{trait: True})
@@ -910,19 +917,19 @@ class TestContributionModel:
             settings.CURRENCIES,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def _synchronous_email_send_task(self, settings):
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
         settings.CELERY_ALWAYS_EAGER = True
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_contributor_refresh_token(self, mocker):
         mocker.patch(
             "apps.api.tokens.ContributorRefreshToken.for_contributor",
             side_effect=lambda *args, **kwargs: MockForContributorReturn(),
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
 
@@ -1118,8 +1125,8 @@ class TestContributionModel:
         mock_stripe = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
         getattr(annual_contribution, email_method_name)()
         logger_spy.assert_called_once_with(
-            "No Stripe customer ID for contribution with ID %s",
-            annual_contribution.id,
+            "Encountered an error trying to generate email data",
+            exc_info=True,
         )
         mock_stripe.assert_not_called()
         send_email_spy.assert_not_called()
@@ -1140,10 +1147,7 @@ class TestContributionModel:
         send_email_spy = mocker.spy(send_templated_email, "delay")
 
         getattr(annual_contribution, email_method_name)()
-        logger_spy.assert_called_once_with(
-            "Something went wrong retrieving Stripe customer for contribution with ID %s",
-            annual_contribution.id,
-        )
+        logger_spy.assert_called_once_with("Encountered an error trying to generate email data")
         send_email_spy.assert_not_called()
 
     @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "rp_user", "user_with_unexpected_role"])
@@ -1454,7 +1458,7 @@ class TestContributionModel:
             mock_create_revision.assert_not_called()
             mock_set_revision_comment.assert_not_called()
 
-    @pytest.fixture()
+    @pytest.fixture
     def empty_metadata_response(self):
         return {"metadata": {}}
 
@@ -1705,6 +1709,147 @@ class TestContributionModel:
         # Ensure that the exception is raised but not logged/sent to Sentry
         assert logger_spy.call_count == 0
 
+    def test_update_subscription_amount_when_one_time(self, one_time_contribution: Contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
+            one_time_contribution.update_subscription_amount(amount=100)
+
+    @pytest.mark.parametrize(
+        "amount",
+        [99, 0, -100],
+    )
+    def test_update_subscription_amount_when_invalid_amount(self, amount, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match=r"Amount value must be greater than \$0.99"):
+            monthly_contribution.update_subscription_amount(amount)
+
+    def test_update_subscription_amount_when_invalid_amount_above_max(self, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match=r"Amount value must be smaller than \$999,999.99"):
+            monthly_contribution.update_subscription_amount(STRIPE_MAX_AMOUNT + 1)
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            "paused",
+            "incomplete_expired",
+            "past_due",
+            "canceled",
+            "unpaid",
+            "incomplete",
+            "trialing",
+        ],
+    )
+    def test_update_subscription_amount_when_inactive_subscription(self, status, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription(status)
+        with pytest.raises(ValueError, match="Cannot update amount for inactive subscription"):
+            monthly_contribution.update_subscription_amount(amount=123)
+
+    def test_update_subscription_amount_when_no_subscription_id(self, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.provider_subscription_id = None
+        with pytest.raises(ValueError, match="Cannot update amount for contribution without a subscription ID"):
+            monthly_contribution.update_subscription_amount(amount=123)
+
+    def test_update_subscription_amount_when_error_on_sub_item_retrieval(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mock_sub_item_list = mocker.patch(
+            "stripe.SubscriptionItem.list", side_effect=stripe.error.StripeError("something")
+        )
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_subscription_amount(amount=123)
+        mock_sub_item_list.assert_called_once_with(
+            subscription=sub_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_subscription_amount_when_return_multiple_sub_items(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch("stripe.SubscriptionItem.list", return_value={"data": [{"id": "si_123"}, {"id": "si_456"}]})
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match="Subscription should have only one item"):
+            monthly_contribution.update_subscription_amount(amount=123)
+
+    def test_update_subscription_amount_when_error_on_subscription_modify(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": (item_id := "si_123"),
+                        "price": {
+                            "currency": (curr := "usd"),
+                            "product": (prod_id := "prod_123"),
+                            "recurring": {
+                                "interval": (interval := "month"),
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mock_sub_modify = mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_subscription_amount(amount := 123)
+
+        metadata = monthly_contribution.contribution_metadata
+        metadata["amount"] = amount
+
+        mock_sub_modify.assert_called_once_with(
+            sub_id,
+            stripe_account=monthly_contribution.stripe_account_id,
+            metadata=metadata,
+            proration_behavior="none",
+            items=[
+                {
+                    "id": item_id,
+                    "price_data": {
+                        "unit_amount": amount,
+                        "currency": curr,
+                        "product": prod_id,
+                        "recurring": {
+                            "interval": interval,
+                        },
+                    },
+                }
+            ],
+        )
+
+    def test_update_subscription_amount_when_success_update_contribution(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        new_amount = monthly_contribution.amount * 2
+        monthly_contribution.update_subscription_amount(new_amount)
+        metadata = monthly_contribution.contribution_metadata
+        metadata["amount"] = new_amount
+        assert monthly_contribution.contribution_metadata == metadata
+
     @pytest.mark.parametrize(
         ("payment_data", "expected"),
         [
@@ -1791,6 +1936,14 @@ class TestContributionModel:
             contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
         )
 
+    def test_exclude_recurring_missing_provider_subscription_id(self, mocker):
+        ContributionFactory(provider_subscription_id=None, monthly_subscription=True, status=ContributionStatus.PAID)
+        expected = ContributionFactory(
+            provider_subscription_id="something", monthly_subscription=True, status=ContributionStatus.PAID
+        )
+        assert (returned := Contribution.objects.exclude_recurring_missing_provider_subscription_id()).count() == 1
+        assert returned.first() == expected
+
     @pytest.mark.parametrize("status", ContributionQuerySet.CONTRIBUTOR_HIDDEN_STATUSES)
     def test_exclude_hidden_statuses(self, status):
         ContributionFactory(status=status)
@@ -1803,7 +1956,7 @@ class TestContributionModel:
         assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionQuerySetMethods:
     """Basic unit tests for custom queryset methods that are on Contribution model."""
 
@@ -1862,8 +2015,13 @@ class TestContributionQuerySetMethods:
         assert {pi_1.id} == {item.id for item in results}
         spy.assert_not_called()
 
+    @pytest.fixture
+    def abandoned_contribution(self):
+        return ContributionFactory(abandoned=True)
+
     def test_having_org_viewable_status(
         self,
+        abandoned_contribution,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -1872,6 +2030,17 @@ class TestContributionQuerySetMethods:
         processing_contribution,
     ):
         """Show that this method excludes the expected statuses and includes the right ones."""
+        assert (
+            Contribution.objects.filter(
+                id__in=[
+                    abandoned_contribution.id,
+                    flagged_contribution.id,
+                    rejected_contribution.id,
+                    processing_contribution.id,
+                ]
+            ).count()
+            == 4
+        )
         assert set(Contribution.objects.having_org_viewable_status().values_list("id", flat=True)) == {
             canceled_contribution.id,
             refunded_contribution.id,
@@ -1919,20 +2088,40 @@ class TestContributionQuerySetMethods:
             c.id for c in unmarked_abandoned_contributions
         }
 
+    def test_with_stripe_account(self):
+        contribution_1 = ContributionFactory(one_time=True)
+        contribution_2 = ContributionFactory(
+            one_time=True, donation_page=None, _revenue_program=contribution_1.donation_page.revenue_program
+        )
+        assert contribution_1.stripe_account_id
+        assert contribution_2.stripe_account_id
+        assert set(Contribution.objects.with_stripe_account().values_list("stripe_account", flat=True)) == {
+            contribution_1.stripe_account_id
+        }
 
-@pytest.fixture()
+    def test_get_via_reversion_comment(self):
+        expected_contribution = ContributionFactory()
+        # this one won't have the message
+        ContributionFactory()
+        with reversion.create_revision():
+            expected_contribution.save()
+            reversion.set_comment(msg := "foo")
+        assert set(Contribution.objects.get_via_reversion_comment(msg)) == {expected_contribution}
+
+
+@pytest.fixture
 def charge_refunded_one_time_event():
     with Path("apps/contributions/tests/fixtures/charge-refunded-one-time-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
-@pytest.fixture()
+@pytest.fixture
 def charge_refunded_recurring_first_charge_event():
     with Path("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
-@pytest.fixture()
+@pytest.fixture
 def non_event():
     return "foo"
 
@@ -2034,10 +2223,10 @@ def test_ensure_stripe_event_when_wrong_type(value):
         my_func(event=value)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification", "_clear_cache")
 class TestPayment:
-    @pytest.fixture()
+    @pytest.fixture
     def payment(self):
         return PaymentFactory()
 
@@ -2047,28 +2236,28 @@ class TestPayment:
             f" {payment.stripe_balance_transaction_id}"
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def invalid_metadata(self):
         return {"foo": "bar"}
 
-    @pytest.fixture()
+    @pytest.fixture
     def valid_metadata(self, valid_metadata_factory):
         data = valid_metadata_factory.get() | {"schema_version": settings.METADATA_SCHEMA_VERSION_CURRENT}
         del data["t_shirt_size"]
         return data
 
-    @pytest.fixture()
+    @pytest.fixture
     def no_metadata(self):
         return None
 
-    @pytest.fixture()
+    @pytest.fixture
     def balance_transaction_for_refund_of_recurring_charge(self):
         with Path(
             "apps/contributions/tests/fixtures/balance-transaction-for-refund-of-recurring-charge.json"
         ).open() as f:
             return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
-    @pytest.fixture()
+    @pytest.fixture
     def balance_transaction_for_refund_of_subscription_creation_charge(self):
         with Path(
             "apps/contributions/tests/fixtures/balance-transaction-for-refund-of-subscription-creation-charge.json"
@@ -2160,7 +2349,7 @@ class TestPayment:
                 assert payment is None
                 assert Payment.objects.count() == count
 
-    @pytest.fixture()
+    @pytest.fixture
     def balance_transaction_for_refund_of_one_time_charge(self):
         with Path(
             "apps/contributions/tests/fixtures/balance-transaction-for-refund-of-one-time-charge.json"
@@ -2255,7 +2444,7 @@ class TestPayment:
             assert payment.amount_refunded == event.data.object.refunds.data[0].amount
             assert payment.stripe_balance_transaction_id == event.data.object.refunds.data[0].balance_transaction
 
-    @pytest.fixture()
+    @pytest.fixture
     def invoice_payment_succeeded_recurring_charge_event(self):
         with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:
             return stripe.Webhook.construct_event(f.read(), None, None)

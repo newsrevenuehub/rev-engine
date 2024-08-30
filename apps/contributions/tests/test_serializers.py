@@ -25,6 +25,8 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.serializers import (
+    PAYMENT_PAID,
+    PAYMENT_REFUNDED,
     ContributionSerializer,
     PortalContributionBaseSerializer,
     PortalContributionDetailSerializer,
@@ -1759,7 +1761,7 @@ class TestPortalContributionDetailSerializer:
 
 @pytest.fixture
 def paid_payment():
-    return PaymentFactory()
+    return PaymentFactory(paid=True)
 
 
 @pytest.fixture
@@ -1792,8 +1794,8 @@ class TestPortalContributionPaymentSerializer:
 
     def test_status_paid(self, paid_payment):
         serialized = serializers.PortalContributionPaymentSerializer(instance=paid_payment)
-        assert serialized.data["status"] == "paid"
+        assert serialized.data["status"] == PAYMENT_PAID
 
     def test_status_refunded(self, refunded_payment):
         serialized = serializers.PortalContributionPaymentSerializer(instance=refunded_payment)
-        assert serialized.data["status"] == "refunded"
+        assert serialized.data["status"] == PAYMENT_REFUNDED

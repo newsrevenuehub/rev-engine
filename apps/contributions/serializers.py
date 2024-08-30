@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Literal
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -885,6 +886,9 @@ PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
     "status",
 ]
 
+PAYMENT_PAID = "paid"
+PAYMENT_REFUNDED = "refunded"
+
 
 class PortalContributionPaymentSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField(read_only=True)
@@ -894,9 +898,10 @@ class PortalContributionPaymentSerializer(serializers.ModelSerializer):
         fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
         read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
 
-    def get_status(self, obj):
+    @staticmethod
+    def get_status(payment: Payment) -> Literal["paid", "refunded"]:
         # If the amount refunded is 0, then the payment status is "paid", otherwise it is "refunded"
-        return "paid" if obj.amount_refunded == 0 else "refunded"
+        return PAYMENT_PAID if payment.amount_refunded == 0 else PAYMENT_REFUNDED
 
 
 PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = [

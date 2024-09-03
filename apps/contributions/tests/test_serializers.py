@@ -1759,27 +1759,26 @@ class TestPortalContributionDetailSerializer:
             serializer.update(one_time_contribution, {"amount": 123})
 
 
-@pytest.fixture
-def paid_payment():
-    return PaymentFactory(paid=True)
-
-
-@pytest.fixture
-def refunded_payment():
-    return PaymentFactory(refund=True)
-
-
 @pytest.mark.django_db
 class TestPortalContributionPaymentSerializer:
+
+    @pytest.fixture
+    def paid_payment(self):
+        return PaymentFactory(paid=True)
+
+    @pytest.fixture
+    def refunded_payment(self):
+        return PaymentFactory(refund=True)
+
     @pytest.mark.parametrize(
-        "payment",
+        "payment_fixture",
         [
             "paid_payment",
             "refunded_payment",
         ],
     )
-    def test_has_expected_fields(self, payment, request):
-        _payment = request.getfixturevalue(payment)
+    def test_has_expected_fields(self, payment_fixture, request):
+        payment = request.getfixturevalue(payment_fixture)
         expected_fields = [
             "id",
             "amount_refunded",
@@ -1789,13 +1788,14 @@ class TestPortalContributionPaymentSerializer:
             "net_amount_paid",
             "status",
         ]
-        serialized = serializers.PortalContributionPaymentSerializer(instance=_payment)
+        serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
         assert set(serialized.data.keys()) == set(expected_fields)
 
-    def test_status_paid(self, paid_payment):
-        serialized = serializers.PortalContributionPaymentSerializer(instance=paid_payment)
-        assert serialized.data["status"] == PAYMENT_PAID
-
-    def test_status_refunded(self, refunded_payment):
-        serialized = serializers.PortalContributionPaymentSerializer(instance=refunded_payment)
-        assert serialized.data["status"] == PAYMENT_REFUNDED
+    @pytest.mark.parametrize(
+        ("payment_fixture", "expected_status"),
+        [("paid_payment", PAYMENT_PAID), ("refunded_payment", PAYMENT_REFUNDED)],
+    )
+    def test_status(self, request, payment_fixture, expected_status):
+        payment = request.getfixturevalue(payment_fixture)
+        serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
+        assert serialized.data["status"] == expected_status

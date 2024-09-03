@@ -1,7 +1,7 @@
-FROM node:16-slim as static_files
+FROM node:16-slim AS static_files
 
 WORKDIR /code
-ENV PATH /code/node_modules/.bin:$PATH
+ENV PATH=/code/node_modules/.bin:$PATH
 COPY ./spa/package.json ./spa/package-lock.json /code/
 
 # Skip installing Cypress binaries and security/funding audits, use package-lock.json strictly
@@ -10,7 +10,7 @@ COPY ./spa /code/spa/
 WORKDIR /code/spa/
 RUN npm run build
 
-FROM python:3.10-slim as base
+FROM python:3.10-slim AS base
 
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files
@@ -42,6 +42,13 @@ ADD pyproject.toml /pyproject.toml
 # longer be supported in python 3.12 so it needs to go away or be resolved before upgrading to python 3.12.
 # See DEV-2906
 ENV SETUPTOOLS_USE_DISTUTILS=stdlib
+
+ARG ENVIRONMENT
+ARG E2E_ENABLED
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
+
+
 # Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
 RUN set -ex \
@@ -53,19 +60,10 @@ RUN set -ex \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
     && pip install poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-dev \
+    && echo "E2E_ENABLED is set to: ${E2E_ENABLED}" \
+    && poetry install --extras "e2e" --no-root --without dev \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
-
-
-# Install playwright dependencies and set the browsers path
-# TODO @BW: Do not install playwright in production
-# DEV-4992
-ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
-RUN set -ex \
-    && python -m playwright install-deps \
-    && python -m playwright install
-
 
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/

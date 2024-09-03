@@ -65,8 +65,6 @@ tldextract = "^5.1.1"
 uwsgi = "^2"
 uwsgitop = "^0.11"
 whitenoise = "^6.2.0"
-pygithub = "^2.3.0"
-playwright = "^1.45.0"
 
 [tool.poetry.dev-dependencies]
 Faker = "*"
@@ -93,6 +91,7 @@ ruff = "*"
 
 [tool.poetry.extras]
 bandit = ["toml"]
+e2e = ["pygithub", "playwright"]
 
 [tool.pytest.ini_options]
 addopts = "--ruff --reuse-db -p no:warnings --ignore=apps/e2e/flows"

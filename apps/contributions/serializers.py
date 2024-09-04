@@ -396,6 +396,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "ip": get_original_ip_from_request(self.context["request"]),
             "country_code": self.context["request"].headers.get("Cf-Ipcountry", None),
         }
+        logger.info("BadActorSerializer data: %s", data)
         serializer = BadActorSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)

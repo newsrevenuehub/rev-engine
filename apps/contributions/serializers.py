@@ -394,6 +394,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "page": data["page"].id,
             "referer": self.context["request"].META.get("HTTP_REFERER"),
             "ip": get_original_ip_from_request(self.context["request"]),
+            "country_code": self.context["request"].headers.get("Cf-Ipcountry", None),
         }
         serializer = BadActorSerializer(data=data)
         try:

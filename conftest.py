@@ -635,6 +635,7 @@ def valid_metadata_factory(faker, domain_apex):
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
+        "mc_campaign_id": None,
         "comp_subscription": None,
         "honoree": None,
         "in_memory_of": None,

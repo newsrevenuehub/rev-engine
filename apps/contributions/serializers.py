@@ -290,6 +290,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
+    mc_campaign_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, write_only=True, default=""
+    )
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
@@ -454,6 +457,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             revenue_program_id=self.validated_data["page"].revenue_program.id,
             revenue_program_slug=self.validated_data["page"].revenue_program.slug,
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
+            mc_campaign_id=self.validated_data["mc_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],
             source="rev-engine",

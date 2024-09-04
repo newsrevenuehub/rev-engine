@@ -898,6 +898,7 @@ class TestBaseCreatePaymentSerializer:
             "in_memory_of",
             "reason_for_giving",
             "sf_campaign_id",
+            "mc_campaign_id",
         )
         for x in optional_fields_defaulting_to_none:
             assert getattr(metadata, x) is None

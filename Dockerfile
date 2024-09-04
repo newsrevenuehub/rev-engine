@@ -60,9 +60,12 @@ RUN set -ex \
 ARG E2E_ENABLED
 ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
 
+# Conditionally install dependencies based on E2E_ENABLED
 RUN set -ex \
-    && if [ "$E2E_ENABLED" = "true" ]; then \
-    poetry install --no-root --without dev --with "e2e"; \
+    && if [ "$E2E_ENABLED" = true ]; then \
+    poetry install --no-root --without dev --with "e2e" \
+    && python -m playwright install-deps \
+    && python -m playwright install; \
     else \
     poetry install --no-root --without dev; \
     fi
@@ -70,7 +73,6 @@ RUN set -ex \
 RUN set -ex \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
-
 
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/

@@ -91,7 +91,13 @@ ruff = "*"
 
 [tool.poetry.extras]
 bandit = ["toml"]
-e2e = ["pygithub", "playwright"]
+
+[tool.poetry.group.e2e]
+optional = true
+
+[tool.poetry.group.e2e.dependencies]
+pygithub = "^2.4.0"
+playwright = "^1.46.0"
 
 [tool.pytest.ini_options]
 addopts = "--ruff --reuse-db -p no:warnings --ignore=apps/e2e/flows"

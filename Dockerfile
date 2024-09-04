@@ -56,15 +56,15 @@ RUN set -ex \
     && poetry config virtualenvs.create false
 
 
-ARG E2E_ENABLED
-ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
+ARG E2E_ENABLED=false
 
 # Conditionally install dependencies based on E2E_ENABLED
 RUN set -ex \
     && if [ "$E2E_ENABLED" = true ]; then \
     poetry install --no-root --without dev --with "e2e" \
     && python -m playwright install-deps \
-    && python -m playwright install; \
+    && python -m playwright install \
+    && echo "PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers" >> /etc/environment; \
     else \
     poetry install --no-root --without dev; \
     fi

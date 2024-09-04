@@ -55,7 +55,8 @@ RUN set -ex \
     && pip install poetry \
     && poetry config virtualenvs.create false
 
-
+# these two build args are for facilitating e2e enabled builds
+ARG SOURCE_VERSION
 ARG E2E_ENABLED=false
 
 # Conditionally install dependencies based on E2E_ENABLED
@@ -64,6 +65,7 @@ RUN set -ex \
     poetry install --no-root --without dev --with "e2e" \
     && python -m playwright install-deps \
     && python -m playwright install \
+    && echo "SOURCE_VERSION=${SOURCE_VERSION}" >> /etc/environment \
     && echo "PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers" >> /etc/environment; \
     else \
     poetry install --no-root --without dev; \
@@ -93,13 +95,6 @@ ENV PORT=8000
 
 # Add any static environment variables needed by Django or your settings file here:
 ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
-
-
-# Use SOURCE_VERSION as an environment variable
-# This will be set in build phase environment on Heroku.
-ARG SOURCE_VERSION
-ENV SOURCE_VERSION=$SOURCE_VERSION
-
 
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env

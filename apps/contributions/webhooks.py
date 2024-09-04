@@ -175,7 +175,9 @@ class StripeWebhookProcessor:
                 logger.info("Failed to cast metadata to schema: %s", exc)
 
         if cast_from_stripe and cast_from_stripe != cast_from_contribution:
+            logger.info("Metadata update value found")
             return json.loads(cast_from_stripe.model_dump_json())
+        logger.info("No metadata update value found")
         return {}
 
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):

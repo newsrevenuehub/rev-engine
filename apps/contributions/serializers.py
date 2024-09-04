@@ -12,6 +12,7 @@ from stripe.error import StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
+from apps.contributions.bad_actor import BadActorOverallScore
 from apps.contributions.choices import CardBrand, PaymentType
 from apps.contributions.models import (
     Contribution,
@@ -26,7 +27,7 @@ from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
-from .bad_actor import BadActorAPIError, make_bad_actor_request
+from .bad_actor import BadActorAPIError, get_bad_actor_score
 from .fields import StripeAmountField
 
 
@@ -386,7 +387,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         self.do_conditional_validation(data)
         return data
 
-    def get_bad_actor_score(self, data):
+    def get_bad_actor_score(self, data) -> BadActorOverallScore | None:
         """Based on validated data, make a request to bad actor API and return its response."""
         data = data | {
             # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
@@ -402,7 +403,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             logger.warning("BadActor serializer raised a ValidationError", exc_info=exc)
             return None
         try:
-            return make_bad_actor_request(data).json()
+            return get_bad_actor_score(data)
         except BadActorAPIError:
             return None
 
@@ -414,7 +415,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged."""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
-    def build_contribution(self, contributor, validated_data, bad_actor_response=None):
+    def build_contribution(self, contributor, validated_data, bad_actor_response=BadActorOverallScore | None):
         """Create an NRE contribution using validated data."""
         contribution_data = {
             "amount": validated_data["amount"],
@@ -426,8 +427,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "payment_provider_used": PaymentProvider.STRIPE_LABEL,
         }
         if bad_actor_response:
-            contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
-            contribution_data["bad_actor_response"] = bad_actor_response
+            contribution_data["bad_actor_score"] = bad_actor_response.overall_judgment
+            contribution_data["bad_actor_response"] = bad_actor_response.dict()
             if self.should_reject(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.REJECTED
             elif self.should_flag(contribution_data["bad_actor_score"]):

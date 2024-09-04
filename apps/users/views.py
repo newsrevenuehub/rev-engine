@@ -32,7 +32,7 @@ from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
 from apps.common.utils import get_original_ip_from_request
-from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
+from apps.contributions.bad_actor import BadActorAPIError, get_bad_actor_score
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
 from apps.users.constants import (
@@ -276,7 +276,7 @@ class UserViewset(
         NB: This assumes org users and may do unexpected things if applied to contributor users or others (though that is not exposed)
         """
         try:
-            response = make_bad_actor_request(
+            score = get_bad_actor_score(
                 {
                     "email": data.validated_data["email"],
                     "referer": self.request.META.get("HTTP_REFERER", ""),
@@ -291,7 +291,7 @@ class UserViewset(
         except BadActorAPIError:
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
-        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS:
+        if score.overall_judgment >= settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS:
             logger.warning("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 

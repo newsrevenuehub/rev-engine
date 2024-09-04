@@ -54,15 +54,6 @@ def valid_customize_account_request_data():
     }
 
 
-class MockResponseObject:
-    def __init__(self, json_data, status_code=200):
-        self.status_code = status_code
-        self.json_data = json_data
-
-    def json(self):
-        return self.json_data
-
-
 @pytest.fixture
 def valid_create_request_data(valid_password, valid_email, faker):
     return {
@@ -644,10 +635,8 @@ class TestUserViewSet:
         user_with_verified_email_and_tos_accepted.refresh_from_db()
         assert user_with_verified_email_and_tos_accepted.roleassignment.organization.name == f"{organization.name}-1"
 
-    def test_create_happy_path(self, mocker, api_client, valid_create_request_data):
-        mock_bad_actor_request = mocker.patch(
-            "apps.users.views.make_bad_actor_request", return_value=MockResponseObject({"overall_judgment": 0})
-        )
+    def test_create_happy_path(self, mocker, api_client, valid_create_request_data, bad_actor_good_score):
+        mock_bad_actor_request = mocker.patch("apps.users.views.get_bad_actor_score", return_value=bad_actor_good_score)
         mock_send_verification_email = mocker.patch("apps.users.views.UserViewset.send_verification_email")
         user_count = (User := get_user_model()).objects.count()
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
@@ -685,10 +674,13 @@ class TestUserViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "accepted_terms_of_service" in response.json()
 
-    def test_create_when_bad_actor_threshold_met(self, mocker, api_client, valid_create_request_data):
+    def test_create_when_bad_actor_threshold_met(
+        self, mocker, api_client, valid_create_request_data, bad_actor_super_bad_score
+    ):
+
         mocker.patch(
-            "apps.users.views.make_bad_actor_request",
-            return_value=MockResponseObject({"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS}),
+            "apps.users.views.get_bad_actor_score",
+            return_value=bad_actor_super_bad_score,
         )
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -702,7 +694,7 @@ class TestUserViewSet:
 
     def test_create_when_bad_actor_request_has_error(self, mocker, api_client, valid_create_request_data):
         logger_spy = mocker.patch("apps.users.views.logger.warning")
-        mocker.patch("apps.contributions.bad_actor.make_bad_actor_request", side_effect=BadActorAPIError("error"))
+        mocker.patch("apps.users.views.get_bad_actor_score", side_effect=BadActorAPIError("error"))
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
         logger_spy.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)

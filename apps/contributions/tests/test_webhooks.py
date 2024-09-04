@@ -240,7 +240,7 @@ class TestStripeWebhookProcessor:
     def subscription_metadata(self):
         """Meant to represent observed Stripe subscription (or PI) metadata.
 
-        ... as distinct from Contribubtion.contribution_metadata, which is used to create metadata on Stripe,
+        ... as distinct from Contribution.contribution_metadata, which is used to create metadata on Stripe,
         but which does not drop null-valued entries.
         """
         return {

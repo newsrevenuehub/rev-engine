@@ -43,11 +43,6 @@ ADD pyproject.toml /pyproject.toml
 # See DEV-2906
 ENV SETUPTOOLS_USE_DISTUTILS=stdlib
 
-ARG ENVIRONMENT
-ARG E2E_ENABLED
-
-ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
-
 
 # Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
@@ -59,11 +54,23 @@ RUN set -ex \
     " \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
     && pip install poetry \
-    && poetry config virtualenvs.create false \
-    && echo "E2E_ENABLED is set to: ${E2E_ENABLED}" \
-    && poetry install --extras "e2e" --no-root --without dev \
+    && poetry config virtualenvs.create false
+
+
+ARG E2E_ENABLED
+ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
+
+RUN set -ex \
+    && if [ "$E2E_ENABLED" = "true" ]; then \
+    poetry install --no-root --without dev --with "e2e"; \
+    else \
+    poetry install --no-root --without dev; \
+    fi
+
+RUN set -ex \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/

@@ -286,7 +286,7 @@ describe('serializeData', () => {
     expect(Object.keys(result)).toContain('mc_campaign_id');
   });
 
-  it('does not set mc_campaign_id based on the state provided', () =>
+  it('does not set mc_campaign_id if not present in state', () =>
     expect(Object.keys(serializeData(mockForm, { ...mockState }))).not.toContain('mc_campaign_id'));
 
   it('throws an error if not given a form element', () => {

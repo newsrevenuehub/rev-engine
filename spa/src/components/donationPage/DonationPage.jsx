@@ -5,7 +5,8 @@ import {
   AMOUNT_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
   GRECAPTCHA_SITE_KEY,
-  SALESFORCE_CAMPAIGN_ID_QUERYPARAM
+  SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
+  MAILCHIMP_CAMPAIGN_ID_QUERYPARAM
 } from 'appSettings';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 import * as getters from 'components/donationPage/pageGetters';
@@ -42,7 +43,7 @@ function DonationPage({ page, live = false }, ref) {
   const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
-  const mailchimpCampaignId = useQueryString('mc_cid');
+  const mailchimpCampaignId = useQueryString(MAILCHIMP_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
   const amountQs = useQueryString(AMOUNT_QUERYPARAM);
   const [frequency, setFrequency] = useState();

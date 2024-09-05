@@ -56,7 +56,6 @@ RUN set -ex \
     && poetry config virtualenvs.create false
 
 # these two build args are for facilitating e2e enabled builds
-ARG SOURCE_VERSION
 ARG E2E_ENABLED=false
 
 # Conditionally install dependencies based on E2E_ENABLED

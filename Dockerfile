@@ -55,18 +55,16 @@ RUN set -ex \
     && pip install poetry \
     && poetry config virtualenvs.create false
 
-# these two build args are for facilitating e2e enabled builds
 ARG E2E_ENABLED=false
-
-# Conditionally install dependencies based on E2E_ENABLED
 RUN set -ex \
+    # Conditionally install dependencies based on E2E_ENABLED
     && if [ "$E2E_ENABLED" = true ]; then \
     poetry install --no-root --without dev --with "e2e" \
     && python -m playwright install-deps \
     && python -m playwright install \
-    && echo "SOURCE_VERSION=${SOURCE_VERSION}" >> /etc/environment \
     && echo "PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers" >> /etc/environment; \
     else \
+    # otherwise just install the default dependencies
     poetry install --no-root --without dev; \
     fi
 

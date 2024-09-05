@@ -400,7 +400,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         country_code = self.context["request"].headers.get("Cf-Ipcountry", None)
         if country_code:
             data["country_code"] = country_code
-        logger.info("BadActorSerializer data: %s", data)
+
         serializer = BadActorSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)

@@ -127,11 +127,6 @@ GITHUB_REPO = os.getenv("GITHUB_REPO", "")
 INSTALLED_APPS = [
     "apps.common",
     "apps.api",
-    # TODO @<benjaminEwhite>: Conditionally add only when E2E_ENABLED is True
-    # DEV-4994
-    # The issue is that we have fixtures defined in e2e/tests/conftest.py, and those
-    # are loaded at beginning of test run, and if this app is not loaded, then error is thrown.
-    "apps.e2e",
     "apps.users",
     "apps.organizations",
     "apps.pages",
@@ -166,6 +161,10 @@ INSTALLED_APPS = [
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
+
+if E2E_ENABLED:
+    INSTALLED_APPS.append("apps.e2e")
+
 
 if ENABLE_API_BROWSER:
     INSTALLED_APPS.append("drf_yasg")

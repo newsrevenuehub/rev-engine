@@ -744,9 +744,8 @@ class TestBaseCreatePaymentSerializer:
         HTTP referer in the request, so that's why we set in request factory below.
         """
         mock_make_bad_actor = mocker.patch("apps.contributions.serializers.make_bad_actor_request")
-        request = APIRequestFactory(HTTP_REFERER="https://www.google.com", HTTP_CF_IPCOUNTRY=None).post(
-            "", {}, format="json"
-        )
+        # No Cf-IpCountry header in request
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
         serializer.get_bad_actor_score(serializer.validated_data)

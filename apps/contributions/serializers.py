@@ -154,6 +154,7 @@ class BadActorSerializer(serializers.Serializer):
     state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     zipcode = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
+    country_code = serializers.CharField(max_length=10, required=False, default="", allow_blank=True)
 
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
@@ -394,8 +395,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "page": data["page"].id,
             "referer": self.context["request"].META.get("HTTP_REFERER"),
             "ip": get_original_ip_from_request(self.context["request"]),
-            "country_code": self.context["request"].headers.get("Cf-Ipcountry", None),
         }
+
+        country_code = self.context["request"].headers.get("Cf-Ipcountry", None)
+        if country_code:
+            data["country_code"] = country_code
         logger.info("BadActorSerializer data: %s", data)
         serializer = BadActorSerializer(data=data)
         try:

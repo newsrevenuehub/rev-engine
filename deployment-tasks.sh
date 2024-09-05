@@ -6,7 +6,7 @@ set -e
 python manage.py migrate --noinput
 
 
-if [ "$POSTDEPLOY_DONE" = "true" ] && [ "$E2E_ENABLED" = "true"]; then
+if [ "$POSTDEPLOY_DONE" = "true" ] && [ "$E2E_ENABLED" = "true" ]; then
   if [ -z "$SOURCE_VERSION" ]; then
     echo "SOURCE_VERSION is not set so e2e checks will be skipped"
   else

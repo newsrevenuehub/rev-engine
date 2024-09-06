@@ -415,7 +415,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged."""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
-    def build_contribution(self, contributor, validated_data, bad_actor_response=BadActorOverallScore | None):
+    def build_contribution(
+        self, contributor: Contributor, validated_data: dict, bad_actor_response: BadActorOverallScore | None
+    ):
         """Create an NRE contribution using validated data."""
         contribution_data = {
             "amount": validated_data["amount"],

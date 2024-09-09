@@ -945,16 +945,6 @@ class TestBaseCreatePaymentSerializer:
         for x in optional_fields_defaulting_to_none:
             assert getattr(metadata, x) is None
 
-    @pytest.fixture
-    def get_bad_actor_score_causes_uncaught(self, mocker):
-        class RandomException(Exception):
-            pass
-
-        return mocker.patch(
-            "apps.contributions.serializers.get_bad_actor_score",
-            side_effect=RandomException("Something bad happened"),
-        )
-
     def test_get_bad_actor_score_when_uncaught_error_calling_internal(
         self, minimally_valid_contribution_form_data, get_bad_actor_score_causes_uncaught
     ):

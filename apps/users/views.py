@@ -32,7 +32,7 @@ from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
 from apps.common.utils import get_original_ip_from_request
-from apps.contributions.bad_actor import BadActorAPIError, get_bad_actor_score
+from apps.contributions.bad_actor import get_bad_actor_score
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
 from apps.users.constants import (
@@ -270,28 +270,46 @@ class UserViewset(
             ]
             raise ValidationError(detail={"password": safe_messages}) from exc
 
-    def validate_bad_actor(self, data):
-        """Determine if user is a bad actor or not.
+    def _get_bad_actor_score(self, data: dict):
+        """Get bad actor score for a user.
 
         NB: This assumes org users and may do unexpected things if applied to contributor users or others (though that is not exposed)
         """
         try:
-            score = get_bad_actor_score(
+            return get_bad_actor_score(
                 {
-                    "email": data.validated_data["email"],
+                    "email": data["email"],
                     "referer": self.request.META.get("HTTP_REFERER", ""),
                     "ip": get_original_ip_from_request(self.request),
-                    "first_name": data.validated_data.get("first_name", ""),
-                    "last_name": data.validated_data.get("last_name", ""),
+                    "first_name": data.get("first_name", ""),
+                    "last_name": data.get("last_name", ""),
                     # Bad actor api requires this field because it was created
                     # with contributors in mind, not org users, so we supply a dummy value
                     "amount": BAD_ACTOR_FAKE_AMOUNT,
                 }
             )
-        except BadActorAPIError:
-            logger.warning("Something went wrong with BadActorAPI", exc_info=True)
-            return
-        if score.overall_judgment >= settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS:
+        except Exception:
+            logger.exception("Something went wrong getting bad actor score")
+
+    def validate_bad_actor(self, data):
+        """Determine if user is a bad actor or not.
+
+        NB: This assumes org users and may do unexpected things if applied to contributor users or others (though that is not exposed)
+        """
+        # Note that _get_bad_actor_score is designed to return none if any error at all occurs
+        score = self._get_bad_actor_score(
+            {
+                "email": data.validated_data["email"],
+                "referer": self.request.META.get("HTTP_REFERER", ""),
+                "ip": get_original_ip_from_request(self.request),
+                "first_name": data.validated_data.get("first_name", ""),
+                "last_name": data.validated_data.get("last_name", ""),
+                # Bad actor api requires this field because it was created
+                # with contributors in mind, not org users, so we supply a dummy value
+                "amount": BAD_ACTOR_FAKE_AMOUNT,
+            }
+        )
+        if score and score.overall_judgment >= settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS:
             logger.warning("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 

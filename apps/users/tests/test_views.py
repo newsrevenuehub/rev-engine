@@ -686,18 +686,34 @@ class TestUserViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE]
 
-    def test_create_when_bad_actor_api_not_configured(self, mocker, api_client, valid_create_request_data, settings):
+    def test_create_when_bad_actor_api_not_configured(self, api_client, valid_create_request_data, settings):
         settings.BAD_ACTOR_API_KEY = None
         settings.BAD_ACTOR_API_URL = None
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
 
     def test_create_when_bad_actor_request_has_error(self, mocker, api_client, valid_create_request_data):
-        logger_spy = mocker.patch("apps.users.views.logger.warning")
+        logger_spy = mocker.patch("apps.users.views.logger.exception")
         mocker.patch("apps.users.views.get_bad_actor_score", side_effect=BadActorAPIError("error"))
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
-        logger_spy.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
+        logger_spy.assert_called_once_with("Something went wrong getting bad actor score", exc_info=True)
+
+    @pytest.fixture
+    def get_bad_actor_score_causes_uncaught(self, mocker):
+        class RandomException(Exception):
+            pass
+
+        return mocker.patch(
+            "apps.users.views.get_bad_actor_score",
+            side_effect=RandomException("Something bad happened"),
+        )
+
+    def test_validate_bad_actor_when_unexpected_error_getting_bad_score(
+        self, get_bad_actor_score_causes_uncaught, mocker
+    ):
+        UserViewset(request=mocker.MagicMock()).validate_bad_actor(mocker.MagicMock())
+        get_bad_actor_score_causes_uncaught.assert_called_once()
 
     def test_update_happy_path(self, org_user_free_plan, api_client, valid_update_data):
         org_user_free_plan.email_verified = True

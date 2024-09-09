@@ -401,6 +401,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "action": action,
             "org": data["page"].organization.id,
         }
+        logger.info("BadActorSerializer data: %s", data)
+
         serializer = BadActorSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)

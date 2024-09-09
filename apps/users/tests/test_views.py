@@ -697,7 +697,7 @@ class TestUserViewSet:
         mocker.patch("apps.users.views.get_bad_actor_score", side_effect=BadActorAPIError("error"))
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
-        logger_spy.assert_called_once_with("Something went wrong getting bad actor score", exc_info=True)
+        logger_spy.assert_called_once_with("Something went wrong getting bad actor score")
 
     @pytest.fixture
     def get_bad_actor_score_causes_uncaught(self, mocker):

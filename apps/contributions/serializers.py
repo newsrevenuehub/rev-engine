@@ -141,6 +141,8 @@ class CompSubscriptions(TextChoices):
 
 
 class BadActorSerializer(serializers.Serializer):
+    ACTION_CHOICES = ["contribution", "create-account"]
+
     # Donation info
     amount = serializers.CharField(max_length=12)
 
@@ -148,6 +150,8 @@ class BadActorSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=40)
     last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
+    action = serializers.ChoiceField(choices=ACTION_CHOICES, required=False, default="", allow_blank=True)
+    org = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     street = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     complement = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     city = serializers.CharField(max_length=40, required=False, default="", allow_blank=True)
@@ -386,7 +390,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         self.do_conditional_validation(data)
         return data
 
-    def get_bad_actor_score(self, data):
+    def get_bad_actor_score(self, data, action: str = "contribution"):
         """Based on validated data, make a request to bad actor API and return its response."""
         data = data | {
             # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
@@ -394,6 +398,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "page": data["page"].id,
             "referer": self.context["request"].META.get("HTTP_REFERER"),
             "ip": get_original_ip_from_request(self.context["request"]),
+            "action": action,
+            "org": data["page"].organization.id,
         }
         serializer = BadActorSerializer(data=data)
         try:

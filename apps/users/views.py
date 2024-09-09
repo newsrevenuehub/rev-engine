@@ -286,6 +286,7 @@ class UserViewset(
                     # Bad actor api requires this field because it was created
                     # with contributors in mind, not org users, so we supply a dummy value
                     "amount": BAD_ACTOR_FAKE_AMOUNT,
+                    "action": "create-account",
                 }
             )
         except BadActorAPIError:

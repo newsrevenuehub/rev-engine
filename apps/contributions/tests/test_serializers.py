@@ -716,6 +716,31 @@ class TestBaseCreatePaymentSerializer:
         assert serializer.is_valid() is True
         assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
+    def test_get_bad_actor_score_fields(self, minimally_valid_contribution_form_data, mocker):
+        """Show that calling `get_bad_actor_score` returns response data.
+
+        Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
+        HTTP referer in the request, so that's why we set in request factory below.
+        """
+        mock_make_bad_actor = mocker.patch("apps.contributions.serializers.make_bad_actor_request")
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        assert serializer.is_valid() is True
+        serializer.get_bad_actor_score(serializer.validated_data)
+        assert mock_make_bad_actor.call_count == 1
+        assert mock_make_bad_actor.call_args[0][0]["action"] == "contribution"
+        assert mock_make_bad_actor.call_args[0][0]["org"] == serializer.validated_data["page"].organization.id
+        assert mock_make_bad_actor.call_args[0][0]["amount"] == serializer.validated_data["amount"]
+        assert mock_make_bad_actor.call_args[0][0]["page"] == serializer.validated_data["page"].id
+        assert mock_make_bad_actor.call_args[0][0]["first_name"] == serializer.validated_data["first_name"]
+        assert mock_make_bad_actor.call_args[0][0]["last_name"] == serializer.validated_data["last_name"]
+        assert mock_make_bad_actor.call_args[0][0]["email"] == serializer.validated_data["email"]
+        assert mock_make_bad_actor.call_args[0][0]["street"] == serializer.validated_data["mailing_street"]
+        assert mock_make_bad_actor.call_args[0][0]["city"] == serializer.validated_data["mailing_city"]
+        assert mock_make_bad_actor.call_args[0][0]["state"] == serializer.validated_data["mailing_state"]
+        assert mock_make_bad_actor.call_args[0][0]["country"] == serializer.validated_data["mailing_country"]
+        assert mock_make_bad_actor.call_args[0][0]["zipcode"] == serializer.validated_data["mailing_postal_code"]
+
     def test_get_bad_actor_score_happy_path(self, minimally_valid_contribution_form_data, monkeypatch):
         """Show that calling `get_bad_actor_score` returns response data.
 

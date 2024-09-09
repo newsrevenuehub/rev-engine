@@ -388,23 +388,29 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         return data
 
     def get_bad_actor_score(self, data) -> BadActorOverallScore | None:
-        """Based on validated data, make a request to bad actor API and return its response."""
-        data = data | {
-            # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
-            # but BadActorSerializer wants to pk, so we reformat here.
-            "page": data["page"].id,
-            "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "ip": get_original_ip_from_request(self.context["request"]),
-        }
-        serializer = BadActorSerializer(data=data)
+        """Based on validated data, make a request to bad actor API and return its response.
+
+        Note that this method is meant to be ironclad against exceptions. If anything goes wrong, it should return None.
+        """
         try:
+            data = data | {
+                # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
+                # but BadActorSerializer wants to pk, so we reformat here.
+                "page": data["page"].id,
+                "referer": self.context["request"].META.get("HTTP_REFERER"),
+                "ip": get_original_ip_from_request(self.context["request"]),
+            }
+            serializer = BadActorSerializer(data=data)
             serializer.is_valid(raise_exception=True)
+            return get_bad_actor_score(serializer.validated_data)
         except serializers.ValidationError as exc:
             logger.warning("BadActor serializer raised a ValidationError", exc_info=exc)
             return None
-        try:
-            return get_bad_actor_score(data)
         except BadActorAPIError:
+            logger.exception("BadActor API request failed communicating with API")
+            return None
+        except Exception:
+            logger.exception("Something unexpected happened trying to get bad actor sore")
             return None
 
     def should_reject(self, bad_actor_score):
@@ -486,8 +492,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         """
         logger.info("`CreateOneTimePaymentSerializer.create` called with validated data: %s", validated_data)
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
-        bad_actor_response = self.get_bad_actor_score(validated_data)
-        contribution = self.build_contribution(contributor, validated_data, bad_actor_response)
+        contribution = self.build_contribution(contributor, validated_data, self.get_bad_actor_score(validated_data))
         if contribution.status == ContributionStatus.REJECTED:
             logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution with REJECTED status")
             contribution.save()

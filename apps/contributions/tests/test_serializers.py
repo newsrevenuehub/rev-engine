@@ -60,6 +60,17 @@ def bad_actor_super_bad_response(mocker, bad_actor_super_bad_score):
     )
 
 
+@pytest.fixture
+def get_bad_actor_score_causes_uncaught(mocker):
+    class RandomException(Exception):
+        pass
+
+    return mocker.patch(
+        "apps.contributions.serializers.get_bad_actor_score",
+        side_effect=RandomException("Something bad happened"),
+    )
+
+
 @pytest.mark.django_db
 class TestContributionSerializer:
     def test_has_expected_fields(self, one_time_contribution):
@@ -933,6 +944,25 @@ class TestBaseCreatePaymentSerializer:
         )
         for x in optional_fields_defaulting_to_none:
             assert getattr(metadata, x) is None
+
+    @pytest.fixture
+    def get_bad_actor_score_causes_uncaught(self, mocker):
+        class RandomException(Exception):
+            pass
+
+        return mocker.patch(
+            "apps.contributions.serializers.get_bad_actor_score",
+            side_effect=RandomException("Something bad happened"),
+        )
+
+    def test_get_bad_actor_score_when_uncaught_error_calling_internal(
+        self, minimally_valid_contribution_form_data, get_bad_actor_score_causes_uncaught
+    ):
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        assert serializer.is_valid() is True
+        assert serializer.get_bad_actor_score(serializer.validated_data) is None
+        get_bad_actor_score_causes_uncaught.assert_called_once()
 
 
 @pytest.fixture

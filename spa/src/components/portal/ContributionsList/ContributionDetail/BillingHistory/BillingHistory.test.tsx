@@ -24,8 +24,9 @@ const mockPayments: PortalContributionPayment[] = [
   {
     amount_refunded: 678,
     created: new Date('1/2/2001').toISOString(),
-    gross_amount_paid: 678,
-    net_amount_paid: 678,
+    // When Stripe refunds a payment, gross and net amounts are 0.
+    gross_amount_paid: 0,
+    net_amount_paid: 0,
     status: 'refunded'
     // transaction_time omitted intentionally to test fallback.
   }

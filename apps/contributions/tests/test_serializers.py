@@ -25,6 +25,8 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.serializers import (
+    PAYMENT_PAID,
+    PAYMENT_REFUNDED,
     ContributionSerializer,
     PortalContributionBaseSerializer,
     PortalContributionDetailSerializer,
@@ -1755,3 +1757,45 @@ class TestPortalContributionDetailSerializer:
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
             serializer.update(one_time_contribution, {"amount": 123})
+
+
+@pytest.mark.django_db
+class TestPortalContributionPaymentSerializer:
+
+    @pytest.fixture
+    def paid_payment(self):
+        return PaymentFactory(paid=True)
+
+    @pytest.fixture
+    def refunded_payment(self):
+        return PaymentFactory(refund=True)
+
+    @pytest.mark.parametrize(
+        "payment_fixture",
+        [
+            "paid_payment",
+            "refunded_payment",
+        ],
+    )
+    def test_has_expected_fields(self, payment_fixture, request):
+        payment = request.getfixturevalue(payment_fixture)
+        expected_fields = [
+            "id",
+            "amount_refunded",
+            "created",
+            "transaction_time",
+            "gross_amount_paid",
+            "net_amount_paid",
+            "status",
+        ]
+        serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
+        assert set(serialized.data.keys()) == set(expected_fields)
+
+    @pytest.mark.parametrize(
+        ("payment_fixture", "expected_status"),
+        [("paid_payment", PAYMENT_PAID), ("refunded_payment", PAYMENT_REFUNDED)],
+    )
+    def test_status(self, request, payment_fixture, expected_status):
+        payment = request.getfixturevalue(payment_fixture)
+        serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
+        assert serialized.data["status"] == expected_status

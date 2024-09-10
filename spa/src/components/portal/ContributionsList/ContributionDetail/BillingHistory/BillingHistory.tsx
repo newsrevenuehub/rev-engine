@@ -95,7 +95,11 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
             ? sortedPayments.map((payment, index) => (
                 <TableRow key={index}>
                   <TableCell>{dateFormatter.format(new Date(payment.transaction_time ?? payment.created))}</TableCell>
-                  <TableCell>{formatCurrencyAmount(payment.gross_amount_paid)}</TableCell>
+                  <TableCell>
+                    {formatCurrencyAmount(
+                      payment.status === 'refunded' ? payment.amount_refunded : payment.gross_amount_paid
+                    )}
+                  </TableCell>
                   <TableCell>{PAYMENT_STATUS_NAMES[payment.status]}</TableCell>
                 </TableRow>
               ))

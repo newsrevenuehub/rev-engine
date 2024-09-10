@@ -170,3 +170,4 @@ class PaymentFactory(DjangoModelFactory):
 
     class Params:
         refund = factory.Trait(amount_refunded=1000)
+        paid = factory.Trait(amount_refunded=0, net_amount_paid=2000, gross_amount_paid=2010)

@@ -145,6 +145,7 @@ class TestPaymentIntentSucceeded:
             last_payment_date=None,
             provider_payment_id=payment_intent_for_one_time_contribution.id,
         )
+        PaymentFactory(contribution=contribution, stripe_balance_transaction_id="bt_fake_01")
         mock_send_thank_you = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(
@@ -284,6 +285,7 @@ class TestCustomerSubscriptionUpdated:
     def test_when_contribution_found(
         self, payment_method_has_changed, client, customer_subscription_updated_event, mocker
     ):
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.get_metadata_update_value", return_value=None)
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
 
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, key="test"))
@@ -345,6 +347,7 @@ class TestCustomerSubscriptionUpdated:
 class TestCustomerSubscriptionDeleted:
     def test_when_contribution_found(self, client, customer_subscription_deleted, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.get_metadata_update_value", return_value=None)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             annual_subscription=True,

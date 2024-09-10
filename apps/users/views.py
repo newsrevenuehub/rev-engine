@@ -33,6 +33,7 @@ from reversion.views import RevisionMixin
 
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
+from apps.contributions.choices import BadActorAction
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
 from apps.users.constants import (
@@ -286,7 +287,7 @@ class UserViewset(
                     # Bad actor api requires this field because it was created
                     # with contributors in mind, not org users, so we supply a dummy value
                     "amount": BAD_ACTOR_FAKE_AMOUNT,
-                    "action": "create-account",
+                    "action": BadActorAction.CREATE_ACCOUNT,
                 }
             )
         except BadActorAPIError:

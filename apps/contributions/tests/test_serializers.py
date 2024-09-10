@@ -18,6 +18,7 @@ from rest_framework.test import APIRequestFactory
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
+from apps.contributions.choices import BadActorAction
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -728,7 +729,7 @@ class TestBaseCreatePaymentSerializer:
         assert serializer.is_valid() is True
         serializer.get_bad_actor_score(serializer.validated_data)
         assert mock_make_bad_actor.call_count == 1
-        assert mock_make_bad_actor.call_args[0][0]["action"] == "contribution"
+        assert mock_make_bad_actor.call_args[0][0]["action"] == BadActorAction.CONTRIBUTION
         assert mock_make_bad_actor.call_args[0][0]["org"] == serializer.validated_data["page"].organization.id
         assert mock_make_bad_actor.call_args[0][0]["amount"] == serializer.validated_data["amount"]
         assert mock_make_bad_actor.call_args[0][0]["page"] == serializer.validated_data["page"].id

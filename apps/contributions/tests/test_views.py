@@ -50,7 +50,6 @@ from apps.contributions.tests.factories import (
     PaymentFactory,
 )
 from apps.contributions.tests.test_serializers import (
-    mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
 from apps.organizations.tests.factories import (
@@ -1228,7 +1227,6 @@ class TestPaymentViewset:
     def test_create_happy_path(
         self,
         minimally_valid_contribution_form_data,
-        monkeypatch,
         stripe_create_subscription_response,
         stripe_create_payment_intent_response,
         stripe_create_customer_response,
@@ -1243,14 +1241,13 @@ class TestPaymentViewset:
         """
         mock_create_customer = mock.Mock()
         mock_create_customer.return_value = AttrDict(stripe_create_customer_response)
-        monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
+        mocker.patch("stripe.Customer.create", mock_create_customer)
         mock_create_subscription = mock.Mock()
         mock_create_subscription.return_value = AttrDict(stripe_create_subscription_response)
-        monkeypatch.setattr("stripe.Subscription.create", mock_create_subscription)
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mocker.patch("stripe.Subscription.create", mock_create_subscription)
         mock_create_payment_intent = mock.Mock()
         mock_create_payment_intent.return_value = AttrDict(stripe_create_payment_intent_response)
-        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
+        mocker.patch("stripe.PaymentIntent.create", mock_create_payment_intent)
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
         data = minimally_valid_contribution_form_data | {"interval": interval}

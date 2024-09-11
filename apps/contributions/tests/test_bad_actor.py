@@ -1,46 +1,67 @@
-from unittest import mock
-
-from django.test import override_settings
-
 import pytest
+import requests
 
-from apps.contributions.bad_actor import BadActorAPIError, JSONDecodeError, make_bad_actor_request
-
-
-@override_settings(BAD_ACTOR_API_KEY=None)
-def test_bad_actor_throws_error_missing_key():
-    with pytest.raises(BadActorAPIError, match="BAD_ACTOR_API_KEY not set"):
-        make_bad_actor_request({})
+from apps.contributions.bad_actor import BadActorAPIError, JSONDecodeError, get_bad_actor_score
 
 
-@override_settings(BAD_ACTOR_API_URL=None)
-def test_bad_actor_throws_error_missing_url():
-    with pytest.raises(BadActorAPIError, match="BAD_ACTOR_API_URL not set"):
-        make_bad_actor_request({})
+class Test_get_bad_actor_score:
 
+    def setup_response(self, mocker, overall_score, settings, side_effect=None):
+        original_post = requests.post
 
-@override_settings(BAD_ACTOR_API_URL="https://example.com")
-@override_settings(BAD_ACTOR_API_KEY="123")
-@mock.patch("requests.post")
-def test_good_make_bad_actor_request(post):
-    response = mock.Mock(status_code=200)
-    post.return_value = response
-    assert response == make_bad_actor_request({})
+        def conditional_mock(url, *args, **kwargs):
+            if settings.BAD_ACTOR_API_URL in url:
+                response = mocker.Mock(status_code=200)
+                response.json.return_value = overall_score.dict()
+                if side_effect:
+                    response.json.side_effect = side_effect
+                return response
+            return original_post(url, *args, **kwargs)
 
+        return mocker.patch("requests.post", side_effect=conditional_mock)
 
-@override_settings(BAD_ACTOR_API_URL="https://example.com")
-@override_settings(BAD_ACTOR_API_KEY="123")
-@mock.patch("requests.post")
-def test_badapi_make_bad_actor_request(post):
-    post.return_value = mock.Mock(status_code=400, json=mock.Mock(return_value="mytestjson"))
-    with pytest.raises(BadActorAPIError, match="mytestjson"):
-        make_bad_actor_request({})
+    @pytest.fixture
+    def response_post_good(self, mocker, bad_actor_good_score, settings):
+        """Mock the requests.post function iff it's a request to the BAD_ACTOR_API_URL."""
+        return self.setup_response(mocker, bad_actor_good_score, settings)
 
+    @pytest.fixture
+    def response_post_json_decode_error(self, mocker, bad_actor_good_score, settings):
+        """Mock the requests.post function iff it's a request to the BAD_ACTOR_API_URL."""
+        return self.setup_response(mocker, bad_actor_good_score, settings, JSONDecodeError("whoops", "[]", 0))
 
-@override_settings(BAD_ACTOR_API_URL="https://example.com")
-@override_settings(BAD_ACTOR_API_KEY="123")
-@mock.patch("requests.post")
-def test_badjson_make_bad_actor_request(post):
-    post.return_value = mock.Mock(status_code=400, json=mock.Mock(side_effect=JSONDecodeError("whoops", "[]", 0)))
-    with pytest.raises(BadActorAPIError, match="malformed JSON"):
-        make_bad_actor_request({})
+    @pytest.fixture
+    def _settings_good(self, settings):
+        settings.BAD_ACTOR_API_URL = "https://example.com"
+        settings.BAD_ACTOR_API_KEY = "123"
+
+    def test_throws_error_when_missing_key(self, settings):
+        settings.BAD_ACTOR_API_KEY = None
+        with pytest.raises(BadActorAPIError, match="BAD_ACTOR_API_KEY not set"):
+            get_bad_actor_score({})
+
+    def test_throws_error_when_missing_url(self, settings):
+        settings.BAD_ACTOR_API_URL = None
+        with pytest.raises(BadActorAPIError, match="BAD_ACTOR_API_URL not set"):
+            get_bad_actor_score({})
+
+    @pytest.mark.usefixtures("_settings_good", "response_post_good")
+    def test_happy_path(self, bad_actor_good_score):
+        assert get_bad_actor_score({}) == bad_actor_good_score
+
+    @pytest.mark.usefixtures(
+        "_settings_good",
+        "response_post_json_decode_error",
+    )
+    def test_when_json_decode_error_in_response(self):
+        with pytest.raises(BadActorAPIError, match="malformed JSON"):
+            get_bad_actor_score({})
+
+    @pytest.mark.parametrize(
+        "exception",
+        [Exception, requests.RequestException, requests.HTTPError, requests.ConnectionError, requests.Timeout],
+    )
+    def test_when_errors_with_request(self, exception, mocker):
+        mocker.patch("requests.post", side_effect=exception("whoops"))
+        with pytest.raises(BadActorAPIError, match="BadActor API request failed"):
+            get_bad_actor_score({})

@@ -115,7 +115,7 @@ class Plans(models.TextChoices):
 
 
 class OrganizationQuerySet(models.QuerySet):
-    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+    def filter_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
                 return self.all()
@@ -383,7 +383,7 @@ HubDefaultEmailStyle = TransactionalEmailStyle(
 
 
 class RevenueProgramQuerySet(models.QuerySet):
-    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+    def filter_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
                 return self.all()

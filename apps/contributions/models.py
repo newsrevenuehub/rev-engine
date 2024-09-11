@@ -13,7 +13,8 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
@@ -109,7 +110,7 @@ class Contributor(IndexedTimeStampedModel):
         from apps.api.views import construct_rp_domain  # vs. circular import
 
         if not isinstance(contribution, Contribution):
-            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
+            logger.error("`Contributor.create_magic_link` called with invalid contribution value: %s", contribution)
             raise ValueError("Invalid value provided for `contribution`")  # noqa: TRY004 TODO @njh: change to TypeError
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
@@ -126,6 +127,32 @@ class ContributionQuerySet(models.QuerySet):
         ContributionStatus.REJECTED,
     ]
 
+    def with_revenue_program_id(self):
+        """Alias revenue_program_id as "revenue_program".
+
+        Alias (which is only in SQL) as Contribution had existing property "revenue_program" which handles dual revenue_program source.
+        """
+        return self.alias(revenue_program_id=Coalesce("_revenue_program", "donation_page__revenue_program"))
+
+    def with_organization_id(self):
+        """Alias organization_id as "organization_id"."""
+        return self.alias(
+            organization_id=Coalesce("_revenue_program__organization", "donation_page__revenue_program__organization")
+        )
+
+    def with_stripe_account(self):
+        """Annotate stripe_account_id as "stripe_account".
+
+        stripe_account even though it is the id and not object instead of *_id because Contribution had existing
+        property "stripe_account_id"
+        """
+        return self.annotate(
+            stripe_account=Coalesce(
+                "_revenue_program__payment_provider__stripe_account_id",
+                "donation_page__revenue_program__payment_provider__stripe_account_id",
+            )
+        )
+
     def one_time(self):
         return self.filter(interval=ContributionInterval.ONE_TIME)
 
@@ -135,12 +162,9 @@ class ContributionQuerySet(models.QuerySet):
     def filter_by_revenue_programs(
         self, revenue_programs: list[int] | models.QuerySet[RevenueProgram] | None
     ) -> models.QuerySet[Contribution]:
-        if revenue_programs:
-            return self.filter(
-                Q(donation_page__revenue_program__in=revenue_programs)
-                | Q(contribution_metadata__revenue_program__in=revenue_programs)
-            )
-        return self
+        if not revenue_programs:
+            return self
+        return self.with_revenue_program_id().filter(revenue_program_id__in=revenue_programs)
 
     def with_stripe_account(self):
         """Annotate stripe_account_id as "stripe_account".
@@ -189,20 +213,22 @@ class ContributionQuerySet(models.QuerySet):
             and x.status == ContributionStatus.PAID.value
         ]
 
-    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+    def filter_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet[Contribution]:
         """Return results based on user's role type."""
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
                 return self.having_org_viewable_status()
             case Roles.ORG_ADMIN:
-                return self.having_org_viewable_status().filter(
-                    models.Q(donation_page__revenue_program__organization=role_assignment.organization)
-                    | models.Q(_revenue_program__organization=role_assignment.organization)
+                return (
+                    self.having_org_viewable_status()
+                    .with_organization_id()
+                    .filter(organization_id=role_assignment.organization.id)
                 )
             case Roles.RP_ADMIN:
-                return self.having_org_viewable_status().filter(
-                    models.Q(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
-                    | models.Q(_revenue_program__in=role_assignment.revenue_programs.all())
+                return (
+                    self.having_org_viewable_status()
+                    .with_revenue_program_id()
+                    .filter(revenue_program_id__in=role_assignment.revenue_programs.all())
                 )
             case _:
                 return self.none()
@@ -864,7 +890,7 @@ class Contribution(IndexedTimeStampedModel):
         """Update status to PAID if contribution appears to be incorrectly stuck in PROCESSING.
 
         We compare a subset of local contributions to fresh Stripe data and update status to PAID if it
-        makes sense to do so. See discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        makes sense to do so. See discussion of Stripe webhook receiver race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010
         """
         updated = 0
@@ -945,7 +971,7 @@ class Contribution(IndexedTimeStampedModel):
                         f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
                     )
         logger.info(
-            "Contribution.fix_contributions_stuck_in_processing %sUpdated  %s contributions",
+            "Contribution.fix_contributions_stuck_in_processing %s Updated %s contributions",
             "[DRY-RUN] " if dry_run else "",
             updated,
         )
@@ -1022,7 +1048,7 @@ class Contribution(IndexedTimeStampedModel):
 
         For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`.
 
-        For discussion of need for this method, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        For discussion of need for this method, see discussion of Stripe webhook receiver race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010
         """
         kwargs = {

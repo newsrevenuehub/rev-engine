@@ -607,8 +607,8 @@ class TestPageViewSet:
                 revenue_program=RevenueProgram.objects.get(pk=user.roleassignment.revenue_programs.first().pk)
             )
             DonationPageFactory(revenue_program=RevenueProgramFactory())
-            query = DonationPage.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+            query = DonationPage.objects.filter_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
             unpermitted = DonationPage.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -627,7 +627,7 @@ class TestPageViewSet:
                 assert (
                     api_client.get(reverse("donationpage-detail", args=(id_,))).status_code == status.HTTP_404_NOT_FOUND
                 )
-            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # this test is valid insofar as the spyed on method `filter_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
             # a page.
             assert spy.call_count == DonationPage.objects.count()
@@ -680,8 +680,8 @@ class TestPageViewSet:
         else:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
-            query = DonationPage.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+            query = DonationPage.objects.filter_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
             unpermitted = DonationPage.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -691,7 +691,7 @@ class TestPageViewSet:
             assert {x["id"] for x in pages} == set(query.values_list("id", flat=True))
             for x in pages:
                 self.assert_page_list_item_looks_right(x)
-            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # this test is valid insofar as the spyed on method `filter_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
 
@@ -795,7 +795,7 @@ class TestPageViewSet:
         assert live_donation_page.revenue_program.organization != org_and_rp_user.roleassignment.organization
         last_modified = live_donation_page.modified
         api_client.force_authenticate(org_and_rp_user)
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         response = api_client.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)), data=patch_page_valid_data, format="json"
         )
@@ -955,7 +955,7 @@ class TestPageViewSet:
 
     def test_delete_when_expected_user(self, expected_user, live_donation_page, api_client, mocker):
         api_client.force_authenticate(expected_user)
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         if not expected_user.is_superuser:
             live_donation_page.revenue_program = expected_user.roleassignment.revenue_programs.first()
             live_donation_page.save()
@@ -1420,7 +1420,7 @@ class TestStyleViewSet:
         api_client.force_authenticate(user)
         # ensure some styles non-superusers can't retrieve
         StyleFactory.create_batch(size=3)
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
             query = Style.objects.all()
             assert query.count()
@@ -1432,13 +1432,13 @@ class TestStyleViewSet:
         else:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
-            query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+            query = Style.objects.filter_by_role_assignment(user.roleassignment)
             unpermitted = Style.objects.exclude(id__in=query.values_list("id", flat=True))
 
             assert query.count()
             assert unpermitted.count()
 
-            # the extra one is for call to `filtered_by_role_assignment` just above here
+            # the extra one is for call to `filter_by_role_assignment` just above here
             expect_spy_call_count = query.count() + unpermitted.count() + 1
             for x in query.all():
                 response = api_client.get(reverse("style-detail", args=(x.id,)))
@@ -1460,7 +1460,7 @@ class TestStyleViewSet:
         api_client.force_authenticate(user)
         # ensure some styles non-superusers can't retrieve
         StyleFactory.create_batch(size=3)
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
             query = Style.objects.all()
             assert query.count()
@@ -1473,7 +1473,7 @@ class TestStyleViewSet:
         else:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
-            query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+            query = Style.objects.filter_by_role_assignment(user.roleassignment)
             unpermitted = Style.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -1505,7 +1505,7 @@ class TestStyleViewSet:
 
     def test_update_style_when_expected_user_with_valid_data(self, user, valid_update_data, api_client, style, mocker):
         """Show that expected users can update a style when providing valid data."""
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         if not user.is_superuser and user.roleassignment.role_type != Roles.HUB_ADMIN:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
@@ -1527,7 +1527,7 @@ class TestStyleViewSet:
         self, user, update_style_data, api_client, style, mocker
     ):
         """Show that expected users can update a style when providing valid data."""
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         to_update_rp = RevenueProgram.objects.get(id=update_style_data["revenue_program"])
         if not user.is_superuser and user.roleassignment.role_type != Roles.HUB_ADMIN:
             style.revenue_program = user.roleassignment.revenue_programs.first()
@@ -1581,7 +1581,7 @@ class TestStyleViewSet:
         self, user_with_unowned_rp, style, patch_style_valid_data_all_keys, api_client, mocker
     ):
         user = user_with_unowned_rp
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
         api_client.force_authenticate(user)
         response = api_client.patch(
@@ -1665,7 +1665,7 @@ class TestStyleViewSet:
         assert response.json() == expected_response
 
     def test_delete_when_expected_user_and_own_style(self, user, style, api_client, mocker):
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         api_client.force_authenticate(user)
         style_id = style.id
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
@@ -1677,7 +1677,7 @@ class TestStyleViewSet:
         assert spy.call_count == 0 if user.is_superuser else 1
 
     def test_delete_when_expected_user_and_not_own_style(self, user_with_unowned_rp, api_client, style, mocker):
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
+        spy = mocker.spy(PagesAppQuerySet, "filter_by_role_assignment")
         api_client.force_authenticate(user_with_unowned_rp)
         assert style.revenue_program not in user_with_unowned_rp.roleassignment.revenue_programs.all()
         response = api_client.delete(reverse("style-detail", args=(style.id,)))

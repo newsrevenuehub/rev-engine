@@ -1,8 +1,6 @@
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
-from django.db.models import Q
-from django.db.models.functions import Coalesce
 
 import reversion
 import stripe
@@ -18,16 +16,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running {self.name}"))
-        contributions = (
-            Contribution.objects.recurring()
-            .filter(provider_subscription_id=None)
-            .annotate(
-                stripe_account=Coalesce(
-                    "donation_page__revenue_program__payment_provider__stripe_account_id",
-                    "_revenue_program__payment_provider__stripe_account_id",
-                )
-            )
-        )
+        contributions = Contribution.objects.recurring().filter(provider_subscription_id=None).with_stripe_account()
         if not contributions.exists():
             self.stdout.write(
                 self.style.HTTP_INFO("No recurring contributions with missing provider subscription ID found")
@@ -42,10 +31,7 @@ class Command(BaseCommand):
             contributions.values_list("stripe_account", flat=True).distinct()
         )
         retrievable_accounts = [k for k, v in accounts.items() if v]
-        contributions = contributions.filter(
-            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=retrievable_accounts)
-            | Q(_revenue_program__payment_provider__stripe_account_id__in=retrievable_accounts),
-        )
+        contributions = contributions.filter(stripe_account__in=retrievable_accounts)
         self.stdout.write(
             self.style.HTTP_INFO(f"{len(contributions)} of these contributions are connected to active Stripe accounts")
         )

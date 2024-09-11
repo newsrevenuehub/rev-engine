@@ -1433,9 +1433,6 @@ class TestPortalContributorsViewSet:
     @pytest.fixture
     def one_time_contribution(self, revenue_program, portal_contributor, mocker, faker):
         contribution = ContributionFactory(
-            # TODO(ck): remove this when first_payment_date becomes non-nullable
-            # DEV-5139
-            first_payment_date=datetime.datetime.now(datetime.timezone.utc),
             interval=ContributionInterval.ONE_TIME,
             status=ContributionStatus.PAID,
             donation_page__revenue_program=revenue_program,
@@ -1476,9 +1473,6 @@ class TestPortalContributorsViewSet:
     ):
         then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)
         contribution = ContributionFactory(
-            # TODO(ck): remove this when first_payment_date becomes non-nullable
-            # DEV-5139
-            first_payment_date=datetime.datetime.now(datetime.timezone.utc),
             interval=ContributionInterval.MONTHLY,
             status=ContributionStatus.PAID,
             created=then,
@@ -1509,9 +1503,6 @@ class TestPortalContributorsViewSet:
     ):
         then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=365)
         contribution = ContributionFactory(
-            # TODO(ck): remove this when first_payment_date becomes non-nullable
-            # DEV-5139
-            first_payment_date=datetime.datetime.now(datetime.timezone.utc),
             interval=ContributionInterval.YEARLY,
             status=ContributionStatus.PAID,
             created=then,

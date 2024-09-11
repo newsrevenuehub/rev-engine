@@ -846,8 +846,6 @@ class StripeTransactionsImporter:
         payment_method_id: str | None,
     ) -> dict:
         """Get default contribution data for a given stripe entity."""
-        # TODO(BW): DEV-5074 - set first_payment_date here
-        # https://news-revenue-hub.atlassian.net/browse/DEV-5074
         shared = {
             "contributor": contributor,
             "contribution_metadata": stripe_entity["metadata"],

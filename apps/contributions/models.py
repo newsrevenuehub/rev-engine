@@ -617,6 +617,7 @@ class Contribution(IndexedTimeStampedModel):
                 self.interval,
             )
             raise ContributionIntervalError()
+        # at this point, we know the contribution is recurring
         elif self.status == ContributionStatus.PROCESSING:
             stripe.Subscription.delete(
                 self.provider_subscription_id,

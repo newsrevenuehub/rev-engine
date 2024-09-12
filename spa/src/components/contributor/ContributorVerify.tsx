@@ -21,7 +21,9 @@ function ContributorVerify() {
 
   const handleVerifySuccess = useCallback(
     (response: AxiosResponse<{ contributor: Contributor; csrftoken: string }>) => {
-      if (response.status !== 200) throw new Error(`Unexpected non-failure response code: ${response.status}`);
+      if (response.status !== 200) {
+        throw new Error(`Unexpected non-failure response code: ${response.status}`);
+      }
       sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CSRF_TOKEN, response.data.csrftoken);

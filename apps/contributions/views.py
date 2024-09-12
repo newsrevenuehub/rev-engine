@@ -564,8 +564,8 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     """Furnish contributions data to the (new) contributor portal."""
 
     permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
-    DEFAULT_ORDERING_FIELDS = ["created"]
-    ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
+    DEFAULT_ORDERING_FIELDS = ["created", "first_payment_date"]
+    ALLOWED_ORDERING_FIELDS = ["created", "amount", "first_payment_date", "status"]
     # NB: This view is about returning contributor.contributions and never returns contributors, but
     # we need to set a queryset to satisfy DRF's viewset expectations.
     queryset = Contributor.objects.all()
@@ -622,6 +622,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             .exclude_hidden_statuses()
             .exclude_paymentless_canceled()
             .exclude_recurring_missing_provider_subscription_id()
+            .with_first_payment_date()
         )
 
     @action(

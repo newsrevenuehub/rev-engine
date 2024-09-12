@@ -857,19 +857,15 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     card_brand = serializers.CharField(read_only=True, allow_blank=True)
     card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
     card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
+    first_payment_date = serializers.DateTimeField()
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
     next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
-    first_payment_date = serializers.SerializerMethodField()
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Contribution
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
-
-    def get_first_payment_date(self, instance) -> datetime:
-        first_payment = instance.payment_set.order_by("transaction_time").first()
-        return first_payment.transaction_time if first_payment and first_payment.transaction_time else instance.created
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")

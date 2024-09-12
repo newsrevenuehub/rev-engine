@@ -2088,6 +2088,19 @@ class TestContributionQuerySetMethods:
             c.id for c in unmarked_abandoned_contributions
         }
 
+    def test_with_first_payment_date_when_payments_exist(self, monthly_contribution_multiple_payments):
+        contributions = Contribution.objects.with_first_payment_date()
+        assert contributions.count() == 1
+        assert (con := contributions.first()).first_payment_date == con.payment_set.exclude(
+            transaction_time__isnull=True
+        ).order_by("transaction_time").first().transaction_time
+
+    def test_with_first_payment_date_when_no_payments(self, one_time_contribution):
+        contributions = Contribution.objects.with_first_payment_date()
+        assert contributions.count() == 1
+        assert Payment.objects.filter(contribution_id=contributions.first().id).count() == 0
+        assert contributions.first().first_payment_date is None
+
     def test_with_stripe_account(self):
         contribution_1 = ContributionFactory(one_time=True)
         contribution_2 = ContributionFactory(

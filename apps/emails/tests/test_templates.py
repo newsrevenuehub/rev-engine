@@ -7,7 +7,7 @@ import pytest
 from bs4 import BeautifulSoup as bs4
 
 
-@pytest.fixture()
+@pytest.fixture
 def upgrade_confirmation_email_context():
     return {
         "mailchimp_integration_url": "some-url",

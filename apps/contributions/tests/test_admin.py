@@ -20,10 +20,10 @@ from apps.contributions.tests.factories import (
 )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestQuarantineAdmin:
 
-    @pytest.fixture()
+    @pytest.fixture
     def flagged_one_time_contribution(self):
         return ContributionFactory(
             one_time=True,
@@ -37,7 +37,7 @@ class TestQuarantineAdmin:
             contribution_metadata={"reason_for_giving": "some reason"},
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def flagged_recurring_contribution(self):
         return ContributionFactory(
             monthly_subscription=True,
@@ -175,7 +175,7 @@ class TestQuarantineAdmin:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributorAdmin:
     def test_views_stand_up(self, client, admin_user):
         contributor = ContributorFactory()
@@ -193,9 +193,9 @@ class TestContributorAdmin:
         )
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestPaymentAdmin:
-    @pytest.fixture()
+    @pytest.fixture
     def payment(self):
         return PaymentFactory()
 
@@ -208,7 +208,7 @@ class TestPaymentAdmin:
         assert response.status_code == 200
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestContributionAdmin:
     def test_views_stand_up(self, client, admin_user):
         contribution = ContributionFactory()
@@ -226,7 +226,7 @@ class TestContributionAdmin:
             == 200
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def admin(self):
         return ContributionAdmin(Contribution, AdminSite())
 

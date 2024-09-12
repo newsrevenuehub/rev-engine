@@ -33,7 +33,7 @@ const CONTRIBUTION_SORT_OPTIONS = [
       </span>
     ),
     selectedLabel: 'Date',
-    value: 'created'
+    value: 'first_payment_date'
   },
   { label: 'Status', value: 'status' },
   {
@@ -59,7 +59,7 @@ export function ContributionsList() {
     contributor?.id,
     page?.revenue_program.id,
     {
-      ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
+      ordering: ordering === 'first_payment_date' ? `-${ordering}` : `-${ordering},-first_payment_date`,
       // If the tab is 'All', we don't need to pass an interval
       ...(tab !== 0 && { interval: CONTRIBUTIONS_TABS[tab].toLowerCase().replace('-', '_') })
     }

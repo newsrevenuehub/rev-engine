@@ -51,7 +51,7 @@ def make_my_object(secret_provider: GoogleCloudSecretProvider):
     return MyObject
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @pytest.mark.usefixtures("_valid_gs_credentials")
 class TestGoogleCloudSecretProvider:
     @pytest.mark.parametrize("enabled", [True, False])

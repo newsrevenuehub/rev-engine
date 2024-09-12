@@ -35,7 +35,7 @@ def test_hash_is_salted(settings):
     assert hash_str[:15] != get_sha256_hash("test")  # because salt is added
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_export_contributions_to_csv():
     contributions = []
     for _ in range(5):
@@ -75,7 +75,7 @@ def test_export_contributions_to_csv():
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]] == (contribution.contribution_metadata or {}).get("referer", "")
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 def test_export_contributions_to_csv_when_contribution_has_no_contributor(one_time_contribution):
     one_time_contribution.contributor.delete()
     one_time_contribution.refresh_from_db()

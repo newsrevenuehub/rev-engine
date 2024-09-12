@@ -38,12 +38,12 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 user_model = get_user_model()
 
 
-@pytest.fixture()
+@pytest.fixture
 def slug():
     return "test-rp-slug"
 
 
-@pytest.fixture()
+@pytest.fixture
 def _host_map(settings, slug):
     settings.HOST_MAP = {"custom.example.com": slug}
 
@@ -91,7 +91,7 @@ class Test_construct_rp_domain:
 KNOWN_PASSWORD = "myGreatAndSecurePassword7"
 
 
-@pytest.fixture()
+@pytest.fixture
 def org_user_with_pw(org_user_free_plan):
     org_user_free_plan.accepted_terms_of_service = datetime.datetime.now(tz=ZoneInfo("UTC"))
     org_user_free_plan.set_password(KNOWN_PASSWORD)
@@ -99,28 +99,28 @@ def org_user_with_pw(org_user_free_plan):
     return org_user_free_plan
 
 
-@pytest.fixture()
+@pytest.fixture
 def hub_user_with_pw(hub_admin_user):
     hub_admin_user.set_password(KNOWN_PASSWORD)
     hub_admin_user.save()
     return hub_admin_user
 
 
-@pytest.fixture()
+@pytest.fixture
 def superuser_with_pw(superuser):
     superuser.set_password(KNOWN_PASSWORD)
     superuser.save()
     return superuser
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_no_role_assignment_with_pw(user_no_role_assignment):
     user_no_role_assignment.set_password(KNOWN_PASSWORD)
     user_no_role_assignment.save()
     return user_no_role_assignment
 
 
-@pytest.fixture()
+@pytest.fixture
 def rp_user_with_pw(rp_user):
     rp_user.set_password(KNOWN_PASSWORD)
     rp_user.accepted_terms_of_service = datetime.datetime.now(tz=ZoneInfo("UTC"))
@@ -128,17 +128,17 @@ def rp_user_with_pw(rp_user):
     return rp_user
 
 
-@pytest.fixture()
+@pytest.fixture
 def many_orgs():
     return OrganizationFactory.create_batch(10)
 
 
-@pytest.fixture()
+@pytest.fixture
 def many_rps():
     return RevenueProgramFactory.create_batch(10)
 
 
-@pytest.mark.django_db()
+@pytest.mark.django_db
 class TestTokenObtainPairCookieView:
     @pytest.fixture(
         params=[
@@ -243,7 +243,7 @@ def revenue_program(request):
     "has_default_donation_page",
     [False, True],
 )
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @override_settings(CELERY_ALWAYS_EAGER=True)
 def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page, client):
     email = "vanilla@email.com"
@@ -331,7 +331,7 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
     "email",
     ["vanilla@email.com", "vanilla+spice@email.com"],
 )
-@pytest.mark.django_db()
+@pytest.mark.django_db
 @override_settings(CELERY_ALWAYS_EAGER=True)
 def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
     """Test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token.

@@ -286,7 +286,7 @@ class UserViewset(
                 # Bad actor api requires this field because it was created
                 # with contributors in mind, not org users, so we supply a dummy value
                 "amount": BAD_ACTOR_FAKE_AMOUNT,
-                "action": BadActorAction.CREATE_ACCOUNT,
+                "action": BadActorAction.CREATE_ACCOUNT.value,
             }
             logger.info("BadActor data: %s", bad_actor_data)
             return get_bad_actor_score(bad_actor_data)

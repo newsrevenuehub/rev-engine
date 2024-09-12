@@ -499,7 +499,9 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         logger.info("`CreateOneTimePaymentSerializer.create` called with validated data: %s", validated_data)
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         contribution = self.build_contribution(
-            contributor, validated_data, self.get_bad_actor_score(validated_data, action=BadActorAction.CONTRIBUTION)
+            contributor,
+            validated_data,
+            self.get_bad_actor_score(validated_data, action=BadActorAction.CONTRIBUTION.value),
         )
         if contribution.status == ContributionStatus.REJECTED:
             logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution with REJECTED status")
@@ -603,7 +605,9 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         logger.info("`CreateRecurringPaymentSerializer.create` is building a contribution")
         contribution = self.build_contribution(
-            contributor, validated_data, self.get_bad_actor_score(validated_data, action=BadActorAction.CONTRIBUTION)
+            contributor,
+            validated_data,
+            self.get_bad_actor_score(validated_data, action=BadActorAction.CONTRIBUTION.value),
         )
         if contribution.status == ContributionStatus.REJECTED:
             logger.info(

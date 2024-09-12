@@ -20,7 +20,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.serializers import ValidationError as DRFValidationError
 
 from apps.contributions.bad_actor import BadActorAPIError
-from apps.contributions.choices import BadActorAction
 from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.users.choices import Roles
@@ -668,7 +667,7 @@ class TestUserViewSet:
         assert response.status_code == status.HTTP_201_CREATED
 
         mock_bad_actor_request.assert_called_once()
-        assert mock_bad_actor_request.call_args[0][0]["action"] == BadActorAction.CREATE_ACCOUNT
+        assert mock_bad_actor_request.call_args[0][0]["action"] == "create-account"
         assert mock_bad_actor_request.call_args[0][0]["email"] == valid_create_request_data["email"]
         assert mock_bad_actor_request.call_args[0][0]["amount"] == BAD_ACTOR_FAKE_AMOUNT
         assert mock_bad_actor_request.call_args[0][0]["first_name"] == ""

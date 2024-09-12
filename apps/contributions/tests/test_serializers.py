@@ -764,9 +764,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
+        serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value)
         assert mock_get_bad_actor_score.call_count == 1
-        assert mock_get_bad_actor_score.call_args[0][0]["action"] == BadActorAction.CONTRIBUTION
+        assert mock_get_bad_actor_score.call_args[0][0]["action"] == "contribution"
         assert mock_get_bad_actor_score.call_args[0][0]["org"] == f'{serializer.validated_data["page"].organization.id}'
         assert mock_get_bad_actor_score.call_args[0][0]["amount"] == f'{serializer.validated_data["amount"]}'
         assert mock_get_bad_actor_score.call_args[0][0]["first_name"] == serializer.validated_data["first_name"]
@@ -789,7 +789,7 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
         assert (
-            serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
+            serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value)
             == bad_actor_good_score
         )
 
@@ -802,7 +802,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
+        bad_actor_data = serializer.get_bad_actor_score(
+            serializer.validated_data, action=BadActorAction.CONTRIBUTION.value
+        )
         assert bad_actor_data is None
 
     def test_get_bad_actor_score_when_bad_actor_api_error(self, minimally_valid_contribution_form_data, monkeypatch):
@@ -814,7 +816,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
+        bad_actor_data = serializer.get_bad_actor_score(
+            serializer.validated_data, action=BadActorAction.CONTRIBUTION.value
+        )
         assert bad_actor_data is None
 
     @pytest.mark.parametrize(
@@ -981,7 +985,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        assert serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION) is None
+        assert (
+            serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value) is None
+        )
         get_bad_actor_score_causes_uncaught.assert_called_once()
 
 

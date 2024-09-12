@@ -277,19 +277,19 @@ class UserViewset(
         NB: This assumes org users and may do unexpected things if applied to contributor users or others (though that is not exposed)
         """
         try:
-            return get_bad_actor_score(
-                {
-                    "email": data["email"],
-                    "referer": self.request.META.get("HTTP_REFERER", ""),
-                    "ip": get_original_ip_from_request(self.request),
-                    "first_name": data.get("first_name", ""),
-                    "last_name": data.get("last_name", ""),
-                    # Bad actor api requires this field because it was created
-                    # with contributors in mind, not org users, so we supply a dummy value
-                    "amount": BAD_ACTOR_FAKE_AMOUNT,
-                    "action": BadActorAction.CREATE_ACCOUNT,
-                }
-            )
+            bad_actor_data = {
+                "email": data["email"],
+                "referer": self.request.META.get("HTTP_REFERER", ""),
+                "ip": get_original_ip_from_request(self.request),
+                "first_name": data.get("first_name", ""),
+                "last_name": data.get("last_name", ""),
+                # Bad actor api requires this field because it was created
+                # with contributors in mind, not org users, so we supply a dummy value
+                "amount": BAD_ACTOR_FAKE_AMOUNT,
+                "action": BadActorAction.CREATE_ACCOUNT,
+            }
+            logger.info("BadActor data: %s", bad_actor_data)
+            return get_bad_actor_score(bad_actor_data)
         except Exception:
             logger.exception("Something went wrong getting bad actor score")
 

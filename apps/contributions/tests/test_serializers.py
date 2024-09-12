@@ -763,16 +763,16 @@ class TestBaseCreatePaymentSerializer:
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
         HTTP referer in the request, so that's why we set in request factory below.
         """
-        mock_make_bad_actor = mocker.patch("apps.contributions.serializers.make_bad_actor_request")
+        mock_get_bad_actor_score = mocker.patch("apps.contributions.serializers.get_bad_actor_score")
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com", HTTP_CF_IPCOUNTRY=country_code).post(
             "", {}, format="json"
         )
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
         serializer.get_bad_actor_score(serializer.validated_data)
-        assert mock_make_bad_actor.call_count == 1
-        assert "country_code" in mock_make_bad_actor.call_args[0][0]
-        assert mock_make_bad_actor.call_args[0][0]["country_code"] == country_code
+        assert mock_get_bad_actor_score.call_count == 1
+        assert "country_code" in mock_get_bad_actor_score.call_args[0][0]
+        assert mock_get_bad_actor_score.call_args[0][0]["country_code"] == country_code
 
     def test_get_bad_actor_score_no_country_code(self, minimally_valid_contribution_form_data, mocker):
         """Show that calling `get_bad_actor_score` returns response data.
@@ -780,14 +780,15 @@ class TestBaseCreatePaymentSerializer:
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
         HTTP referer in the request, so that's why we set in request factory below.
         """
-        mock_make_bad_actor = mocker.patch("apps.contributions.serializers.make_bad_actor_request")
+        mock_get_bad_actor_score = mocker.patch("apps.contributions.serializers.get_bad_actor_score")
         # No Cf-IpCountry header in request
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
         serializer.get_bad_actor_score(serializer.validated_data)
-        assert mock_make_bad_actor.call_count == 1
-        assert "country_code" not in mock_make_bad_actor.call_args[0][0]
+        assert mock_get_bad_actor_score.call_count == 1
+        # BadActorSerializer serializer.validated_data returns empty string for country_code
+        assert mock_get_bad_actor_score.call_args[0][0]["country_code"] == ""
 
     @pytest.mark.usefixtures("bad_actor_good_response")
     def test_get_bad_actor_score_happy_path(self, minimally_valid_contribution_form_data, bad_actor_good_score):

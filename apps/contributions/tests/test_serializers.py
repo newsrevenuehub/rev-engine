@@ -26,6 +26,8 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.serializers import (
+    PAYMENT_PAID,
+    PAYMENT_REFUNDED,
     ContributionSerializer,
     PortalContributionBaseSerializer,
     PortalContributionDetailSerializer,
@@ -35,6 +37,41 @@ from apps.contributions.tests.test_models import MockSubscription
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
+
+
+@pytest.fixture
+def bad_actor_good_response(mocker, bad_actor_good_score):
+    return mocker.patch(
+        "apps.contributions.serializers.get_bad_actor_score",
+        return_value=bad_actor_good_score,
+    )
+
+
+@pytest.fixture
+def bad_actor_bad_response(mocker, bad_actor_bad_score):
+    return mocker.patch(
+        "apps.contributions.serializers.get_bad_actor_score",
+        return_value=bad_actor_bad_score,
+    )
+
+
+@pytest.fixture
+def bad_actor_super_bad_response(mocker, bad_actor_super_bad_score):
+    return mocker.patch(
+        "apps.contributions.serializers.get_bad_actor_score",
+        return_value=bad_actor_super_bad_score,
+    )
+
+
+@pytest.fixture
+def get_bad_actor_score_causes_uncaught(mocker):
+    class RandomException(Exception):
+        pass
+
+    return mocker.patch(
+        "apps.contributions.serializers.get_bad_actor_score",
+        side_effect=RandomException("Something bad happened"),
+    )
 
 
 @pytest.mark.django_db
@@ -337,12 +374,12 @@ def get_donation_page_fixture(
 
 
 class MockBadActorResponseObjectNotBad:
-    """Used in tests below to simulate response returned by make_bad_actor_request.
+    """Used in tests below to simulate response returned by get_bad_actor_score.
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1, "items": []}
 
     @classmethod
     def json(cls):
@@ -350,12 +387,12 @@ class MockBadActorResponseObjectNotBad:
 
 
 class MockBadActorResponseObjectBad:
-    """Used in tests below to simulate response returned by make_bad_actor_request.
+    """Used in tests below to simulate response returned by get_bad_actor_score.
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE, "items": []}
 
     @classmethod
     def json(cls):
@@ -363,12 +400,12 @@ class MockBadActorResponseObjectBad:
 
 
 class MockBadActorResponseObjectSuperBad:
-    """Used in tests below to simulate response returned by make_bad_actor_request.
+    """Used in tests below to simulate response returned by get_bad_actor_score.
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE, "items": []}
 
     @classmethod
     def json(cls):
@@ -723,60 +760,61 @@ class TestBaseCreatePaymentSerializer:
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
         HTTP referer in the request, so that's why we set in request factory below.
         """
-        mock_make_bad_actor = mocker.patch("apps.contributions.serializers.make_bad_actor_request")
+        mock_get_bad_actor_score = mocker.patch("apps.contributions.serializers.get_bad_actor_score")
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        serializer.get_bad_actor_score(serializer.validated_data)
-        assert mock_make_bad_actor.call_count == 1
-        assert mock_make_bad_actor.call_args[0][0]["action"] == BadActorAction.CONTRIBUTION
-        assert mock_make_bad_actor.call_args[0][0]["org"] == serializer.validated_data["page"].organization.id
-        assert mock_make_bad_actor.call_args[0][0]["amount"] == serializer.validated_data["amount"]
-        assert mock_make_bad_actor.call_args[0][0]["page"] == serializer.validated_data["page"].id
-        assert mock_make_bad_actor.call_args[0][0]["first_name"] == serializer.validated_data["first_name"]
-        assert mock_make_bad_actor.call_args[0][0]["last_name"] == serializer.validated_data["last_name"]
-        assert mock_make_bad_actor.call_args[0][0]["email"] == serializer.validated_data["email"]
-        assert mock_make_bad_actor.call_args[0][0]["street"] == serializer.validated_data["mailing_street"]
-        assert mock_make_bad_actor.call_args[0][0]["city"] == serializer.validated_data["mailing_city"]
-        assert mock_make_bad_actor.call_args[0][0]["state"] == serializer.validated_data["mailing_state"]
-        assert mock_make_bad_actor.call_args[0][0]["country"] == serializer.validated_data["mailing_country"]
-        assert mock_make_bad_actor.call_args[0][0]["zipcode"] == serializer.validated_data["mailing_postal_code"]
+        serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
+        assert mock_get_bad_actor_score.call_count == 1
+        assert mock_get_bad_actor_score.call_args[0][0]["action"] == BadActorAction.CONTRIBUTION
+        assert mock_get_bad_actor_score.call_args[0][0]["org"] == f'{serializer.validated_data["page"].organization.id}'
+        assert mock_get_bad_actor_score.call_args[0][0]["amount"] == f'{serializer.validated_data["amount"]}'
+        assert mock_get_bad_actor_score.call_args[0][0]["first_name"] == serializer.validated_data["first_name"]
+        assert mock_get_bad_actor_score.call_args[0][0]["last_name"] == serializer.validated_data["last_name"]
+        assert mock_get_bad_actor_score.call_args[0][0]["email"] == serializer.validated_data["email"]
+        assert mock_get_bad_actor_score.call_args[0][0]["street"] == serializer.validated_data["mailing_street"]
+        assert mock_get_bad_actor_score.call_args[0][0]["city"] == serializer.validated_data["mailing_city"]
+        assert mock_get_bad_actor_score.call_args[0][0]["state"] == serializer.validated_data["mailing_state"]
+        assert mock_get_bad_actor_score.call_args[0][0]["country"] == serializer.validated_data["mailing_country"]
+        assert mock_get_bad_actor_score.call_args[0][0]["zipcode"] == serializer.validated_data["mailing_postal_code"]
 
-    def test_get_bad_actor_score_happy_path(self, minimally_valid_contribution_form_data, monkeypatch):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_get_bad_actor_score_happy_path(self, minimally_valid_contribution_form_data, bad_actor_good_score):
         """Show that calling `get_bad_actor_score` returns response data.
 
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
         HTTP referer in the request, so that's why we set in request factory below.
         """
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
-        assert bad_actor_data == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
+        assert (
+            serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
+            == bad_actor_good_score
+        )
 
     def test_get_bad_actor_score_when_data_invalid(self, minimally_valid_contribution_form_data, monkeypatch):
         """Show if the bad actor serialier data is invalid no exception is raise, but method returns None.
 
         We achieve an invalid state by omitting http referer from the request context
         """
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        monkeypatch.setattr("apps.contributions.serializers.get_bad_actor_score", mock_get_bad_actor)
         request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
         assert bad_actor_data is None
 
     def test_get_bad_actor_score_when_bad_actor_api_error(self, minimally_valid_contribution_form_data, monkeypatch):
-        """Show if call to `make_bad_actor_request` in `get_bad_actor_score` results in BadActorAPIError, the.
+        """Show if call to `get_bad_actor_score` in `get_bad_actor_score` results in BadActorAPIError, the.
 
         method call still succeeds, returning None.
         """
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor_raise_exception)
+        monkeypatch.setattr("apps.contributions.serializers.get_bad_actor_score", mock_get_bad_actor_raise_exception)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION)
         assert bad_actor_data is None
 
     @pytest.mark.parametrize(
@@ -792,15 +830,18 @@ class TestBaseCreatePaymentSerializer:
         assert serializer.should_flag(score) is should_flag
 
     @pytest.mark.parametrize("interval", [ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
-    def test_build_contribution_happy_path(self, interval, minimally_valid_contribution_form_data, mocker):
+    def test_build_contribution_happy_path(
+        self, interval, minimally_valid_contribution_form_data, bad_actor_good_response
+    ):
         minimally_valid_contribution_form_data["interval"] = interval.value
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1}
         contributor = ContributorFactory()
         serializer = self.serializer_class(
             data=minimally_valid_contribution_form_data, context={"request": APIRequestFactory().post("")}
         )
         assert serializer.is_valid() is True
-        contribution = serializer.build_contribution(contributor, serializer.validated_data, bad_actor_data)
+        contribution = serializer.build_contribution(
+            contributor, serializer.validated_data, bad_actor_good_response.return_value
+        )
         expectations = {
             "amount": serializer.validated_data["amount"],
             "interval": serializer.validated_data["interval"],
@@ -809,21 +850,24 @@ class TestBaseCreatePaymentSerializer:
             "donation_page": serializer.validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
-            "bad_actor_score": bad_actor_data["overall_judgment"],
-            "bad_actor_response": bad_actor_data,
+            "bad_actor_score": bad_actor_good_response.return_value.overall_judgment,
+            "bad_actor_response": bad_actor_good_response.return_value.dict(),
             "flagged_date": None,
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
 
-    def test_build_contribution_when_should_flag(self, minimally_valid_contribution_form_data):
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE}
+    def test_build_contribution_when_should_flag(
+        self, minimally_valid_contribution_form_data, bad_actor_bad_response, bad_actor_bad_score
+    ):
         contributor = ContributorFactory()
         serializer = self.serializer_class(
             data=minimally_valid_contribution_form_data, context={"request": APIRequestFactory().post("")}
         )
         assert serializer.is_valid() is True
-        contribution = serializer.build_contribution(contributor, serializer.validated_data, bad_actor_data)
+        contribution = serializer.build_contribution(
+            contributor, serializer.validated_data, bad_actor_bad_response.return_value
+        )
         expectations = {
             "amount": serializer.validated_data["amount"],
             "interval": serializer.validated_data["interval"],
@@ -832,21 +876,24 @@ class TestBaseCreatePaymentSerializer:
             "donation_page": serializer.validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
-            "bad_actor_score": bad_actor_data["overall_judgment"],
-            "bad_actor_response": bad_actor_data,
+            "bad_actor_score": bad_actor_bad_score.overall_judgment,
+            "bad_actor_response": bad_actor_bad_score.dict(),
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
         assert contribution.flagged_date is not None
 
-    def test_build_contribution_when_should_reject(self, minimally_valid_contribution_form_data):
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE}
+    def test_build_contribution_when_should_reject(
+        self, minimally_valid_contribution_form_data, bad_actor_super_bad_response, bad_actor_super_bad_score
+    ):
         contributor = ContributorFactory()
         serializer = self.serializer_class(
             data=minimally_valid_contribution_form_data, context={"request": APIRequestFactory().post("")}
         )
         assert serializer.is_valid() is True
-        contribution = serializer.build_contribution(contributor, serializer.validated_data, bad_actor_data)
+        contribution = serializer.build_contribution(
+            contributor, serializer.validated_data, bad_actor_super_bad_response.return_value
+        )
         expectations = {
             "amount": serializer.validated_data["amount"],
             "interval": serializer.validated_data["interval"],
@@ -855,8 +902,8 @@ class TestBaseCreatePaymentSerializer:
             "donation_page": serializer.validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
-            "bad_actor_score": bad_actor_data["overall_judgment"],
-            "bad_actor_response": bad_actor_data,
+            "bad_actor_score": bad_actor_super_bad_score.overall_judgment,
+            "bad_actor_response": bad_actor_super_bad_score.dict(),
             "flagged_date": None,
         }
         for key, val in expectations.items():
@@ -927,6 +974,15 @@ class TestBaseCreatePaymentSerializer:
         )
         for x in optional_fields_defaulting_to_none:
             assert getattr(metadata, x) is None
+
+    def test_get_bad_actor_score_when_uncaught_error_calling_internal(
+        self, minimally_valid_contribution_form_data, get_bad_actor_score_causes_uncaught
+    ):
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        assert serializer.is_valid() is True
+        assert serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION) is None
+        get_bad_actor_score_causes_uncaught.assert_called_once()
 
 
 @pytest.fixture
@@ -1024,7 +1080,8 @@ class TestCreateOneTimePaymentSerializer:
         """
         assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
-    def test_happy_path(self, monkeypatch, minimally_valid_contribution_form_data, mocker):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_happy_path(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate happy path when of `.create`.
 
         Namely, it should:
@@ -1038,13 +1095,9 @@ class TestCreateOneTimePaymentSerializer:
         """
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
-
         save_spy = mocker.spy(Contributor, "save")
-
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_customer = mocker.patch("apps.contributions.models.Contribution.create_stripe_customer")
         mock_create_stripe_customer.return_value = AttrDict({"id": (fake_customer_id := "fake-customer-id")})
-
         mock_create_stripe_one_time_payment_intent = mocker.patch(
             "apps.contributions.models.Contribution.create_stripe_one_time_payment_intent"
         )
@@ -1081,7 +1134,7 @@ class TestCreateOneTimePaymentSerializer:
         save_spy.assert_called_once()
 
     def test_when_stripe_errors_creating_payment_intent(
-        self, minimally_valid_contribution_form_data, monkeypatch, mocker
+        self, minimally_valid_contribution_form_data, mocker, bad_actor_good_response
     ):
         """Demonstrate `.create` when there's a Stripe error when creating payment intent.
 
@@ -1093,9 +1146,6 @@ class TestCreateOneTimePaymentSerializer:
         contributor_count = Contributor.objects.count()
 
         save_spy = mocker.spy(Contributor, "save")
-
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
-
         mock_create_stripe_customer = mocker.patch("apps.contributions.models.Contribution.create_stripe_customer")
         mock_create_stripe_customer.return_value = AttrDict({"id": (fake_customer_id := "fake-customer-id")})
 
@@ -1122,14 +1172,15 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.provider_customer_id == fake_customer_id
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
-        assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
+        assert contribution.bad_actor_response == bad_actor_good_response.return_value.dict()
         assert contribution.contribution_metadata is not None
         assert contribution.provider_customer_id == fake_customer_id
         assert contribution.provider_payment_id is None
 
         save_spy.assert_called_once()
 
-    def test_when_stripe_errors_creating_customer(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_when_stripe_errors_creating_customer(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when there's a Stripe error when creating customer.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
@@ -1140,10 +1191,7 @@ class TestCreateOneTimePaymentSerializer:
 
         save_spy = mocker.spy(Contributor, "save")
 
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.create_stripe_customer", mock_stripe_call_with_error
-        )
+        mocker.patch("apps.contributions.models.Contribution.create_stripe_customer", mock_stripe_call_with_error)
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1169,7 +1217,8 @@ class TestCreateOneTimePaymentSerializer:
 
         save_spy.assert_called_once()
 
-    def test_when_contribution_is_flagged(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
+    @pytest.mark.usefixtures("bad_actor_bad_response")
+    def test_when_contribution_is_flagged(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor, contribution, and Stripe entities should still be created as in happy path, but the `capture_method` on
@@ -1179,15 +1228,10 @@ class TestCreateOneTimePaymentSerializer:
         contributor_count = Contributor.objects.count()
 
         save_spy = mocker.spy(Contributor, "save")
-
-        monkeypatch.setattr(
-            "apps.contributions.serializers.make_bad_actor_request",
-            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
-        )
         mock_create_stripe_customer = Mock()
         fake_customer_id = "fake-customer-id"
         mock_create_stripe_customer.return_value = AttrDict({"id": fake_customer_id})
-        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
+        mocker.patch("stripe.Customer.create", mock_create_stripe_customer)
 
         mock_create_stripe_one_time_payment_intent = Mock()
         client_secret = "shhhhhhh!"
@@ -1199,7 +1243,7 @@ class TestCreateOneTimePaymentSerializer:
                 "customer": fake_customer_id,
             }
         )
-        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent)
+        mocker.patch("stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid()
@@ -1234,7 +1278,8 @@ class TestCreateOneTimePaymentSerializer:
         }
         save_spy.assert_called_once()
 
-    def test_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
+    @pytest.mark.usefixtures("bad_actor_super_bad_response")
+    def test_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
@@ -1244,11 +1289,6 @@ class TestCreateOneTimePaymentSerializer:
         contributor_count = Contributor.objects.count()
 
         save_spy = mocker.spy(Contributor, "save")
-
-        monkeypatch.setattr(
-            "apps.contributions.serializers.make_bad_actor_request",
-            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectSuperBad),
-        )
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid()
@@ -1272,7 +1312,12 @@ class TestCreateOneTimePaymentSerializer:
 
         save_spy.assert_called_once()
 
-    def test_create_when_value_error_creating_metadata(self, minimally_valid_contribution_form_data, mocker):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_create_when_value_error_creating_metadata(
+        self,
+        minimally_valid_contribution_form_data,
+        mocker,
+    ):
         minimally_valid_contribution_form_data["interval"] = ContributionInterval.ONE_TIME.value
         mocker.patch(
             "apps.contributions.models.Contribution.create_stripe_customer", return_value=AttrDict({"id": "fake-id"})
@@ -1301,7 +1346,8 @@ class TestCreateRecurringPaymentSerializer:
         assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
     @pytest.mark.parametrize("interval", ["month", "year"])
-    def test_create_happy_path(self, monkeypatch, minimally_valid_contribution_form_data, interval, mocker):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_create_happy_path(self, minimally_valid_contribution_form_data, interval, mocker):
         """Demonstrate happy path when of `.create`.
 
         Namely, it should:
@@ -1319,8 +1365,6 @@ class TestCreateRecurringPaymentSerializer:
         data = minimally_valid_contribution_form_data | {"interval": interval}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
-
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_subscription = mocker.patch(
             "apps.contributions.models.Contribution.create_stripe_subscription"
         )
@@ -1361,9 +1405,8 @@ class TestCreateRecurringPaymentSerializer:
 
         save_spy.assert_called_once()
 
-    def test_create_when_stripe_errors_creating_subscription(
-        self, minimally_valid_contribution_form_data, monkeypatch, mocker
-    ):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_create_when_stripe_errors_creating_subscription(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when there's a Stripe error when creating subscription.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
@@ -1374,11 +1417,10 @@ class TestCreateRecurringPaymentSerializer:
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_customer = Mock()
         mock_create_stripe_customer.return_value = AttrDict({"id": "some id"})
-        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
-        monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_stripe_call_with_error)
+        mocker.patch("stripe.Customer.create", mock_create_stripe_customer)
+        mocker.patch("apps.contributions.models.stripe.Subscription.create", mock_stripe_call_with_error)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
         serializer = self.serializer_class(data=data, context={"request": request})
@@ -1402,9 +1444,8 @@ class TestCreateRecurringPaymentSerializer:
 
         save_spy.assert_called_once()
 
-    def test_create_when_stripe_errors_creating_customer(
-        self, monkeypatch, minimally_valid_contribution_form_data, mocker
-    ):
+    @pytest.mark.usefixtures("bad_actor_good_response")
+    def test_create_when_stripe_errors_creating_customer(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when there's a Stripe error when creating customer.
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
@@ -1415,8 +1456,7 @@ class TestCreateRecurringPaymentSerializer:
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
-        monkeypatch.setattr("stripe.Customer.create", mock_stripe_call_with_error)
+        mocker.patch("stripe.Customer.create", mock_stripe_call_with_error)
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1440,7 +1480,8 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.contribution_metadata is not None
         save_spy.assert_called_once()
 
-    def test_create_when_contribution_is_flagged(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
+    @pytest.mark.usefixtures("bad_actor_bad_response")
+    def test_create_when_contribution_is_flagged(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when the contribution gets flagged.
 
         All entities created in happy path should be created here, but the status on contribution should
@@ -1450,14 +1491,10 @@ class TestCreateRecurringPaymentSerializer:
         data = minimally_valid_contribution_form_data | {"interval": "month"}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
-        monkeypatch.setattr(
-            "apps.contributions.serializers.make_bad_actor_request",
-            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
-        )
         mock_create_stripe_customer = Mock()
         fake_customer_id = "fake-customer-id"
         mock_create_stripe_customer.return_value = AttrDict({"id": fake_customer_id})
-        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
+        mocker.patch("stripe.Customer.create", mock_create_stripe_customer)
         mock_setup_intent_create = Mock()
         client_secret = "shhhhhhh!"
         setup_intent_id = "some-sub-id"
@@ -1469,7 +1506,7 @@ class TestCreateRecurringPaymentSerializer:
                 "payment_method": payment_method_id,
             }
         )
-        monkeypatch.setattr("stripe.SetupIntent.create", mock_setup_intent_create)
+        mocker.patch("stripe.SetupIntent.create", mock_setup_intent_create)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
@@ -1487,7 +1524,8 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_setup_intent_id == setup_intent_id
         save_spy.assert_called_once()
 
-    def test_create_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
+    @pytest.mark.usefixtures("bad_actor_super_bad_response")
+    def test_create_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, mocker):
         """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
@@ -1497,11 +1535,6 @@ class TestCreateRecurringPaymentSerializer:
         data = minimally_valid_contribution_form_data | {"interval": "month"}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
-        monkeypatch.setattr(
-            "apps.contributions.serializers.make_bad_actor_request",
-            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectSuperBad),
-        )
-
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
@@ -1718,18 +1751,6 @@ class TestPortalContributionBaseSerializer:
         with pytest.raises(NotImplementedError):
             getattr(PortalContributionBaseSerializer(), method)(**kwargs)
 
-    @pytest.fixture(params=[True, False])
-    def contribution(self, request):
-        contribution = ContributionFactory()
-        if request.param:
-            PaymentFactory(contribution=contribution, transaction_time=timezone.now())
-            contribution.refresh_from_db()
-        return contribution
-
-    def test_get_first_payment_date(self, contribution):
-        first_payment_date = PortalContributionBaseSerializer().get_first_payment_date(instance=contribution)
-        assert isinstance(first_payment_date, datetime.datetime)
-
 
 @pytest.mark.django_db
 class TestPortalContributionDetailSerializer:
@@ -1781,3 +1802,45 @@ class TestPortalContributionDetailSerializer:
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
             serializer.update(one_time_contribution, {"amount": 123})
+
+
+@pytest.mark.django_db
+class TestPortalContributionPaymentSerializer:
+
+    @pytest.fixture
+    def paid_payment(self):
+        return PaymentFactory(paid=True)
+
+    @pytest.fixture
+    def refunded_payment(self):
+        return PaymentFactory(refund=True)
+
+    @pytest.mark.parametrize(
+        "payment_fixture",
+        [
+            "paid_payment",
+            "refunded_payment",
+        ],
+    )
+    def test_has_expected_fields(self, payment_fixture, request):
+        payment = request.getfixturevalue(payment_fixture)
+        expected_fields = [
+            "id",
+            "amount_refunded",
+            "created",
+            "transaction_time",
+            "gross_amount_paid",
+            "net_amount_paid",
+            "status",
+        ]
+        serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
+        assert set(serialized.data.keys()) == set(expected_fields)
+
+    @pytest.mark.parametrize(
+        ("payment_fixture", "expected_status"),
+        [("paid_payment", PAYMENT_PAID), ("refunded_payment", PAYMENT_REFUNDED)],
+    )
+    def test_status(self, request, payment_fixture, expected_status):
+        payment = request.getfixturevalue(payment_fixture)
+        serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
+        assert serialized.data["status"] == expected_status

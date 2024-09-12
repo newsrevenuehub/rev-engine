@@ -1,8 +1,10 @@
 import datetime
+import json
 import logging
 import operator
 from dataclasses import dataclass
 from functools import cached_property, reduce
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -18,7 +20,11 @@ from apps.contributions.models import (
     ContributionStatus,
     Payment,
 )
-from apps.contributions.types import StripeEventData
+from apps.contributions.types import (
+    InvalidMetadataError,
+    StripeEventData,
+    cast_metadata_to_stripe_payment_metadata_schema,
+)
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -148,9 +154,46 @@ class StripeWebhookProcessor:
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)
 
+    def get_metadata_update_value(
+        self, contribution_metadata: dict[str, Any], stripe_metadata: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Get the value to update (if any) for contribution_metadata property based on its current state and state of Stripe metadata."""
+        logger.info(
+            "Getting metadata update value for contribution %s", self.contribution.id if self.contribution else None
+        )
+        cast_from_contribution = None
+        cast_from_stripe = None
+        if contribution_metadata:
+            try:
+                cast_from_contribution = cast_metadata_to_stripe_payment_metadata_schema(contribution_metadata)
+            except InvalidMetadataError as exc:
+                logger.info("Failed to cast metadata to schema: %s", exc)
+        if stripe_metadata:
+            try:
+                cast_from_stripe = cast_metadata_to_stripe_payment_metadata_schema(stripe_metadata)
+            except InvalidMetadataError as exc:
+                logger.info("Failed to cast metadata to schema: %s", exc)
+
+        if cast_from_stripe and cast_from_stripe != cast_from_contribution:
+            logger.info("Metadata update value found")
+            return json.loads(cast_from_stripe.model_dump_json())
+        logger.info("No metadata update value found")
+        return {}
+
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
+        """Update contribution with the given data and create a revision.
+
+        Note that this method updates contribution.contribution_metadata in some cases.
+        """
         if self.event_type != "charge.succeeded" and not self.contribution:
             raise Contribution.DoesNotExist("No contribution found")
+        metadata = self.obj_data.get("metadata")
+        if metadata and (
+            update_value := self.get_metadata_update_value(
+                contribution_metadata=self.contribution.contribution_metadata, stripe_metadata=metadata
+            )
+        ):
+            update_data["contribution_metadata"] = update_value
         for k, v in update_data.items():
             setattr(self.contribution, k, v)
         with reversion.create_revision():

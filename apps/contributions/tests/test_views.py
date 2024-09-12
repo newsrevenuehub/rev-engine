@@ -50,7 +50,6 @@ from apps.contributions.tests.factories import (
     PaymentFactory,
 )
 from apps.contributions.tests.test_serializers import (
-    mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
 from apps.organizations.tests.factories import (
@@ -1228,7 +1227,6 @@ class TestPaymentViewset:
     def test_create_happy_path(
         self,
         minimally_valid_contribution_form_data,
-        monkeypatch,
         stripe_create_subscription_response,
         stripe_create_payment_intent_response,
         stripe_create_customer_response,
@@ -1243,14 +1241,13 @@ class TestPaymentViewset:
         """
         mock_create_customer = mock.Mock()
         mock_create_customer.return_value = AttrDict(stripe_create_customer_response)
-        monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
+        mocker.patch("stripe.Customer.create", mock_create_customer)
         mock_create_subscription = mock.Mock()
         mock_create_subscription.return_value = AttrDict(stripe_create_subscription_response)
-        monkeypatch.setattr("stripe.Subscription.create", mock_create_subscription)
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mocker.patch("stripe.Subscription.create", mock_create_subscription)
         mock_create_payment_intent = mock.Mock()
         mock_create_payment_intent.return_value = AttrDict(stripe_create_payment_intent_response)
-        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
+        mocker.patch("stripe.PaymentIntent.create", mock_create_payment_intent)
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
         data = minimally_valid_contribution_form_data | {"interval": interval}
@@ -1436,9 +1433,6 @@ class TestPortalContributorsViewSet:
     @pytest.fixture
     def one_time_contribution(self, revenue_program, portal_contributor, mocker, faker):
         contribution = ContributionFactory(
-            # TODO(ck): remove this when first_payment_date becomes non-nullable
-            # DEV-5139
-            first_payment_date=datetime.datetime.now(datetime.timezone.utc),
             interval=ContributionInterval.ONE_TIME,
             status=ContributionStatus.PAID,
             donation_page__revenue_program=revenue_program,
@@ -1479,9 +1473,6 @@ class TestPortalContributorsViewSet:
     ):
         then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)
         contribution = ContributionFactory(
-            # TODO(ck): remove this when first_payment_date becomes non-nullable
-            # DEV-5139
-            first_payment_date=datetime.datetime.now(datetime.timezone.utc),
             interval=ContributionInterval.MONTHLY,
             status=ContributionStatus.PAID,
             created=then,
@@ -1512,9 +1503,6 @@ class TestPortalContributorsViewSet:
     ):
         then = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=365)
         contribution = ContributionFactory(
-            # TODO(ck): remove this when first_payment_date becomes non-nullable
-            # DEV-5139
-            first_payment_date=datetime.datetime.now(datetime.timezone.utc),
             interval=ContributionInterval.YEARLY,
             status=ContributionStatus.PAID,
             created=then,
@@ -1615,25 +1603,21 @@ class TestPortalContributorsViewSet:
         )
         for x in response.json()["results"]:
             contribution = Contribution.objects.get(id=x["id"])
+            payment = Payment.objects.filter(contribution_id=contribution.id).order_by("transaction_time").first()
+            parse_date = lambda value: dateparser.parse(value).replace(tzinfo=ZoneInfo("UTC"))
             assert x["amount"] == contribution.amount
             assert x["card_brand"] == contribution.card_brand
             assert x["card_last_4"] == contribution.card_last_4
             assert x["card_expiration_date"] == contribution.card_expiration_date
-            parsed = dateparser.parse(x["created"]).replace(tzinfo=ZoneInfo("UTC"))
-            assert parsed == contribution.created
+            assert parse_date(x["created"]) == contribution.created
+            assert parse_date(x["first_payment_date"]) == payment.transaction_time
             assert x["is_cancelable"] == contribution.is_cancelable
             assert x["is_modifiable"] == contribution.is_modifiable
-            assert (
-                dateparser.parse(x["last_payment_date"]).replace(tzinfo=ZoneInfo("UTC"))
-                == contribution._last_payment_date
-            )
+            assert parse_date(x["last_payment_date"]) == contribution._last_payment_date
             if contribution.interval == ContributionInterval.ONE_TIME:
                 assert x["next_payment_date"] is None
             else:
-                assert (
-                    dateparser.parse(x["next_payment_date"]).replace(tzinfo=ZoneInfo("UTC"))
-                    == contribution.next_payment_date
-                )
+                assert parse_date(x["next_payment_date"]) == contribution.next_payment_date
             assert x["payment_type"] == contribution.payment_type
             assert x["revenue_program"] == contribution.donation_page.revenue_program.id
             assert x["status"] == contribution.status

@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Min, Q, Sum
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
@@ -141,6 +141,10 @@ class ContributionQuerySet(models.QuerySet):
                 | Q(contribution_metadata__revenue_program__in=revenue_programs)
             )
         return self
+
+    def with_first_payment_date(self):
+        """Annotate the earliest Payment belonging to each contribution as "first_payment_date"."""
+        return self.annotate(first_payment_date=Min("payment__transaction_time"))
 
     def with_stripe_account(self):
         """Annotate stripe_account_id as "stripe_account".
@@ -275,8 +279,6 @@ class Contribution(IndexedTimeStampedModel):
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
-
-    first_payment_date = models.DateTimeField(null=True)
 
     # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
     # DEV-4333
@@ -619,6 +621,7 @@ class Contribution(IndexedTimeStampedModel):
                 self.interval,
             )
             raise ContributionIntervalError()
+        # at this point, we know the contribution is recurring
         elif self.status == ContributionStatus.PROCESSING:
             stripe.Subscription.delete(
                 self.provider_subscription_id,

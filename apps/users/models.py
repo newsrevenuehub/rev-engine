@@ -46,6 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     first_name = models.CharField(max_length=FIRST_NAME_MAX_LENGTH, blank=True, null=True)
     last_name = models.CharField(max_length=LAST_NAME_MAX_LENGTH, blank=True, null=True)
     job_title = models.CharField(max_length=JOB_TITLE_MAX_LENGTH, blank=True, null=True)
+    test_field = models.CharField(null=True)
 
     objects = UserManager()
 

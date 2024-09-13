@@ -5,11 +5,9 @@ const realLocation = window.location;
 
 const PORTAL_ROUTES = Object.values(ROUTES.PORTAL);
 // Filter out the routes that are not part of the portal
-const NON_PORTAL_ROUTES = Object.values(ROUTES).filter(
-  (route) =>
-    // Portal routes are the only ones that are inside an Object, all the other routes are strings
-    typeof route === 'string'
-);
+const NON_PORTAL_ROUTES = Object.values(ROUTES)
+  .flatMap((subroute) => (typeof subroute === 'string' ? subroute : Object.values(subroute)))
+  .filter((route) => !PORTAL_ROUTES.includes(route as any));
 
 describe('isPortalAppPath', () => {
   beforeEach(() => {

@@ -1,6 +1,15 @@
 import isPortalAppPath from './isPortalAppPath';
+import * as ROUTES from 'routes';
 
 const realLocation = window.location;
+
+const PORTAL_ROUTES = Object.values(ROUTES.PORTAL);
+// Filter out the routes that are not part of the portal
+const NON_PORTAL_ROUTES = Object.values(ROUTES).filter(
+  (route) =>
+    // Portal routes are the only ones that are inside an Object, all the other routes are strings
+    typeof route === 'string'
+);
 
 describe('isPortalAppPath', () => {
   beforeEach(() => {
@@ -15,24 +24,32 @@ describe('isPortalAppPath', () => {
     window.location = realLocation;
   });
 
-  it.each(['/portal/', '/portal/verification/', '/portal/my-contributions/', '/portal/my-contributions/abcd/'])(
-    'should return true if path is: %s',
-    (route) => {
+  describe('should return true if path is:', () => {
+    it.each([
+      '/portal',
+      '/portal/',
+      '/portal/verification/',
+      '/portal/my-contributions/',
+      '/portal/my-contributions/abcd/',
+      ...PORTAL_ROUTES
+    ])('%s', (route) => {
       delete (window as any).location;
       window.location = {
         ...realLocation,
         pathname: route
       };
       expect(isPortalAppPath()).toBe(true);
-    }
-  );
+    });
+  });
 
-  it.each(['/other/', '/dashboard/', '/login/'])('should return false if path it is any other string: %s', (route) => {
-    delete (window as any).location;
-    window.location = {
-      ...realLocation,
-      pathname: route
-    };
-    expect(isPortalAppPath()).toBe(false);
+  describe('should return false if path is:', () => {
+    it.each(['/other/', '/dashboard/', '/login/', ...NON_PORTAL_ROUTES])('%s', (route) => {
+      delete (window as any).location;
+      window.location = {
+        ...realLocation,
+        pathname: route
+      };
+      expect(isPortalAppPath()).toBe(false);
+    });
   });
 });

@@ -27,12 +27,14 @@ export const CONTRIBUTOR_VERIFY = '/contributor-verify/';
 export const CONTRIBUTOR_DASHBOARD = join([CONTRIBUTOR_ENTRY, 'contributions/']);
 
 // New Portal
+const PORTAL_ENTRY_NO_SLASH = '/portal';
 export const PORTAL = {
-  ENTRY: '/portal/',
+  ENTRY_NO_SLASH: PORTAL_ENTRY_NO_SLASH,
+  ENTRY: `${PORTAL_ENTRY_NO_SLASH}/`,
   VERIFY: '/portal/verification/',
   CONTRIBUTIONS: '/portal/my-contributions/',
   CONTRIBUTION_DETAIL: '/portal/my-contributions/:contributionId/'
-};
+} as const;
 
 // Account
 export const SIGN_IN = '/sign-in/';

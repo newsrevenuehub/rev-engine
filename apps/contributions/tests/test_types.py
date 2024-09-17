@@ -108,6 +108,7 @@ class TestStripePaymentMetadataSchemas:
             "revenue_program_slug": "foo",
             "schema_version": "1.4",
             "sf_campaign_id": "2",
+            "mc_campaign_id": "3",
             "source": "rev-engine",
             "swag_opt_out": "False",
             "swag_choices": "hat;shirt;hoodie;",

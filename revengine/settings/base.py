@@ -542,7 +542,7 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = 3
 
 ## Contributor page / auth Settings.
 # Magic Link URL
-CONTRIBUTOR_VERIFY_URL = "contributor-verify"
+CONTRIBUTOR_VERIFY_URL = "portal/verification/"
 # In format num/[second, minute, hour, day]
 # https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")
@@ -642,7 +642,6 @@ SPA_ENV_VARS = {
     "SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM", "campaign"),
     "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM", "frequency"),
     "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM", "amount"),
-    "NEW_PORTAL_ENABLED_RPS": os.getenv("SPA_ENV_NEW_PORTAL_ENABLED_RPS"),
     "PENDO_API_KEY": os.getenv("SPA_ENV_PENDO_API_KEY"),
     "PENDO_VISITOR_PREFIX": os.getenv("SPA_ENV_PENDO_VISITOR_PREFIX"),
     "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION", "v1"),

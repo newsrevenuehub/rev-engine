@@ -1,6 +1,7 @@
 import Axios from 'ajax/axios';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import MockAdapter from 'axios-mock-adapter';
+import { useConfigureAnalytics } from 'components/analytics';
 import useWebFonts from 'hooks/useWebFonts';
 import { render, screen, waitFor } from 'test-utils';
 import PortalPage, { PortalPageProps } from './PortalPage';
@@ -12,6 +13,7 @@ jest.mock('notistack', () => ({
   ...jest.requireActual('notistack'),
   useSnackbar: () => ({ enqueueSnackbar: jest.fn() })
 }));
+jest.mock('components/analytics');
 jest.mock('hooks/useWebFonts');
 jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('components/donationPage/DonationPageHeader/DonationPageHeader');
@@ -34,6 +36,7 @@ const page = {
 };
 
 describe('PortalPage', () => {
+  const useConfigureAnalyticsMock = useConfigureAnalytics as jest.Mock;
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
@@ -51,6 +54,11 @@ describe('PortalPage', () => {
       </PortalPage>
     );
   }
+
+  it('configures analytics', () => {
+    tree();
+    expect(useConfigureAnalyticsMock).toBeCalledTimes(1);
+  });
 
   it('puts the className prop on its container', async () => {
     tree({ className: 'test-class-name' });

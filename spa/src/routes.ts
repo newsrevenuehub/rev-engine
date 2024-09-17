@@ -19,7 +19,7 @@ export const SETTINGS = {
   INTEGRATIONS: '/settings/integrations',
   ORGANIZATION: '/settings/organization',
   SUBSCRIPTION: '/settings/subscription'
-};
+} as const;
 
 // Contributor
 export const CONTRIBUTOR_ENTRY = '/contributor/';
@@ -32,7 +32,7 @@ export const PORTAL = {
   VERIFY: '/portal/verification/',
   CONTRIBUTIONS: '/portal/my-contributions/',
   CONTRIBUTION_DETAIL: '/portal/my-contributions/:contributionId/'
-};
+} as const;
 
 // Account
 export const SIGN_IN = '/sign-in/';

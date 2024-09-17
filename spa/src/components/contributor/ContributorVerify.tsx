@@ -1,15 +1,14 @@
 import axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN, NEW_PORTAL_ENABLED_RPS, SS_CONTRIBUTOR } from 'appSettings';
+import { LS_CONTRIBUTOR, LS_CSRF_TOKEN, SS_CONTRIBUTOR } from 'appSettings';
 import { AxiosResponse } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
 import { GlobalLoading } from 'components/common/GlobalLoading';
 import { Contributor } from 'hooks/usePortalAuth';
-import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 import queryString from 'query-string';
 import { useCallback, useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { CONTRIBUTOR_DASHBOARD, CONTRIBUTOR_ENTRY, PORTAL } from 'routes';
+import { PORTAL } from 'routes';
 import { ContributorVerifyWrapper } from './ContributorVerify.styled';
 
 function ContributorVerify() {
@@ -25,18 +24,10 @@ function ContributorVerify() {
       if (response.status !== 200) {
         throw new Error(`Unexpected non-failure response code: ${response.status}`);
       }
-
       sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CSRF_TOKEN, response.data.csrftoken);
-
-      if (NEW_PORTAL_ENABLED_RPS.includes(getRevenueProgramSlug())) {
-        // We need to do a full redirect because of our router setup. We're
-        // inside ContributorRouter which has no awareness of portal routes.
-        window.location.replace(PORTAL.CONTRIBUTIONS);
-      } else {
-        history.replace(CONTRIBUTOR_DASHBOARD);
-      }
+      history.replace(PORTAL.CONTRIBUTIONS);
     },
     [history]
   );
@@ -64,8 +55,8 @@ function ContributorVerify() {
         <div>
           <p>We were unable to log you in.</p>
           <p>
-            Magic links have short expiration times. If your link expired, <a href={CONTRIBUTOR_ENTRY}>click here</a> to
-            get another.
+            Magic links have short expiration times. If your link expired, <a href={PORTAL.ENTRY}>click here</a> to get
+            another.
           </p>
         </div>
       ) : (

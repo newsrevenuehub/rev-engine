@@ -4,9 +4,6 @@ import { lazy } from 'react';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 import { Redirect } from 'react-router-dom';
 
-import ContributorRouter from 'components/ContributorRouter';
-import isContributorAppPath from 'utilities/isContributorAppPath';
-
 // Slugs
 import * as ROUTES from 'routes';
 
@@ -28,10 +25,6 @@ const ForgotPassword = lazy(() => componentLoader(() => import('components/accou
 const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword')));
 
 function DashboardRouter() {
-  const isContributorApp = isContributorAppPath();
-
-  if (isContributorApp) return <ContributorRouter />;
-
   return (
     <RouterSetup>
       {/* Login URL */}

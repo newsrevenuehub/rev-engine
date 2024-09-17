@@ -280,6 +280,15 @@ describe('serializeData', () => {
       expect.objectContaining({ sf_campaign_id: 'test-id' })
     ));
 
+  it('sets mc_campaign_id based on the state provided', () => {
+    const result = serializeData(mockForm, { ...mockState, mailchimpCampaignId: 'test-id' });
+    expect(result).toEqual(expect.objectContaining({ mc_campaign_id: 'test-id' }));
+    expect(Object.keys(result)).toContain('mc_campaign_id');
+  });
+
+  it('does not set mc_campaign_id if not present in state', () =>
+    expect(Object.keys(serializeData(mockForm, { ...mockState }))).not.toContain('mc_campaign_id'));
+
   it('throws an error if not given a form element', () => {
     expect(() => serializeData(document.createElement('div') as any, mockState)).toThrow();
     expect(() => serializeData(null as any, mockState)).toThrow();

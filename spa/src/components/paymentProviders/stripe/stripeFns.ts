@@ -88,6 +88,7 @@ export interface ContributionFormExtraData {
   rpCountry: string;
   rpIsNonProfit: boolean;
   salesforceCampaignId?: string;
+  mailchimpCampaignId?: string;
 }
 
 export interface SerializedContributionForm extends ReturnType<typeof serializeForm> {
@@ -102,6 +103,7 @@ export interface SerializedContributionForm extends ReturnType<typeof serializeF
   revenue_program_country: string;
   revenue_program_slug: string;
   sf_campaign_id: string | null;
+  mc_campaign_id: string | null;
 }
 
 /**
@@ -126,6 +128,10 @@ export function serializeData(formRef: HTMLFormElement, state: ContributionFormE
 
   if (state.salesforceCampaignId) {
     serializedData.sf_campaign_id = state.salesforceCampaignId;
+  }
+
+  if (state.mailchimpCampaignId) {
+    serializedData.mc_campaign_id = state.mailchimpCampaignId;
   }
 
   // Cast is needed here because we're making the interface more strict.

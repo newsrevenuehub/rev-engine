@@ -16,6 +16,7 @@ export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = resolveConstantFromEnv(
   'SALESFORCE_CAMPAIGN_ID_QUERYPARAM',
   'campaign'
 );
+export const MAILCHIMP_CAMPAIGN_ID_QUERYPARAM = resolveConstantFromEnv('MAILCHIMP_CAMPAIGN_ID_QUERYPARAM', 'mc_cid');
 export const CAPTURE_PAGE_SCREENSHOT = resolveConstantFromEnv('CAPTURE_PAGE_SCREENSHOT');
 
 // Conditional contributor portal access. This is a list of slugs separated by a

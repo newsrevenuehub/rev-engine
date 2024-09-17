@@ -5,7 +5,8 @@ import {
   AMOUNT_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
   GRECAPTCHA_SITE_KEY,
-  SALESFORCE_CAMPAIGN_ID_QUERYPARAM
+  SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
+  MAILCHIMP_CAMPAIGN_ID_QUERYPARAM
 } from 'appSettings';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 import * as getters from 'components/donationPage/pageGetters';
@@ -42,6 +43,7 @@ function DonationPage({ page, live = false }, ref) {
   const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
+  const mailchimpCampaignId = useQueryString(MAILCHIMP_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
   const amountQs = useQueryString(AMOUNT_QUERYPARAM);
   const [frequency, setFrequency] = useState();
@@ -143,7 +145,8 @@ function DonationPage({ page, live = false }, ref) {
           pageId: page.id,
           payFee: userAgreesToPayFees,
           rpIsNonProfit: page.revenue_program_is_nonprofit,
-          salesforceCampaignId
+          salesforceCampaignId,
+          mailchimpCampaignId
         }),
         page
       );
@@ -221,7 +224,12 @@ function DonationPage({ page, live = false }, ref) {
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
                 ) : (
-                  <DonationPageForm disabled={paymentIsLoading || payment} loading={paymentIsLoading} onSubmit={handleCheckoutSubmit} ref={formRef}>
+                  <DonationPageForm
+                    disabled={paymentIsLoading || payment}
+                    loading={paymentIsLoading}
+                    onSubmit={handleCheckoutSubmit}
+                    ref={formRef}
+                  >
                     <S.PageElements>
                       {(!live && !page?.elements) ||
                         (page?.elements?.length === 0 && (

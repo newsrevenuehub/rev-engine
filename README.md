@@ -515,7 +515,7 @@ First, be sure to give your migrations a meaningful, non-automatic name. By defa
 
 We want to limit the number of individual migration files produced. As you're working on a feature branch, oftentimes you'll iteratively create numerous migrations for a given app as you run down feature implementation.
 
-Before submitting a pull request, please [squash all the migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/#migration-squashing) per app for that PR into either one or two migrations depending on whether there are both data and schema migrations. Include the ticket number in the filename for the migration, e.g. 0004_DEV-1234_contribution_flagged_date.py
+Before submitting a pull request, please [squash all the migrations](https://docs.djangoproject.com/en/4.2/topics/migrations/#migration-squashing) per app for that PR into either one or two migrations depending on whether there are both data and schema migrations. Include the ticket number in the filename for the migration, e.g. 0004_DEV-1234_contribution_flagged_date.py
 
 ## `django-reversion`, audit logs, and restoring deleted model instances
 

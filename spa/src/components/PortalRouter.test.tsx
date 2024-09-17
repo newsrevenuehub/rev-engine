@@ -10,14 +10,24 @@ import PortalRouter from './PortalRouter';
 jest.mock('hooks/usePortalPendo');
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
-
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
+  useLocation: () => ({ search: '?mock=query' }),
   BrowserRouter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Redirect: ({ to }: { to: string }) => <div data-testid="mock-redirect" data-to={to} />
+  Redirect: ({ to }: { to: string }) => <div data-testid="mock-redirect" data-to={JSON.stringify(to)} />
+}));
+
+// Mock SentryRoute as a passthrough.
+jest.mock('hooks/useSentry', () => ({
+  SentryRoute: ({ render, path }: { render: () => React.ReactNode; path: string }) => {
+    return <div data-testid={`mock-sentry-route-${path}`}>{render()}</div>;
+  }
 }));
 
 // Mock TrackPageView as a passthrough.
+jest.mock('components/analytics/TrackPageView', () => ({ children }: { children: React.ReactNode }) => {
+  return <div data-testid="mock-track-page-view">{children}</div>;
+});
 
 jest.mock('components/portal/PortalPage');
 jest.mock('components/authentication/ProtectedRoute', () => ({ render }: { render: () => React.ReactNode }) => (
@@ -90,6 +100,34 @@ describe('PortalRouter', () => {
 
   it('redirects to /portal/ when no route matches', () => {
     tree('/portal/does-not-exist/');
-    expect(screen.getByTestId('mock-redirect').dataset.to).toEqual('/portal/');
+    expect(screen.getByTestId('mock-redirect').dataset.to).toEqual(JSON.stringify('/portal/'));
+  });
+
+  describe('Legacy Contributor Portal', () => {
+    it.each(['/contributor/contributions/', '/contributor/', '/contributor-verify/'])(
+      'track access at %s',
+      async (path) => {
+        tree(path);
+
+        expect(
+          within(screen.getByTestId(`mock-sentry-route-${path}`)).getByTestId('mock-track-page-view')
+        ).toBeInTheDocument();
+      }
+    );
+
+    it.each([
+      ['/contributor/contributions/', '/portal/my-contributions/', false],
+      ['/contributor/', '/portal/', false],
+      ['/contributor-verify/', '/portal/verification/', true]
+    ])('redirects from %s to %s', (path, redirect, passQueryParams) => {
+      tree(path);
+
+      const to = passQueryParams ? { pathname: redirect, search: '?mock=query' } : redirect;
+
+      expect(within(screen.getByTestId(`mock-sentry-route-${path}`)).getByTestId('mock-redirect')).toHaveAttribute(
+        'data-to',
+        JSON.stringify(to)
+      );
+    });
   });
 });

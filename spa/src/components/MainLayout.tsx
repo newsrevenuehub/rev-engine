@@ -33,7 +33,7 @@ function MainLayout() {
     Router = DonationPageRouter;
   }
 
-  if (isPortalApp) {
+  if (isPortalApp || isContributorApp) {
     Router = PortalRouter;
   }
 

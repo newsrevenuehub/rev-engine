@@ -186,6 +186,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     in_memory_of: str | None = None
     reason_for_giving: str | None = None
     sf_campaign_id: str | None = None
+    mc_campaign_id: str | None = None
     swag_choices: str | None = None
     swag_opt_out: bool | None = False
     schema_version: Literal["1.4"]

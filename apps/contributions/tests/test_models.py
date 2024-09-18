@@ -2121,6 +2121,12 @@ class TestContributionQuerySetMethods:
             reversion.set_comment(msg := "foo")
         assert set(Contribution.objects.get_via_reversion_comment(msg)) == {expected_contribution}
 
+    def test_exclude_exclude_dummy_payment_method_id(self, settings):
+        contribution = ContributionFactory(provider_payment_method_id="something")
+        ContributionFactory(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
+        assert (query := Contribution.objects.exclude_dummy_payment_method_id()).count() == 1
+        assert set(query.values_list("id", flat=True)) == {contribution.id}
+
 
 @pytest.fixture
 def charge_refunded_one_time_event():

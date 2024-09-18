@@ -230,6 +230,9 @@ class ContributionQuerySet(models.QuerySet):
             num_payments=0, status=ContributionStatus.CANCELED
         )
 
+    def exclude_dummy_payment_method_id(self) -> models.QuerySet[Contribution]:
+        return self.exclude(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
+
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.
 

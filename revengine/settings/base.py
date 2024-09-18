@@ -670,7 +670,7 @@ RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
 
 SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
 
-# TODO @bw: Remove this after DEV-4693 is done
-# DEV-4693
+# TODO @bw: Remove this after DEV-4967 is done
+# DEV-4967
 # See DEV-5249 and related for more details.
 DUMMY_PAYMENT_METHOD_ID = os.getenv("DUMMY_PAYMENT_METHOD_ID", "pm_this_is_temp_for_2445")

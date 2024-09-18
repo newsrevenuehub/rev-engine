@@ -158,6 +158,7 @@ class BadActorSerializer(serializers.Serializer):
     state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     zipcode = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
+    country_code = serializers.CharField(max_length=10, required=False, default="", allow_blank=True)
 
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
@@ -294,6 +295,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
+    mc_campaign_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, write_only=True, default=""
+    )
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
@@ -405,7 +409,12 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 "action": action,
                 "org": data["page"].organization.id,
             }
+
+            country_code = self.context["request"].headers.get("Cf-Ipcountry", None)
+            if country_code:
+                data["country_code"] = country_code
             logger.info("BadActorSerializer data: %s", data)
+
             serializer = BadActorSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             return get_bad_actor_score(serializer.validated_data)
@@ -469,6 +478,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             revenue_program_id=self.validated_data["page"].revenue_program.id,
             revenue_program_slug=self.validated_data["page"].revenue_program.slug,
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
+            mc_campaign_id=self.validated_data["mc_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],
             source="rev-engine",

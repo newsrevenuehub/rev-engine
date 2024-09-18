@@ -66,14 +66,15 @@ export interface PortalContributionDetail extends PortalContribution {
  * fields returned from a GET on the endpoint.
  */
 export interface PortalContributionUpdate {
-  provider_payment_method_id: string;
+  provider_payment_method_id?: string;
+  amount?: number;
 }
 
 /**
  * Possible types of updates: used to display a success message to the user.
  * For now, only payment method is possible.
  */
-export type PortalContributionUpdateType = 'paymentMethod';
+export type PortalContributionUpdateType = 'paymentMethod' | 'billingDetails';
 
 async function fetchContribution(contributorId: number, contributionId: number) {
   const { data } = await axios.get<PortalContributionDetail>(
@@ -142,16 +143,17 @@ export function usePortalContribution(contributorId: number, contributionId: num
     },
     {
       onError: () => {
-        enqueueSnackbar('A problem occurred while updating your contribution. Please try again.', {
+        enqueueSnackbar('Billing details failed to save changes. Please try again.', {
           persist: true,
           content: (key: string, message: string) => (
-            <SystemNotification id={key} message={message} header="Failed to Update Contribution" type="error" />
+            <SystemNotification id={key} message={message} header="Billing Update Not Saved" type="error" />
           )
         });
       },
       onSuccess: (_, { type }) => {
         switch (type) {
           case 'paymentMethod':
+          case 'billingDetails':
             enqueueSnackbar(
               'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
               {

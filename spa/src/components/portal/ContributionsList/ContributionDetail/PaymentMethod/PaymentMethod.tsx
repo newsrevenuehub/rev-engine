@@ -1,14 +1,15 @@
 import { useElements, useStripe } from '@stripe/react-stripe-js';
 import { PaymentMethod as StripePaymentMethod } from '@stripe/stripe-js';
-import { useSnackbar } from 'notistack';
-import PropTypes, { InferProps } from 'prop-types';
-import { useState } from 'react';
 import SystemNotification from 'components/common/SystemNotification';
 import { formattedCardBrands } from 'constants/creditCard';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
+import { useSnackbar } from 'notistack';
+import PropTypes, { InferProps } from 'prop-types';
+import { useState } from 'react';
 import { DetailSection } from '../DetailSection';
-import { Columns, Detail, SectionControlButton, SectionEditButton, Subheading } from '../common.styled';
-import { EmptyColumn, EditControls, LastCardDigits } from './PaymentMethod.styled';
+import DetailSectionEditControls from '../DetailSection/DetailSectionEditControls';
+import { Columns, Detail, SectionControlButton, Subheading } from '../common.styled';
+import { EmptyColumn, LastCardDigits } from './PaymentMethod.styled';
 import StripeCardForm from './StripeCardForm';
 
 const PaymentMethodPropTypes = {
@@ -79,18 +80,11 @@ export function PaymentMethod({
   }
 
   const controls = editable ? (
-    <EditControls>
-      <SectionEditButton color="text" onClick={onEditComplete}>
-        Cancel
-      </SectionEditButton>
-      <SectionEditButton
-        color="primaryDark"
-        disabled={!cardComplete || cardOwnerName.trim() === ''}
-        onClick={handleSave}
-      >
-        Save
-      </SectionEditButton>
-    </EditControls>
+    <DetailSectionEditControls
+      disabled={!cardComplete || cardOwnerName.trim() === ''}
+      onCancel={onEditComplete}
+      onSave={handleSave}
+    />
   ) : (
     contribution.is_modifiable && (
       <SectionControlButton disabled={!!disabled} onClick={onEdit}>

@@ -4,7 +4,7 @@ import Axios from 'ajax/portal-axios';
 import MockAdapter from 'axios-mock-adapter';
 import { useSnackbar } from 'notistack';
 import { TestQueryClientProvider } from 'test-utils';
-import { usePortalContribution } from './usePortalContribution';
+import { PortalContributionUpdate, PortalContributionUpdateType, usePortalContribution } from './usePortalContribution';
 import { useHistory } from 'react-router-dom';
 
 jest.mock('react-router-dom', () => ({
@@ -233,14 +233,17 @@ describe('usePortalContribution', () => {
       await waitForNextUpdate();
     });
 
-    it('makes a PATCH to /api/v1/contributions/', async () => {
+    it.each([
+      [{ provider_payment_method_id: 'new-id' }, 'paymentMethod'],
+      [{ amount: 123 }, 'billingDetails']
+    ] as const)('makes a PATCH to /api/v1/contributions/ with %s', async (data, type) => {
       const { result, waitFor } = hook(123, 1);
 
-      result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod');
+      result.current.updateContribution(data, type);
       await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
       expect(axiosMock.history.patch[0]).toEqual(
         expect.objectContaining({
-          data: JSON.stringify({ provider_payment_method_id: 'new-id' }),
+          data: JSON.stringify(data),
           url: '/contributors/123/contributions/1/'
         })
       );
@@ -284,19 +287,27 @@ describe('usePortalContribution', () => {
       ]);
     });
 
-    it('rejects and shows an error notification if the PATCH fails', async () => {
+    it.each([
+      [
+        'paymentMethod',
+        {
+          provider_payment_method_id: 'new-id'
+        }
+      ],
+      [
+        'billingDetails',
+        {
+          amount: 123
+        }
+      ]
+    ] as const)('rejects and shows an error notification if the PATCH fails. Type: %s', async (type, data) => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const { result } = hook(123, 1);
 
       axiosMock.onPatch('contributors/123/contributions/1/').networkError();
-      await expect(
-        result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod')
-      ).rejects.toThrow();
+      await expect(result.current.updateContribution(data, type)).rejects.toThrow();
       expect(enqueueSnackbar.mock.calls).toEqual([
-        [
-          'A problem occurred while updating your contribution. Please try again.',
-          expect.objectContaining({ persist: true })
-        ]
+        ['Billing details failed to save changes. Please try again.', expect.objectContaining({ persist: true })]
       ]);
       errorSpy.mockRestore();
     });

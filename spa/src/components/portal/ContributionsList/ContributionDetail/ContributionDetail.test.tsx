@@ -1,8 +1,8 @@
+import { usePortalContribution } from 'hooks/usePortalContribution';
 import { axe } from 'jest-axe';
 import { useSnackbar } from 'notistack';
 import { fireEvent, render, screen } from 'test-utils';
 import ContributionDetail, { ContributionDetailProps } from './ContributionDetail';
-import { usePortalContribution } from 'hooks/usePortalContribution';
 
 jest.mock('notistack');
 jest.mock('components/paymentProviders/stripe/StripePaymentWrapper');
@@ -107,7 +107,8 @@ describe('ContributionDetail', () => {
     const mockContribution = {
       id: 1,
       payments: [{ mock: true }],
-      stripe_account_id: 'mock-stripe-account-id'
+      stripe_account_id: 'mock-stripe-account-id',
+      is_modifiable: true
     };
 
     beforeEach(() => {
@@ -176,10 +177,11 @@ describe('ContributionDetail', () => {
       expect(screen.getByTestId('mock-payment-method').dataset.disabled).toBe('false');
     });
 
-    it("doesn't make the payment method section editable initially", () => {
+    it("doesn't make the any section editable initially", () => {
       // Other sections aren't editable at all right now.
       tree();
       expect(screen.getByTestId('mock-payment-method').dataset.editable).toBe('false');
+      expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('false');
     });
 
     describe('When payment method is edited', () => {
@@ -199,6 +201,22 @@ describe('ContributionDetail', () => {
         tree();
         fireEvent.click(screen.getByRole('button', { name: 'onEdit' }));
         expect(screen.getByTestId('mock-payment-method').dataset.editable).toBe('true');
+      });
+
+      it('does not make the the payment method section editable if contribution.is_modifiable = false', () => {
+        usePortalContributionMock.mockReturnValue({
+          isLoading: false,
+          contribution: { ...mockContribution, is_modifiable: false } as any,
+          isError: false,
+          isFetching: false,
+          refetch: jest.fn(),
+          cancelContribution: jest.fn(),
+          updateContribution: jest.fn(),
+          sendEmailReceipt: jest.fn()
+        });
+        tree();
+        fireEvent.click(screen.getByRole('button', { name: 'onEdit' }));
+        expect(screen.getByTestId('mock-payment-method').dataset.editable).toBe('false');
       });
 
       describe('When payment method finishes editing', () => {
@@ -265,6 +283,91 @@ describe('ContributionDetail', () => {
 
         expect(cancelContribution).toBeCalledWith();
         expect(cancelContribution).toBeCalledTimes(1);
+      });
+
+      it('is accessible', async () => {
+        const { container } = tree();
+
+        expect(await axe(container)).toHaveNoViolations();
+      });
+    });
+
+    describe('When billing details is edited', () => {
+      it('disables the payment method section', () => {
+        tree();
+        fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+        expect(screen.getByTestId('mock-payment-method').dataset.disabled).toBe('true');
+      });
+
+      it('disables the billing history section', () => {
+        tree();
+        fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+        expect(screen.getByTestId('mock-billing-history').dataset.disabled).toBe('true');
+      });
+
+      it('makes the the billing details section editable', () => {
+        tree();
+        fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+        expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('true');
+      });
+
+      it('does not make the the billing details section editable if contribution.is_modifiable = false', () => {
+        usePortalContributionMock.mockReturnValue({
+          isLoading: false,
+          contribution: { ...mockContribution, is_modifiable: false } as any,
+          isError: false,
+          isFetching: false,
+          refetch: jest.fn(),
+          cancelContribution: jest.fn(),
+          updateContribution: jest.fn(),
+          sendEmailReceipt: jest.fn()
+        });
+        tree();
+        fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+        expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('false');
+      });
+
+      describe('When billing details finishes editing', () => {
+        it("doesn't disable any section", () => {
+          tree();
+          fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+          fireEvent.click(screen.getByRole('button', { name: 'onEditCompleteBillingDetails' }));
+          expect(screen.getByTestId('mock-billing-details').dataset.disabled).toBe('false');
+          expect(screen.getByTestId('mock-billing-history').dataset.disabled).toBe('false');
+          expect(screen.getByTestId('mock-payment-method').dataset.disabled).toBe('false');
+        });
+
+        it('makes the billing details section non-editable', () => {
+          tree();
+          fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+          fireEvent.click(screen.getByRole('button', { name: 'onEditCompleteBillingDetails' }));
+          expect(screen.getByTestId('mock-payment-method').dataset.editable).toBe('false');
+        });
+      });
+
+      describe('When the billing details is updated', () => {
+        let updateContribution: jest.SpyInstance;
+
+        beforeEach(() => {
+          updateContribution = jest.fn();
+          usePortalContributionMock.mockReturnValue({
+            updateContribution,
+            isLoading: false,
+            cancelContribution: jest.fn(),
+            contribution: mockContribution as any,
+            isError: false,
+            isFetching: false,
+            refetch: jest.fn()
+          } as any);
+        });
+
+        it('calls updateContribution with the amount value and appropriate change type', () => {
+          tree();
+          fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
+          expect(updateContribution).not.toBeCalled();
+          fireEvent.click(screen.getByRole('button', { name: 'onUpdateBillingDetails' }));
+          expect(updateContribution.mock.calls).toEqual([[{ amount: 999 }, 'billingDetails']]);
+        });
       });
 
       it('is accessible', async () => {

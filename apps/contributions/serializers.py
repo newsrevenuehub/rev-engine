@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Literal
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -12,6 +13,7 @@ from stripe.error import StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
+from apps.contributions.bad_actor import BadActorOverallScore
 from apps.contributions.choices import CardBrand, PaymentType
 from apps.contributions.models import (
     Contribution,
@@ -26,7 +28,7 @@ from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
-from .bad_actor import BadActorAPIError, make_bad_actor_request
+from .bad_actor import BadActorAPIError, get_bad_actor_score
 from .fields import StripeAmountField
 
 
@@ -154,6 +156,7 @@ class BadActorSerializer(serializers.Serializer):
     state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     zipcode = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
+    country_code = serializers.CharField(max_length=10, required=False, default="", allow_blank=True)
 
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
@@ -290,6 +293,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
+    mc_campaign_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, write_only=True, default=""
+    )
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
@@ -386,24 +392,36 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         self.do_conditional_validation(data)
         return data
 
-    def get_bad_actor_score(self, data):
-        """Based on validated data, make a request to bad actor API and return its response."""
-        data = data | {
-            # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
-            # but BadActorSerializer wants to pk, so we reformat here.
-            "page": data["page"].id,
-            "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "ip": get_original_ip_from_request(self.context["request"]),
-        }
-        serializer = BadActorSerializer(data=data)
+    def get_bad_actor_score(self, data) -> BadActorOverallScore | None:
+        """Based on validated data, make a request to bad actor API and return its response.
+
+        Note that this method is meant to be ironclad against exceptions. If anything goes wrong, it should return None.
+        """
         try:
+            data = data | {
+                # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
+                # but BadActorSerializer wants to pk, so we reformat here.
+                "page": data["page"].id,
+                "referer": self.context["request"].META.get("HTTP_REFERER"),
+                "ip": get_original_ip_from_request(self.context["request"]),
+            }
+
+            country_code = self.context["request"].headers.get("Cf-Ipcountry", None)
+            if country_code:
+                data["country_code"] = country_code
+            logger.info("BadActorSerializer data: %s", data)
+
+            serializer = BadActorSerializer(data=data)
             serializer.is_valid(raise_exception=True)
+            return get_bad_actor_score(serializer.validated_data)
         except serializers.ValidationError as exc:
             logger.warning("BadActor serializer raised a ValidationError", exc_info=exc)
             return None
-        try:
-            return make_bad_actor_request(data).json()
         except BadActorAPIError:
+            logger.exception("BadActor API request failed communicating with API")
+            return None
+        except Exception:
+            logger.exception("Something unexpected happened trying to get bad actor sore")
             return None
 
     def should_reject(self, bad_actor_score):
@@ -414,7 +432,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged."""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
-    def build_contribution(self, contributor, validated_data, bad_actor_response=None):
+    def build_contribution(
+        self, contributor: Contributor, validated_data: dict, bad_actor_response: BadActorOverallScore | None
+    ):
         """Create an NRE contribution using validated data."""
         contribution_data = {
             "amount": validated_data["amount"],
@@ -426,8 +446,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "payment_provider_used": PaymentProvider.STRIPE_LABEL,
         }
         if bad_actor_response:
-            contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
-            contribution_data["bad_actor_response"] = bad_actor_response
+            contribution_data["bad_actor_score"] = bad_actor_response.overall_judgment
+            contribution_data["bad_actor_response"] = bad_actor_response.dict()
             if self.should_reject(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.REJECTED
             elif self.should_flag(contribution_data["bad_actor_score"]):
@@ -454,6 +474,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             revenue_program_id=self.validated_data["page"].revenue_program.id,
             revenue_program_slug=self.validated_data["page"].revenue_program.slug,
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
+            mc_campaign_id=self.validated_data["mc_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],
             source="rev-engine",
@@ -483,8 +504,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         """
         logger.info("`CreateOneTimePaymentSerializer.create` called with validated data: %s", validated_data)
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
-        bad_actor_response = self.get_bad_actor_score(validated_data)
-        contribution = self.build_contribution(contributor, validated_data, bad_actor_response)
+        contribution = self.build_contribution(contributor, validated_data, self.get_bad_actor_score(validated_data))
         if contribution.status == ContributionStatus.REJECTED:
             logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution with REJECTED status")
             contribution.save()
@@ -848,19 +868,15 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     card_brand = serializers.CharField(read_only=True, allow_blank=True)
     card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
     card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
+    first_payment_date = serializers.DateTimeField()
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
     next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
-    first_payment_date = serializers.SerializerMethodField()
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Contribution
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
-
-    def get_first_payment_date(self, instance) -> datetime:
-        first_payment = instance.payment_set.order_by("transaction_time").first()
-        return first_payment.transaction_time if first_payment and first_payment.transaction_time else instance.created
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")
@@ -882,14 +898,25 @@ PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
     "transaction_time",
     "gross_amount_paid",
     "net_amount_paid",
+    "status",
 ]
+
+PAYMENT_PAID = "paid"
+PAYMENT_REFUNDED = "refunded"
 
 
 class PortalContributionPaymentSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Payment
         fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
         read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
+
+    @staticmethod
+    def get_status(payment: Payment) -> Literal["paid", "refunded"]:
+        # If the amount refunded is 0, then the payment status is "paid", otherwise it is "refunded"
+        return PAYMENT_PAID if payment.amount_refunded == 0 else PAYMENT_REFUNDED
 
 
 PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = [

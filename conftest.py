@@ -29,6 +29,7 @@ from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
+from apps.contributions.bad_actor import BadActorOverallScore
 from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
@@ -635,6 +636,7 @@ def valid_metadata_factory(faker, domain_apex):
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
+        "mc_campaign_id": None,
         "comp_subscription": None,
         "honoree": None,
         "in_memory_of": None,
@@ -1252,3 +1254,18 @@ def payment_method_attached_event(_suppress_stripe_webhook_sig_verification):
 def charge_succeeded_event():
     with Path("apps/contributions/tests/fixtures/charge-succeeded-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def bad_actor_good_score(settings):
+    return BadActorOverallScore(overall_judgment=settings.BAD_ACTOR_FLAG_SCORE - 1, items=[])
+
+
+@pytest.fixture
+def bad_actor_bad_score(settings):
+    return BadActorOverallScore(overall_judgment=settings.BAD_ACTOR_FLAG_SCORE, items=[])
+
+
+@pytest.fixture
+def bad_actor_super_bad_score(settings):
+    return BadActorOverallScore(overall_judgment=settings.BAD_ACTOR_REJECT_SCORE, items=[])

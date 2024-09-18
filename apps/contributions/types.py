@@ -186,6 +186,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     in_memory_of: str | None = None
     reason_for_giving: str | None = None
     sf_campaign_id: str | None = None
+    mc_campaign_id: str | None = None
     swag_choices: str | None = None
     swag_opt_out: bool | None = False
     schema_version: Literal["1.4"]
@@ -270,7 +271,13 @@ STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
 
 def cast_metadata_to_stripe_payment_metadata_schema(
     metadata: dict,
-) -> StripePaymentMetadataSchemaV1_4 | StripePaymentMetadataSchemaV1_5:
+) -> (
+    StripePaymentMetadataSchemaV1_0
+    | StripePaymentMetadataSchemaV1_1
+    | StripePaymentMetadataSchemaV1_3
+    | StripePaymentMetadataSchemaV1_4
+    | StripePaymentMetadataSchemaV1_5
+):
     """Cast metadata to the appropriate schema based on the schema_version field."""
     if not metadata:
         raise InvalidMetadataError("Metadata is empty")

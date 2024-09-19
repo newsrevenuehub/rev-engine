@@ -49,6 +49,7 @@ python manage.py migrate
 echo "Bootstrapping review app"
 python manage.py bootstrap-review-app
 
+echo "SOURCE VERSION IS ${SOURCE_VERSION}"
 
 
 # Note that setting this will trigger a subsequent release

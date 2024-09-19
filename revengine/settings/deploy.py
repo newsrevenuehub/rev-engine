@@ -132,7 +132,7 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         ],
         send_default_pii=SENTRY_ENABLE_PII,
         environment=ENVIRONMENT,
-        traces_sample_rate=0.3,
+        traces_sample_rate=0.3,  # Matching what is set in SPA in useSentry()
         profiles_sample_rate=SENTRY_PROFILING_SAMPLE_RATE,
     )
     ignore_logger("django.security.DisallowedHost")

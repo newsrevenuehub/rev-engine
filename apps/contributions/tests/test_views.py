@@ -52,6 +52,7 @@ from apps.contributions.tests.factories import (
 from apps.contributions.tests.test_serializers import (
     mock_stripe_call_with_error,
 )
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
@@ -1866,7 +1867,16 @@ class TestPortalContributorsViewSet:
                                 assert getattr(payment, z) == compared_val
 
                     case "revenue_program":
-                        assert response.json()[k] == x.donation_page.revenue_program.id
+                        rp_response = response.json()[k]
+                        rp = RevenueProgram.objects.get(id=x.donation_page.revenue_program.id)
+                        assert rp_response["id"] == rp.id
+                        assert rp_response["name"] == rp.name
+                        assert rp_response["slug"] == rp.slug
+
+                        org = Organization.objects.get(id=rp.organization.id)
+                        assert rp_response["organization"]["id"] == org.id
+                        assert rp_response["organization"]["name"] == org.name
+                        assert rp_response["organization"]["slug"] == org.slug
 
                     case "created" | "last_payment_date":
                         compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=ZoneInfo("UTC"))

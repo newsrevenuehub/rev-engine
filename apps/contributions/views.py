@@ -622,6 +622,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             .exclude_hidden_statuses()
             .exclude_paymentless_canceled()
             .exclude_recurring_missing_provider_subscription_id()
+            .exclude_dummy_payment_method_id()
             .with_first_payment_date()
         )
 

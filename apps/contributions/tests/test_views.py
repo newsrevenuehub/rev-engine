@@ -1603,25 +1603,21 @@ class TestPortalContributorsViewSet:
         )
         for x in response.json()["results"]:
             contribution = Contribution.objects.get(id=x["id"])
+            payment = Payment.objects.filter(contribution_id=contribution.id).order_by("transaction_time").first()
+            parse_date = lambda value: dateparser.parse(value).replace(tzinfo=ZoneInfo("UTC"))
             assert x["amount"] == contribution.amount
             assert x["card_brand"] == contribution.card_brand
             assert x["card_last_4"] == contribution.card_last_4
             assert x["card_expiration_date"] == contribution.card_expiration_date
-            parsed = dateparser.parse(x["created"]).replace(tzinfo=ZoneInfo("UTC"))
-            assert parsed == contribution.created
+            assert parse_date(x["created"]) == contribution.created
+            assert parse_date(x["first_payment_date"]) == payment.transaction_time
             assert x["is_cancelable"] == contribution.is_cancelable
             assert x["is_modifiable"] == contribution.is_modifiable
-            assert (
-                dateparser.parse(x["last_payment_date"]).replace(tzinfo=ZoneInfo("UTC"))
-                == contribution._last_payment_date
-            )
+            assert parse_date(x["last_payment_date"]) == contribution._last_payment_date
             if contribution.interval == ContributionInterval.ONE_TIME:
                 assert x["next_payment_date"] is None
             else:
-                assert (
-                    dateparser.parse(x["next_payment_date"]).replace(tzinfo=ZoneInfo("UTC"))
-                    == contribution.next_payment_date
-                )
+                assert parse_date(x["next_payment_date"]) == contribution.next_payment_date
             assert x["payment_type"] == contribution.payment_type
             assert x["revenue_program"] == contribution.donation_page.revenue_program.id
             assert x["status"] == contribution.status
@@ -2363,10 +2359,12 @@ class TestPortalContributorsViewSet:
         exclude_missing_stripe_sub_id = mocker.spy(
             ContributionQuerySet, "exclude_recurring_missing_provider_subscription_id"
         )
+        exclude_dummy_payment_method_id = mocker.spy(ContributionQuerySet, "exclude_dummy_payment_method_id")
         contributions_views.PortalContributorsViewSet().get_contributor_queryset(contributor=ContributorFactory())
         exclude_hidden_spy.assert_called_once()
         exclude_paymentless_spy.assert_called_once()
         exclude_missing_stripe_sub_id.assert_called_once()
+        exclude_dummy_payment_method_id.assert_called_once()
 
 
 @pytest.mark.django_db

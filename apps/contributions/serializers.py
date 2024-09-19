@@ -156,6 +156,7 @@ class BadActorSerializer(serializers.Serializer):
     state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     zipcode = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
+    country_code = serializers.CharField(max_length=10, required=False, default="", allow_blank=True)
 
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
@@ -292,6 +293,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
+    mc_campaign_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, write_only=True, default=""
+    )
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
@@ -401,6 +405,12 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 "referer": self.context["request"].META.get("HTTP_REFERER"),
                 "ip": get_original_ip_from_request(self.context["request"]),
             }
+
+            country_code = self.context["request"].headers.get("Cf-Ipcountry", None)
+            if country_code:
+                data["country_code"] = country_code
+            logger.info("BadActorSerializer data: %s", data)
+
             serializer = BadActorSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             return get_bad_actor_score(serializer.validated_data)
@@ -464,6 +474,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             revenue_program_id=self.validated_data["page"].revenue_program.id,
             revenue_program_slug=self.validated_data["page"].revenue_program.slug,
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
+            mc_campaign_id=self.validated_data["mc_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],
             source="rev-engine",
@@ -857,19 +868,15 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     card_brand = serializers.CharField(read_only=True, allow_blank=True)
     card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
     card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
+    first_payment_date = serializers.DateTimeField()
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
     next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
-    first_payment_date = serializers.SerializerMethodField()
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Contribution
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
-
-    def get_first_payment_date(self, instance) -> datetime:
-        first_payment = instance.payment_set.order_by("transaction_time").first()
-        return first_payment.transaction_time if first_payment and first_payment.transaction_time else instance.created
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")

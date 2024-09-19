@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Min, Q, Sum
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
@@ -142,6 +142,10 @@ class ContributionQuerySet(models.QuerySet):
             )
         return self
 
+    def with_first_payment_date(self):
+        """Annotate the earliest Payment belonging to each contribution as "first_payment_date"."""
+        return self.annotate(first_payment_date=Min("payment__transaction_time"))
+
     def with_stripe_account(self):
         """Annotate stripe_account_id as "stripe_account".
 
@@ -225,6 +229,9 @@ class ContributionQuerySet(models.QuerySet):
         return self.annotate(num_payments=models.Count("payment")).exclude(
             num_payments=0, status=ContributionStatus.CANCELED
         )
+
+    def exclude_dummy_payment_method_id(self) -> models.QuerySet[Contribution]:
+        return self.exclude(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
 
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.

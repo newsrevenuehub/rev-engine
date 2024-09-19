@@ -92,10 +92,10 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
     // storage key is also needed for compatibility with isAuthenticated(contributorType) in
     // utilities/, used by ProtectedRoute.
 
-    setContributor(data.contributor);
-    identifyUserInSentry(data.contributor);
     sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(data.contributor));
     localStorage.setItem(LS_CSRF_TOKEN, data.csrftoken);
+    setContributor(data.contributor);
+    identifyUserInSentry(data.contributor);
   }, []);
 
   // Try to initally set the contributor based on local storage.

@@ -31,7 +31,8 @@ const mockFormData: PaymentData = {
   phone: 'mock-phone',
   revenue_program_country: 'mock-rp-country',
   revenue_program_slug: 'mock-rp-slug',
-  sf_campaign_id: 'mock-campaign-id'
+  sf_campaign_id: 'mock-campaign-id',
+  mc_campaign_id: 'mc-campaign-id'
 };
 
 const mockPage = {

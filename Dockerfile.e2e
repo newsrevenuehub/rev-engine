@@ -79,6 +79,7 @@ ENV PORT=8000
 # Add any static environment variables needed by Django or your settings file here:
 ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
+ENV SOURCE_VERSION=${SOURCE_VERSION}
 ENV E2E_ENABLED=true
 ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
 # get sourcee version env var in

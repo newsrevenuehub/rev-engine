@@ -52,9 +52,11 @@ RUN set -ex \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
     && pip install poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-dev \
+    && poetry install --no-root --with e2e --without dev \
+    && python -m playwright install-deps \
+    && python -m playwright install \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* ;
 
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
 RUN mkdir /code/
@@ -77,6 +79,10 @@ ENV PORT=8000
 # Add any static environment variables needed by Django or your settings file here:
 ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
+ENV E2E_ENABLED=true
+ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
+# get sourcee version env var in
+
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env
 RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' GS_CREDENTIALS_RAISE_ERROR_IF_UNSET="false" python manage.py collectstatic --noinput -i *.scss --no-default-ignore
@@ -85,10 +91,3 @@ RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 
 # Change to a non-root user
 USER ${APP_USER}:${APP_USER}
-
-# This is specified in heroku.yml for now
-# ENTRYPOINT ["/code/docker-entrypoint.sh"]
-
-# this is specified in the docker-entrypoint.sh file for now
-# Start uWSGI
-# CMD ["uwsgi", "--http=0.0.0.0:$PORT", "--show-config"]

@@ -9,7 +9,7 @@ build:
     E2E_ENABLED: "true"
   docker:
     web:
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.e2e
       target: deploy
 release:
   command:

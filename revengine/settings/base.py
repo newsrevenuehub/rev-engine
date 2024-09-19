@@ -126,6 +126,7 @@ GITHUB_REPO = os.getenv("GITHUB_REPO", "")
 # Application definition
 INSTALLED_APPS = [
     "apps.common",
+    "apps.e2e",
     "apps.api",
     "apps.users",
     "apps.organizations",
@@ -161,10 +162,6 @@ INSTALLED_APPS = [
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
-
-if E2E_ENABLED:
-    INSTALLED_APPS.append("apps.e2e")
-
 
 if ENABLE_API_BROWSER:
     INSTALLED_APPS.append("drf_yasg")

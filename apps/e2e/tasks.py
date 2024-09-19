@@ -38,6 +38,9 @@ def do_ci_e2e_flow_run(
 
     Results in creation of a revengine CommitStatus model instance
     """
+    if not settings.E2E_ENABLED:
+        logger.warning("E2E tests are disabled, skipping, but note that this is unexpected calling context")
+        return
     logger.info("Running E2E flow %s for commit %s", name, commit_sha)
     logger.info("Getting E2E runner for flow %s", name)
     runner = E2eTestRunner(name=name, commit_sha=commit_sha)

@@ -9,6 +9,7 @@ import { Columns, Detail, SectionControlButton, Subheading } from '../common.sty
 import { DetailSection } from '../DetailSection';
 import DetailSectionEditControls from '../DetailSection/DetailSectionEditControls';
 import { CheckboxLabel, StartInputAdornment, StyledTextField } from './BillingDetails.styled';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 const BillingDetailsPropTypes = {
   contribution: PropTypes.object.isRequired,
@@ -45,6 +46,11 @@ export function BillingDetails({
 }: BillingDetailsProps) {
   const amountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
   const [amount, setAmount] = useState(amountInDollars.toString());
+
+  const showEditControls = useMemo(
+    () => contribution.is_modifiable && contribution.revenue_program.organization.plan.name === PLAN_NAMES.PLUS,
+    [contribution.is_modifiable, contribution.revenue_program.organization.plan.name]
+  );
 
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
     // TODO in DEV-5138: use only first_payment_date
@@ -91,7 +97,7 @@ export function BillingDetails({
       disabled={disabled}
       highlighted={editable}
       title="Billing Details"
-      controls={contribution.is_modifiable && controls}
+      {...(showEditControls && { controls })}
     >
       <Columns>
         <div>

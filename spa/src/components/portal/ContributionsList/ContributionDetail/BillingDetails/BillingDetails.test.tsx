@@ -22,7 +22,13 @@ const mockContribution: PortalContributionDetail = {
   payments: [],
   id: 1,
   payment_type: 'card',
-  revenue_program: 1,
+  revenue_program: {
+    organization: {
+      plan: {
+        name: 'PLUS'
+      }
+    }
+  } as any,
   status: 'paid',
   stripe_account_id: 'mock-stripe-account-id'
 };
@@ -105,14 +111,25 @@ describe('BillingDetails', () => {
       expect(screen.getByTestId('frequency')).toHaveTextContent(intervalLabel);
     });
 
-    it('shows "Change billing details" if the contribution is modifiable', () => {
-      tree();
-      expect(screen.getByRole('button', { name: 'Change billing details' })).toBeInTheDocument();
+    describe.each(['FREE', 'CORE'])('%s plan', (plan) => {
+      it('does not show "Change billing details"', () => {
+        tree({
+          contribution: { ...mockContribution, revenue_program: { organization: { plan: { name: plan } } } as any }
+        });
+        expect(screen.queryByRole('button', { name: 'Change billing details' })).not.toBeInTheDocument();
+      });
     });
 
-    it('does not show "Change billing details" if the contribution is not modifiable', () => {
-      tree({ contribution: { ...mockContribution, is_modifiable: false } });
-      expect(screen.queryByRole('button', { name: 'Change billing details' })).not.toBeInTheDocument();
+    describe('PLUS plan', () => {
+      it('shows "Change billing details" if the contribution is modifiable', () => {
+        tree();
+        expect(screen.getByRole('button', { name: 'Change billing details' })).toBeInTheDocument();
+      });
+
+      it('does not show "Change billing details" if the contribution is not modifiable', () => {
+        tree({ contribution: { ...mockContribution, is_modifiable: false } });
+        expect(screen.queryByRole('button', { name: 'Change billing details' })).not.toBeInTheDocument();
+      });
     });
 
     it('is accessible', async () => {

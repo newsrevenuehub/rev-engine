@@ -25,7 +25,7 @@ from apps.contributions.models import (
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.models import PaymentProvider, RevenueProgram
-from apps.organizations.serializers import RevenueProgramSerializer
+from apps.organizations.serializers import RevenueProgramForPageDetailSerializer, RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, get_bad_actor_score
@@ -935,6 +935,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
     )
+    revenue_program = RevenueProgramForPageDetailSerializer(read_only=True)
 
     class Meta:
         model = Contribution

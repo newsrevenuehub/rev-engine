@@ -6,6 +6,7 @@ import SystemNotification from 'components/common/SystemNotification';
 import { useSnackbar } from 'notistack';
 import { useCallback } from 'react';
 import { PortalContribution } from './usePortalContributionList';
+import { RevenueProgramWithFullOrganization } from './useContributionPage';
 
 export interface PortalContributionPayment {
   /**
@@ -36,7 +37,7 @@ export interface PortalContributionPayment {
   transaction_time?: string;
 }
 
-export interface PortalContributionDetail extends PortalContribution {
+export interface PortalContributionDetail extends Omit<PortalContribution, 'revenue_program'> {
   /**
    * Name on the credit card used in the contribution.
    */
@@ -59,6 +60,10 @@ export interface PortalContributionDetail extends PortalContribution {
    * Ref: https://docs.stripe.com/api/subscriptions/object#subscription_object-cancel_at
    */
   canceled_at?: string;
+  /**
+   * Revenue program object with full organization details.
+   */
+  revenue_program: RevenueProgramWithFullOrganization;
 }
 
 /**

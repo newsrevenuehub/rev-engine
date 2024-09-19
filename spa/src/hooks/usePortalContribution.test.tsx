@@ -3,9 +3,9 @@ import { act, renderHook } from '@testing-library/react-hooks';
 import Axios from 'ajax/portal-axios';
 import MockAdapter from 'axios-mock-adapter';
 import { useSnackbar } from 'notistack';
-import { TestQueryClientProvider } from 'test-utils';
-import { PortalContributionUpdate, PortalContributionUpdateType, usePortalContribution } from './usePortalContribution';
 import { useHistory } from 'react-router-dom';
+import { TestQueryClientProvider } from 'test-utils';
+import { usePortalContribution } from './usePortalContribution';
 
 jest.mock('react-router-dom', () => ({
   useHistory: jest.fn()

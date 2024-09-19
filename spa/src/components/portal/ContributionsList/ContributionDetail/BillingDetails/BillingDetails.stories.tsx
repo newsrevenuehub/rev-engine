@@ -1,7 +1,7 @@
 import { Meta, StoryObj } from '@storybook/react';
-import BillingDetails from './BillingDetails';
+import BillingDetails, { BillingDetailsProps } from './BillingDetails';
 
-const BillingDetailsDemo = (contribution: any) => <BillingDetails contribution={contribution} />;
+const BillingDetailsDemo = (props: BillingDetailsProps) => <BillingDetails {...props} />;
 
 const meta: Meta<typeof BillingDetailsDemo> = {
   component: BillingDetailsDemo,
@@ -14,8 +14,35 @@ type Story = StoryObj<typeof BillingDetailsDemo>;
 
 export const Default: Story = {};
 Default.args = {
-  amount: 12345,
-  first_payment_date: new Date('1/1/2001').toISOString(),
-  interval: 'one_time',
-  paid_fees: true
+  contribution: {
+    amount: 12345,
+    first_payment_date: new Date('1/1/2001').toISOString(),
+    interval: 'one_time',
+    paid_fees: true,
+    revenue_program: {
+      organization: {
+        plan: {
+          name: 'FREE'
+        }
+      }
+    }
+  } as any
+};
+
+export const IsEditable: Story = {};
+IsEditable.args = {
+  contribution: {
+    amount: 12345,
+    first_payment_date: new Date('1/1/2001').toISOString(),
+    interval: 'one_time',
+    paid_fees: true,
+    is_modifiable: true,
+    revenue_program: {
+      organization: {
+        plan: {
+          name: 'PLUS'
+        }
+      }
+    }
+  } as any
 };

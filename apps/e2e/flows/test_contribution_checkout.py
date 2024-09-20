@@ -199,7 +199,6 @@ def test_e2e() -> E2eOutcome:
     logger.info("Starting checkout flow")
     email = make_email()
     details = None
-    screenshot = None
     try:
         screenshot = fill_out_contribution_form(
             email=email,
@@ -227,4 +226,5 @@ def test_e2e() -> E2eOutcome:
     except E2EError as e:
         details = str(e)
         state = CommitStatusState.FAILURE
+        screenshot = e.kwargs.get("screenshot")
     return E2eOutcome(state=state, details=details, screenshot=screenshot)

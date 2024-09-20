@@ -20,3 +20,11 @@ class Test_trigger_e2e_check:
             report_results=False,
             commit_sha=commit_status.commit_sha,
         )
+
+    def test_when_settings_e2e_enabled_false(self, commit_status: CommitStatus, settings):
+        settings.E2E_ENABLED = False
+        call_command(
+            "trigger_e2e_check",
+            commit_sha=commit_status.commit_sha,
+            module=commit_status.name,
+        )

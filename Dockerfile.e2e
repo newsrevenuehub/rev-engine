@@ -1,4 +1,4 @@
-FROM node:16-slim AS static_files
+FROM node:16-slim as static_files
 
 WORKDIR /code
 ENV PATH /code/node_modules/.bin:$PATH
@@ -10,13 +10,12 @@ COPY ./spa /code/spa/
 WORKDIR /code/spa/
 RUN npm run build
 
-FROM python:3.10-slim AS base
+FROM python:3.10-slim as base
 
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files
 #   postgresql-client -- for running database commands
-# We need to recreate the /usr/share/man/man{1..8} directories first because
-# they were clobbered by a parent image.
+# Also include system dependencies required by Playwright and Chromium
 RUN set -ex \
     && RUN_DEPS=" \
     libpcre3 \
@@ -24,6 +23,24 @@ RUN set -ex \
     postgresql-client \
     vim \
     curl \
+    libnss3 \
+    libxss1 \
+    libasound2 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libgbm1 \
+    libxcomposite1 \
+    libxrandr2 \
+    libpangocairo-1.0-0 \
+    libpango-1.0-0 \
+    libxcb-dri3-0 \
+    libxshmfence1 \
+    libxfixes3 \
+    libxtst6 \
+    libgtk-3-0 \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \
@@ -41,7 +58,8 @@ ADD pyproject.toml /pyproject.toml
 # longer be supported in python 3.12 so it needs to go away or be resolved before upgrading to python 3.12.
 # See DEV-2906
 ENV SETUPTOOLS_USE_DISTUTILS=stdlib
-# Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
+
+# Install build deps, then run `poetry install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
 RUN set -ex \
     && BUILD_DEPS=" \
@@ -52,13 +70,12 @@ RUN set -ex \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
     && pip install poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-root --with e2e --without dev \
-    && python -m playwright install-deps \
-    && python -m playwright install \
+    && poetry install --no-root --without dev --with e2e \
+    && python -m playwright install chromium \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
-    && rm -rf /var/lib/apt/lists/* ;
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
+# Copy your application code to the container
 RUN mkdir /code/
 WORKDIR /code/
 ADD . /code/
@@ -79,14 +96,7 @@ ENV PORT=8000
 # Add any static environment variables needed by Django or your settings file here:
 ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
-ARG SOURCE_VERSION
-ENV SOURCE_VERSION=${SOURCE_VERSION}
-RUN echo "SOURCE_VERSION is $SOURCE_VERSION"
-ENV E2E_ENABLED=true
-ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
-# get sourcee version env var in
-
-# Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
+# Call collectstatic
 RUN touch /code/.env
 RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' GS_CREDENTIALS_RAISE_ERROR_IF_UNSET="false" python manage.py collectstatic --noinput -i *.scss --no-default-ignore
 
@@ -94,3 +104,5 @@ RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 
 # Change to a non-root user
 USER ${APP_USER}:${APP_USER}
+
+# The ENTRYPOINT and CMD can remain as they are, or be specified here

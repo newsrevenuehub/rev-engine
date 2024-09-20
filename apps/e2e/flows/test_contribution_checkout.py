@@ -91,8 +91,8 @@ def fill_out_contribution_form(
                 raise E2EError("Stripe iframe not found")
             logger.info("Filling out payment form.")
             stripe_iframe.get_by_label("Card number").fill(VISA)
-            stripe_iframe.get_by_label("Expiration").fill("12/28")
-            stripe_iframe.get_by_label("CVC").fill("123")
+            stripe_iframe.get_by_label("Expiration date").fill("12/28")
+            stripe_iframe.get_by_label("Security Code").fill("123")
             page.click("text=/Give \\$\\d+\\.\\d{2} USD once/")
             # Thank you page is separate and proof we made it through the whole flow
             page.wait_for_selector("text=Thank you")

@@ -25,6 +25,7 @@ from apps.organizations.tests.factories import OrganizationFactory
 from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
+    BAD_ACTOR_FAKE_AMOUNT,
     EMAIL_VERIFICATION_EMAIL_SUBJECT,
     INVALID_TOKEN,
     PASSWORD_MAX_LENGTH,
@@ -658,6 +659,19 @@ class TestUserViewSet:
         mock_send_verification_email.assert_called_once_with(user)
 
         mock_bad_actor_request.assert_called_once()
+
+    def test_make_bad_actor_request_payload(self, mocker, api_client, valid_create_request_data, bad_actor_good_score):
+        """Test that the bad actor request payload is correct when creating a user."""
+        mock_bad_actor_request = mocker.patch("apps.users.views.get_bad_actor_score", return_value=bad_actor_good_score)
+        response = api_client.post(reverse("user-list"), data=valid_create_request_data)
+        assert response.status_code == status.HTTP_201_CREATED
+
+        mock_bad_actor_request.assert_called_once()
+        assert mock_bad_actor_request.call_args[0][0]["action"] == "create-account"
+        assert mock_bad_actor_request.call_args[0][0]["email"] == valid_create_request_data["email"]
+        assert mock_bad_actor_request.call_args[0][0]["amount"] == BAD_ACTOR_FAKE_AMOUNT
+        assert mock_bad_actor_request.call_args[0][0]["first_name"] == ""
+        assert mock_bad_actor_request.call_args[0][0]["last_name"] == ""
 
     def test_create_when_invalid_data_for_email(self, invalid_create_data_for_email, api_client):
         response = api_client.post(reverse("user-list"), data=invalid_create_data_for_email)

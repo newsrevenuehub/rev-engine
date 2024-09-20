@@ -1,6 +1,11 @@
 from django.db.models import IntegerChoices, TextChoices
 
 
+class BadActorAction(TextChoices):
+    CONTRIBUTION = "contribution", "contribution"
+    CREATE_ACCOUNT = "create-account", "create-account"
+
+
 class ContributionInterval(TextChoices):
     ONE_TIME = "one_time", "One-time"
     MONTHLY = "month", "Monthly"

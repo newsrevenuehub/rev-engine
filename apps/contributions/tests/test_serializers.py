@@ -18,6 +18,7 @@ from rest_framework.test import APIRequestFactory
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
+from apps.contributions.choices import BadActorAction
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -753,23 +754,42 @@ class TestBaseCreatePaymentSerializer:
         assert serializer.is_valid() is True
         assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
-    @pytest.mark.parametrize(
-        "country_code",
-        ["US", "CA", "GB"],
-    )
-    def test_get_bad_actor_score_country_code(self, minimally_valid_contribution_form_data, mocker, country_code):
+    def test_get_bad_actor_score_fields(self, minimally_valid_contribution_form_data, mocker):
         """Show that calling `get_bad_actor_score` returns response data.
 
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
         HTTP referer in the request, so that's why we set in request factory below.
         """
         mock_get_bad_actor_score = mocker.patch("apps.contributions.serializers.get_bad_actor_score")
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        assert serializer.is_valid() is True
+        serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value)
+        assert mock_get_bad_actor_score.call_count == 1
+        assert mock_get_bad_actor_score.call_args[0][0]["action"] == "contribution"
+        assert mock_get_bad_actor_score.call_args[0][0]["org"] == f'{serializer.validated_data["page"].organization.id}'
+        assert mock_get_bad_actor_score.call_args[0][0]["amount"] == f'{serializer.validated_data["amount"]}'
+        assert mock_get_bad_actor_score.call_args[0][0]["first_name"] == serializer.validated_data["first_name"]
+        assert mock_get_bad_actor_score.call_args[0][0]["last_name"] == serializer.validated_data["last_name"]
+        assert mock_get_bad_actor_score.call_args[0][0]["email"] == serializer.validated_data["email"]
+        assert mock_get_bad_actor_score.call_args[0][0]["street"] == serializer.validated_data["mailing_street"]
+        assert mock_get_bad_actor_score.call_args[0][0]["city"] == serializer.validated_data["mailing_city"]
+        assert mock_get_bad_actor_score.call_args[0][0]["state"] == serializer.validated_data["mailing_state"]
+        assert mock_get_bad_actor_score.call_args[0][0]["country"] == serializer.validated_data["mailing_country"]
+        assert mock_get_bad_actor_score.call_args[0][0]["zipcode"] == serializer.validated_data["mailing_postal_code"]
+
+    @pytest.mark.parametrize(
+        "country_code",
+        ["US", "CA", "GB"],
+    )
+    def test_get_bad_actor_score_country_code(self, minimally_valid_contribution_form_data, mocker, country_code):
+        mock_get_bad_actor_score = mocker.patch("apps.contributions.serializers.get_bad_actor_score")
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com", HTTP_CF_IPCOUNTRY=country_code).post(
             "", {}, format="json"
         )
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        serializer.get_bad_actor_score(serializer.validated_data)
+        serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value)
         assert mock_get_bad_actor_score.call_count == 1
         assert "country_code" in mock_get_bad_actor_score.call_args[0][0]
         assert mock_get_bad_actor_score.call_args[0][0]["country_code"] == country_code
@@ -785,7 +805,7 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        serializer.get_bad_actor_score(serializer.validated_data)
+        serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value)
         assert mock_get_bad_actor_score.call_count == 1
         # BadActorSerializer serializer.validated_data returns empty string for country_code
         assert mock_get_bad_actor_score.call_args[0][0]["country_code"] == ""
@@ -800,7 +820,10 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        assert serializer.get_bad_actor_score(serializer.validated_data) == bad_actor_good_score
+        assert (
+            serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value)
+            == bad_actor_good_score
+        )
 
     def test_get_bad_actor_score_when_data_invalid(self, minimally_valid_contribution_form_data, monkeypatch):
         """Show if the bad actor serialier data is invalid no exception is raise, but method returns None.
@@ -811,7 +834,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        bad_actor_data = serializer.get_bad_actor_score(
+            serializer.validated_data, action=BadActorAction.CONTRIBUTION.value
+        )
         assert bad_actor_data is None
 
     def test_get_bad_actor_score_when_bad_actor_api_error(self, minimally_valid_contribution_form_data, monkeypatch):
@@ -823,7 +848,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        bad_actor_data = serializer.get_bad_actor_score(
+            serializer.validated_data, action=BadActorAction.CONTRIBUTION.value
+        )
         assert bad_actor_data is None
 
     @pytest.mark.parametrize(
@@ -991,7 +1018,9 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid() is True
-        assert serializer.get_bad_actor_score(serializer.validated_data) is None
+        assert (
+            serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value) is None
+        )
         get_bad_actor_score_causes_uncaught.assert_called_once()
 
 

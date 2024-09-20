@@ -69,6 +69,12 @@ ADD . /code/
 
 FROM base AS deploy
 
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# Install Chromium via Playwright in the final stage
+RUN mkdir /ms-playwright \
+    && python -m playwright install --with-deps chromium
+
 # Copy React SPA build into final image
 COPY --from=static_files /code/spa/build /code/build
 

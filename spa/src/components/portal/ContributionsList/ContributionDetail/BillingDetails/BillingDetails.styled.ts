@@ -11,6 +11,10 @@ export const StyledTextField = styled(TextField)`
     .NreTextFieldInput {
       padding-left: 20px;
     }
+
+    .NreTextFieldInputLabelFormControl:first-of-type {
+      margin-top: 0;
+    }
   }
 `;
 

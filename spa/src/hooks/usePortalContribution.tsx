@@ -6,7 +6,6 @@ import SystemNotification from 'components/common/SystemNotification';
 import { useSnackbar } from 'notistack';
 import { useCallback } from 'react';
 import { PortalContribution } from './usePortalContributionList';
-import { RevenueProgramWithFullOrganization } from './useContributionPage';
 
 export interface PortalContributionPayment {
   /**

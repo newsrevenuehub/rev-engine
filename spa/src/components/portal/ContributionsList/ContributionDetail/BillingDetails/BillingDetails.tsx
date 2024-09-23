@@ -52,16 +52,9 @@ export function BillingDetails({
   );
 
   const disableSave = useMemo(() => {
-    const onlyZeroOrDotRegex = /^[0.]+$/;
-
-    const isSame = amount === amountInDollars?.toString();
-    const isEmpty = !amount;
-    const isOnlyZero = !!onlyZeroOrDotRegex.exec(amount);
-
     const parsedValue = parseFloatStrictly(amount);
-    const isValid = !isNaN(parsedValue) && parsedValue > 0;
 
-    return isSame || isEmpty || isOnlyZero || !isValid;
+    return isNaN(parsedValue) || parsedValue <= 0 || parsedValue === amountInDollars;
   }, [amount, amountInDollars]);
 
   const handleSave = () => {

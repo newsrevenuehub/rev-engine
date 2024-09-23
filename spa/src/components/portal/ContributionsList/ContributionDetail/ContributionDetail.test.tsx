@@ -200,7 +200,7 @@ describe('ContributionDetail', () => {
     });
 
     describe('PLUS plan', () => {
-      it("BillingDetails doesn't allow edit mode if contribution.is_modifiable = true", () => {
+      it("BillingDetails allows edit mode if contribution.is_modifiable = true", () => {
         tree();
         expect(screen.getByTestId('mock-billing-details').dataset.enableeditmode).toBe('true');
       });

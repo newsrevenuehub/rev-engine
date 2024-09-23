@@ -23,7 +23,7 @@ describe('DetailSectionEditControls', () => {
     });
 
     it('is enabled when disabled is true', () => {
-      tree({ disabled: true });
+      tree({ saveDisabled: true });
 
       expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
     });
@@ -45,7 +45,7 @@ describe('DetailSectionEditControls', () => {
     });
 
     it('is disabled when disabled is true', () => {
-      tree({ disabled: true });
+      tree({ saveDisabled: true });
 
       expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });

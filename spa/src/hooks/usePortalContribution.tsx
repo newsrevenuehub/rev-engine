@@ -37,7 +37,7 @@ export interface PortalContributionPayment {
   transaction_time?: string;
 }
 
-export interface PortalContributionDetail extends Omit<PortalContribution, 'revenue_program'> {
+export interface PortalContributionDetail extends PortalContribution {
   /**
    * Name on the credit card used in the contribution.
    */
@@ -60,10 +60,6 @@ export interface PortalContributionDetail extends Omit<PortalContribution, 'reve
    * Ref: https://docs.stripe.com/api/subscriptions/object#subscription_object-cancel_at
    */
   canceled_at?: string;
-  /**
-   * Revenue program object with full organization details.
-   */
-  revenue_program: RevenueProgramWithFullOrganization;
 }
 
 /**

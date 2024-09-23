@@ -22,13 +22,7 @@ const mockContribution: PortalContributionDetail = {
   payments: [],
   id: 1,
   payment_type: 'card',
-  revenue_program: {
-    organization: {
-      plan: {
-        name: 'PLUS'
-      }
-    }
-  } as any,
+  revenue_program: 1,
   status: 'paid',
   stripe_account_id: 'mock-stripe-account-id'
 };
@@ -111,24 +105,10 @@ describe('BillingDetails', () => {
       expect(screen.getByTestId('frequency')).toHaveTextContent(intervalLabel);
     });
 
-    describe.each(['FREE', 'CORE'])('%s plan', (plan) => {
-      it('does not show "Change billing details"', () => {
-        tree({
-          contribution: { ...mockContribution, revenue_program: { organization: { plan: { name: plan } } } as any }
-        });
-        expect(screen.queryByRole('button', { name: 'Change billing details' })).not.toBeInTheDocument();
-      });
-    });
-
-    describe('PLUS plan', () => {
-      it('shows "Change billing details" if the contribution is modifiable', () => {
-        tree();
+    describe('enableEditMode = true', () => {
+      it('shows "Change billing details"', () => {
+        tree({ enableEditMode: true });
         expect(screen.getByRole('button', { name: 'Change billing details' })).toBeInTheDocument();
-      });
-
-      it('does not show "Change billing details" if the contribution is not modifiable', () => {
-        tree({ contribution: { ...mockContribution, is_modifiable: false } });
-        expect(screen.queryByRole('button', { name: 'Change billing details' })).not.toBeInTheDocument();
       });
     });
 
@@ -141,30 +121,30 @@ describe('BillingDetails', () => {
 
   describe('In editable mode', () => {
     it('highlights its section', () => {
-      tree({ editable: true });
+      tree({ editable: true, enableEditMode: true });
       expect(screen.getByTestId('mock-detail-section').dataset.highlighted).toBe('true');
     });
 
     it('shows a cancel button which calls onEditComplete when clicked', () => {
-      tree({ editable: true });
+      tree({ editable: true, enableEditMode: true });
       expect(defaultProps.onEditComplete).not.toHaveBeenCalled();
       screen.getByRole('button', { name: 'Cancel' }).click();
       expect(defaultProps.onEditComplete).toHaveBeenCalledTimes(1);
     });
 
     it('initially sets the contribution amount as the value of the amount input', () => {
-      tree({ editable: true });
+      tree({ editable: true, enableEditMode: true });
       expect(screen.getByRole('textbox', { name: /amount/i })).toHaveValue('123.45');
     });
 
     describe('The Save button', () => {
       it('is initially disabled', () => {
-        tree({ editable: true });
+        tree({ editable: true, enableEditMode: true });
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
       });
 
       it('is enabled when the amount input is changed', () => {
-        tree({ editable: true });
+        tree({ editable: true, enableEditMode: true });
         const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -173,7 +153,7 @@ describe('BillingDetails', () => {
       });
 
       it('disables if previously enabled, but amount is set to initial value', () => {
-        tree({ editable: true });
+        tree({ editable: true, enableEditMode: true });
         const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -184,7 +164,7 @@ describe('BillingDetails', () => {
       });
 
       it('is disabled if the amount is empty', () => {
-        tree({ editable: true });
+        tree({ editable: true, enableEditMode: true });
         const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -193,7 +173,7 @@ describe('BillingDetails', () => {
       });
 
       it('is disabled if the amount is zero', () => {
-        tree({ editable: true });
+        tree({ editable: true, enableEditMode: true });
         const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -202,7 +182,7 @@ describe('BillingDetails', () => {
       });
 
       it('is disabled if the amount is not a valid number', () => {
-        tree({ editable: true });
+        tree({ editable: true, enableEditMode: true });
         const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -211,14 +191,14 @@ describe('BillingDetails', () => {
       });
 
       it('is accessible', async () => {
-        const { container } = tree({ editable: true });
+        const { container } = tree({ editable: true, enableEditMode: true });
 
         expect(await axe(container)).toHaveNoViolations();
       });
 
       describe('When clicked', () => {
         it('calls onUpdateBillingDetails with the amount in cents', () => {
-          tree({ editable: true });
+          tree({ editable: true, enableEditMode: true });
           const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
           fireEvent.change(amountInput, { target: { value: '99.99' } });
@@ -228,7 +208,7 @@ describe('BillingDetails', () => {
         });
 
         it('calls onEditComplete', () => {
-          tree({ editable: true });
+          tree({ editable: true, enableEditMode: true });
           const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
           fireEvent.change(amountInput, { target: { value: '99.99' } });

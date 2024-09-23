@@ -81,7 +81,7 @@ export function PaymentMethod({
 
   const controls = editable ? (
     <DetailSectionEditControls
-      disabled={!cardComplete || cardOwnerName.trim() === ''}
+      saveDisabled={!cardComplete || cardOwnerName.trim() === ''}
       onCancel={onEditComplete}
       onSave={handleSave}
     />

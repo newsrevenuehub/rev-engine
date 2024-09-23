@@ -2,18 +2,18 @@ import { Checkbox, FormControlLabel } from 'components/base';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 import { Columns, Detail, SectionControlButton, Subheading } from '../common.styled';
 import { DetailSection } from '../DetailSection';
 import DetailSectionEditControls from '../DetailSection/DetailSectionEditControls';
-import { CheckboxLabel, StartInputAdornment, StyledTextField } from './BillingDetails.styled';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import { CheckboxLabel, StartInputAdornment, AmountField } from './BillingDetails.styled';
 
 const BillingDetailsPropTypes = {
   contribution: PropTypes.object.isRequired,
   disabled: PropTypes.bool,
+  enableEditMode: PropTypes.bool,
   editable: PropTypes.bool,
   onEdit: PropTypes.func.isRequired,
   onEditComplete: PropTypes.func.isRequired,
@@ -34,11 +34,10 @@ export const INTERVAL_NAMES: Record<ContributionInterval, string> = {
   year: 'Yearly'
 };
 
-// This will eventually have an editable state.
-
 export function BillingDetails({
   contribution,
   disabled,
+  enableEditMode = false,
   editable,
   onEdit,
   onEditComplete,
@@ -46,11 +45,6 @@ export function BillingDetails({
 }: BillingDetailsProps) {
   const amountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
   const [amount, setAmount] = useState(amountInDollars.toString());
-
-  const showEditControls = useMemo(
-    () => contribution.is_modifiable && contribution.revenue_program.organization.plan.name === PLAN_NAMES.PLUS,
-    [contribution.is_modifiable, contribution.revenue_program.organization.plan.name]
-  );
 
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
     // TODO in DEV-5138: use only first_payment_date
@@ -71,21 +65,24 @@ export function BillingDetails({
   }, [amount, amountInDollars]);
 
   const handleSave = () => {
-    // Amount will be a valid number at this point and we need to convert it to cents
-    onUpdateBillingDetails(parseFloatStrictly(amount) * 100);
+    const formattedAmount = parseFloatStrictly(amount);
+
+    if (isNaN(formattedAmount)) {
+      // Should never happen
+      throw new Error('Amount is not a number');
+    }
+
+    onUpdateBillingDetails(formattedAmount * 100);
     onEditComplete();
   };
 
-  useEffect(() => {
-    // Only sync amount if "editable" switches to true
-    if (editable) {
-      setAmount(amountInDollars?.toString());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editable]);
+  const handleCancel = () => {
+    setAmount(amountInDollars?.toString());
+    onEditComplete();
+  };
 
   const controls = editable ? (
-    <DetailSectionEditControls disabled={disableSave} onCancel={onEditComplete} onSave={handleSave} />
+    <DetailSectionEditControls saveDisabled={disableSave} onCancel={handleCancel} onSave={handleSave} />
   ) : (
     <SectionControlButton disabled={!!disabled} onClick={onEdit}>
       Change billing details
@@ -97,12 +94,12 @@ export function BillingDetails({
       disabled={disabled}
       highlighted={editable}
       title="Billing Details"
-      {...(showEditControls && { controls })}
+      {...(enableEditMode && { controls })}
     >
       <Columns>
         <div>
           {editable ? (
-            <StyledTextField
+            <AmountField
               data-testid="amount"
               fullWidth
               id="amount"

@@ -28,7 +28,7 @@ const mockContribution: PortalContributionDetail = {
   paid_fees: false,
   payments: [],
   payment_type: 'card',
-  revenue_program: {} as any,
+  revenue_program: 1,
   status: 'paid',
   stripe_account_id: 'mock-stripe-account-id'
 };

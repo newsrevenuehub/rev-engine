@@ -21,7 +21,7 @@ const mockContribution: PortalContributionDetail = {
   payments: [],
   id: 1,
   payment_type: 'card',
-  revenue_program: {} as any,
+  revenue_program: 1,
   status: 'paid'
 };
 

@@ -1,4 +1,5 @@
 import { usePortalContribution } from 'hooks/usePortalContribution';
+import usePortal from 'hooks/usePortal';
 import { axe } from 'jest-axe';
 import { useSnackbar } from 'notistack';
 import { fireEvent, render, screen } from 'test-utils';
@@ -7,6 +8,7 @@ import ContributionDetail, { ContributionDetailProps } from './ContributionDetai
 jest.mock('notistack');
 jest.mock('components/paymentProviders/stripe/StripePaymentWrapper');
 jest.mock('hooks/usePortalContribution');
+jest.mock('hooks/usePortal');
 jest.mock('./useDetailAnchor');
 jest.mock('./Actions/Actions');
 jest.mock('./Banner/Banner');
@@ -22,12 +24,25 @@ function tree(props?: Partial<ContributionDetailProps>) {
 
 describe('ContributionDetail', () => {
   const usePortalContributionMock = jest.mocked(usePortalContribution);
+  const usePortalMock = jest.mocked(usePortal);
   const useSnackbarMock = jest.mocked(useSnackbar);
   let enqueueSnackbar: jest.Mock;
 
   beforeEach(() => {
     enqueueSnackbar = jest.fn();
     useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
+    usePortalMock.mockReturnValue({
+      page: {
+        revenue_program: {
+          id: 1,
+          organization: {
+            plan: {
+              name: 'PLUS'
+            }
+          }
+        }
+      }
+    } as any);
   });
 
   it('fetches the contribution matching the contributor and contribution ID in props', () => {
@@ -182,6 +197,32 @@ describe('ContributionDetail', () => {
       tree();
       expect(screen.getByTestId('mock-payment-method').dataset.editable).toBe('false');
       expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('false');
+    });
+
+    describe('PLUS plan', () => {
+      it("BillingDetails doesn't allow edit mode if contribution.is_modifiable = true", () => {
+        tree();
+        expect(screen.getByTestId('mock-billing-details').dataset.enableeditmode).toBe('true');
+      });
+    });
+
+    describe.each(['FREE', 'CORE'])('%s plan', (plan) => {
+      it("BillingDetails doesn't allow edit mode if contribution.is_modifiable = true", () => {
+        usePortalMock.mockReturnValue({
+          page: {
+            revenue_program: {
+              id: 1,
+              organization: {
+                plan: {
+                  name: plan
+                }
+              }
+            }
+          }
+        } as any);
+        tree();
+        expect(screen.getByTestId('mock-billing-details').dataset.enableeditmode).toBe('false');
+      });
     });
 
     describe('When payment method is edited', () => {

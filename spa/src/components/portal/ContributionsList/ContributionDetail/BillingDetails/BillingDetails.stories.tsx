@@ -18,31 +18,31 @@ Default.args = {
     amount: 12345,
     first_payment_date: new Date('1/1/2001').toISOString(),
     interval: 'one_time',
-    paid_fees: true,
-    revenue_program: {
-      organization: {
-        plan: {
-          name: 'FREE'
-        }
-      }
-    }
+    paid_fees: true
   } as any
 };
 
 export const IsEditable: Story = {};
 IsEditable.args = {
+  enableEditMode: true,
   contribution: {
     amount: 12345,
     first_payment_date: new Date('1/1/2001').toISOString(),
     interval: 'one_time',
     paid_fees: true,
-    is_modifiable: true,
-    revenue_program: {
-      organization: {
-        plan: {
-          name: 'PLUS'
-        }
-      }
-    }
+    is_modifiable: true
+  } as any
+};
+
+export const InEditMode: Story = {};
+InEditMode.args = {
+  enableEditMode: true,
+  editable: true,
+  contribution: {
+    amount: 12345,
+    first_payment_date: new Date('1/1/2001').toISOString(),
+    interval: 'one_time',
+    paid_fees: true,
+    is_modifiable: true
   } as any
 };

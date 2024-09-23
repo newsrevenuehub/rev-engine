@@ -6,7 +6,7 @@ export const CheckboxLabel = styled.span`
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
 `;
 
-export const StyledTextField = styled(TextField)`
+export const AmountField = styled(TextField)`
   && {
     .NreTextFieldInput {
       padding-left: 20px;

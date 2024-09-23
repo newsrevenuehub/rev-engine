@@ -273,19 +273,21 @@ describe('usePortalContribution', () => {
       jest.useRealTimers();
     });
 
-    it('resolves with the request and shows a notification if the PATCH succeeds', async () => {
-      const { result } = hook(123, 1);
+    it.each([
+      ['paymentMethod', 'Payment method has successfully been updated.'],
+      [
+        'billingDetails',
+        'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.'
+      ]
+    ] as const)(
+      'resolves with the request and shows a notification if the PATCH succeeds, type: %s',
+      async (type, message) => {
+        const { result } = hook(123, 1);
 
-      expect(
-        await result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod')
-      ).not.toBe(undefined);
-      expect(enqueueSnackbar.mock.calls).toEqual([
-        [
-          'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
-          expect.objectContaining({ persist: true })
-        ]
-      ]);
-    });
+        expect(await result.current.updateContribution({}, type)).not.toBe(undefined);
+        expect(enqueueSnackbar.mock.calls).toEqual([[message, expect.objectContaining({ persist: true })]]);
+      }
+    );
 
     it.each([
       [

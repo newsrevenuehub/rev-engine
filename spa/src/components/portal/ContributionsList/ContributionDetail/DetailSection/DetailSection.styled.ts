@@ -41,3 +41,9 @@ export const Title = styled.h4`
   font-weight: 600;
   margin: 0 0 5px 0;
 `;
+
+export const EditControls = styled.div`
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    text-align: center;
+  }
+`;

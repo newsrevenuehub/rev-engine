@@ -201,10 +201,10 @@ describe('BillingDetails', () => {
           tree({ editable: true, enableEditMode: true });
           const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
-          fireEvent.change(amountInput, { target: { value: '99.99' } });
+          fireEvent.change(amountInput, { target: { value: '99.45' } });
           screen.getByRole('button', { name: 'Save' }).click();
 
-          expect(defaultProps.onUpdateBillingDetails).toHaveBeenCalledWith(9999);
+          expect(defaultProps.onUpdateBillingDetails).toHaveBeenCalledWith(9945);
         });
 
         it('calls onEditComplete', () => {

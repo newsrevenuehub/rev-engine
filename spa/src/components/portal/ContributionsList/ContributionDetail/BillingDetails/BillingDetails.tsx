@@ -65,7 +65,10 @@ export function BillingDetails({
       throw new Error('Amount is not a number');
     }
 
-    onUpdateBillingDetails(formattedAmount * 100);
+    // Need "Math.round" because "parseFloatStrictly" * 100 can result in numbers like:
+    // amount = 9.45 -> formattedAmount * 100 = 944.9999999999999
+    // amount = 9.46 -> formattedAmount * 100 = 946.0000000000001
+    onUpdateBillingDetails(Math.round(formattedAmount * 100));
     onEditComplete();
   };
 

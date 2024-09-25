@@ -14,6 +14,8 @@ import { MobileBackButton } from './MobileBackButton';
 import { MobileHeader } from './MobileHeader';
 import { Root, TopMatter, Content } from './ContributionDetail.styled';
 import { LoadingSkeleton } from './LoadingSkeleton';
+import usePortal from 'hooks/usePortal';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -24,9 +26,10 @@ const ContributionDetailPropTypes = {
 export type ContributionDetailProps = InferProps<typeof ContributionDetailPropTypes>;
 
 export function ContributionDetail({ domAnchor, contributionId, contributorId }: ContributionDetailProps) {
+  const { page } = usePortal();
   const { cancelContribution, contribution, isError, isLoading, refetch, updateContribution, sendEmailReceipt } =
     usePortalContribution(contributorId, contributionId);
-  const [editableSection, setEditableSection] = useState<'paymentMethod'>();
+  const [editableSection, setEditableSection] = useState<'paymentMethod' | 'billingDetails'>();
 
   // We need to store the root element in state so that changes to it trigger
   // the useDetailAnchor hook. We also assign different keys to the root element
@@ -39,6 +42,10 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
 
   function handlePaymentMethodUpdate(method: StripePaymentMethod) {
     updateContribution({ provider_payment_method_id: method.id }, 'paymentMethod');
+  }
+
+  function handleBillingDetailsUpdate(amount: number) {
+    updateContribution({ amount }, 'billingDetails');
   }
 
   if (isError) {
@@ -69,11 +76,21 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
           <MobileHeader contribution={contribution} />
         </TopMatter>
         <Content>
-          <BillingDetails contribution={contribution} disabled={!!editableSection} />
+          <BillingDetails
+            contribution={contribution}
+            disabled={!!editableSection && editableSection !== 'billingDetails'}
+            enableEditMode={
+              contribution.is_modifiable && page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.PLUS
+            }
+            editable={editableSection === 'billingDetails' && contribution.is_modifiable}
+            onEdit={() => setEditableSection('billingDetails')}
+            onEditComplete={() => setEditableSection(undefined)}
+            onUpdateBillingDetails={handleBillingDetailsUpdate}
+          />
           <PaymentMethod
             contribution={contribution}
             disabled={editableSection && editableSection !== 'paymentMethod'}
-            editable={editableSection === 'paymentMethod'}
+            editable={editableSection === 'paymentMethod' && contribution.is_modifiable}
             onEdit={() => setEditableSection('paymentMethod')}
             onEditComplete={() => setEditableSection(undefined)}
             onUpdatePaymentMethod={handlePaymentMethodUpdate}

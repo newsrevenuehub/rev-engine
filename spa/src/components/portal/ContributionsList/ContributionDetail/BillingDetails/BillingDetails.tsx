@@ -1,19 +1,28 @@
-import PropTypes, { InferProps } from 'prop-types';
 import { Checkbox, FormControlLabel } from 'components/base';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
+import PropTypes, { InferProps } from 'prop-types';
+import { useMemo, useState } from 'react';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
-import { CheckboxLabel } from './BillingDetails.styled';
-import { Columns, Detail, Subheading } from '../common.styled';
+import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
+import { Columns, Detail, SectionControlButton, Subheading } from '../common.styled';
 import { DetailSection } from '../DetailSection';
+import DetailSectionEditControls from '../DetailSection/DetailSectionEditControls';
+import { CheckboxLabel, StartInputAdornment, AmountField } from './BillingDetails.styled';
 
 const BillingDetailsPropTypes = {
   contribution: PropTypes.object.isRequired,
-  disabled: PropTypes.bool
+  disabled: PropTypes.bool,
+  enableEditMode: PropTypes.bool,
+  editable: PropTypes.bool,
+  onEdit: PropTypes.func.isRequired,
+  onEditComplete: PropTypes.func.isRequired,
+  onUpdateBillingDetails: PropTypes.func.isRequired
 };
 
 export interface BillingDetailsProps extends InferProps<typeof BillingDetailsPropTypes> {
   contribution: PortalContributionDetail;
+  onUpdateBillingDetails: (amount: number) => void;
 }
 
 /**
@@ -25,20 +34,94 @@ export const INTERVAL_NAMES: Record<ContributionInterval, string> = {
   year: 'Yearly'
 };
 
-// This will eventually have an editable state.
+export function BillingDetails({
+  contribution,
+  disabled,
+  enableEditMode = false,
+  editable,
+  onEdit,
+  onEditComplete,
+  onUpdateBillingDetails
+}: BillingDetailsProps) {
+  const amountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
+  const [amount, setAmount] = useState(amountInDollars.toString());
 
-export function BillingDetails({ contribution, disabled }: BillingDetailsProps) {
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
     // TODO in DEV-5138: use only first_payment_date
     new Date(contribution.first_payment_date ?? contribution.created)
   );
 
+  const disableSave = useMemo(() => {
+    const parsedValue = parseFloatStrictly(amount);
+
+    return isNaN(parsedValue) || parsedValue <= 0 || parsedValue === amountInDollars;
+  }, [amount, amountInDollars]);
+
+  const handleSave = () => {
+    const formattedAmount = parseFloatStrictly(amount);
+
+    if (isNaN(formattedAmount)) {
+      // Should never happen
+      throw new Error('Amount is not a number');
+    }
+
+    // Need "Math.round" because "parseFloatStrictly" * 100 can result in numbers like:
+    // amount = 9.45 -> formattedAmount * 100 = 944.9999999999999
+    // amount = 9.46 -> formattedAmount * 100 = 946.0000000000001
+    onUpdateBillingDetails(Math.round(formattedAmount * 100));
+    onEditComplete();
+  };
+
+  const handleCancel = () => {
+    setAmount(amountInDollars?.toString());
+    onEditComplete();
+  };
+
+  const controls = editable ? (
+    <DetailSectionEditControls saveDisabled={disableSave} onCancel={handleCancel} onSave={handleSave} />
+  ) : (
+    <SectionControlButton disabled={!!disabled} onClick={onEdit}>
+      Change billing details
+    </SectionControlButton>
+  );
+
   return (
-    <DetailSection disabled={disabled} title="Billing Details">
+    <DetailSection
+      disabled={disabled}
+      highlighted={editable}
+      title="Billing Details"
+      {...(enableEditMode && { controls })}
+    >
       <Columns>
         <div>
-          <Subheading>Amount</Subheading>
-          <Detail data-testid="amount">{formatCurrencyAmount(contribution.amount)}</Detail>
+          {editable ? (
+            <AmountField
+              data-testid="amount"
+              fullWidth
+              id="amount"
+              label="Amount"
+              onChange={({ target: { value } }) => {
+                const filteredValue = value
+                  // Only keep numbers and decimal points
+                  .replace(/[^\d\.]/g, '')
+                  // Remove anything after first decimal point and two digits
+                  .replace(/^(.*?\.\d?\d?).*/, '$1');
+                setAmount(filteredValue);
+              }}
+              inputMode="decimal"
+              type="text"
+              value={amount}
+              InputProps={{
+                classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } as any,
+                startAdornment: <StartInputAdornment>$</StartInputAdornment>
+              }}
+            />
+          ) : (
+            <>
+              <Subheading>Amount</Subheading>
+              <Detail data-testid="amount">{formatCurrencyAmount(contribution.amount)}</Detail>
+            </>
+          )}
         </div>
         <div>
           <FormControlLabel

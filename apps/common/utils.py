@@ -119,7 +119,7 @@ def extract_ticket_id_from_branch_name(branch_name: str) -> str | None:
 
 
 def normalize_slug(name="", slug="", max_length=50) -> str:
-    """Return a string of length less than or equal to the max_length.
+    """Return a lowercase string of length less than or equal to the max_length.
 
     :param name: str:  a character string that can be slugified.
     :param slug: str:  a slug value.

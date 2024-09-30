@@ -236,21 +236,29 @@ class Organization(IndexedTimeStampedModel):
         Note that this does not guarantee that the name will be otherwise valid in terms of max length.
         """
         logger.info("Called with name %s", name)
-        if not cls.objects.filter(name=name).exists():
+        # note the use of iexact to make the query case-insensitive
+        if not cls.objects.filter(name__iexact=name).exists():
             return name
         # we limit to 99 because we don't want to have to deal with 3-digit numbers.
         # also, note that we would never expect to reach this limit and if we do, there's probably something
         # untoward going on.
         for counter in range(1, MAX_APPEND_ORG_NAME_ATTEMPTS):
             appended = f"{name}-{counter}"
-            if not cls.objects.filter(name=appended).exists():
+            # note the use of iexact to make the query case-insensitive
+            if not cls.objects.filter(name__iexact=appended).exists():
                 return appended
         logger.warning("Unable to generate unique organization name based on input %s", name)
         raise OrgNameNonUniqueError("Unable to generate unique organization name because already taken")
 
     @staticmethod
-    def generate_slug_from_name(name):
-        return normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
+    def generate_slug_from_name(name: str) -> str:
+        slug = normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
+        # note that we expect slug to be lowercase, since there's no guarantee that all extant slugs are lowercase,
+        # we filter on iexact
+        if Organization.objects.filter(slug__iexact=slug).exists():
+            logger.warning("Slug `%s` already exists for org name %s", slug, name)
+            raise ValidationError("Slug already exists for org name %s", name)
+        return slug
 
     def downgrade_to_free_plan(self):
         """Downgrade an org to the free plan.

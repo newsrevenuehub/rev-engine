@@ -154,31 +154,28 @@ class BadActorSerializer(serializers.Serializer):
     org = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     street = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     complement = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
-    city = serializers.CharField(max_length=40, required=False, default="", allow_blank=True)
-    state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
+    city = serializers.CharField(
+        max_length=40,
+        required=False,
+        default="",
+        allow_blank=True,
+    )
+    state = serializers.CharField(
+        max_length=80,
+        required=False,
+        default="",
+        allow_blank=True,
+    )
     country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     zipcode = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
     country_code = serializers.CharField(max_length=10, required=False, default="", allow_blank=True)
-
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
-
     # Request metadata
     ip = serializers.IPAddressField()
     referer = serializers.URLField()
-
     # Contribution additional
     reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
-
-    def to_internal_value(self, data):
-        data["street"] = data.get("mailing_street")
-        data["complement"] = data.get("mailing_complement")
-        data["city"] = data.get("mailing_city")
-        data["state"] = data.get("mailing_state")
-        data["zipcode"] = data.get("mailing_postal_code")
-        data["country"] = data.get("mailing_country")
-        data["reason"] = data.get("reason_for_giving")
-        return super().to_internal_value(data)
 
 
 class AbstractPaymentSerializer(serializers.Serializer):
@@ -298,7 +295,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     mc_campaign_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
-    captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
+    captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True, default="")
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
     client_secret = serializers.CharField(max_length=255, read_only=True, required=False)
@@ -399,23 +396,29 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
         Note that this method is meant to be ironclad against exceptions. If anything goes wrong, it should return None.
         """
+        data = {
+            "amount": data["amount"],
+            "first_name": data["first_name"],
+            "last_name": data["last_name"],
+            "email": data["email"],
+            "action": action,
+            "org": data["page"].organization.id,
+            "street": data["mailing_street"],
+            "complement": data["mailing_complement"],
+            "city": data["mailing_city"],
+            "state": data["mailing_state"],
+            "country": data["mailing_country"],
+            "zipcode": data["mailing_postal_code"],
+            "captcha_token": data["captcha_token"],
+            "ip": get_original_ip_from_request(self.context["request"]),
+            "referer": self.context["request"].META.get("HTTP_REFERER"),
+            "reason_for_giving": data["reason_for_giving"],
+        }
+        if country_code := self.context["request"].headers.get("Cf-Ipcountry", None):
+            data["country_code"] = country_code
+        logger.info("BadActorSerializer data: %s", data)
+        serializer = BadActorSerializer(data=data)
         try:
-            data = data | {
-                # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
-                # but BadActorSerializer wants to pk, so we reformat here.
-                "page": data["page"].id,
-                "referer": self.context["request"].META.get("HTTP_REFERER"),
-                "ip": get_original_ip_from_request(self.context["request"]),
-                "action": action,
-                "org": data["page"].organization.id,
-            }
-
-            country_code = self.context["request"].headers.get("Cf-Ipcountry", None)
-            if country_code:
-                data["country_code"] = country_code
-            logger.info("BadActorSerializer data: %s", data)
-
-            serializer = BadActorSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             return get_bad_actor_score(serializer.validated_data)
         except serializers.ValidationError as exc:

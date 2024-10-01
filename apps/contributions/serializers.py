@@ -474,7 +474,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             honoree=self.validated_data["honoree"] or None,
             in_memory_of=self.validated_data["in_memory_of"] or None,
             reason_for_giving=self.validated_data["reason_for_giving"] or None,
-            referer=self._context["request"].META["HTTP_REFERER"],
+            referer=self._context["request"].META.get("HTTP_REFERER"),  # treat missing key as None
             revenue_program_id=self.validated_data["page"].revenue_program.id,
             revenue_program_slug=self.validated_data["page"].revenue_program.slug,
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,

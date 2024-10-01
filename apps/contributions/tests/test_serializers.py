@@ -7,7 +7,6 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pydantic
-import pydantic_core
 import pytest
 import stripe
 from addict import Dict as AttrDict
@@ -983,13 +982,12 @@ class TestBaseCreatePaymentSerializer:
         assert settings.METADATA_SCHEMA_VERSION_1_4
         minimally_valid_contribution_form_data["swag_choices"] = valid_swag_choices_string
         contribution = ContributionFactory(donation_page_id=minimally_valid_contribution_form_data["page"])
-        request = APIRequestFactory(HTTP_REFERER=(referer := "https://www.google.com")).post("", {}, format="json")
+        request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         metadata = serializer.generate_stripe_metadata(contribution)
         assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
-        assert metadata.referer == pydantic_core.Url(referer)
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == "1.4"
         assert metadata.source == "rev-engine"
@@ -1006,6 +1004,7 @@ class TestBaseCreatePaymentSerializer:
             "honoree",
             "in_memory_of",
             "reason_for_giving",
+            "referer",
             "sf_campaign_id",
             "mc_campaign_id",
         )

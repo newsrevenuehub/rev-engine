@@ -714,6 +714,11 @@ class Contribution(IndexedTimeStampedModel):
             "New change to your contribution", "recurring-contribution-payment-updated"
         )
 
+    def send_recurring_contribution_amount_updated_email(self) -> None:
+        self.send_recurring_contribution_change_email(
+            "New change to your contribution", "recurring-contribution-amount-updated"
+        )
+
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
         self.send_recurring_contribution_change_email(
             f"Reminder: {self.revenue_program.name} scheduled contribution",
@@ -1229,6 +1234,8 @@ class Contribution(IndexedTimeStampedModel):
 
         item = items["data"][0]
         self.contribution_metadata["donor_selected_amount"] = amount
+        # Need to update contribution amount here so that it reflects the new amount in the email
+        self.amount = amount
 
         logger.info(
             "Updating Stripe Subscription's %s (item %s), amount to %s",
@@ -1264,10 +1271,13 @@ class Contribution(IndexedTimeStampedModel):
             raise
 
         with reversion.create_revision():
-            self.save(update_fields={"contribution_metadata", "modified"})
+            self.save(update_fields={"contribution_metadata", "amount", "modified"})
             reversion.set_comment(
                 f"`Contribution.update_subscription_amount` saved changes to contribution with ID {self.id}"
             )
+
+        # Send amount updated email to contributor
+        self.send_recurring_contribution_amount_updated_email()
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

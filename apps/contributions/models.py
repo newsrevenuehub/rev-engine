@@ -1270,7 +1270,7 @@ class Contribution(IndexedTimeStampedModel):
             raise
 
         with reversion.create_revision():
-            self.save(update_fields={"contribution_metadata", "amount", "modified"})
+            self.save(update_fields={"contribution_metadata", "modified"})
             reversion.set_comment(
                 f"`Contribution.update_subscription_amount` saved changes to contribution with ID {self.id}"
             )

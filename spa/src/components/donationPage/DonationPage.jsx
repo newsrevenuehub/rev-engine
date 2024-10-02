@@ -186,7 +186,12 @@ function DonationPage({ page, live = false }, ref) {
 
   function handleCompleteContributionError() {
     if (deletePayment) {
-      deletePayment();
+      try {
+        deletePayment();
+      } catch (error) {
+        // Log it for Sentry but continue with error handling.
+        console.error(error);
+      }
     }
 
     setDisplayErrorFallback(true);

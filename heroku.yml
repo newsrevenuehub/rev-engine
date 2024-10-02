@@ -5,9 +5,11 @@ setup:
   config:
     S3_BUCKET: my-example-bucket
 build:
+  config:
+    E2E_ENABLED: "true"
   docker:
     web:
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.e2e
       target: deploy
 release:
   command:

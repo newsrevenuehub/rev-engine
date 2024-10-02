@@ -7,6 +7,7 @@ omit =
     */migrations/*
     */settings/*.py
     */wsgi.py
+    */apps/e2e/flows/*
 branch = True
 
 [report]
@@ -15,4 +16,4 @@ skip_empty = True
 exclude_lines =
     pragma: no cover
     <!--no cover-->
-fail_under = 97
+fail_under = 98

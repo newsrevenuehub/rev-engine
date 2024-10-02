@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Commit Status {{ commit_status.id }}{% endblock %}
+{% block extra_head %}
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 18px;
+    text-align: left;
+    }
+  th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    }
+  th {
+    background-color: red;
+    font-weight: bold;
+  }
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  .table-container {
+    overflow-x: auto;
+    margin: 0 auto;
+    max-width: 800px;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<table>
+  <tr>
+      <th>Name</th>
+      <td>{{ commit_status.name }}</td>
+  </tr>
+  <tr>
+      <th>Commit SHA</th>
+      <td>{{ commit_status.commit_sha }}</td>
+  </tr>
+  <tr>
+    <th>State</th>
+    <td>{{ commit_status.state }}</td>
+  </tr>
+
+  <tr>
+      <th>Screenshot</th>
+      {% if commit_status.screenshot %}
+        <td><img src="{{ commit_status.screenshot.url }}" alt="Screenshot"></td>
+      {% else %}
+        <td>No screenshot</td>
+      {% endif %}
+  </tr>
+  <tr>
+    <th>Details</th>
+    <td>{{ commit_status.details }}</td>
+  </tr>
+  <tr>
+    <th>GitHub id</th>
+    <td>{{ commit_status.github_id }}</td>
+  </tr>
+</table>
+{% endblock %}

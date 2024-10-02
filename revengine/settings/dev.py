@@ -44,5 +44,9 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
 CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
 
+# We do this so we're guaranteed to have e2e app, which we always want to test,
+# but don't always want to load (e.g. in production)
+E2E_ENABLED = True
+
 
 CACHES["default"]["BACKEND"] = "django.core.cache.backends.locmem.LocMemCache"

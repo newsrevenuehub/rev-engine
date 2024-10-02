@@ -48,3 +48,16 @@ python manage.py migrate
 
 echo "Bootstrapping review app"
 python manage.py bootstrap-review-app
+
+echo "SOURCE VERSION IS ${SOURCE_VERSION}"
+
+
+# Note that setting this will trigger a subsequent release
+# and when release phase runs deployment-tasks.sh, it will find this
+# var set to true, and run the E2E check
+echo "Setting POSTDEPLOY_DONE to true"
+curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars \
+-H "Content-Type: application/json" \
+-H "Accept: application/vnd.heroku+json; version=3" \
+-H "Authorization: Bearer $HEROKU_API_KEY" \
+-d '{"POSTDEPLOY_DONE":"true"}'

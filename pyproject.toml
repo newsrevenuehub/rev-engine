@@ -92,8 +92,15 @@ ruff = "*"
 [tool.poetry.extras]
 bandit = ["toml"]
 
+[tool.poetry.group.e2e]
+optional = true
+
+[tool.poetry.group.e2e.dependencies]
+pygithub = "^2.4.0"
+playwright = "^1.46.0"
+
 [tool.pytest.ini_options]
-addopts = "--ruff --reuse-db -p no:warnings"
+addopts = "--ruff --reuse-db -p no:warnings --ignore=apps/e2e/flows"
 #norecursedirs = ".cache .git .github .pytest_cache .ruff_cache .venv __pycache__ dist build htmlcov test_data"
 DJANGO_SETTINGS_MODULE = "revengine.settings.local"
 testpaths = ["apps", "revengine"]
@@ -142,6 +149,7 @@ quote-style = "double"
 "*/tests/*py" = ["S", "RUF018"]
 "*/tests.py" = ["S", "RUF018"]
 "conftest.py" = ["S", "RUF018"]
+"apps/e2e/flows/*.py" = ["S101"] # Use of assert detected. The enclosed code will be executed at runtime.
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Option", ]

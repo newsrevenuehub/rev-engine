@@ -1234,7 +1234,6 @@ class Contribution(IndexedTimeStampedModel):
 
         item = items["data"][0]
         self.contribution_metadata["donor_selected_amount"] = amount
-        # Need to update contribution amount here so that it reflects the new amount in the email
         self.amount = amount
 
         logger.info(

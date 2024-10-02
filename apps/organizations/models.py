@@ -255,7 +255,6 @@ class Organization(IndexedTimeStampedModel):
         slug = normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
         # note that we in practice we expect slugs to be lowercase, but since there's no guarantee (casing is not enforced at db level),
         # we do do a case insensitive filter
-        # we filter on iexact
         if Organization.objects.filter(slug__iexact=slug).exists():
             logger.warning("Slug `%s` already exists for org name %s", slug, name)
             raise ValidationError("Slug already exists for org name %s", name)

@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pydantic
+import pydantic_core
 import pytest
 import stripe
 from addict import Dict as AttrDict
@@ -976,18 +977,26 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid()
 
+    # False value is to handle DEV-5240
+    @pytest.mark.parametrize("send_referer", [True, False])
     def test_generate_stripe_metadata_when_v1_4(
-        self, minimally_valid_contribution_form_data, valid_swag_choices_string
+        self, send_referer, minimally_valid_contribution_form_data, valid_swag_choices_string
     ):
         assert settings.METADATA_SCHEMA_VERSION_1_4
         minimally_valid_contribution_form_data["swag_choices"] = valid_swag_choices_string
         contribution = ContributionFactory(donation_page_id=minimally_valid_contribution_form_data["page"])
-        request = APIRequestFactory().post("", {}, format="json")
+        referer = "https://fundjournalism.org"
+        if send_referer:
+            request = APIRequestFactory(HTTP_REFERER=(referer)).post("", {}, format="json")
+        else:
+            request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         metadata = serializer.generate_stripe_metadata(contribution)
         assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
+        if send_referer:
+            assert metadata.referer == pydantic_core.Url(referer)
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == "1.4"
         assert metadata.source == "rev-engine"
@@ -998,16 +1007,17 @@ class TestBaseCreatePaymentSerializer:
         assert (
             metadata.swag_opt_out is False
         )  # not provided in form data, this is default via default def in serializer field def
-        optional_fields_defaulting_to_none = (
+        optional_fields_defaulting_to_none = [
             "comp_subscription",
             "company_name",
             "honoree",
             "in_memory_of",
             "reason_for_giving",
-            "referer",
             "sf_campaign_id",
             "mc_campaign_id",
-        )
+        ]
+        if not send_referer:
+            optional_fields_defaulting_to_none.append("referer")
         for x in optional_fields_defaulting_to_none:
             assert getattr(metadata, x) is None
 

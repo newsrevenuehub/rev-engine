@@ -24,7 +24,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
             all(
                 [
                     not created,
-                    (update_fields := kwargs.get("update_fields", None) or {}),
+                    (update_fields := kwargs.get("update_fields") or {}),
                     "mailchimp_list_id" in update_fields,
                     instance.mailchimp_list_id,
                 ]
@@ -122,7 +122,7 @@ def handle_set_default_donation_page_on_select_core_plan(
     is_update_to_core_plan = all(
         [
             not created,
-            "plan_name" in (kwargs.get("update_fields", None) or {}),
+            "plan_name" in (kwargs.get("update_fields") or {}),
             instance.plan_name == CorePlan.name,
         ]
     )

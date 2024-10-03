@@ -978,24 +978,21 @@ class TestBaseCreatePaymentSerializer:
         assert serializer.is_valid()
 
     # False value is to handle DEV-5240
-    @pytest.mark.parametrize("send_referer", [True, False])
+    @pytest.mark.parametrize("api_factory_kwargs", [{"HTTP_REFERER": "https://fundjournalism.org"}, {}])
     def test_generate_stripe_metadata_when_v1_4(
-        self, send_referer, minimally_valid_contribution_form_data, valid_swag_choices_string
+        self, api_factory_kwargs, minimally_valid_contribution_form_data, valid_swag_choices_string
     ):
         assert settings.METADATA_SCHEMA_VERSION_1_4
         minimally_valid_contribution_form_data["swag_choices"] = valid_swag_choices_string
         contribution = ContributionFactory(donation_page_id=minimally_valid_contribution_form_data["page"])
         referer = "https://fundjournalism.org"
-        if send_referer:
-            request = APIRequestFactory(HTTP_REFERER=(referer)).post("", {}, format="json")
-        else:
-            request = APIRequestFactory().post("", {}, format="json")
+        request = APIRequestFactory(**api_factory_kwargs).post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         metadata = serializer.generate_stripe_metadata(contribution)
         assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
-        if send_referer:
+        if api_factory_kwargs.get("HTTP_REFERER"):
             assert metadata.referer == pydantic_core.Url(referer)
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == "1.4"
@@ -1016,7 +1013,7 @@ class TestBaseCreatePaymentSerializer:
             "sf_campaign_id",
             "mc_campaign_id",
         ]
-        if not send_referer:
+        if not api_factory_kwargs.get("HTTP_REFERER"):
             optional_fields_defaulting_to_none.append("referer")
         for x in optional_fields_defaulting_to_none:
             assert getattr(metadata, x) is None

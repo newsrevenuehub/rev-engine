@@ -396,29 +396,29 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
         Note that this method is meant to be ironclad against exceptions. If anything goes wrong, it should return None.
         """
-        data = {
-            "amount": data["amount"],
-            "first_name": data["first_name"],
-            "last_name": data["last_name"],
-            "email": data["email"],
-            "action": action,
-            "org": data["page"].organization.id,
-            "street": data["mailing_street"],
-            "complement": data["mailing_complement"],
-            "city": data["mailing_city"],
-            "state": data["mailing_state"],
-            "country": data["mailing_country"],
-            "zipcode": data["mailing_postal_code"],
-            "captcha_token": data["captcha_token"],
-            "ip": get_original_ip_from_request(self.context["request"]),
-            "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "reason_for_giving": data["reason_for_giving"],
-        }
-        if country_code := self.context["request"].headers.get("Cf-Ipcountry", None):
-            data["country_code"] = country_code
-        logger.info("BadActorSerializer data: %s", data)
-        serializer = BadActorSerializer(data=data)
         try:
+            data = {
+                "amount": data["amount"],
+                "first_name": data["first_name"],
+                "last_name": data["last_name"],
+                "email": data["email"],
+                "action": action,
+                "org": data["page"].organization.id,
+                "street": data["mailing_street"],
+                "complement": data["mailing_complement"],
+                "city": data["mailing_city"],
+                "state": data["mailing_state"],
+                "country": data["mailing_country"],
+                "zipcode": data["mailing_postal_code"],
+                "captcha_token": data["captcha_token"],
+                "ip": get_original_ip_from_request(self.context["request"]),
+                "referer": self.context["request"].META.get("HTTP_REFERER"),
+                "reason_for_giving": data["reason_for_giving"],
+            }
+            if country_code := self.context["request"].headers.get("Cf-Ipcountry", None):
+                data["country_code"] = country_code
+            logger.info("BadActorSerializer data: %s", data)
+            serializer = BadActorSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             return get_bad_actor_score(serializer.validated_data)
         except serializers.ValidationError as exc:

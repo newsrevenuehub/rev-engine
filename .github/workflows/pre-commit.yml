@@ -12,7 +12,7 @@ jobs:
     steps:
       # Call the reusable workflow to set up the environment
       - name: Setup Python Dependencies
-        uses: ./.github/workflows/setup-python-deps.yml
+        uses: ./.github/workflows/setup-python.yml
 
       # Run uv-sync from pre-commit to set up dependencies
       - uses: pre-commit/action@v3.0.1

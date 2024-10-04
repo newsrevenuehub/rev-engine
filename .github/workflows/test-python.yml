@@ -54,7 +54,7 @@ jobs:
     steps:
       # Step to setup Python dependencies using reusable workflow
       - name: Setup Python Dependencies
-        uses: ./.github/workflows/setup-python-deps.yml
+        uses: ./.github/workflows/setup-python.yml
 
       # Checkout the code
       - name: Checkout code

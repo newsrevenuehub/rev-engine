@@ -41,7 +41,7 @@ interface GenericThankYouRouteState {
 function GenericThankYou() {
   // Using the useLocation<GenericThankYouRouteState>() doesn't seem to type the
   // result correctly. Probably fixed in a later version of react-router-dom.
-  const routedState = useLocation().state as GenericThankYouRouteState;
+  const routedState = useLocation().state as GenericThankYouRouteState | undefined;
   const { analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
   useWebFonts(routedState?.page?.styles?.font);
 

@@ -82,7 +82,7 @@ jobs:
       # Sync dependencies using uv
       #----------------------------------------------
       - name: Sync dependencies
-        run: uv sync --no-dev --venv .venv
+        run: uv sync --no-dev
 
       - name: Run tests
         run: |

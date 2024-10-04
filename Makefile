@@ -22,11 +22,11 @@ clean:
 
 update_requirements:
 	@echo 'Updating the requirements...'
-	poetry update
+	uv lock --upgrade
 
 install_requirements:
 	@echo 'Installing project requirements...'
-	poetry install --no-root
+	uv sync
 
 setup:
 	@echo 'Setting up the environment...'

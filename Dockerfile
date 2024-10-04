@@ -12,6 +12,13 @@ RUN npm run build
 
 FROM python:3.10-slim as base
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+
+ADD uv.lock /uv.lock
+ADD pyproject.toml /pyproject.toml
+
+
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files
 #   postgresql-client -- for running database commands
@@ -24,17 +31,21 @@ RUN set -ex \
     postgresql-client \
     vim \
     curl \
+    gcc \
+    build-essential \
+    libc-dev \
+    libpq-dev \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \
     && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
     && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
-    && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS
+# && rm -rf /var/lib/apt/lists/*uv
+# separate out above into build vs. run deps
 
-# Copy in your requirements file
-ADD poetry.lock /poetry.lock
-ADD pyproject.toml /pyproject.toml
+
+RUN uv pip install -r pyproject.toml --system
 
 # SETUPTOOLS_USE_DISTUTILS is here for because of the the heroku3 package. It can go away when that package
 # is no longer needed. We may also be able to remove it with the next release of setuptools (65.6.3). It will no
@@ -50,9 +61,6 @@ RUN set -ex \
     libpq-dev \
     " \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
-    && pip install poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-dev \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
@@ -79,6 +87,7 @@ ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env
+
 RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' GS_CREDENTIALS_RAISE_ERROR_IF_UNSET="false" python manage.py collectstatic --noinput -i *.scss --no-default-ignore
 
 RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa

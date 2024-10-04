@@ -52,44 +52,21 @@ jobs:
         ports:
           - 5432:5432
     steps:
+      # Step to setup Python dependencies using reusable workflow
+      - name: Setup Python Dependencies
+        uses: ./.github/workflows/setup-python-deps.yml
+
+      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-      - name: Install correct Python version
-        run: uv python install 3.10
 
-      # load cached venv if cache exists
-      #----------------------------------------------
-      - name: Load cached venv
-        id: cached-uv-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key:
-            venv-${{ runner.os }}-${{ hashFiles('**/uv.lock') }}
-
-            #----------------------------------------------
-      #  Create virtual environment if cache does not exist
-      #----------------------------------------------
-      - name: Create virtual environment
-        if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
-        run: uv venv -p python3 .venv
-
-      #----------------------------------------------
-      # Sync dependencies using uv
-      #----------------------------------------------
-      - name: Sync dependencies
-        run: uv sync
-
+      # Run the tests without manually sourcing the virtual environment
       - name: Run tests
         run: |
-          source .venv/bin/activate
           touch .env
           make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
           GS_CREDENTIALS_RAISE_ERROR_IF_UNSET: "false"
+          PATH: .venv/bin:$PATH

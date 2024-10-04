@@ -52,14 +52,13 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      # Step to setup Python dependencies using reusable workflow
-      - name: Setup Python Dependencies
-        uses: ./.github/workflows/setup-python.yml
-
       # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step to setup Python dependencies using reusable workflow
+      - name: Setup Python Dependencies
+        uses: ./.github/workflows/setup-python.yml
       # Run the tests without manually sourcing the virtual environment
       - name: Run tests
         run: |

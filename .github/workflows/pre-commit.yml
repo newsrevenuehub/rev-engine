@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       # Call the reusable workflow to set up the environment
       - name: Setup Python Dependencies
         uses: ./.github/workflows/setup-python.yml

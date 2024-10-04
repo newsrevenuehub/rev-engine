@@ -55,7 +55,7 @@ To begin you should have the following applications installed on your local deve
 - Postgres >= 12
 - git >= 2.26
 - [Heroku and Heroku CLI](https://devcenter.heroku.com/categories/command-line)
-- Poetry == 1.1.6
+- uv >= 0.4
 
 ### 1. Get the project
 
@@ -95,10 +95,7 @@ NOTE: Any javascript components that rely on config vars **CANNOT** be set dynam
 
 #### Python dependencies
 
-NOTE: This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependency management.
-
-Unfortunately Poetry doesn't deal well with dependencies would typically be in the `deployment` category,
-so the best option in this case is to add them as a base dependency.
+NOTE: This project uses [uv](https://docs.astral.sh/uv/) for dependency and virtual environment management.
 
 ##### Initial installation
 
@@ -111,22 +108,22 @@ make setup
 If during development you need to add a dependency run:
 
 ```sh
-poetry add <NAME_OF_PACKAGE>
+uv add <NAME_OF_PACKAGE>
 ```
 
 If the dependency is a dev dependency, use the following:
 
 ```sh
-poetry add -D <NAME_OF_PACKAGE>
+uv add --dev <NAME_OF_PACKAGE>
 ```
 
 If you need to remove a dependency:
 
 ```sh
-poetry remove <NAME_OF_PACKAGE>
+uv remove <NAME_OF_PACKAGE>
 ```
 
-Adding or removing dependencies will automatically update the `pyproject.toml` file and the `poetry.lock` file.
+Note that unlike Poetry, uv does not automatically update the `pyproject.toml` file and `uv.lock` files after adding/removing dependencies. You'll want to manually add/remove from `pyproject.toml` and you'll want to run `uv lock` to update the lockfile.
 
 ### 4. Set up pre-commit
 

@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core import mail
 from django.db import IntegrityError
+from django.template.loader import render_to_string
 
 import pytest
 import reversion
@@ -1849,6 +1850,53 @@ class TestContributionModel:
         metadata = monthly_contribution.contribution_metadata
         metadata["amount"] = new_amount
         assert monthly_contribution.contribution_metadata == metadata
+        assert monthly_contribution.amount == new_amount
+
+    @pytest.mark.usefixtures("_mock_stripe_customer")
+    def test_sends_updated_email_when_update_subscription_amount_success(
+        self, monthly_contribution: Contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        new_amount = monthly_contribution.amount * 2
+        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="http://magic-link.com")
+        send_email_spy = mocker.patch("apps.emails.tasks.send_templated_email.delay")
+        monthly_contribution.update_subscription_amount(new_amount)
+
+        data = generate_email_data(
+            monthly_contribution,
+            custom_timestamp=(datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")),
+        )
+
+        currency = monthly_contribution.get_currency_dict()
+        formatted_amount = monthly_contribution.format_amount(
+            amount=new_amount, symbol=currency["symbol"], code=currency["code"]
+        )
+        assert send_email_spy.call_count == 1
+        assert send_email_spy.call_args[0][1] == "New change to your contribution"
+        assert send_email_spy.call_args[0][2] == render_to_string("recurring-contribution-amount-updated.txt", data)
+        assert send_email_spy.call_args[0][3] == render_to_string("recurring-contribution-amount-updated.html", data)
+        assert "New Amount:" in send_email_spy.call_args[0][2]
+        assert f"{formatted_amount}/month" in send_email_spy.call_args[0][2]
+        assert "New Amount:" in send_email_spy.call_args[0][3]
+        assert f"{formatted_amount}/month" in send_email_spy.call_args[0][3]
 
     @pytest.mark.parametrize(
         ("payment_data", "expected"),

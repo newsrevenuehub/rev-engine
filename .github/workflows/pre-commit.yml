@@ -6,6 +6,8 @@ on:
     branches: [main, develop]
 
 jobs:
+  setup-python:
+    uses: ./.github/workflows/setup-python.yml
   pre-commit:
     runs-on: ubuntu-latest
 

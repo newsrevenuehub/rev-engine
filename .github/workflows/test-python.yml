@@ -32,7 +32,11 @@ jobs:
               - 'poetry.lock'
               - 'pyproject.toml'
               - 'pytest.ini'
-  build_test_python:
+
+  setup-python:
+    uses: ./.github/workflows/setup-python.yml
+    needs: check-changes
+  test_python:
     needs: check-changes
     if: ${{ needs['check-changes'].outputs.django == 'true' }}
     runs-on: ubuntu-latest
@@ -56,10 +60,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step to setup Python dependencies using reusable workflow
-      - name: Setup Python Dependencies
-        uses: ./.github/workflows/setup-python.yml
-      # Run the tests without manually sourcing the virtual environment
+        # Run the tests without manually sourcing the virtual environment
       - name: Run tests
         run: |
           touch .env

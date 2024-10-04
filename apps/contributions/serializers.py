@@ -414,6 +414,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 "ip": get_original_ip_from_request(self.context["request"]),
                 "referer": self.context["request"].META.get("HTTP_REFERER"),
                 "reason_for_giving": data["reason_for_giving"],
+                "page": data["page"].id,
             }
             if country_code := self.context["request"].headers.get("Cf-Ipcountry", None):
                 data["country_code"] = country_code

@@ -202,15 +202,19 @@ class CustomizeAccountSerializer(serializers.Serializer):
             raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]}) from None
 
     def save(self, **kwargs):
-        name = self.handle_organization_name(self.validated_data["organization_name"])
         # The initial value for organization_name is guaranteed to be at most `CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH`
         # long at this point, which is 3 less than the max length of the Organization name field. The reason for the
         # 3 less is that we allow for handle_organization_name to take that already validated value and append up to
         # 3 characters to make it unique. That method is unit-tested elsewhere to prove that it raises
         # OrgNameNonUniqueError if it gets past `-99` in its attempts to make the name unique.
-        self.validated_data["organization_name"] = name
+        # Note that .handle_organization_name will raise a validation error here if the submitted name is non-unique and
+        # cannot be made unique.
+        self.validated_data["organization_name"] = (
+            name := self.handle_organization_name(self.validated_data["organization_name"])
+        )
         # This is guaranteed to meet length requirements because internally .generate_slug_from_name ensures max length
-        # doesn't exceed the value set for max length on Organization.slug
+        # doesn't exceed the value set for max length on Organization.slug.
+        # Also note that `.generate_slug_from_name` will raise a validation error here if resulting slug is non-unique.
         self.validated_data["organization_slug"] = Organization.generate_slug_from_name(name)
         return super().save(**kwargs)
 

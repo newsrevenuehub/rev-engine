@@ -232,6 +232,12 @@ class TestOrganization:
         Organization.generate_slug_from_name(name := "test")
         mock_normalize_slug.assert_called_once_with(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
+    def test_generate_slug_from_name_when_slug_exists(self, mocker):
+        slug = Organization.generate_slug_from_name(name := "test")
+        OrganizationFactory(slug=slug, name=name)
+        with pytest.raises(ValidationError):
+            Organization.generate_slug_from_name(name)
+
     def test_downgrade_to_free_plan_happy_path(self, organization_on_core_plan_with_mailchimp_set_up, mocker):
         rp_count = 1
         assert organization_on_core_plan_with_mailchimp_set_up.plan_name == Plans.CORE.name

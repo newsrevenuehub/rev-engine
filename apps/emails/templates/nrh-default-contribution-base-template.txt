@@ -3,14 +3,14 @@
 {% endblock header %}
 
 ------------------------
-Contribution Details:
+{% block contribution_header %}Contribution Details{% endblock contribution_header %}:
 
 {% block timestamp_label %}{% endblock timestamp_label %}: {{ timestamp }}
 Email: {{ contributor_email }}
 {% if contribution_interval == "one_time" %}
-Amount Contributed: {{ contribution_amount }}
+{% block amount_label_one_time %}Amount Contributed{% endblock amount_label_one_time %}: {{ contribution_amount }}
 {% else %}
-Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
+{% block amount_label_recurring %}Amount Contributed{% endblock amount_label_recurring %}: {{ contribution_amount }}/{{ contribution_interval_display_value }}
 {% endif %}
 {% block contribution_footer %}
 No goods or services were provided in exchange for this contribution.

@@ -16,6 +16,7 @@ PERMITTED_TEMPLATES = tuple(
             "recurring-contribution-email-reminder",
             "recurring-contribution-canceled",
             "recurring-contribution-payment-updated",
+            "recurring-contribution-amount-updated",
             "nrh-default-contribution-confirmation-email",
         ]
         for ext in ["html", "txt"]

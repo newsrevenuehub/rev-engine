@@ -1,0 +1,14 @@
+{% extends "nrh-default-contribution-base-template.txt" %}
+
+{% block header %}
+New Change to Your Contribution
+
+Dear {{ contributor_name }},
+
+You've recently changed the contribution amount for your contribution to {{ rp_name }}.
+{% endblock header %}
+
+{% block contribution_header %}Contribution Changed{% endblock contribution_header %}:
+{% block timestamp_label %}Date Changed{% endblock timestamp_label %}
+{% block amount_label_one_time %}New Amount{% endblock amount_label_one_time %}
+{% block amount_label_recurring %}New Amount{% endblock amount_label_recurring %}

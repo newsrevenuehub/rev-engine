@@ -63,6 +63,10 @@ jobs:
       - name: Install make (required for running tests)
         run: sudo apt-get update && sudo apt-get install -y make
 
+      # Confirm make is installed and in PATH
+      - name: Check if make is installed
+        run: which make
+
         # Run the tests without manually sourcing the virtual environment
       - name: Run tests
         run: make run-tests

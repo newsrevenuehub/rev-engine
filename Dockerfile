@@ -30,6 +30,7 @@ RUN set -ex \
     mime-support \
     postgresql-client \
     vim \
+    make \
     curl \
     gcc \
     build-essential \

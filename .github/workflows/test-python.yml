@@ -65,9 +65,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          key: python-deps-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            python-deps-${{ runner.os }}-
 
         # Run the tests without manually sourcing the virtual environment
       - name: Run tests

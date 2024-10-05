@@ -60,6 +60,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install make (required for running tests)
+        run: sudo apt-get update && sudo apt-get install -y make
+
         # Run the tests without manually sourcing the virtual environment
       - name: Run tests
         run: make run-tests

@@ -54,7 +54,7 @@ repos:
     hooks:
       # This creates requirements.txt from uv.lock that can be consumed
       # by pre-commit-hooks-safety (below), which at time of comment does
-      # not support .toml files with uv ()
+      # not support .toml files with uv (pyproject.toml only supported with poetry).
       - id: uv-export
         name: Export requirements
         args: ["--frozen", "--output-file", "requirements.txt"]  #

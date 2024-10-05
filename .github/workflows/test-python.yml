@@ -60,13 +60,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Re-use the same cache as in setup-python job
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
         # Run the tests without manually sourcing the virtual environment
       - name: Run tests
-        # This is needed so make can be used
-        shell: bash
         run: make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
           GS_CREDENTIALS_RAISE_ERROR_IF_UNSET: "false"
+          # need to add the virtual environment to the path and ensure make command is available
           PATH: /usr/bin:/usr/local/bin:/bin:/venv/bin:$PATH

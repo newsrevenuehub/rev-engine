@@ -62,9 +62,7 @@ jobs:
 
         # Run the tests without manually sourcing the virtual environment
       - name: Run tests
-        run: |
-          touch .env
-          make run-tests
+        run: make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres

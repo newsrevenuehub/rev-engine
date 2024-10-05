@@ -2,6 +2,7 @@ name: Build and Test Python
 
 on:
   workflow_call:
+
 jobs:
   setup-python:
     runs-on: ubuntu-latest
@@ -22,5 +23,5 @@ jobs:
       - name: Upload python environment as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: python-env
+          name: python-venv
           path: .venv # Assuming the virtual environment is in `.venv`

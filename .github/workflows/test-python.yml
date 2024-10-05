@@ -60,18 +60,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Re-use the same cache as in setup-python job
-      - name: Cache pip
-        uses: actions/cache@v3
+      - name: Download python build artifact
+        uses: actions/download-artifact@v3
         with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
-          restore-keys: |
-            python-deps-${{ runner.os }}-
+          name: python-deps
+          path: .venv
 
-        # Run the tests without manually sourcing the virtual environment
       - name: Run tests
-        run: make run-tests
+        run: source venv/bin/activate && make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres

@@ -1,33 +1,29 @@
-name: Setup Python Environment
+name: Build and Test Python
 
 on:
-  workflow_call:
+  pull_request:
+  push:
+    branches: [main, develop]
 
 jobs:
-  setup:
+  setup-python:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the code so the workflow has access to the repository
+      # Checkout the code
       - uses: actions/checkout@v4
 
-      # Set up the correct Python version
-      - uses: actions/setup-python@v5
+      # Use setup-uv to install and sync dependencies,
+      - name: Setup UV environment
+        uses: astral-sh/setup-uv@v1
         with:
-          python-version: "3.10"
+          enable-cache: true
 
-      # Cache the dependencies to speed up future builds
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
-          restore-keys: |
-            python-deps-${{ runner.os }}-
-
-      # Install uv
-      - name: Install uv
-        run: pip install uv
-
-      # Sync dependencies with uv
-      - name: Sync dependencies with uv
+      - name: Install dependencies
         run: uv sync
+
+      # Upload the virtual environment as an artifact so other workflows can use it
+      - name: Upload python environment as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-env
+          path: .venv # Assuming the virtual environment is in `.venv`

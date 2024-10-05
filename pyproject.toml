@@ -146,7 +146,7 @@ dev-dependencies = [
     "pre-commit>=3.8.0",
     "pyaml>=24.9.0",
     "pytest>=7,<8", # temporarily pinned due to pytest-asyncio not support pytest 8 https://github.com/pytest-dev/pytest-asyncio/issues/737
-    "pytest-celery>=0,<1",
+    "pytest-celery>=1.0.1,<2",
     "pytest-cov>=3,<4",
     "pytest-django",
     "pytest-mock",

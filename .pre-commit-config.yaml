@@ -48,15 +48,17 @@ repos:
     hooks:
       - id: ruff
         args: [ --fix ]
-  - repo: local
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.4.18
     hooks:
-      # Custom hook to generate requirements.txt dynamically
-      - id: generate-requirements
-        name: Generate requirements.txt from uv.lock
-        entry: bash -c 'uv export --format=requirements-txt > requirements.txt'
-        language: system
-        pass_filenames: false
-        always_run: true
+      # This creates requirements.txt from uv.lock that can be consumed
+      # by pre-commit-hooks-safety (below), which at time of comment does
+      # not support .toml files with uv ()
+      - id: uv-export
+        name: Export requirements
+        args: ["--frozen", "--output-file", "requirements.txt"]  #
+
   # Check Python dependencies against p0wned package database.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
     rev: v1.3.3
@@ -64,10 +66,12 @@ repos:
       # Run the safety check against the dynamically generated requirements.txt
       - id: python-safety-dependencies-check
         name: Run python-safety-dependencies-check
-        files: requirements.txt
         args: [
-          "--ignore=66963", # djangorestframework-simplejwt <= 5.3.1, no fixed version available yet
+          "-r",
+          "requirements.txt",
+          "--ignore=66963" # djangorestframework-simplejwt <= 5.3.1, no fixed version available yet
         ]
+
 
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman

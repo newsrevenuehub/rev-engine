@@ -62,10 +62,11 @@ jobs:
 
         # Run the tests without manually sourcing the virtual environment
       - name: Run tests
+        # This is needed so make can be used
         shell: bash
         run: make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
           GS_CREDENTIALS_RAISE_ERROR_IF_UNSET: "false"
-          PATH: .venv/bin:$PATH
+          PATH: /usr/bin:/usr/local/bin:/bin:/venv/bin:$PATH

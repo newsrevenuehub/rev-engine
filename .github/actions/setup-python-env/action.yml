@@ -1,0 +1,17 @@
+name: "Setup Python"
+description: "Setup Python environment for use in other workflows"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - name: Setup UV environment
+      uses: astral-sh/setup-uv@v1
+      with:
+        enable-cache: true
+    - name: Create virtual environment and install dependencies
+      shell: bash
+      run: |
+        uv venv
+        uv sync
+        echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+        echo "PATH=$PWD/.venv/bin:$PATH" >> $GITHUB_ENV

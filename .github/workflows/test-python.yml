@@ -33,9 +33,6 @@ jobs:
               - 'pyproject.toml'
               - 'pytest.ini'
 
-  setup-python:
-    uses: ./.github/workflows/setup-python.yml
-    needs: check-changes
   test_python:
     needs: check-changes
     if: ${{ needs['check-changes'].outputs.django == 'true' }}
@@ -60,11 +57,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download python build artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: python-venv
-          path: .venv
+      - name: Setup Python
+        uses: ./.github/actions/setup-python-env
 
       - name: Run tests
         run: source .venv/bin/activate && make run-tests

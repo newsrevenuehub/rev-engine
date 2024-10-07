@@ -152,12 +152,14 @@
                         </p>
                         {% if contribution_interval == "one_time" %}
                         <p class="contribution-details">
-                          <span class="contribution-details-strong">Amount Contributed:</span>
+                          <span class="contribution-details-strong">
+                            {% block amount_label_one_time %}Amount Contributed{% endblock amount_label_one_time %}:
+                          </span>
                           {{ contribution_amount }}
                         </p>
                         {% else %}
                         <p class="contribution-details">
-                          <span class="contribution-details-strong">Amount Contributed:</span>
+                          <span class="contribution-details-strong">{% block amount_label_recurring %}Amount Contributed{% endblock amount_label_recurring %}:</span>
                           {{ contribution_amount }}/{{ contribution_interval_display_value }}
                         </p>
                         {% endif %}

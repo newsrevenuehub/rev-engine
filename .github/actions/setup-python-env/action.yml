@@ -10,10 +10,4 @@ runs:
         enable-cache: true
     - name: Create virtual environment and install dependencies
       shell: bash
-      run: |
-        uv venv
-        uv python -m ensurepip --upgrade
-        uv pip install --upgrade pip
-        uv sync
-        echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
-        echo "PATH=$PWD/.venv/bin:$PATH" >> $GITHUB_ENV
+      run: uv sync --frozen --python-preference=system

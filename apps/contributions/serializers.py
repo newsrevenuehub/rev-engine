@@ -423,7 +423,12 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             serializer.is_valid(raise_exception=True)
             return get_bad_actor_score(serializer.validated_data)
         except serializers.ValidationError as exc:
-            logger.warning("BadActor serializer raised a ValidationError", exc_info=exc)
+            logger.warning(
+                "BadActor serializer raised a ValidationError. `data` passed to func was %s\n data passed to `get_bad_actor_score` was %s ",
+                data,
+                serializer_data,
+                exc_info=exc,
+            )
             return None
         except BadActorAPIError:
             logger.exception("BadActor API request failed communicating with API")

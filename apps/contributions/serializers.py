@@ -397,7 +397,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         Note that this method is meant to be ironclad against exceptions. If anything goes wrong, it should return None.
         """
         try:
-            data = {
+            serializer_data = {
                 "amount": data["amount"],
                 "first_name": data["first_name"],
                 "last_name": data["last_name"],
@@ -417,9 +417,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 "page": data["page"].id,
             }
             if country_code := self.context["request"].headers.get("Cf-Ipcountry", None):
-                data["country_code"] = country_code
-            logger.info("BadActorSerializer data: %s", data)
-            serializer = BadActorSerializer(data=data)
+                serializer_data["country_code"] = country_code
+            logger.info("BadActorSerializer data: %s", serializer_data)
+            serializer = BadActorSerializer(data=serializer_data)
             serializer.is_valid(raise_exception=True)
             return get_bad_actor_score(serializer.validated_data)
         except serializers.ValidationError as exc:

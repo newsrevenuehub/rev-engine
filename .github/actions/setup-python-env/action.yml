@@ -1,5 +1,5 @@
-name: "Setup Python"
-description: "Setup Python environment for use in other workflows"
+name: "Setup Python and dependencies"
+description: "Setup Python environment and dependencies in a workflow"
 runs:
   using: "composite"
   steps:
@@ -8,6 +8,10 @@ runs:
       uses: astral-sh/setup-uv@v1
       with:
         enable-cache: true
+        python-version: "3.10"
     - name: Create virtual environment and install dependencies
       shell: bash
+      # --frozen ensures that the lock file is used and no updates
+      # and the python preference is to ensure we use system Python,
+      # which is what we want in CI.
       run: uv sync --frozen --python-preference=system

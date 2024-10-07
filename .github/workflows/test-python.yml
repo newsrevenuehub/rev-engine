@@ -75,5 +75,3 @@ jobs:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
           GS_CREDENTIALS_RAISE_ERROR_IF_UNSET: "false"
-          # need to add the virtual environment to the path and ensure make command is available
-          PATH: /usr/bin:/usr/local/bin:/bin:/venv/bin:$PATH

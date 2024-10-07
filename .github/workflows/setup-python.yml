@@ -16,7 +16,7 @@ jobs:
         with:
           enable-cache: true
       - name: Create virtual environment
-        run: uv venv --path .venv
+        run: uv venv .venv
       - name: Install dependencies
         run: uv sync
       # Upload the virtual environment as an artifact so other workflows can use it

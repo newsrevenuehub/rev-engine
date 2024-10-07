@@ -68,7 +68,7 @@ jobs:
           uv python install 3.10 --python-preference=system
           uv sync --frozen --python-preference=system
 
-      - name: Run testsuv
+      - name: Run tests
         run: make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev

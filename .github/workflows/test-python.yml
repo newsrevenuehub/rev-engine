@@ -57,8 +57,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: ./.github/actions/setup-python-env
+      - uses: astral-sh/setup-uv@v1
+        with:
+          enable-cache: true
+
+      - name: Setup Python and dependencies
+        run: uv sync --frozen --python-preference=system
 
       - name: Run tests
         run: make run-tests

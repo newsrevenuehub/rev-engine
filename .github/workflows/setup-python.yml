@@ -16,7 +16,7 @@ jobs:
         with:
           enable-cache: true
       - name: Create virtual environment
-        run: uv venv .venv
+        run: uv venv /home/runner/work/rev-engine/.venv
       - name: Install dependencies
         run: uv sync
       # Upload the virtual environment as an artifact so other workflows can use it
@@ -24,4 +24,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: python-venv
-          path: .venv
+          path: /home/runner/work/rev-engine/.venv

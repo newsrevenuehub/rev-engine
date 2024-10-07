@@ -65,10 +65,10 @@ jobs:
 
       - name: Set up Python and dependencies
         run: |
-          uv python install 3.10
+          uv python install 3.10 --python-preference=system
           uv sync --frozen --python-preference=system
 
-      - name: Run tests
+      - name: Run testsuv
         run: make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev

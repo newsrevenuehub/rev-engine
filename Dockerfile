@@ -1,8 +1,8 @@
 # Stage 1: Build static files using Node.js
-FROM node:16-slim as static_files
+FROM node:16-slim AS static_files
 
 WORKDIR /code
-ENV PATH /code/node_modules/.bin:$PATH
+ENV PATH=/code/node_modules/.bin:$PATH
 COPY ./spa/package.json ./spa/package-lock.json /code/
 
 # Skip installing Cypress binaries and security/funding audits, use package-lock.json strictly
@@ -12,7 +12,7 @@ WORKDIR /code/spa/
 RUN npm run build
 
 # Stage 2: Base Python image
-FROM python:3.10-slim as base
+FROM python:3.10-slim AS base
 
 # Copy uv tool
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv

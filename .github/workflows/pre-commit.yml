@@ -10,10 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: "--all-files"
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1

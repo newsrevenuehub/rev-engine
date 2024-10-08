@@ -99,9 +99,13 @@ NOTE: This project uses [uv](https://docs.astral.sh/uv/) for dependency and virt
 
 ##### Initial installation
 
+Ensure you have a system version of Python and uv installed.
+
 ```sh
 make setup
 ```
+
+This command will create a virtual environment in the project directory at `/.venv` and will install dependencies (inclusive of dev deps).
 
 ##### How to add and remove dependencies
 

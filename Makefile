@@ -26,7 +26,7 @@ update_requirements:
 
 install_requirements:
 	@echo 'Installing project requirements...'
-	uv sync
+	uv sync --frozen
 
 setup:
 	@echo 'Setting up the environment...'

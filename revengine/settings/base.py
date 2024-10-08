@@ -393,6 +393,10 @@ CSP_SCRIPT_SRC = (
     "https://pay.google.com",
     "https://connect.facebook.net",
     "https://ajax.googleapis.com",
+    "https://static.cloudflareinsights.com",
+    "https://cdnjs.cloudflare.com",
+    "https://dash.parsely.com",
+    "https://cdn.parsely.com",
     "https://use.typekit.net",
 )
 CSP_STYLE_SRC = (
@@ -421,6 +425,7 @@ CSP_FRAME_SRC = (
     "https://recaptcha.google.com/recaptcha/",
     "https://pay.google.com",
     "https://www.facebook.com",
+    "https://td.doubleclick.net",
 )
 CSP_CONNECT_SRC = (
     "'self'",
@@ -428,6 +433,8 @@ CSP_CONNECT_SRC = (
     "https://maps.googleapis.com",
     "https://*.ingest.sentry.io",
     "https://risk.clearbit.com",
+    "https://static.cloudflareinsights.com",
+    "https://p1.parsely.com",
 )
 CSP_OBJECT_SRC = ("'none'",)
 

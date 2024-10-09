@@ -41,15 +41,15 @@ interface GenericThankYouRouteState {
 function GenericThankYou() {
   // Using the useLocation<GenericThankYouRouteState>() doesn't seem to type the
   // result correctly. Probably fixed in a later version of react-router-dom.
-  const routedState = useLocation().state as GenericThankYouRouteState;
+  const routedState = useLocation().state as GenericThankYouRouteState | undefined;
   const { analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
-  useWebFonts(routedState.page?.styles?.font);
+  useWebFonts(routedState?.page?.styles?.font);
 
   // Set up analytics if we haven't already. This has to be an effect because
   // we're changing a parent component's state (AnalyticsContextProvider).
 
   useEffect(() => {
-    if (!analyticsInstance && routedState.page?.revenue_program) {
+    if (!analyticsInstance && routedState?.page?.revenue_program) {
       const { revenue_program } = routedState.page;
 
       setAnalyticsConfig({
@@ -60,18 +60,18 @@ function GenericThankYou() {
         orgGaV4Id: revenue_program.google_analytics_v4_id
       });
     }
-  }, [analyticsInstance, routedState.page, setAnalyticsConfig]);
+  }, [analyticsInstance, routedState?.page, setAnalyticsConfig]);
 
   // If the state we need doesn't exist, redirect to the parent donation page.
   // This takes advantage of the fact that our routing structure is
   // donation-page-slug/thank-you/.
 
   if (
-    !routedState.amount ||
-    !routedState.donationPageUrl ||
-    !routedState.email ||
-    !routedState.frequencyText ||
-    !routedState.page
+    !routedState?.amount ||
+    !routedState?.donationPageUrl ||
+    !routedState?.email ||
+    !routedState?.frequencyText ||
+    !routedState?.page
   ) {
     return <Redirect to="../" />;
   }

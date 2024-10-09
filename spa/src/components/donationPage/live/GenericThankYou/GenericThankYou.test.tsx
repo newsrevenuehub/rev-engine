@@ -57,6 +57,12 @@ describe('GenericThankYou', () => {
     }
   );
 
+  it("redirects up a directory if state is undefined (and doesn't break page)", () => {
+    useLocationMock.mockReturnValue({ state: undefined });
+    tree();
+    expect(screen.getByTestId('mock-redirect')).toHaveTextContent('../');
+  });
+
   describe('When needed state is present in the location', () => {
     it('configures analytics with the Hub and revenue program properties', () => {
       useLocationMock.mockReturnValue({

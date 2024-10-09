@@ -290,6 +290,14 @@ describe('DDonorAddress', () => {
       // TODO: country field in DEV-2691
     });
 
+    it("doesn't error if the google.maps namespace isn't defined even if loading is reported to work", () => {
+      delete (google as any).maps;
+      expect(tree).not.toThrow();
+
+      // Recreate the mock we just deleted.
+      initialize();
+    });
+
     it("defaults fields that don't appear in the API response to empty strings", async () => {
       tree();
       mockPlaceAutocomplete([

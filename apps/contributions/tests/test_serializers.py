@@ -777,6 +777,14 @@ class TestBaseCreatePaymentSerializer:
         assert mock_get_bad_actor_score.call_args[0][0]["state"] == serializer.validated_data["mailing_state"]
         assert mock_get_bad_actor_score.call_args[0][0]["country"] == serializer.validated_data["mailing_country"]
         assert mock_get_bad_actor_score.call_args[0][0]["zipcode"] == serializer.validated_data["mailing_postal_code"]
+        assert mock_get_bad_actor_score.call_args[0][0]["complement"] == serializer.validated_data["mailing_complement"]
+        assert mock_get_bad_actor_score.call_args[0][0]["captcha_token"] == serializer.validated_data["captcha_token"]
+        assert mock_get_bad_actor_score.call_args[0][0]["ip"] == request.META["REMOTE_ADDR"]
+        assert mock_get_bad_actor_score.call_args[0][0]["referer"] == request.META["HTTP_REFERER"]
+        assert (
+            mock_get_bad_actor_score.call_args[0][0]["reason_for_giving"]
+            == serializer.validated_data["reason_for_giving"]
+        )
 
     @pytest.mark.parametrize(
         "country_code",

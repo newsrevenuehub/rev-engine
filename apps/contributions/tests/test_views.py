@@ -1480,7 +1480,7 @@ class TestPortalContributorsViewSet:
             contributor=portal_contributor,
             provider_payment_id=faker.pystr_format(string_format="pi_??????"),
             provider_customer_id=faker.pystr_format(string_format="cus_??????"),
-            provider_subscription_id=stripe_subscription.id,
+            provider_subscription_id=faker.pystr_format(string_format="sub_??????"),
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
         for x in (then, then + datetime.timedelta(days=30)):
@@ -1510,7 +1510,7 @@ class TestPortalContributorsViewSet:
             contributor=portal_contributor,
             provider_payment_id=faker.pystr_format(string_format="pi_??????"),
             provider_customer_id=faker.pystr_format(string_format="cus_??????"),
-            provider_subscription_id=stripe_subscription.id,
+            provider_subscription_id=faker.pystr_format(string_format="sub_??????"),
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
         for x in (then, then + datetime.timedelta(days=365)):
@@ -1579,7 +1579,7 @@ class TestPortalContributorsViewSet:
             contributor=contributor,
             provider_payment_id=faker.pystr_format(string_format="pi_??????"),
             provider_customer_id=faker.pystr_format(string_format="cus_??????"),
-            provider_subscription_id=stripe_subscription.id,
+            provider_subscription_id=faker.pystr_format(string_format="sub_??????"),
             provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
         return contributor

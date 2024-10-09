@@ -7,13 +7,9 @@ import jwt
 import pytest
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
-from rest_framework.test import force_authenticate
-from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
-from apps.api.permissions import IsContributor
-from apps.contributions.tests.factories import ContributorFactory
 
 
 user_model = get_user_model()

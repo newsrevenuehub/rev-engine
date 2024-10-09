@@ -80,7 +80,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
             contribution={contribution}
             disabled={!!editableSection && editableSection !== 'billingDetails'}
             enableEditMode={
-              contribution.is_modifiable && page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.PLUS
+              contribution.is_modifiable && page?.revenue_program?.organization?.plan?.name !== PLAN_NAMES.FREE
             }
             editable={editableSection === 'billingDetails' && contribution.is_modifiable}
             onEdit={() => setEditableSection('billingDetails')}

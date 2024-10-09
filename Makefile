@@ -1,4 +1,6 @@
 
+VENV_DIR="./.venv"
+
 test: run-tests
 
 
@@ -22,14 +24,16 @@ clean:
 
 update_requirements:
 	@echo 'Updating the requirements...'
-	poetry update
+	uv lock --upgrade
 
 install_requirements:
 	@echo 'Installing project requirements...'
-	poetry install --no-root
+	uv sync --frozen
 
 setup:
 	@echo 'Setting up the environment...'
+	@test -d $(VENV_DIR) || uv venv $(VENV_DIR) && echo "Virtual environment created at $(VENV_DIR)"
+	source $(VENV_DIR)/bin/activate
 	make install_requirements
 
 run-dev:

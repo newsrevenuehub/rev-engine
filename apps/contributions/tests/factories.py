@@ -12,7 +12,6 @@ import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
-from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
 from apps.contributions.serializers import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import PaymentProvider
@@ -58,6 +57,10 @@ THEN = NOW - datetime.timedelta(weeks=52)
 
 def _random_stripe_str(length: int = 10) -> str:
     return "".join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
+
+
+def generate_random_datetime(start, end):
+    return start + datetime.timedelta(seconds=random.randint(0, int((end - start).total_seconds())))
 
 
 class ContributionFactory(DjangoModelFactory):

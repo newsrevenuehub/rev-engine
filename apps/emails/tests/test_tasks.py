@@ -1,7 +1,5 @@
 import datetime
 from dataclasses import asdict
-from unittest import TestCase
-from unittest.mock import Mock, call, patch
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -176,10 +174,10 @@ class TestSendThankYouEmail:
         [False, True],
     )
     def test_contribution_confirmation_email_style(
-        self, revenue_program: RevenueProgramFactory, default_style: bool, monkeypatch
+        self, revenue_program: RevenueProgramFactory, default_style: bool, monkeypatch, mocker
     ):
         customer = AttrDict({"name": "Foo Bar"})
-        mock_customer_retrieve = Mock()
+        mock_customer_retrieve = mocker.Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         contribution = ContributionFactory(provider_customer_id="something", interval=ContributionInterval.ONE_TIME)
@@ -242,7 +240,7 @@ class TestSendThankYouEmail:
         self, fiscal_status, has_tax_id, monkeypatch, mocker
     ):
         customer = AttrDict({"name": "Foo Bar"})
-        mock_customer_retrieve = Mock()
+        mock_customer_retrieve = mocker.Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         contribution = ContributionFactory(
@@ -325,9 +323,10 @@ class TestSendThankYouEmail:
             assert x not in mail.outbox[0].alternatives[0][0]
 
 
-class TestTaskStripeContributions(TestCase):
-    @patch("apps.emails.tasks.EmailMultiAlternatives")
-    def test_task_pull_serialized_stripe_contributions_to_cache(self, email_message):
+class TestTaskStripeContributions:
+
+    def test_task_pull_serialized_stripe_contributions_to_cache(self, mocker):
+        email_message = mocker.patch("apps.emails.tasks.EmailMultiAlternatives")
         data = {
             "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
         }
@@ -341,9 +340,11 @@ class TestTaskStripeContributions(TestCase):
             "contributions.csv",
         )
         calls = [
-            call().attach(filename="contributions.csv", content=b"data", mimetype="text/csv"),
-            call().attach_alternative(render_to_string("nrh-contribution-csv-email-body.html", data), "text/html"),
-            call().send(),
+            mocker.call().attach(filename="contributions.csv", content=b"data", mimetype="text/csv"),
+            mocker.call().attach_alternative(
+                render_to_string("nrh-contribution-csv-email-body.html", data), "text/html"
+            ),
+            mocker.call().send(),
         ]
         email_message.assert_has_calls(calls)
         expect_missing = (

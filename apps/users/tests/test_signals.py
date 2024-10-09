@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from apps.google_cloud.pubsub import Message
@@ -17,16 +15,16 @@ from apps.users.tests.factories import create_test_user
         (True, True, "topic"),
     ],
 )
-@patch("apps.users.signals.Publisher")
 @pytest.mark.django_db
-def test_user_post_save_handler(publisher, gcloud_configured, created, user_topic, monkeypatch):
+def test_user_post_save_handler(gcloud_configured, created, user_topic, monkeypatch, mocker):
+    publisher = mocker.patch("apps.users.signals.Publisher")
     user_topic = "topic"
     monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", user_topic)
     monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", "True")
-    instance = MagicMock()
+    instance = mocker.MagicMock()
     publisher.get_instance.return_value = instance
     user = create_test_user()
-    user_post_save_handler(sender=MagicMock(), instance=user, created=created)
+    user_post_save_handler(sender=mocker.MagicMock(), instance=user, created=created)
     if not gcloud_configured or not created or not user_topic:
         assert not publisher.called
     elif gcloud_configured:

@@ -7,7 +7,6 @@ from django.utils import timezone
 
 import pytest
 
-from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
@@ -31,9 +30,9 @@ def test__get_screenshot_upload_path(mocker):
 
 
 @pytest.fixture
-def default_logo():
+def default_logo(test_jpeg_file):
     default_logo = DefaultPageLogo.get_solo()
-    default_logo.logo = get_test_image_file_jpeg()
+    default_logo.logo = test_jpeg_file
     default_logo.save()
     return default_logo
 

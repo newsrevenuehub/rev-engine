@@ -42,9 +42,7 @@ describe('PortalPage', () => {
   beforeEach(() => {
     axiosMock.onGet(LIVE_PAGE_DETAIL).reply(200, page);
   });
-
   afterEach(() => axiosMock.reset());
-
   afterAll(() => axiosMock.restore());
 
   function tree(props?: PortalPageProps) {
@@ -69,28 +67,32 @@ describe('PortalPage', () => {
   const assertContentIsRendered = async () => {
     await screen.findByTestId('mock-track-page-view');
     expect(screen.getByTestId('mock-segregated-styles')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-donation-page-header')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-content-component')).toBeInTheDocument();
     expect(screen.getByText('Powered by')).toBeVisible();
     expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
   };
 
-  // expects() are in function above.
-  /* eslint-disable jest/expect-expect */
-
   it('should have expected default appearance and initial state', async () => {
     tree();
     await assertContentIsRendered();
+    expect(screen.getByTestId('mock-donation-page-header')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-content-component')).toBeInTheDocument();
   });
 
-  it('should render normally even if no page data', async () => {
+  it('should render 404 if page is not found', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    axiosMock.onGet(LIVE_PAGE_DETAIL).reply(404);
+    tree();
+    await screen.findByTestId('mock-track-page-view');
+    await expect(screen.getByTestId('live-page-404')).toBeInTheDocument();
+  });
+
+  it('should render 404 if network error', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     axiosMock.onGet(LIVE_PAGE_DETAIL).networkError();
     tree();
     await assertContentIsRendered();
+    await expect(screen.getByTestId('live-page-404')).toBeInTheDocument();
   });
-
-  /* eslint-enable jest/expect-expect */
 
   it('should call useWebFonts with page styles font', async () => {
     tree();

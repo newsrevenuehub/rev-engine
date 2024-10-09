@@ -31,4 +31,6 @@ describe('hasContributionsDashboardAccessToUser', () => {
     expect(
       hasContributionsSectionAccess({ flags: [contributionsSectionAccessFlag], role_type: undefined } as any)
     ).toBe(false));
+
+  it('returns false if user is undefined', () => expect(hasContributionsSectionAccess(undefined)).toBe(false));
 });

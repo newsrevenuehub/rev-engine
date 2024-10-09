@@ -17,7 +17,7 @@ jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/usePublishedPage');
 jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('hooks/useWebFonts');
-jest.mock('components/common/LivePage404', () => () => <div data-testid="mock-live-page-404"></div>);
+jest.mock('components/common/LivePage404/LivePage404', () => () => <div data-testid="mock-live-page-404"></div>);
 jest.mock('components/donationPage/ContributionPageI18nProvider');
 jest.mock('components/donationPage/DonationPage');
 

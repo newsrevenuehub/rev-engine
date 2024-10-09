@@ -11,6 +11,7 @@ import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
 import { useConfigureAnalytics } from 'components/analytics';
+import LivePage404 from 'components/common/LivePage404/LivePage404';
 
 const PortalPagePropTypes = {
   children: PropTypes.any,
@@ -23,7 +24,7 @@ export interface PortalPageProps extends InferProps<typeof PortalPagePropTypes> 
 }
 
 function PortalPage({ children, className }: PortalPageProps) {
-  const { page, pageIsFetched, enablePageFetch } = usePortal();
+  const { page, isPageLoading, isPageError } = usePortal();
 
   const isFreeOrg = page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.FREE;
   const hasDefaultDonationPage = !!page?.revenue_program?.default_donation_page;
@@ -33,8 +34,8 @@ function PortalPage({ children, className }: PortalPageProps) {
   useWebFonts(page?.styles?.font);
   useConfigureAnalytics();
 
-  // If rp has no default page, normal contributor page is shown
-  if (enablePageFetch && !page && !pageIsFetched) return null;
+  // If rp has no default page, show 404
+  if (!page && isPageLoading) return null;
 
   return (
     <TrackPageView>
@@ -47,7 +48,7 @@ function PortalPage({ children, className }: PortalPageProps) {
               <Logo src={NRELogo} alt="News Revenue Engine" />
             </Header>
           )}
-          {children}
+          {!page && isPageError ? <LivePage404 hideRedirect /> : children}
           <PoweredBy>
             <span>Powered by</span>
             <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">

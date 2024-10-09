@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { GlobalLoading } from 'components/common/GlobalLoading';
-import LivePage404 from 'components/common/LivePage404';
+import LivePage404 from 'components/common/LivePage404/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import PageTitle from 'elements/PageTitle';
@@ -39,7 +39,7 @@ function PublishedDonationPage() {
   }, [page?.revenue_program, setAnalyticsConfig]);
 
   if (isError) {
-    return <LivePage404 dashboard={false} />;
+    return <LivePage404 hideRedirect={false} />;
   }
 
   if (isLoading || !page) {
@@ -53,7 +53,7 @@ function PublishedDonationPage() {
 
   if (!page.revenue_program) {
     console.error(`Page object has no revenue_program.name property: ${JSON.stringify(page)}`);
-    return <LivePage404 dashboard={false} />;
+    return <LivePage404 hideRedirect={false} />;
   }
 
   return (

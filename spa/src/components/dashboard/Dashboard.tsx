@@ -20,7 +20,7 @@ import {
 // Children
 import Profile from 'components/account/Profile';
 import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
-import LivePage404 from 'components/common/LivePage404';
+import LivePage404 from 'components/common/LivePage404/LivePage404';
 import Content from 'components/content/Content';
 import CustomizeRoute from 'components/content/CustomizeRoute';
 import ContributorPortalRoute from 'components/content/ContributorPortalRoute';
@@ -122,7 +122,7 @@ function Dashboard() {
                 <Profile />
               </SentryRoute>
               <SentryRoute>
-                <LivePage404 dashboard />
+                <LivePage404 hideRedirect />
               </SentryRoute>
             </Switch>
           </S.DashboardContent>

@@ -1,6 +1,5 @@
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import MagicMock, Mock, call
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -17,7 +16,6 @@ from stripe.error import StripeError
 
 import apps
 from apps.common.models import SocialMeta
-from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.models import Contribution
@@ -131,7 +129,7 @@ class TestOrganization:
 
     def test_stripe_subscription_when_exists(self, organization, mocker):
         organization.stripe_subscription_id = "sub_123"
-        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := Mock()))
+        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.Mock()))
         assert organization.stripe_subscription == mock_sub
 
     def test_has_expected_plans(self):
@@ -298,7 +296,7 @@ def revenue_program_with_no_default_donation_page():
 
 
 @pytest.fixture
-def revenue_program_with_default_donation_page_all_transactional_email_style_values():
+def revenue_program_with_default_donation_page_all_transactional_email_style_values(test_jpeg_file):
     # need to guarantee we get a unique name property because otherwise a pre-existing style could be retrieved
     # and we want net new
     style = StyleFactory()
@@ -310,7 +308,7 @@ def revenue_program_with_default_donation_page_all_transactional_email_style_val
         "font": {"heading": "something", "body": "else"},
     }
     rp = RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
-    page = DonationPageFactory(revenue_program=rp, styles=style, header_logo=get_test_image_file_jpeg())
+    page = DonationPageFactory(revenue_program=rp, styles=style, header_logo=test_jpeg_file)
     assert page.header_logo is not None
     rp.default_donation_page = page
     return rp
@@ -388,7 +386,7 @@ class TestRevenueProgramMailchimpClient:
     def test_create_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.payment_provider",
-            return_value=MagicMock(currency="usd"),
+            return_value=mocker.MagicMock(currency="usd"),
             new_callable=mocker.PropertyMock,
         )
         client = RevenueProgramMailchimpClient(mc_connected_rp)
@@ -418,7 +416,7 @@ class TestRevenueProgramMailchimpClient:
     def test_create_store_api_error(self, mc_connected_rp, mocker):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.payment_provider",
-            return_value=MagicMock(currency="usd"),
+            return_value=mocker.MagicMock(currency="usd"),
             new_callable=mocker.PropertyMock,
         )
         client = RevenueProgramMailchimpClient(mc_connected_rp)
@@ -890,11 +888,11 @@ class TestRevenueProgram:
         revenue_program.ensure_mailchimp_entities()
         assert revenue_program.ensure_mailchimp_store.called
         revenue_program.ensure_mailchimp_contribution_product.assert_has_calls(
-            [call("one_time"), call("recurring")], any_order=True
+            [mocker.call("one_time"), mocker.call("recurring")], any_order=True
         )
         revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
             [
-                call(
+                mocker.call(
                     "all_contributors",
                     {
                         "match": "all",
@@ -906,7 +904,7 @@ class TestRevenueProgram:
                         ],
                     },
                 ),
-                call(
+                mocker.call(
                     "contributor",
                     {
                         "match": "all",
@@ -923,7 +921,7 @@ class TestRevenueProgram:
                         ],
                     },
                 ),
-                call(
+                mocker.call(
                     "recurring_contributor",
                     {
                         "match": "all",
@@ -1102,7 +1100,7 @@ class TestRevenueProgramMailchimpSegments:
         mock_options = {}
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
-        patched_client.return_value.create_segment.return_value = MagicMock(id="test-new-id")
+        patched_client.return_value.create_segment.return_value = mocker.MagicMock(id="test-new-id")
         setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, mock_options)
         patched_client.return_value.create_segment.assert_called_with(

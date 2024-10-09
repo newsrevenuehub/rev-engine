@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 import pytest
 from google.api_core.exceptions import NotFound, PermissionDenied
 from google.cloud.secretmanager import SecretManagerServiceClient
@@ -151,7 +149,7 @@ class TestGoogleCloudSecretProvider:
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.get_secret.side_effect = NotFound("Not found")
         mock_client.return_value.create_secret.return_value = "something-truthy"
-        mock_client.return_value.add_secret_version = Mock()
+        mock_client.return_value.add_secret_version = mocker.Mock()
         MyObject = make_my_object(GoogleCloudSecretProvider)
         instance = MyObject(**{MODEL_ATTR: "something"})
         instance.val = "some-value"

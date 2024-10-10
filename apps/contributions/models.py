@@ -26,6 +26,7 @@ from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
 from apps.emails.helpers import convert_to_timezone_formatted
@@ -232,6 +233,61 @@ class ContributionQuerySet(models.QuerySet):
 
     def exclude_dummy_payment_method_id(self) -> models.QuerySet[Contribution]:
         return self.exclude(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
+
+    def exclude_disconnected_stripe_accounts(
+        self, contributions: models.QuerySet[Contribution]
+    ) -> models.QuerySet[Contribution]:
+        """Remove contributions with disconnected Stripe accounts from queryset of otherwise eligible contributions.
+
+        NB: Unlike your typical queryset method, this makes round trips to Stripe API and can possibly
+        take a while and/or raise exceptions. The method was originally written for use in
+        `fix_contribution_missing_provider_payment_method_id` management command.
+
+        Probably not something you'd want to use in a synchronous request context.
+        """
+        account_ids = set(
+            list(
+                contributions.filter(donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
+                .values_list("donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
+                .distinct()
+            )
+            + list(
+                contributions.filter(_revenue_program__payment_provider__stripe_account_id__isnull=False)
+                .values_list("_revenue_program__payment_provider__stripe_account_id", flat=True)
+                .distinct()
+            )
+        )
+        accounts = get_stripe_accounts_and_their_connection_status(account_ids)
+        unretrievable_accounts = [k for k, v in accounts.items() if not v]
+        connected_accounts = [k for k, v in accounts.items() if v]
+
+        fixable_contributions = contributions.filter(
+            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
+            | Q(_revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
+        )
+        fixable_contributions_count = fixable_contributions.count()
+        ineligible_because_of_account = contributions.filter(
+            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts)
+            | Q(_revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts),
+        )
+        logger.info(
+            "Found %s eligible contribution%s to fix",
+            fixable_contributions_count,
+            "" if fixable_contributions_count == 1 else "s",
+        )
+
+        if ineligible_because_of_account.exists():
+            _inel_account = ineligible_because_of_account.count()
+            _plural = "" if _inel_account == 1 else "s"
+            logger.info(
+                "Found %s contribution%s with "
+                "null value for provider_payment_id that cannot be updated because account is disconnected or some other problem "
+                "retrieving account: {%s}",
+                _inel_account,
+                _plural,
+                ", ".join(str(x) for x in ineligible_because_of_account.values_list("id", flat=True)),
+            )
+        return fixable_contributions
 
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.

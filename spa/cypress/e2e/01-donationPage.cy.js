@@ -352,7 +352,7 @@ describe('404 behavior', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
-    cy.getByTestId('live-page-404').should('exist');
+    cy.getByTestId('page-error').should('exist');
   });
 });
 

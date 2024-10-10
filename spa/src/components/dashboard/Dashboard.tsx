@@ -20,7 +20,7 @@ import {
 // Children
 import Profile from 'components/account/Profile';
 import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
-import LivePage404 from 'components/common/LivePage404/LivePage404';
+import PageError from 'components/common/PageError/PageError';
 import Content from 'components/content/Content';
 import CustomizeRoute from 'components/content/CustomizeRoute';
 import ContributorPortalRoute from 'components/content/ContributorPortalRoute';
@@ -122,7 +122,7 @@ function Dashboard() {
                 <Profile />
               </SentryRoute>
               <SentryRoute>
-                <LivePage404 hideRedirect />
+                <PageError statusCode={404} errorMessage="The page you requested can't be found." />
               </SentryRoute>
             </Switch>
           </S.DashboardContent>

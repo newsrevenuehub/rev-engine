@@ -11,7 +11,8 @@ import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
 import { useConfigureAnalytics } from 'components/analytics';
-import LivePage404 from 'components/common/LivePage404/LivePage404';
+import PageError from 'components/common/PageError/PageError';
+import { AxiosError } from 'axios';
 
 const PortalPagePropTypes = {
   children: PropTypes.any,
@@ -24,7 +25,7 @@ export interface PortalPageProps extends InferProps<typeof PortalPagePropTypes> 
 }
 
 function PortalPage({ children, className }: PortalPageProps) {
-  const { page, isPageLoading, isPageError } = usePortal();
+  const { page, isPageLoading, pageError, isPageError, enablePageFetch } = usePortal();
 
   const isFreeOrg = page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.FREE;
   const hasDefaultDonationPage = !!page?.revenue_program?.default_donation_page;
@@ -34,8 +35,18 @@ function PortalPage({ children, className }: PortalPageProps) {
   useWebFonts(page?.styles?.font);
   useConfigureAnalytics();
 
-  // If rp has no default page, show 404
-  if (!page && isPageLoading) return null;
+  const error =
+    (pageError as AxiosError)?.response?.status === 404
+      ? {
+          statusCode: 404,
+          errorMessage: "The page you requested can't be found."
+        }
+      : {
+          errorMessage: 'Something went wrong. Please try again later.'
+        };
+
+  // If rp has no default page, show error
+  if (enablePageFetch && !page && isPageLoading) return null;
 
   return (
     <TrackPageView>
@@ -48,7 +59,7 @@ function PortalPage({ children, className }: PortalPageProps) {
               <Logo src={NRELogo} alt="News Revenue Engine" />
             </Header>
           )}
-          {!page && isPageError ? <LivePage404 hideRedirect /> : children}
+          {isPageError ? <PageError {...error} /> : children}
           <PoweredBy>
             <span>Powered by</span>
             <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">

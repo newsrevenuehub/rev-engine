@@ -50,6 +50,7 @@ describe('usePendo', () => {
       pageIsFetched: true,
       isPageError: false,
       isPageLoading: false,
+      pageError: undefined,
       enablePageFetch: false,
       sendMagicLink: jest.fn(),
       magicLinkIsLoading: false,
@@ -71,6 +72,7 @@ describe('usePendo', () => {
     usePortalMock.mockReturnValue({
       page: undefined,
       isPageError: false,
+      pageError: undefined,
       isPageLoading: true,
       pageIsFetched: false,
       enablePageFetch: false,

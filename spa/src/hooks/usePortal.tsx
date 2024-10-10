@@ -41,7 +41,8 @@ export default function usePortal() {
     data: page,
     isFetched,
     isLoading: pageLoading,
-    isError
+    isError,
+    error: pageError
   } = useQuery(['getPage'], () => fetchPage(rpSlug), {
     enabled: enablePageFetch,
     retry: false
@@ -81,6 +82,7 @@ export default function usePortal() {
     pageIsFetched: isFetched,
     isPageLoading: pageLoading,
     isPageError: isError,
+    pageError,
     enablePageFetch,
     sendMagicLink,
     magicLinkIsLoading: isLoading,

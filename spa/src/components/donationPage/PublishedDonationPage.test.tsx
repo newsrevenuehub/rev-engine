@@ -17,7 +17,7 @@ jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/usePublishedPage');
 jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('hooks/useWebFonts');
-jest.mock('components/common/LivePage404/LivePage404', () => () => <div data-testid="mock-live-page-404"></div>);
+jest.mock('components/common/PageError/PageError', () => () => <div data-testid="mock-page-error"></div>);
 jest.mock('components/donationPage/ContributionPageI18nProvider');
 jest.mock('components/donationPage/DonationPage');
 
@@ -75,7 +75,7 @@ describe('PublishedDonationPage', () => {
 
     it("doesn't show a 404 message", () => {
       tree();
-      expect(screen.queryByTestId('mock-live-page-404')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mock-page-error')).not.toBeInTheDocument();
     });
 
     it('shows the page wrapped in an i18next provider in live mode', () => {
@@ -151,7 +151,7 @@ describe('PublishedDonationPage', () => {
           page: noRpPage
         });
         tree();
-        expect(screen.getByTestId('mock-live-page-404')).toBeInTheDocument();
+        expect(screen.getByTestId('mock-page-error')).toBeInTheDocument();
         errorSpy.mockRestore();
       });
     });
@@ -164,7 +164,7 @@ describe('PublishedDonationPage', () => {
 
     it('shows a 404 message', () => {
       tree();
-      expect(screen.getByTestId('mock-live-page-404')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-page-error')).toBeInTheDocument();
     });
 
     it("doesn't show a spinner", () => {

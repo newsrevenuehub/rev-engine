@@ -69,7 +69,7 @@ class Command(BaseCommand):
         """
         if contribution.interval == ContributionInterval.ONE_TIME:
             return stripe.PaymentIntent.retrieve(
-                contribution.provider_payment_method_id,
+                contribution.provider_payment_id,
                 stripe_account=contribution.stripe_account_id,
                 expand=["payment_method"],
             )

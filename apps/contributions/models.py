@@ -234,9 +234,7 @@ class ContributionQuerySet(models.QuerySet):
     def exclude_dummy_payment_method_id(self) -> models.QuerySet[Contribution]:
         return self.exclude(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
 
-    def exclude_disconnected_stripe_accounts(
-        self, contributions: models.QuerySet[Contribution]
-    ) -> models.QuerySet[Contribution]:
+    def exclude_disconnected_stripe_accounts(self) -> models.QuerySet[Contribution]:
         """Remove contributions with disconnected Stripe accounts from queryset of otherwise eligible contributions.
 
         NB: Unlike your typical queryset method, this makes round trips to Stripe API and can possibly
@@ -245,37 +243,18 @@ class ContributionQuerySet(models.QuerySet):
 
         Probably not something you'd want to use in a synchronous request context.
         """
-        account_ids = set(
-            list(
-                contributions.filter(donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
-                .values_list("donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
-                .distinct()
-            )
-            + list(
-                contributions.filter(_revenue_program__payment_provider__stripe_account_id__isnull=False)
-                .values_list("_revenue_program__payment_provider__stripe_account_id", flat=True)
-                .distinct()
-            )
-        )
-        accounts = get_stripe_accounts_and_their_connection_status(account_ids)
+        account_ids = (qs := self.with_stripe_account()).values_list("stripe_account", flat=True).distinct()
+        accounts = get_stripe_accounts_and_their_connection_status(list(account_ids))
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
-
-        fixable_contributions = contributions.filter(
-            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
-            | Q(_revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
-        )
+        fixable_contributions = qs.filter(stripe_account__in=connected_accounts)
         fixable_contributions_count = fixable_contributions.count()
-        ineligible_because_of_account = contributions.filter(
-            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts)
-            | Q(_revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts),
-        )
+        ineligible_because_of_account = qs.filter(stripe_account__in=unretrievable_accounts)
         logger.info(
             "Found %s eligible contribution%s to fix",
             fixable_contributions_count,
             "" if fixable_contributions_count == 1 else "s",
         )
-
         if ineligible_because_of_account.exists():
             _inel_account = ineligible_because_of_account.count()
             _plural = "" if _inel_account == 1 else "s"

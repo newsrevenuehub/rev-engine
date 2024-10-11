@@ -12,7 +12,10 @@ import stripe.error
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
+from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT
 
+
+SEARCH_API_METADATA_ITEM_LIMIT = 10
 
 # otherwise we get spammed by stripe info logs when running this command
 logging.getLogger("stripe").setLevel(logging.ERROR)
@@ -45,7 +48,10 @@ class Command(BaseCommand):
                     ContributionStatus.CANCELED,
                 ]
             )
-            .filter(provider_payment_method_id__in=[None, settings.DUMMY_PAYMENT_METHOD_ID])
+            .filter(
+                Q(provider_payment_method_id__isnull=True)
+                | Q(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
+            )
             .filter(
                 Q(interval=ContributionInterval.ONE_TIME, provider_payment_method_id__isnull=False)
                 | Q(~Q(interval=ContributionInterval.ONE_TIME), provider_subscription_id__isnull=False)
@@ -69,11 +75,14 @@ class Command(BaseCommand):
         return stripe.Subscription.retrieve(
             contribution.provider_subscription_id,
             stripe_account=contribution.stripe_account_id,
-            expand=["latest_invoice.payment_intent.payment_method"],
+            expand=["default_payment_method"],
         )
 
     def _update_and_save(self, contribution: Contribution, pm: stripe.PaymentMethod) -> Contribution:
         """Update and save contribution."""
+        self.stdout.write(
+            self.style.HTTP_INFO(f"Updating contribution {contribution.id} with data from payment method {pm.id}")
+        )
         contribution.provider_payment_method_id = pm.id
         contribution.provider_payment_method_details = pm
         with reversion.create_revision():
@@ -95,7 +104,10 @@ class Command(BaseCommand):
         except stripe.error.StripeError:
             self.stdout.write(self.style.ERROR(f"Failed to retrieve payment object for contribution {contribution.id}"))
         else:
-            if pm := payment_object.get("payment_method"):
+            attr = (
+                "payment_method" if contribution.interval == ContributionInterval.ONE_TIME else "default_payment_method"
+            )
+            if pm := payment_object.get(attr):
                 self._update_and_save(contribution, pm)
                 updated = True
                 self.stdout.write(self.style.SUCCESS(f"Updated contribution {contribution.id} with new payment data"))
@@ -115,7 +127,7 @@ class Command(BaseCommand):
         Each contribution is treated individually, but returns a queryset of updated and not updated contributions.
         """
         updated_ids, not_updated_ids = [], []
-        for contribution in contributions:
+        for contribution in contributions.all():
             _con, updated = self.process_contribution_via_retrieve_api(contribution)
             if updated:
                 updated_ids.append(_con.id)
@@ -123,31 +135,53 @@ class Command(BaseCommand):
                 not_updated_ids.append(_con.id)
         return contributions.filter(id__in=updated_ids), contributions.filter(id__in=not_updated_ids)
 
-    def chunk_search_api_queries(
-        self, contributions: QuerySet[Contribution], chunk_size: int = 100
-    ) -> Generator[QuerySet[Contribution]]:
-        """Chunk contributions by stripe account ID and yield queryset chunks.
-
-        Each chunk will have self-same stripe account ID.
-        """
-        rp_ids = set(
-            contributions.order_by("donation_page__revenue_program__payment_provider__stripe_account_id")
-            .values_list("donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
-            .distinct()
-        ) + set(
-            contributions.order_by("_revenue_program__payment_provider__stripe_account_id")
-            .values_list("_revenue_program__payment_provider__stripe_account_id", flat=True)
-            .distinct()
-        )
-        for rp_id in rp_ids:
-            rp_contributions = contributions.filter(
-                Q(donation_page__revenue_program_id=rp_id) | Q(_revenue_program_id=rp_id)
-            )
-            for i in range(0, rp_contributions.count(), chunk_size):
-                yield contributions[i : i + chunk_size].filter(
-                    Q(donation_page__revenue_program__payment_provider__stripe_account_id=rp_id)
-                    | Q(_revenue_program__payment_provider__stripe_account_id=rp_id)
+    def get_metadata_queries(
+        self, contributions: QuerySet[Contribution], chunk_size: int = SEARCH_API_METADATA_ITEM_LIMIT
+    ) -> Generator[tuple[str, str]]:
+        """Generate tuples of account_id and metadata queries for stripe search API."""
+        for acct_id in (qs := contributions.with_stripe_account()).values_list("stripe_account", flat=True).distinct():
+            contributor_ids = qs.filter(stripe_account=acct_id).values_list("contributor_id", flat=True).distinct()
+            for i in range(0, contributor_ids.count(), chunk_size):
+                yield acct_id, " OR ".join(
+                    f'metadata["contributor_id"]:"{cid}"' for cid in contributor_ids[i : i + chunk_size]
                 )
+
+    def search_subscriptions(self, query: str, stripe_account_id: str) -> Generator[stripe.Subscription]:
+        """Search stripe subscriptions, including a query string.
+
+        We expand data.latest_invoice.payment_intent.payment_method so we can save back the data without
+        additional API calls.
+
+
+        """
+        self.stdout.write(
+            self.style.HTTP_INFO(
+                f"Searching stripe subscriptions with query: {query} and stripe account ID: {stripe_account_id}"
+            )
+        )
+        return stripe.Subscription.search(
+            stripe_account=stripe_account_id,
+            expand=["data.default_payment_method"],
+            query=query,
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+        ).auto_paging_iter()
+
+    def search_payment_intents(self, query: str, stripe_account_id: str) -> Generator[stripe.PaymentIntent]:
+        """Search stripe payment intents, including a query string.
+
+        We expand payment_method so we can save back the data without additional API calls.
+        """
+        self.stdout.write(
+            self.style.HTTP_INFO(
+                f"Searching stripe payment intents with query: {query} and stripe account ID: {stripe_account_id}"
+            )
+        )
+        return stripe.PaymentIntent.search(
+            stripe_account=stripe_account_id,
+            expand=["payment_method"],
+            query=query,
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+        ).auto_paging_iter()
 
     def process_contributions_via_search_api(
         self,
@@ -157,18 +191,39 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.HTTP_INFO(f"Processing {contributions.count()} contributions without contributor in metadata")
         )
-        # can or connect these:
-        # stripe subscriptions search --query="metadata['contributor_id']:'101'" --stripe-account acct_1JhIObPmggpEz0oe
-        for i, chunk in enumerate(self.chunk_search_api_queries(contributions)):
-            self.stdout.write(
-                self.style.HTTP_INFO(
-                    f"Processing batch {i + 1}, conisisting of {chunk.count()} "
-                    f"contributions for RP {chunk.first().donation_page.revenue_program_id}"
+        # need to split into one time and recurring
+        one_times = contributions.filter(interval=ContributionInterval.ONE_TIME)
+        recurrings = contributions.exclude(id__in=one_times.values_list("id", flat=True))
+        queries = {
+            "one_time": self.get_metadata_queries(one_times),
+            "recurring": self.get_metadata_queries(recurrings),
+        }
+        for q_type in queries:
+            for i, _query in enumerate(queries[q_type]):
+                acct_id, query = _query
+                self.stdout.write(
+                    self.style.HTTP_INFO(
+                        f"Search {i + 1} for Stripe subscriptions with query: {query} and stripe account ID: {acct_id}"
+                    )
                 )
-            )
-            # get via search api
-            updated_qs, not_updated_qs = contributions.none(), contributions.none()
-        return updated_qs, not_updated_qs
+                method = self.search_subscriptions if q_type == "recurring" else self.search_payment_intents
+                stripe_entities = method(query, acct_id)
+                updated_ids = []
+                for entity in stripe_entities:
+                    if pm := entity.get("default_payment_method" if q_type == "recurring" else "payment_method"):
+                        key = "provider_subscription_id" if q_type == "recurring" else "provider_payment_id"
+                        try:
+                            contribution = contributions.get(**{key: entity.id})
+                        except Contribution.DoesNotExist:
+                            self.stdout.write(
+                                self.style.HTTP_INFO(
+                                    f"No contribution found for returned {'subscription' if q_type == 'recurring' else 'payment intent'} "
+                                    f"{entity.id} with key {key}"
+                                )
+                            )
+                        else:
+                            updated_ids.append(self._update_and_save(contribution, pm).id)
+        return Contribution.objects.filter(id__in=updated_ids), contributions.exclude(id__in=updated_ids)
 
     def process_contributions(
         self,
@@ -182,30 +237,19 @@ class Command(BaseCommand):
         """
         searchable_contributions = contributions.filter(contribution_metadata__schema_version__in=["1.0", "1.1", "1.4"])
         unsearchable_contributions = contributions.exclude(id__in=searchable_contributions.values_list("id", flat=True))
-        updated_via_search_qs, not_updated_via_search_qs = self.process_contributions_via_search_api(
-            contributions=unsearchable_contributions
+        updated_via_retrieve_qs, not_updated_via_retrieve_qs = self.process_contributions_via_retrieve_api(
+            unsearchable_contributions
         )
-        updated_via_retrieve_qs, not_updated_via_retrieve_qs = self.process_contribution_via_retrieve_api(
-            contribution=searchable_contributions
+        updated_via_search_qs, not_updated_via_search_qs = self.process_contributions_via_search_api(
+            contributions=searchable_contributions
         )
         return updated_via_search_qs | updated_via_retrieve_qs, not_updated_via_search_qs | not_updated_via_retrieve_qs
 
     def handle(self, *args, **options):
+        # add flag to secondary retrieve failed search items
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
-        if not (relevant_contributions := self.get_relevant_contributions()).exists():
-            self.stdout.write(
-                self.style.HTTP_INFO(
-                    "No relevant contributions found with missing or dummy value for provider_payment_method_id"
-                )
-            )
-            return
-
-        if not (fixable_contributions := relevant_contributions.exclude_disconnected_stripe_accounts()).exists():
-            self.stdout.write(
-                self.style.HTTP_INFO(
-                    f"{relevant_contributions.count()} relevant contributions were found, but none had connected Stripe accounts"
-                )
-            )
+        if not (fixable_contributions := self.get_relevant_contributions()).exists():
+            self.stdout.write(self.style.HTTP_INFO("No fixable contributions found. Exiting."))
             return
         updated_qs, not_updated_qs = self.process_contributions(contributions=fixable_contributions)
         if updated_qs.exists():
@@ -217,7 +261,7 @@ class Command(BaseCommand):
         if not_updated_qs.exists():
             self.stdout.write(
                 self.style.WARNING(
-                    f"Failed to update {not_updated_qs.count()}contribution IDs: "
+                    f"Failed to update {not_updated_qs.count()} contribution IDs: "
                     f"{', '.join(str(x) for x in not_updated_qs.values_list('id', flat=True))}"
                 )
             )

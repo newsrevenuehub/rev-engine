@@ -53,9 +53,10 @@ class Command(BaseCommand):
                 | Q(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
             )
             .filter(
-                Q(interval=ContributionInterval.ONE_TIME, provider_payment_method_id__isnull=False)
+                Q(interval=ContributionInterval.ONE_TIME, provider_payment_id__isnull=False)
                 | Q(~Q(interval=ContributionInterval.ONE_TIME), provider_subscription_id__isnull=False)
             )
+            .exclude(contributor__isnull=True)
             .exclude_disconnected_stripe_accounts()
         )
 
@@ -139,20 +140,29 @@ class Command(BaseCommand):
         self, contributions: QuerySet[Contribution], chunk_size: int = SEARCH_API_METADATA_ITEM_LIMIT
     ) -> Generator[tuple[str, str]]:
         """Generate tuples of account_id and metadata queries for stripe search API."""
-        for acct_id in (qs := contributions.with_stripe_account()).values_list("stripe_account", flat=True).distinct():
-            contributor_ids = qs.filter(stripe_account=acct_id).values_list("contributor_id", flat=True).distinct()
+        for acct_id in (
+            (qs := contributions.with_stripe_account())
+            .values_list("stripe_account", flat=True)
+            # required so that we get distinct stripe account IDs
+            .order_by("stripe_account")
+            .distinct()
+        ):
+            contributor_ids = (
+                qs.filter(stripe_account=acct_id, contributor__isnull=False)
+                # required so that we get distinct contributor IDs
+                .order_by("contributor_id")
+                .values_list("contributor_id", flat=True)
+                .distinct()
+            )
             for i in range(0, contributor_ids.count(), chunk_size):
-                yield acct_id, " OR ".join(
-                    f'metadata["contributor_id"]:"{cid}"' for cid in contributor_ids[i : i + chunk_size]
-                )
+                ids = contributor_ids[i * chunk_size : i * chunk_size + chunk_size]
+                yield acct_id, " OR ".join(f'metadata["contributor_id"]:"{cid}"' for cid in ids)
 
     def search_subscriptions(self, query: str, stripe_account_id: str) -> Generator[stripe.Subscription]:
         """Search stripe subscriptions, including a query string.
 
         We expand data.latest_invoice.payment_intent.payment_method so we can save back the data without
         additional API calls.
-
-
         """
         self.stdout.write(
             self.style.HTTP_INFO(
@@ -178,7 +188,7 @@ class Command(BaseCommand):
         )
         return stripe.PaymentIntent.search(
             stripe_account=stripe_account_id,
-            expand=["payment_method"],
+            expand=["data.payment_method"],
             query=query,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
         ).auto_paging_iter()
@@ -191,7 +201,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.HTTP_INFO(f"Processing {contributions.count()} contributions without contributor in metadata")
         )
-        # need to split into one time and recurring
         one_times = contributions.filter(interval=ContributionInterval.ONE_TIME)
         recurrings = contributions.exclude(id__in=one_times.values_list("id", flat=True))
         queries = {
@@ -213,7 +222,7 @@ class Command(BaseCommand):
                     if pm := entity.get("default_payment_method" if q_type == "recurring" else "payment_method"):
                         key = "provider_subscription_id" if q_type == "recurring" else "provider_payment_id"
                         try:
-                            contribution = contributions.get(**{key: entity.id})
+                            contribution = (one_times if q_type == "one_time" else recurrings).get(**{key: entity.id})
                         except Contribution.DoesNotExist:
                             self.stdout.write(
                                 self.style.HTTP_INFO(
@@ -261,7 +270,7 @@ class Command(BaseCommand):
         if not_updated_qs.exists():
             self.stdout.write(
                 self.style.WARNING(
-                    f"Failed to update {not_updated_qs.count()} contribution IDs: "
+                    f"Unable to update {not_updated_qs.count()} contribution IDs: "
                     f"{', '.join(str(x) for x in not_updated_qs.values_list('id', flat=True))}"
                 )
             )

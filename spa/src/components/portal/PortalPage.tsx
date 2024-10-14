@@ -11,7 +11,7 @@ import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
 import { useConfigureAnalytics } from 'components/analytics';
-import PageError from 'components/common/PageError/PageError';
+import PageError, { PageErrorProps } from 'components/common/PageError/PageError';
 import { AxiosError } from 'axios';
 
 const PortalPagePropTypes = {
@@ -35,17 +35,16 @@ function PortalPage({ children, className }: PortalPageProps) {
   useWebFonts(page?.styles?.font);
   useConfigureAnalytics();
 
-  const error =
+  const error: PageErrorProps =
     (pageError as AxiosError)?.response?.status === 404
       ? {
-          statusCode: 404,
-          errorMessage: "The page you requested can't be found."
+          header: 404,
+          description: "The page you requested can't be found."
         }
       : {
-          errorMessage: 'Something went wrong. Please try again later.'
+          description: 'Something went wrong. Please try again later.'
         };
 
-  // If rp has no default page, show error
   if (enablePageFetch && !page && isPageLoading) return null;
 
   return (

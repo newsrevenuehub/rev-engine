@@ -1,26 +1,17 @@
-import { useEffect } from 'react';
-
-// Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'appSettings';
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import PropTypes from 'prop-types';
-import { Description, PageErrorWrapper, StatusCode, Wrapper } from './PageError.styled';
-
-export const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';
+import { useEffect } from 'react';
+import { Description, Header, PageErrorWrapper, Wrapper } from './PageError.styled';
 
 const PageErrorPropTypes = {
-  showRedirect: PropTypes.bool,
-  statusCode: PropTypes.number,
-  errorMessage: PropTypes.string
+  header: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  description: PropTypes.node
 };
 
 export type PageErrorProps = PropTypes.InferProps<typeof PageErrorPropTypes>;
 
-function PageError({
-  showRedirect = false,
-  statusCode,
-  errorMessage = 'Something went wrong. Please try again later.'
-}: PageErrorProps) {
+function PageError({ header, description = 'Something went wrong. Please try again later.' }: PageErrorProps) {
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   useEffect(() => {
@@ -30,15 +21,8 @@ function PageError({
   return (
     <PageErrorWrapper data-testid="page-error">
       <Wrapper>
-        {statusCode && <StatusCode>404</StatusCode>}
-        <Description>
-          <p>{errorMessage}</p>
-          {showRedirect && (
-            <p>
-              If you’re trying to make a contribution please visit <a href={FUNDJOURNALISM_404_REDIRECT}>this page</a>.
-            </p>
-          )}
-        </Description>
+        {header && <Header>{header}</Header>}
+        <Description>{description}</Description>
       </Wrapper>
     </PageErrorWrapper>
   );

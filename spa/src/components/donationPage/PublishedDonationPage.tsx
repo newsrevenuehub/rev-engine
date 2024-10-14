@@ -12,10 +12,23 @@ import { usePublishedPage } from 'hooks/usePublishedPage';
 import useWebFonts from 'hooks/useWebFonts';
 import ContributionPage18nProvider from './ContributionPageI18nProvider';
 import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
+import { FUNDJOURNALISM_404_REDIRECT } from 'constants/helperUrls';
 
 interface RouteParams {
   pageSlug: string;
 }
+
+const pageError = {
+  header: 404,
+  description: (
+    <>
+      <p>The page you requested can't be found.</p>
+      <p>
+        If you're trying to make a contribution please visit <a href={FUNDJOURNALISM_404_REDIRECT}>this page</a>.
+      </p>
+    </>
+  )
+};
 
 function PublishedDonationPage() {
   const rpSlug = getRevenueProgramSlug();
@@ -26,20 +39,19 @@ function PublishedDonationPage() {
 
   useWebFonts(page?.styles?.font);
   useEffect(() => {
-    if (page?.revenue_program) {
-      const {
-        google_analytics_v3_id: orgGaV3Id,
-        google_analytics_v3_domain: orgGaV3Domain,
-        google_analytics_v4_id: orgGaV4Id,
-        facebook_pixel_id: orgFbPixelId
-      } = page.revenue_program;
-
-      setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-    }
+    setAnalyticsConfig({
+      hubGaV3Id: HUB_GA_V3_ID,
+      ...(page?.revenue_program && {
+        orgGaV3Id: page.revenue_program.google_analytics_v3_id,
+        orgGaV3Domain: page.revenue_program.google_analytics_v3_domain,
+        orgGaV4Id: page.revenue_program.google_analytics_v4_id,
+        orgFbPixelId: page.revenue_program.facebook_pixel_id
+      })
+    });
   }, [page?.revenue_program, setAnalyticsConfig]);
 
   if (isError) {
-    return <PageError showRedirect statusCode={404} errorMessage="The page you requested can't be found." />;
+    return <PageError {...pageError} />;
   }
 
   if (isLoading || !page) {
@@ -53,7 +65,7 @@ function PublishedDonationPage() {
 
   if (!page.revenue_program) {
     console.error(`Page object has no revenue_program.name property: ${JSON.stringify(page)}`);
-    return <PageError showRedirect statusCode={404} errorMessage="The page you requested can't be found." />;
+    return <PageError {...pageError} />;
   }
 
   return (

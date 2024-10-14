@@ -11,7 +11,7 @@ export const Wrapper = styled.div`
   margin-top: 10%;
 `;
 
-export const StatusCode = styled.h2`
+export const Header = styled.h2`
   display: block;
   font-size: ${(props) => props.theme.fontSizes[6]};
   font-weight: 900;

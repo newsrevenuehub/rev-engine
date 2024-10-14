@@ -44,6 +44,7 @@ import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import AnalyticsSetup from 'components/common/AnalyticsSetup/AnalyticsSetup';
 
 function Dashboard() {
   const { user } = useUser();
@@ -122,7 +123,9 @@ function Dashboard() {
                 <Profile />
               </SentryRoute>
               <SentryRoute>
-                <PageError statusCode={404} errorMessage="The page you requested can't be found." />
+                <AnalyticsSetup>
+                  <PageError header={404} description="The page you requested can't be found." />
+                </AnalyticsSetup>
               </SentryRoute>
             </Switch>
           </S.DashboardContent>

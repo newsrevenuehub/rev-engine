@@ -81,7 +81,10 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   const addressInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!googleMapsLoading && !googleMapsError && addressInputRef.current) {
+    // Need this defensive coding because in some instances, there won't be an
+    // error reported, but `google.maps.places` won't be defined, either.
+
+    if (!googleMapsLoading && !googleMapsError && google.maps?.places?.Autocomplete && addressInputRef.current) {
       // https://developers.google.com/maps/documentation/javascript/reference/places-widget#Autocomplete
 
       const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, { types: ['address'] });

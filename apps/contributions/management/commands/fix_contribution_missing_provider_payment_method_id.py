@@ -76,7 +76,11 @@ class Command(BaseCommand):
         return stripe.Subscription.retrieve(
             contribution.provider_subscription_id,
             stripe_account=contribution.stripe_account_id,
-            expand=["default_payment_method"],
+            expand=[
+                "default_payment_method",
+                "customer.invoice_settings.default_payment_method",
+                "latest_invoice.payment_intent.payment_method",
+            ],
         )
 
     def _update_and_save(self, contribution: Contribution, pm: stripe.PaymentMethod) -> Contribution:
@@ -93,6 +97,17 @@ class Command(BaseCommand):
             reversion.set_comment(f"Updated by {self.name} command")
         return contribution
 
+    def get_pm_from_subscription(self, subscription: stripe.Subscription) -> stripe.PaymentMethod | None:
+        """Get payment method from subscription."""
+        if pm := subscription.get("default_payment_method"):
+            return pm
+        if (invoice_settings := subscription.get("customer", {}).get("invoice_settings")) and (
+            pm := invoice_settings.get("default_payment_method")
+        ):
+            return pm
+        if (invoice := subscription.get("latest_invoice")) and (pi := invoice.get("payment_intent")):
+            return pi.get("payment_method")
+
     def process_contribution_via_retrieve_api(self, contribution: Contribution) -> tuple[Contribution, bool]:
         """Process contribution via stripe retrieve API.
 
@@ -105,10 +120,12 @@ class Command(BaseCommand):
         except stripe.error.StripeError:
             self.stdout.write(self.style.ERROR(f"Failed to retrieve payment object for contribution {contribution.id}"))
         else:
-            attr = (
-                "payment_method" if contribution.interval == ContributionInterval.ONE_TIME else "default_payment_method"
+            pm = (
+                self.get_pm_from_subscription(payment_object)
+                if contribution.interval != ContributionInterval.ONE_TIME
+                else payment_object.get("payment_method")
             )
-            if pm := payment_object.get(attr):
+            if pm:
                 self._update_and_save(contribution, pm)
                 updated = True
                 self.stdout.write(self.style.SUCCESS(f"Updated contribution {contribution.id} with new payment data"))
@@ -171,7 +188,11 @@ class Command(BaseCommand):
         )
         return stripe.Subscription.search(
             stripe_account=stripe_account_id,
-            expand=["data.default_payment_method"],
+            expand=[
+                "data.default_payment_method",
+                "data.customer.invoice_settings.default_payment_method",
+                "data.latest_invoice.payment_intent.payment_method",
+            ],
             query=query,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
         ).auto_paging_iter()

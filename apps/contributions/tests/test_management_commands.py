@@ -896,3 +896,62 @@ class Test_fix_missing_provider_payment_method_id:
         stripe_subscription.default_payment_method = "truthy"
         mocker.patch.object(command, "search_subscriptions", return_value=[stripe_subscription])
         command.process_contributions_via_search_api(Contribution.objects.all())
+
+    @pytest.fixture
+    def subscription_with_default_pm(self, stripe_subscription, payment_method):
+        stripe_subscription.default_payment_method = payment_method
+        return stripe_subscription
+
+    @pytest.fixture
+    def subscription_with_pm_on_customer_invoice_settings(self, stripe_subscription, payment_method):
+        stripe_subscription.default_payment_method = None
+        stripe_subscription.customer.invoice_settings.default_payment_method = payment_method
+        return stripe_subscription
+
+    @pytest.fixture
+    def subscription_with_pm_on_latest_invoice_pi(
+        self, stripe_subscription, payment_method, payment_intent_for_one_time_contribution
+    ):
+        stripe_subscription.default_payment_method = None
+        stripe_subscription.customer.invoice_settings.default_payment_method = None
+        payment_intent_for_one_time_contribution.payment_method = payment_method
+        invoice = stripe.Invoice.construct_from(
+            {"payment_intent": payment_intent_for_one_time_contribution, "id": "inv_1"}, key="fake-key"
+        )
+        stripe_subscription.latest_invoice = invoice
+        stripe_subscription.latest_invoice.payment_intent.payment_method = payment_method
+        return stripe_subscription
+
+    @pytest.fixture
+    def subscription_with_no_pm(self, subscription_with_pm_on_latest_invoice_pi):
+        subscription_with_pm_on_latest_invoice_pi.latest_invoice.payment_intent.payment_method = None
+        return subscription_with_pm_on_latest_invoice_pi
+
+    @pytest.fixture
+    def subscription_with_customer_but_no_invoice_settings(self, subscription_with_pm_on_customer_invoice_settings):
+        subscription_with_pm_on_customer_invoice_settings.customer.invoice_settings = None
+        subscription_with_pm_on_customer_invoice_settings.latest_invoice = None
+        return subscription_with_pm_on_customer_invoice_settings
+
+    @pytest.fixture
+    def subscription_with_latest_invoice_but_no_pi(self, subscription_with_pm_on_latest_invoice_pi):
+        subscription_with_pm_on_latest_invoice_pi.latest_invoice.payment_intent = None
+        return subscription_with_pm_on_latest_invoice_pi
+
+    @pytest.mark.parametrize(
+        ("subscription_fixture", "expect_pm"),
+        [
+            ("subscription_with_default_pm", True),
+            ("subscription_with_pm_on_customer_invoice_settings", True),
+            ("subscription_with_pm_on_latest_invoice_pi", True),
+            ("subscription_with_no_pm", False),
+            ("subscription_with_customer_but_no_invoice_settings", False),
+            ("subscription_with_latest_invoice_but_no_pi", False),
+        ],
+    )
+    def test_get_pm_from_subscription(self, command, request, subscription_fixture, expect_pm, payment_method):
+        subscription = request.getfixturevalue(subscription_fixture)
+        if expect_pm:
+            assert command.get_pm_from_subscription(subscription) == payment_method
+        else:
+            assert command.get_pm_from_subscription(subscription) is None

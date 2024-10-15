@@ -247,13 +247,13 @@ class ContributionQuerySet(models.QuerySet):
         accounts = get_stripe_accounts_and_their_connection_status(list(account_ids))
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
-        fixable_contributions = qs.filter(stripe_account__in=connected_accounts)
-        fixable_contributions_count = fixable_contributions.count()
+        connected_contributions = qs.filter(stripe_account__in=connected_accounts)
+        connected_contributions_count = connected_contributions.count()
         ineligible_because_of_account = qs.filter(stripe_account__in=unretrievable_accounts)
         logger.info(
             "Found %s eligible contribution%s to fix",
-            fixable_contributions_count,
-            "" if fixable_contributions_count == 1 else "s",
+            connected_contributions_count,
+            "" if connected_contributions_count == 1 else "s",
         )
         if ineligible_because_of_account.exists():
             _inel_account = ineligible_because_of_account.count()
@@ -266,7 +266,7 @@ class ContributionQuerySet(models.QuerySet):
                 _plural,
                 ", ".join(str(x) for x in ineligible_because_of_account.values_list("id", flat=True)),
             )
-        return fixable_contributions
+        return connected_contributions
 
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.

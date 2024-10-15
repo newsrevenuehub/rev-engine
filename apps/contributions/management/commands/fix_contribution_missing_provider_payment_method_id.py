@@ -37,7 +37,7 @@ class Command(BaseCommand):
         We require that contribution be one time and have a provider payment ID or be recurring
         and have a provider subscription ID.
 
-        We also require status be in [PAID, REFUNDED, FAILED, CANCELED].
+        We also require status be in [PAID, REFUNDED, FAILED, CANCELED] and that it have a contributor object.
         """
         return (
             Contribution.objects.filter(
@@ -207,6 +207,7 @@ class Command(BaseCommand):
             "one_time": self.get_metadata_queries(one_times),
             "recurring": self.get_metadata_queries(recurrings),
         }
+        updated_ids = []
         for q_type in queries:
             for i, _query in enumerate(queries[q_type]):
                 acct_id, query = _query
@@ -217,17 +218,25 @@ class Command(BaseCommand):
                 )
                 method = self.search_subscriptions if q_type == "recurring" else self.search_payment_intents
                 stripe_entities = method(query, acct_id)
-                updated_ids = []
                 for entity in stripe_entities:
                     if pm := entity.get("default_payment_method" if q_type == "recurring" else "payment_method"):
+                        qs = recurrings if q_type == "recurring" else one_times
                         key = "provider_subscription_id" if q_type == "recurring" else "provider_payment_id"
                         try:
-                            contribution = (one_times if q_type == "one_time" else recurrings).get(**{key: entity.id})
+                            contribution = qs.get(**{key: entity.id})
                         except Contribution.DoesNotExist:
                             self.stdout.write(
                                 self.style.HTTP_INFO(
                                     f"No contribution found for returned {'subscription' if q_type == 'recurring' else 'payment intent'} "
                                     f"{entity.id} with key {key}"
+                                )
+                            )
+                        except Contribution.MultipleObjectsReturned:
+                            self.stdout.write(
+                                self.style.HTTP_INFO(
+                                    f"Multiple contributions found for returned "
+                                    f"{'subscription' if q_type == 'recurring' else 'payment intent'} "
+                                    f"{entity.id} with key {key} so this will not be updated"
                                 )
                             )
                         else:
@@ -257,6 +266,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # add flag to secondary retrieve failed search items
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
+
         if not (fixable_contributions := self.get_relevant_contributions()).exists():
             self.stdout.write(self.style.HTTP_INFO("No fixable contributions found. Exiting."))
             return

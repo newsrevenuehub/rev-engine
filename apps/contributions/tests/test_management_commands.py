@@ -7,6 +7,10 @@ import pytest
 import reversion
 import stripe
 
+from apps.contributions.choices import ContributionInterval
+from apps.contributions.management.commands.fix_contribution_missing_provider_payment_method_id import (
+    Command as FixContributionMissingProviderPaymentMethodId,
+)
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
     REVISION_COMMENT,
 )
@@ -678,3 +682,217 @@ class Test_fix_incident_2445:
         contribution.refresh_from_db()
         assert contribution.provider_payment_method_id == TEMP_PM_ID
         assert contribution.provider_payment_method_details is None
+
+
+@pytest.mark.django_db
+class Test_fix_missing_provider_payment_method_id:
+    @pytest.fixture
+    def command(self):
+        return FixContributionMissingProviderPaymentMethodId()
+
+    @pytest.fixture
+    def one_time_contribution_and_pi_with_conforming_metadata(self, payment_intent_for_one_time_contribution):
+        pi_id = "some-random-pi-id"
+        contribution = ContributionFactory(
+            provider_subscription_id=None,
+            provider_payment_method_id=None,
+            provider_payment_id=pi_id,
+            interval=ContributionInterval.ONE_TIME,
+        )
+        contribution.contribution_metadata["schema_version"] = "1.4"
+        contribution.contribution_metadata["contributor_id"] = contribution.contributor.id
+        contribution.save()
+        payment_intent_for_one_time_contribution.id = pi_id
+        return contribution, payment_intent_for_one_time_contribution
+
+    @pytest.fixture
+    def recurring_contribution_and_subscription_with_conforming_metadata(self, stripe_subscription, payment_method):
+
+        contribution = ContributionFactory(
+            provider_payment_method_id=None,
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_id=None,
+            interval=ContributionInterval.MONTHLY,
+        )
+        contribution.contribution_metadata["schema_version"] = "1.4"
+        contribution.contribution_metadata["contributor_id"] = contribution.contributor.id
+        contribution.save()
+        stripe_subscription.default_payment_method = payment_method
+        stripe_subscription.metadata["contributor_id"] = contribution.contributor.id
+        return contribution, stripe_subscription
+
+    @pytest.fixture
+    def recurring_contribution_and_subscription_with_non_conforming_metadata(self, stripe_subscription):
+        contribution = ContributionFactory(
+            provider_payment_method_id=None,
+            provider_subscription_id=stripe_subscription.id,
+            interval=ContributionInterval.MONTHLY,
+            provider_payment_id=None,
+            contribution_metadata={},
+        )
+        return contribution, stripe_subscription
+
+    @pytest.fixture
+    def one_time_contribution_with_pi_with_non_conforming_contribution_metadata(
+        self, payment_intent_for_one_time_contribution, payment_method
+    ):
+        """One-time with no metadata so we expect to be retrieved not searched for."""
+        contribution = ContributionFactory(
+            provider_payment_method_id=None,
+            provider_payment_id=payment_intent_for_one_time_contribution.id,
+            provider_subscription_id=None,
+            interval=ContributionInterval.ONE_TIME,
+            contribution_metadata={},
+        )
+        payment_intent_for_one_time_contribution["payment_method"] = payment_method
+        return contribution, payment_intent_for_one_time_contribution
+
+    @pytest.fixture
+    def mock_stripe(
+        self,
+        mocker,
+        one_time_contribution_and_pi_with_conforming_metadata,
+        recurring_contribution_and_subscription_with_conforming_metadata,
+        recurring_contribution_and_subscription_with_non_conforming_metadata,
+        one_time_contribution_with_pi_with_non_conforming_contribution_metadata,
+        request,
+    ):
+        _, pi = one_time_contribution_and_pi_with_conforming_metadata
+        pi.payment_method = request.getfixturevalue("payment_method")
+        _, sub = recurring_contribution_and_subscription_with_conforming_metadata
+        _, pi_no_metadata = one_time_contribution_with_pi_with_non_conforming_contribution_metadata
+        pi_no_metadata.payment_method = request.getfixturevalue("payment_method")
+        _, sub_no_metadata = recurring_contribution_and_subscription_with_non_conforming_metadata
+        sub_no_metadata.default_payment_method = request.getfixturevalue("payment_method")
+        mock_pi_search = mocker.patch("stripe.PaymentIntent.search")
+        mock_sub_search = mocker.patch("stripe.Subscription.search")
+        mock_pi_search.return_value.auto_paging_iter.return_value = [pi]
+        mock_sub_search.return_value.auto_paging_iter.return_value = [sub]
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi_no_metadata)
+        mock_sub_retrieve = mocker.patch(
+            "stripe.Subscription.retrieve",
+            return_value=sub_no_metadata,
+        )
+        return mock_pi_search, mock_sub_search, mock_pi_retrieve, mock_sub_retrieve
+
+    def test_call_command_when_no_fixable_contributions(self):
+        assert Contribution.objects.count() == 0
+        call_command("fix_contribution_missing_provider_payment_method_id")
+
+    @pytest.fixture
+    def one_time_contribution_fixable_via_search(self, one_time_contribution_and_pi_with_conforming_metadata):
+        return one_time_contribution_and_pi_with_conforming_metadata[0]
+
+    @pytest.fixture
+    def one_time_contribution_fixable_via_retrieve(
+        self, one_time_contribution_with_pi_with_non_conforming_contribution_metadata
+    ):
+        return one_time_contribution_with_pi_with_non_conforming_contribution_metadata[0]
+
+    @pytest.fixture
+    def recurring_contribution_fixable_via_retrieve(
+        self, recurring_contribution_and_subscription_with_non_conforming_metadata
+    ):
+        return recurring_contribution_and_subscription_with_non_conforming_metadata[0]
+
+    @pytest.fixture
+    def recurring_contribution_fixable_via_search(
+        self, recurring_contribution_and_subscription_with_conforming_metadata
+    ):
+        return recurring_contribution_and_subscription_with_conforming_metadata[0]
+
+    @pytest.fixture
+    def fixable_contributions(
+        self,
+        one_time_contribution_fixable_via_search,
+        one_time_contribution_fixable_via_retrieve,
+        recurring_contribution_fixable_via_retrieve,
+        recurring_contribution_fixable_via_search,
+    ):
+        return Contribution.objects.filter(
+            id__in=(
+                one_time_contribution_fixable_via_search.id,
+                one_time_contribution_fixable_via_retrieve.id,
+                recurring_contribution_fixable_via_retrieve.id,
+                recurring_contribution_fixable_via_search.id,
+            )
+        )
+
+    @pytest.fixture
+    def payment_method(self, faker):
+        return stripe.PaymentMethod.construct_from({"id": faker.uuid4()}, "fake-key")
+
+    @pytest.fixture
+    def _stripe_account_connected(self, mocker, fixable_contributions):
+        mocker.patch(
+            "apps.contributions.models.ContributionQuerySet.exclude_disconnected_stripe_accounts",
+            return_value=fixable_contributions,
+        )
+
+    @pytest.mark.usefixtures("mock_stripe", "_stripe_account_connected")
+    def test_call_command_happy_path(self, fixable_contributions):
+        assert fixable_contributions.filter(provider_payment_method_id__isnull=True).count() == 4
+        call_command("fix_contribution_missing_provider_payment_method_id")
+        assert fixable_contributions.filter(provider_payment_method_id__isnull=True).count() == 0
+
+    @pytest.mark.parametrize("not_updated_query_exists", [True, False])
+    def test_handle_when_none_updated(self, mocker, command, not_updated_query_exists):
+        mocker.patch(
+            "apps.contributions.management.commands.fix_contribution_missing_provider_payment_method_id.Command.get_relevant_contributions",
+            return_value=Contribution.objects.filter(id__in=[ContributionFactory().id]),
+        )
+        mocker.patch.object(
+            command,
+            "process_contributions",
+            return_value=(
+                Contribution.objects.none(),
+                (
+                    Contribution.objects.filter(id__in=[ContributionFactory().id])
+                    if not not_updated_query_exists
+                    else Contribution.objects.none()
+                ),
+            ),
+        )
+        command.handle()
+
+    def test_process_contribution_via_retrieve_api_when_stripe_error(self, mocker, command):
+        mocker.patch.object(command, "get_stripe_payment_object_for_contribution", side_effect=stripe.error.StripeError)
+        command.process_contribution_via_retrieve_api(ContributionFactory())
+
+    def test_process_contribution_via_retrieve_api_when_payment_object_has_no_pm(
+        self, mocker, command, one_time_contribution_with_pi_with_non_conforming_contribution_metadata
+    ):
+        contribution, payment_object = one_time_contribution_with_pi_with_non_conforming_contribution_metadata
+        payment_object.payment_method = None
+        mocker.patch.object(command, "get_stripe_payment_object_for_contribution", return_value=payment_object)
+        command.process_contribution_via_retrieve_api(contribution)
+
+    def test_process_contributions_via_retrieve_api_when_not_updated(self, mocker, command):
+        contribution = ContributionFactory()
+        mocker.patch.object(command, "process_contribution_via_retrieve_api", return_value=(contribution, False))
+        command.process_contributions_via_retrieve_api(Contribution.objects.all())
+
+    def test_process_contributions_via_search_api_when_no_pm(self, mocker, command, stripe_subscription):
+        ContributionFactory(monthly_subscription=True)
+        mocker.patch.object(command, "get_metadata_queries", side_effect=[[], [("acct_id", "somequery")]])
+        stripe_subscription.default_payment_method = None
+        mocker.patch.object(command, "search_subscriptions", return_value=[stripe_subscription])
+        command.process_contributions_via_search_api(Contribution.objects.all())
+
+    def test_process_contributions_via_search_api_when_no_contribution(self, mocker, command, stripe_subscription):
+        ContributionFactory(monthly_subscription=True)
+        mocker.patch.object(command, "get_metadata_queries", side_effect=[[], [("acct_id", "somequery")]])
+        stripe_subscription.default_payment_method = "truthy"
+        mocker.patch.object(command, "search_subscriptions", return_value=[stripe_subscription])
+        command.process_contributions_via_search_api(Contribution.objects.all())
+
+    def test_process_contributions_via_search_api_when_multiple_contributions(
+        self, mocker, command, stripe_subscription
+    ):
+        ContributionFactory.create_batch(
+            size=2, monthly_subscription=True, provider_subscription_id=stripe_subscription.id
+        )
+        mocker.patch.object(command, "get_metadata_queries", side_effect=[[], [("acct_id", "somequery")]])
+        stripe_subscription.default_payment_method = "truthy"
+        mocker.patch.object(command, "search_subscriptions", return_value=[stripe_subscription])
+        command.process_contributions_via_search_api(Contribution.objects.all())

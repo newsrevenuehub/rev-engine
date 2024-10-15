@@ -243,7 +243,12 @@ class ContributionQuerySet(models.QuerySet):
 
         Probably not something you'd want to use in a synchronous request context.
         """
-        account_ids = (qs := self.with_stripe_account()).values_list("stripe_account", flat=True).distinct()
+        account_ids = set(
+            (qs := self.with_stripe_account())
+            .order_by("stripe_account")
+            .values_list("stripe_account", flat=True)
+            .distinct()
+        )
         accounts = get_stripe_accounts_and_their_connection_status(list(account_ids))
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]

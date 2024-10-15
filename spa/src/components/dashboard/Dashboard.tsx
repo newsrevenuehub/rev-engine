@@ -74,7 +74,7 @@ function Dashboard() {
               <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
                 <MailchimpOAuthSuccess />
               </SentryRoute>
-              {hasContributionsSectionAccess(user) ? (
+              {user && hasContributionsSectionAccess(user) ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
                 </SentryRoute>

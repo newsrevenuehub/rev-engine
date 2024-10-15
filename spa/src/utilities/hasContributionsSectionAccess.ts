@@ -5,10 +5,10 @@ import {
 import { User } from 'hooks/useUser.types';
 import flagIsActiveForUser from './flagIsActiveForUser';
 
-function hasContributionsSectionAccess(user?: User) {
+function hasContributionsSectionAccess(user: User) {
   // If the user has no role yet, block them.
 
-  if (!user || !user.role_type) {
+  if (!user.role_type) {
     return false;
   }
 

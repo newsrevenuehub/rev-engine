@@ -51,7 +51,7 @@ function Dashboard() {
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, user);
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
-    : hasContributionsSectionAccess(user)
+    : user && hasContributionsSectionAccess(user)
     ? DONATIONS_SLUG
     : 'not-found';
 

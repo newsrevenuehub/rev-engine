@@ -166,6 +166,7 @@ describe('ContributionDetail', () => {
 
     it('calls sendEmailReceipt when the "Resend receipt" button is clicked', () => {
       const sendEmailReceipt = jest.fn();
+
       usePortalContributionMock.mockReturnValue({
         isLoading: false,
         contribution: mockContribution as any,
@@ -176,12 +177,9 @@ describe('ContributionDetail', () => {
         cancelContribution: jest.fn(),
         sendEmailReceipt
       });
-
       tree();
       expect(sendEmailReceipt).not.toHaveBeenCalled();
-
       screen.getByText('Resend receipt').click();
-
       expect(sendEmailReceipt).toBeCalledTimes(1);
     });
 
@@ -199,27 +197,49 @@ describe('ContributionDetail', () => {
       expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('false');
     });
 
-    describe('PLUS plan', () => {
-      it('BillingDetails allows edit mode if contribution.is_modifiable = true', () => {
-        tree();
-        expect(screen.getByTestId('mock-billing-details').dataset.enableeditmode).toBe('true');
-      });
-    });
-
-    describe.each(['FREE', 'CORE'])('%s plan', (plan) => {
-      it("BillingDetails doesn't allow edit mode if contribution.is_modifiable = true", () => {
+    describe.each([
+      ['FREE', false],
+      ['CORE', true],
+      ['PLUS', true]
+    ])('When the organization has the %s plan', (plan, billingDetailsEditable) => {
+      beforeEach(() => {
         usePortalMock.mockReturnValue({
-          page: {
-            revenue_program: {
-              id: 1,
-              organization: {
-                plan: {
-                  name: plan
-                }
-              }
-            }
-          }
+          page: { revenue_program: { id: 1, organization: { plan: { name: plan } } } }
         } as any);
+      });
+
+      it(`${
+        billingDetailsEditable ? 'allows' : "doesn't allow"
+      } editing billing details when the contribution is modifiable`, () => {
+        usePortalContributionMock.mockReturnValue({
+          isLoading: false,
+          contribution: { ...mockContribution, is_modifiable: true } as any,
+          isError: false,
+          isFetching: false,
+          refetch: jest.fn(),
+          cancelContribution: jest.fn(),
+          updateContribution: jest.fn(),
+          sendEmailReceipt: jest.fn()
+        });
+        tree();
+        expect(screen.getByTestId('mock-billing-details').dataset.enableeditmode).toBe(
+          billingDetailsEditable.toString()
+        );
+      });
+
+      it("doesn't allow editing billing details when the contribution isn't modifiable", () => {
+        // This should always be true regardless of plan.
+
+        usePortalContributionMock.mockReturnValue({
+          isLoading: false,
+          contribution: { ...mockContribution, is_modifiable: false } as any,
+          isError: false,
+          isFetching: false,
+          refetch: jest.fn(),
+          cancelContribution: jest.fn(),
+          updateContribution: jest.fn(),
+          sendEmailReceipt: jest.fn()
+        });
         tree();
         expect(screen.getByTestId('mock-billing-details').dataset.enableeditmode).toBe('false');
       });
@@ -244,7 +264,7 @@ describe('ContributionDetail', () => {
         expect(screen.getByTestId('mock-payment-method').dataset.editable).toBe('true');
       });
 
-      it('does not make the the payment method section editable if contribution.is_modifiable = false', () => {
+      it("does not make the the payment method section editable if the contribution isn't modifiable", () => {
         usePortalContributionMock.mockReturnValue({
           isLoading: false,
           contribution: { ...mockContribution, is_modifiable: false } as any,
@@ -307,6 +327,7 @@ describe('ContributionDetail', () => {
 
       it('calls cancelContribution when the cancel button is clicked', () => {
         const cancelContribution = jest.fn();
+
         usePortalContributionMock.mockReturnValue({
           isLoading: false,
           contribution: mockContribution as any,
@@ -317,11 +338,9 @@ describe('ContributionDetail', () => {
           cancelContribution,
           sendEmailReceipt: jest.fn()
         });
-
         tree();
         const cancelButton = screen.getByText('Cancel Contribution');
         cancelButton.click();
-
         expect(cancelContribution).toBeCalledWith();
         expect(cancelContribution).toBeCalledTimes(1);
       });
@@ -352,7 +371,7 @@ describe('ContributionDetail', () => {
         expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('true');
       });
 
-      it('does not make the the billing details section editable if contribution.is_modifiable = false', () => {
+      it("does not make the the billing details section editable if the contribution isn't editable", () => {
         usePortalContributionMock.mockReturnValue({
           isLoading: false,
           contribution: { ...mockContribution, is_modifiable: false } as any,
@@ -368,7 +387,7 @@ describe('ContributionDetail', () => {
         expect(screen.getByTestId('mock-billing-details').dataset.editable).toBe('false');
       });
 
-      describe('When billing details finishes editing', () => {
+      describe('When the user finishes editing billing details', () => {
         it("doesn't disable any section", () => {
           tree();
           fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
@@ -386,7 +405,7 @@ describe('ContributionDetail', () => {
         });
       });
 
-      describe('When the billing details is updated', () => {
+      describe('When billing details are updated', () => {
         let updateContribution: jest.SpyInstance;
 
         beforeEach(() => {

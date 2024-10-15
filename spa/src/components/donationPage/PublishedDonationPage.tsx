@@ -33,22 +33,24 @@ const pageError = {
 function PublishedDonationPage() {
   const rpSlug = getRevenueProgramSlug();
   const { pageSlug } = useParams<RouteParams>();
-  const { isError, isLoading, page } = usePublishedPage(rpSlug, pageSlug);
+  const { isError, isLoading, page, isFetched } = usePublishedPage(rpSlug, pageSlug);
   const { setAnalyticsConfig } = useAnalyticsContext();
   const { t } = useTranslation();
 
   useWebFonts(page?.styles?.font);
   useEffect(() => {
-    setAnalyticsConfig({
-      hubGaV3Id: HUB_GA_V3_ID,
-      ...(page?.revenue_program && {
-        orgGaV3Id: page.revenue_program.google_analytics_v3_id,
-        orgGaV3Domain: page.revenue_program.google_analytics_v3_domain,
-        orgGaV4Id: page.revenue_program.google_analytics_v4_id,
-        orgFbPixelId: page.revenue_program.facebook_pixel_id
-      })
-    });
-  }, [page?.revenue_program, setAnalyticsConfig]);
+    if (isFetched) {
+      setAnalyticsConfig({
+        hubGaV3Id: HUB_GA_V3_ID,
+        ...(page?.revenue_program && {
+          orgGaV3Id: page.revenue_program.google_analytics_v3_id,
+          orgGaV3Domain: page.revenue_program.google_analytics_v3_domain,
+          orgGaV4Id: page.revenue_program.google_analytics_v4_id,
+          orgFbPixelId: page.revenue_program.facebook_pixel_id
+        })
+      });
+    }
+  }, [isFetched, page?.revenue_program, setAnalyticsConfig]);
 
   if (isError) {
     return <PageError {...pageError} />;

@@ -46,7 +46,8 @@ export function usePublishedPage(revenueProgramSlug: string, pageSlug: string) {
     error,
     isLoading,
     isError,
-    refetch
+    refetch,
+    isFetched
   } = useQuery([`published-page-${revenueProgramSlug}-${pageSlug}`], () => fetchPage(revenueProgramSlug, pageSlug), {
     enabled: false,
     retry(failureCount, error) {
@@ -69,5 +70,5 @@ export function usePublishedPage(revenueProgramSlug: string, pageSlug: string) {
     }
   }, [refetch]);
 
-  return { error, isLoading, isError, page };
+  return { error, isLoading, isError, isFetched, page };
 }

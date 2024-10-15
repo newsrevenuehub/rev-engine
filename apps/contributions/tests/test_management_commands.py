@@ -8,7 +8,7 @@ import reversion
 import stripe
 
 from apps.contributions.choices import ContributionInterval
-from apps.contributions.management.commands.fix_contribution_missing_provider_payment_method_id import (
+from apps.contributions.management.commands.fix_contributions_missing_provider_payment_method_id import (
     Command as FixContributionMissingProviderPaymentMethodId,
 )
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
@@ -777,7 +777,7 @@ class Test_fix_missing_provider_payment_method_id:
 
     def test_call_command_when_no_fixable_contributions(self):
         assert Contribution.objects.count() == 0
-        call_command("fix_contribution_missing_provider_payment_method_id")
+        call_command("fix_contributions_missing_provider_payment_method_id")
 
     @pytest.fixture
     def one_time_contribution_fixable_via_search(self, one_time_contribution_and_pi_with_conforming_metadata):
@@ -832,13 +832,13 @@ class Test_fix_missing_provider_payment_method_id:
     @pytest.mark.usefixtures("mock_stripe", "_stripe_account_connected")
     def test_call_command_happy_path(self, fixable_contributions):
         assert fixable_contributions.filter(provider_payment_method_id__isnull=True).count() == 4
-        call_command("fix_contribution_missing_provider_payment_method_id")
+        call_command("fix_contributions_missing_provider_payment_method_id")
         assert fixable_contributions.filter(provider_payment_method_id__isnull=True).count() == 0
 
     @pytest.mark.parametrize("not_updated_query_exists", [True, False])
     def test_handle_when_none_updated(self, mocker, command, not_updated_query_exists):
         mocker.patch(
-            "apps.contributions.management.commands.fix_contribution_missing_provider_payment_method_id.Command.get_relevant_contributions",
+            "apps.contributions.management.commands.fix_contributions_missing_provider_payment_method_id.Command.get_relevant_contributions",
             return_value=Contribution.objects.filter(id__in=[ContributionFactory().id]),
         )
         mocker.patch.object(

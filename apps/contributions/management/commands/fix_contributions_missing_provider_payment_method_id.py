@@ -172,7 +172,7 @@ class Command(BaseCommand):
                 .distinct()
             )
             for i in range(0, contributor_ids.count(), chunk_size):
-                ids = contributor_ids[i * chunk_size : i * chunk_size + chunk_size]
+                ids = contributor_ids[i : i + chunk_size]
                 yield acct_id, " OR ".join(f'metadata["contributor_id"]:"{cid}"' for cid in ids)
 
     def search_subscriptions(self, query: str, stripe_account_id: str) -> Generator[stripe.Subscription]:

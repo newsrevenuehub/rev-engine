@@ -15,6 +15,7 @@ from apps.contributions.models import Contribution
 from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT
 
 
+# This determines how many OR conditions we can have in a single stripe search query
 SEARCH_API_METADATA_ITEM_LIMIT = 10
 
 # otherwise we get spammed by stripe info logs when running this command
@@ -220,7 +221,6 @@ class Command(BaseCommand):
         )
         one_times = contributions.filter(interval=ContributionInterval.ONE_TIME)
         recurrings = contributions.exclude(id__in=one_times.values_list("id", flat=True))
-        # Convert generators to lists here
         queries = {
             "one_time": self.get_metadata_queries(one_times),
             "recurring": self.get_metadata_queries(recurrings),

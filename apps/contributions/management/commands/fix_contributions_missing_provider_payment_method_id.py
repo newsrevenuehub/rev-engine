@@ -167,12 +167,15 @@ class Command(BaseCommand):
             contributor_ids = (
                 qs.filter(stripe_account=acct_id, contributor__isnull=False)
                 # required so that we get distinct contributor IDs
-                .order_by("contributor_id")
-                .values_list("contributor_id", flat=True)
+                .order_by("contributor__id")
+                .values_list("contributor__id", flat=True)
                 .distinct()
             )
             for i in range(0, contributor_ids.count(), chunk_size):
                 ids = contributor_ids[i : i + chunk_size]
+                # it's possible for this to be empty via empty contributor_ids or because of the slice
+                if not ids:
+                    continue
                 yield acct_id, " OR ".join(f'metadata["contributor_id"]:"{cid}"' for cid in ids)
 
     def search_subscriptions(self, query: str, stripe_account_id: str) -> Generator[stripe.Subscription]:
@@ -234,13 +237,16 @@ class Command(BaseCommand):
                 acct_id, query = _query
                 self.stdout.write(
                     self.style.HTTP_INFO(
-                        f"Search {i + 1} for Stripe subscriptions with query: {query} and stripe account ID: {acct_id}"
+                        f"Search {i + 1} for Stripe {'subscriptions' if q_type == 'recurring' else 'payment intents'} "
+                        f"with query: {query} and stripe account ID: {acct_id}"
                     )
                 )
                 method = self.search_subscriptions if q_type == "recurring" else self.search_payment_intents
                 stripe_entities = method(query, acct_id)
                 for entity in stripe_entities:
-                    if pm := entity.get("default_payment_method" if q_type == "recurring" else "payment_method"):
+                    if pm := (
+                        self.get_pm_from_subscription(entity) if q_type == "recurring" else entity.get("payment_method")
+                    ):
                         qs = recurrings if q_type == "recurring" else one_times
                         key = "provider_subscription_id" if q_type == "recurring" else "provider_payment_id"
                         try:
@@ -291,6 +297,9 @@ class Command(BaseCommand):
         if not (fixable_contributions := self.get_relevant_contributions()).exists():
             self.stdout.write(self.style.HTTP_INFO("No fixable contributions found. Exiting."))
             return
+
+        self.stdout.write(self.style.HTTP_INFO(f"Found {fixable_contributions.count()} fixable contributions"))
+
         updated_qs, not_updated_qs = self.process_contributions(contributions=fixable_contributions)
         if updated_qs.exists():
             self.stdout.write(

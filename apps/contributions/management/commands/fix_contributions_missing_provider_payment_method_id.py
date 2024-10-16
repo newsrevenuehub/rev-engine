@@ -184,11 +184,6 @@ class Command(BaseCommand):
         We expand data.latest_invoice.payment_intent.payment_method so we can save back the data without
         additional API calls.
         """
-        self.stdout.write(
-            self.style.HTTP_INFO(
-                f"Searching stripe subscriptions with query: {query} and stripe account ID: {stripe_account_id}"
-            )
-        )
         return stripe.Subscription.search(
             stripe_account=stripe_account_id,
             expand=[
@@ -252,12 +247,8 @@ class Command(BaseCommand):
                         try:
                             contribution = qs.get(**{key: entity.id})
                         except Contribution.DoesNotExist:
-                            self.stdout.write(
-                                self.style.HTTP_INFO(
-                                    f"No contribution found for returned {'subscription' if q_type == 'recurring' else 'payment intent'} "
-                                    f"{entity.id} with key {key}"
-                                )
-                            )
+                            # This is normal/expected since our search is potentialy broader than the contributions we have
+                            continue
                         except Contribution.MultipleObjectsReturned:
                             self.stdout.write(
                                 self.style.HTTP_INFO(

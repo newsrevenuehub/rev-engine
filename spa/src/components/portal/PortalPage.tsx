@@ -11,6 +11,8 @@ import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
 import { useConfigureAnalytics } from 'components/analytics';
+import PageError, { PageErrorProps } from 'components/common/PageError/PageError';
+import { AxiosError } from 'axios';
 
 const PortalPagePropTypes = {
   children: PropTypes.any,
@@ -23,7 +25,7 @@ export interface PortalPageProps extends InferProps<typeof PortalPagePropTypes> 
 }
 
 function PortalPage({ children, className }: PortalPageProps) {
-  const { page, pageIsFetched, enablePageFetch } = usePortal();
+  const { page, isPageLoading, pageError, isPageError, enablePageFetch } = usePortal();
 
   const isFreeOrg = page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.FREE;
   const hasDefaultDonationPage = !!page?.revenue_program?.default_donation_page;
@@ -33,8 +35,17 @@ function PortalPage({ children, className }: PortalPageProps) {
   useWebFonts(page?.styles?.font);
   useConfigureAnalytics();
 
-  // If rp has no default page, normal contributor page is shown
-  if (enablePageFetch && !page && !pageIsFetched) return null;
+  const error: PageErrorProps =
+    (pageError as AxiosError)?.response?.status === 404
+      ? {
+          header: 404,
+          description: "The page you requested can't be found."
+        }
+      : {
+          description: 'Something went wrong. Please try again later.'
+        };
+
+  if (enablePageFetch && !page && isPageLoading) return null;
 
   return (
     <TrackPageView>
@@ -47,7 +58,7 @@ function PortalPage({ children, className }: PortalPageProps) {
               <Logo src={NRELogo} alt="News Revenue Engine" />
             </Header>
           )}
-          {children}
+          {isPageError ? <PageError {...error} /> : children}
           <PoweredBy>
             <span>Powered by</span>
             <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">

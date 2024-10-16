@@ -11,6 +11,7 @@ import { muiThemeOverrides, revEngineTheme } from '../src/styles/themes';
 import AdminGlobalStyles from '../src/styles/AdminGlobalStyles';
 import { SnackbarProvider } from 'notistack';
 import '../src/i18n';
+import { AnalyticsContextProvider } from '../src/components/analytics/AnalyticsContext';
 
 const queryClient = new QueryClient();
 
@@ -25,7 +26,9 @@ const wrapper = (Story) => (
                 <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
                   <AdminGlobalStyles />
                   <ReauthContext.Provider value={{ getReauth: () => {} }}>
-                    <Story />
+                    <AnalyticsContextProvider>
+                      <Story />
+                    </AnalyticsContextProvider>
                   </ReauthContext.Provider>
                 </SnackbarProvider>
               </AlertProvider>

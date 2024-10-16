@@ -6,3 +6,4 @@ export const PLUS_UPGRADE_URL = 'https://fundjournalism.org/i-want-revengine-plu
 export const PRICING_URL = 'https://fundjournalism.org/pricing/';
 export const PRIVACY_POLICY_URL = 'https://fundjournalism.org/faq/privacy-policy/';
 export const TS_AND_CS_URL = 'https://fundjournalism.org/faq/terms-of-service/';
+export const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';

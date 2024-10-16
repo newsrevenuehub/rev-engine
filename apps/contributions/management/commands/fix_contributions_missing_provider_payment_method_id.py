@@ -304,7 +304,7 @@ class Command(BaseCommand):
         if updated_qs.exists():
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Updated contribution IDs: {', '.join(str(x) for x in updated_qs.values_list('id', flat=True))}"
+                    f"Updated {updated_qs.count()} contributions:  {', '.join(str(x) for x in updated_qs.values_list('id', flat=True))}"
                 )
             )
         if not_updated_qs.exists():

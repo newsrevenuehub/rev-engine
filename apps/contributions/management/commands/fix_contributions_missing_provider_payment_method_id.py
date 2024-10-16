@@ -215,16 +215,16 @@ class Command(BaseCommand):
     def process_contributions_via_search_api(
         self,
         contributions: QuerySet[Contribution],
-        # ie, updated, not_updated
     ) -> tuple[QuerySet[Contribution], QuerySet[Contribution]]:
         self.stdout.write(
             self.style.HTTP_INFO(f"Processing {contributions.count()} contributions without contributor in metadata")
         )
         one_times = contributions.filter(interval=ContributionInterval.ONE_TIME)
         recurrings = contributions.exclude(id__in=one_times.values_list("id", flat=True))
+        # Convert generators to lists here
         queries = {
-            "one_time": self.get_metadata_queries(one_times),
-            "recurring": self.get_metadata_queries(recurrings),
+            "one_time": list(self.get_metadata_queries(one_times)),
+            "recurring": list(self.get_metadata_queries(recurrings)),
         }
         updated_ids = []
         for q_type in queries:
@@ -247,7 +247,6 @@ class Command(BaseCommand):
                         try:
                             contribution = qs.get(**{key: entity.id})
                         except Contribution.DoesNotExist:
-                            # This is normal/expected since our search is potentialy broader than the contributions we have
                             continue
                         except Contribution.MultipleObjectsReturned:
                             self.stdout.write(
@@ -273,6 +272,16 @@ class Command(BaseCommand):
         """
         searchable_contributions = contributions.filter(contribution_metadata__schema_version__in=["1.0", "1.1", "1.4"])
         unsearchable_contributions = contributions.exclude(id__in=searchable_contributions.values_list("id", flat=True))
+        self.stdout.write(
+            self.style.HTTP_INFO(
+                f"Will attempt to retrieve data for {searchable_contributions.count()} contributions via search api."
+            )
+        )
+        self.stdout.write(
+            self.style.HTTP_INFO(
+                f"Will attempt to retrieve data for {unsearchable_contributions.count()} contributions via retrieve api."
+            )
+        )
         updated_via_retrieve_qs, not_updated_via_retrieve_qs = self.process_contributions_via_retrieve_api(
             unsearchable_contributions
         )
@@ -289,7 +298,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.HTTP_INFO("No fixable contributions found. Exiting."))
             return
 
-        self.stdout.write(self.style.HTTP_INFO(f"Found {fixable_contributions.count()} fixable contributions"))
+        self.stdout.write(self.style.HTTP_INFO(f"Found {fixable_contributions.count()} fixable contributions."))
 
         updated_qs, not_updated_qs = self.process_contributions(contributions=fixable_contributions)
         if updated_qs.exists():

@@ -877,6 +877,7 @@ class Test_fix_missing_provider_payment_method_id:
         mocker.patch.object(command, "get_metadata_queries", side_effect=[[], [("acct_id", "somequery")]])
         stripe_subscription.default_payment_method = None
         mocker.patch.object(command, "search_subscriptions", return_value=[stripe_subscription])
+        mocker.patch.object(command, "get_pm_from_subscription", return_value=None)
         command.process_contributions_via_search_api(Contribution.objects.all())
 
     def test_process_contributions_via_search_api_when_no_contribution(self, mocker, command, stripe_subscription):

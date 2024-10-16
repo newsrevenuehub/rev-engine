@@ -155,8 +155,9 @@ class Command(BaseCommand):
 
     def get_metadata_queries(
         self, contributions: QuerySet[Contribution], chunk_size: int = SEARCH_API_METADATA_ITEM_LIMIT
-    ) -> Generator[tuple[str, str]]:
+    ) -> list[tuple[str, str]]:
         """Generate tuples of account_id and metadata queries for stripe search API."""
+        queries = []
         for acct_id in (
             (qs := contributions.with_stripe_account())
             .values_list("stripe_account", flat=True)
@@ -165,18 +166,16 @@ class Command(BaseCommand):
             .distinct()
         ):
             contributor_ids = (
-                qs.filter(stripe_account=acct_id, contributor__isnull=False)
+                qs.filter(contributor__isnull=False, stripe_account=acct_id)
                 # required so that we get distinct contributor IDs
                 .order_by("contributor__id")
                 .values_list("contributor__id", flat=True)
                 .distinct()
             )
-            for i in range(0, contributor_ids.count(), chunk_size):
+            for i in range(0, len(contributor_ids), chunk_size):
                 ids = contributor_ids[i : i + chunk_size]
-                # it's possible for this to be empty via empty contributor_ids or because of the slice
-                if not ids:
-                    continue
-                yield acct_id, " OR ".join(f'metadata["contributor_id"]:"{cid}"' for cid in ids)
+                queries.append((acct_id, " OR ".join(f'metadata["contributor_id"]:"{cid}"' for cid in ids)))
+        return queries
 
     def search_subscriptions(self, query: str, stripe_account_id: str) -> Generator[stripe.Subscription]:
         """Search stripe subscriptions, including a query string.
@@ -223,8 +222,8 @@ class Command(BaseCommand):
         recurrings = contributions.exclude(id__in=one_times.values_list("id", flat=True))
         # Convert generators to lists here
         queries = {
-            "one_time": list(self.get_metadata_queries(one_times)),
-            "recurring": list(self.get_metadata_queries(recurrings)),
+            "one_time": self.get_metadata_queries(one_times),
+            "recurring": self.get_metadata_queries(recurrings),
         }
         updated_ids = []
         for q_type in queries:

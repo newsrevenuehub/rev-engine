@@ -48,6 +48,9 @@ describe('usePendo', () => {
     usePortalMock.mockReturnValue({
       page: { revenue_program: { id: 'mock-rp-id' } } as any,
       pageIsFetched: true,
+      isPageError: false,
+      isPageLoading: false,
+      pageError: undefined,
       enablePageFetch: false,
       sendMagicLink: jest.fn(),
       magicLinkIsLoading: false,
@@ -68,6 +71,9 @@ describe('usePendo', () => {
   it("doesn't initialize Pendo if the portal contribution page is loading", () => {
     usePortalMock.mockReturnValue({
       page: undefined,
+      isPageError: false,
+      pageError: undefined,
+      isPageLoading: true,
       pageIsFetched: false,
       enablePageFetch: false,
       sendMagicLink: jest.fn(),

@@ -25,8 +25,11 @@ import {
   Popover,
   Typography
 } from './AvatarMenu.styled';
+import { User } from 'hooks/useUser.types';
 
-export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>;
+export interface AvatarMenuProps extends InferProps<typeof AvatarMenuPropTypes> {
+  user?: User;
+}
 
 export const capitalizeInitial = (text?: string) => (text ? text[0].toUpperCase() : '');
 

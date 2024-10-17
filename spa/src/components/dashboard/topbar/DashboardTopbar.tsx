@@ -5,7 +5,7 @@ import { User } from 'hooks/useUser.types';
 import { Root } from './DashboardTopbar.styled';
 
 export interface DashboardTopbarProps extends InferProps<typeof DashboardTopbarPropTypes> {
-  user: User;
+  user?: User;
 }
 
 function DashboardTopbar({ user }: DashboardTopbarProps) {

@@ -292,6 +292,26 @@ class Command(BaseCommand):
         )
         return updated_via_search_qs | updated_via_retrieve_qs, not_updated_via_search_qs | not_updated_via_retrieve_qs
 
+    def set_remaining_dummy_payment_method_ids_to_null(self) -> None:
+        """Set any remaining dummy payment method IDs to null.
+
+        If we need to reprocess, formerly dummy-valued-now-null-valued contributions will still be picked up.
+        """
+        qs = Contribution.objects.filter(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID).all()
+        if (
+            qs := Contribution.objects.filter(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID).all()
+        ).exists():
+            self.stdout.write(
+                self.style.HTTP_INFO(f"Found {qs.count()} contributions with dummy payment method ID. Setting to null.")
+            )
+            with reversion.create_revision():
+                for con in Contribution.objects.filter(
+                    provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID
+                ).all():
+                    con.provider_payment_method_id = None
+                    con.save(update_fields=["provider_payment_method_id"])
+                reversion.set_comment(f"Updated by {self.name} command")
+
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
 
@@ -315,3 +335,4 @@ class Command(BaseCommand):
                     f"{', '.join(str(x) for x in not_updated_qs.values_list('id', flat=True))}"
                 )
             )
+        self.set_remaining_dummy_payment_method_ids_to_null()

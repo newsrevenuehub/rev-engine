@@ -956,3 +956,13 @@ class Test_fix_missing_provider_payment_method_id:
             assert command.get_pm_from_subscription(subscription) == payment_method
         else:
             assert command.get_pm_from_subscription(subscription) is None
+
+    @pytest.mark.parametrize("has_dummies", [True, False])
+    def test_set_remaining_dummy_payment_method_ids_to_null(self, has_dummies, command, settings):
+        assert settings.DUMMY_PAYMENT_METHOD_ID
+        qs = Contribution.objects.filter(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
+        if has_dummies:
+            ContributionFactory(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
+            assert qs.exists()
+        command.set_remaining_dummy_payment_method_ids_to_null()
+        assert not qs.exists()

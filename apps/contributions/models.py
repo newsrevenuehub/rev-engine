@@ -264,9 +264,7 @@ class ContributionQuerySet(models.QuerySet):
             _inel_account = ineligible_because_of_account.count()
             _plural = "" if _inel_account == 1 else "s"
             logger.info(
-                "Found %s contribution%s with "
-                "null value for provider_payment_id that cannot be updated because account is disconnected or some other problem "
-                "retrieving account: {%s}",
+                "Found %s contribution%s with disconnected Stripe accounts: %s",
                 _inel_account,
                 _plural,
                 ", ".join(str(x) for x in ineligible_because_of_account.values_list("id", flat=True)),

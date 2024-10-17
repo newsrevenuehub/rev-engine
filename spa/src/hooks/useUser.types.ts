@@ -20,6 +20,8 @@ export interface Organization {
 export interface User {
   email_verified: boolean;
   id: string;
+  firstName: string;
+  lastName: string;
   email: string;
   revenue_programs: RevenueProgram[];
   /**

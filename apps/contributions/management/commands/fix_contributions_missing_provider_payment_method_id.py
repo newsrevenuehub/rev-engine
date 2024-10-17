@@ -23,7 +23,7 @@ logging.getLogger("stripe").setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):
-    """Find contributions with missing or dummy val for provider_payment_method_id try to update.
+    """Find contributions with missing or dummy value for provider_payment_method_id try to update.
 
     When found, we update both provider_payment_method_id and provider_payment_method_details.
     """

@@ -38,7 +38,10 @@ class Command(BaseCommand):
         We require that contribution be one time and have a provider payment ID or be recurring
         and have a provider subscription ID.
 
-        We also require status be in [PAID, REFUNDED, FAILED, CANCELED] and that it have a contributor object.
+        We also require:
+          - status be in [PAID, REFUNDED, FAILED, CANCELED]
+          - has a contributor object
+          - stripe account is not disconnected
         """
         return (
             Contribution.objects.filter(
@@ -290,7 +293,6 @@ class Command(BaseCommand):
         return updated_via_search_qs | updated_via_retrieve_qs, not_updated_via_search_qs | not_updated_via_retrieve_qs
 
     def handle(self, *args, **options):
-        # add flag to secondary retrieve failed search items
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
 
         if not (fixable_contributions := self.get_relevant_contributions()).exists():

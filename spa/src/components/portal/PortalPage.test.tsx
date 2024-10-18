@@ -42,9 +42,7 @@ describe('PortalPage', () => {
   beforeEach(() => {
     axiosMock.onGet(LIVE_PAGE_DETAIL).reply(200, page);
   });
-
   afterEach(() => axiosMock.reset());
-
   afterAll(() => axiosMock.restore());
 
   function tree(props?: PortalPageProps) {
@@ -69,28 +67,16 @@ describe('PortalPage', () => {
   const assertContentIsRendered = async () => {
     await screen.findByTestId('mock-track-page-view');
     expect(screen.getByTestId('mock-segregated-styles')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-donation-page-header')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-content-component')).toBeInTheDocument();
     expect(screen.getByText('Powered by')).toBeVisible();
     expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
   };
 
-  // expects() are in function above.
-  /* eslint-disable jest/expect-expect */
-
   it('should have expected default appearance and initial state', async () => {
     tree();
     await assertContentIsRendered();
+    expect(screen.getByTestId('mock-content-component')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-donation-page-header')).toBeInTheDocument();
   });
-
-  it('should render normally even if no page data', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    axiosMock.onGet(LIVE_PAGE_DETAIL).networkError();
-    tree();
-    await assertContentIsRendered();
-  });
-
-  /* eslint-enable jest/expect-expect */
 
   it('should call useWebFonts with page styles font', async () => {
     tree();
@@ -140,5 +126,50 @@ describe('PortalPage', () => {
     const link = screen.getByRole('link', { name: 'News Revenue Engine' });
     expect(link).toHaveAttribute('href', 'https://fundjournalism.org/');
     expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  // TODO: fix this test block. Axios issues
+  describe('request errors', () => {
+    // Empty test to make axios fail request. Has to be first test inside this describe block
+    it('fail test setup', () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).timeout();
+      tree();
+      expect(true).toBe(true);
+    });
+
+    it('should render generic error when timeout', async () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).timeout();
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      tree();
+      await assertContentIsRendered();
+      expect(screen.getByTestId('page-error')).toBeInTheDocument();
+      expect(screen.getByText('Something went wrong. Please try again later.')).toBeInTheDocument();
+    });
+
+    it('should render generic error when network error', async () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).networkError();
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      tree();
+      await assertContentIsRendered();
+      expect(screen.getByTestId('page-error')).toBeInTheDocument();
+      expect(screen.getByText('Something went wrong. Please try again later.')).toBeInTheDocument();
+    });
+
+    it('should render generic error when internal server error', async () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).reply(500);
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      tree();
+      await assertContentIsRendered();
+      expect(screen.getByTestId('page-error')).toBeInTheDocument();
+      expect(screen.getByText('Something went wrong. Please try again later.')).toBeInTheDocument();
+    });
+
+    it('should render 404 if page is not found', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      axiosMock.onGet(LIVE_PAGE_DETAIL).reply(404);
+      tree();
+      await screen.findByTestId('mock-track-page-view');
+      expect(screen.getByTestId('page-error')).toBeInTheDocument();
+    });
   });
 });

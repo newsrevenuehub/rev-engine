@@ -53,6 +53,7 @@ export const SectionEditButton = styled(Button)`
  * Values in the column layout.
  */
 export const Detail = styled.div`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   padding-left: 12px;
 `;
 
@@ -60,6 +61,8 @@ export const Detail = styled.div`
  * Headings in the column layout.
  */
 export const Subheading = styled.h5`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
+
   &:first-of-type {
     margin-top: 0;
   }

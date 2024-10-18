@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { GlobalLoading } from 'components/common/GlobalLoading';
-import LivePage404 from 'components/common/LivePage404';
+import PageError from 'components/common/PageError/PageError';
 import DonationPage from 'components/donationPage/DonationPage';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import PageTitle from 'elements/PageTitle';
@@ -12,34 +12,48 @@ import { usePublishedPage } from 'hooks/usePublishedPage';
 import useWebFonts from 'hooks/useWebFonts';
 import ContributionPage18nProvider from './ContributionPageI18nProvider';
 import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
+import { FUNDJOURNALISM_404_REDIRECT } from 'constants/helperUrls';
 
 interface RouteParams {
   pageSlug: string;
 }
 
+const pageError = {
+  header: 404,
+  description: (
+    <>
+      <p>The page you requested can't be found.</p>
+      <p>
+        If you're trying to make a contribution please visit <a href={FUNDJOURNALISM_404_REDIRECT}>this page</a>.
+      </p>
+    </>
+  )
+};
+
 function PublishedDonationPage() {
   const rpSlug = getRevenueProgramSlug();
   const { pageSlug } = useParams<RouteParams>();
-  const { isError, isLoading, page } = usePublishedPage(rpSlug, pageSlug);
+  const { isError, isLoading, page, isFetched } = usePublishedPage(rpSlug, pageSlug);
   const { setAnalyticsConfig } = useAnalyticsContext();
   const { t } = useTranslation();
 
   useWebFonts(page?.styles?.font);
   useEffect(() => {
-    if (page?.revenue_program) {
-      const {
-        google_analytics_v3_id: orgGaV3Id,
-        google_analytics_v3_domain: orgGaV3Domain,
-        google_analytics_v4_id: orgGaV4Id,
-        facebook_pixel_id: orgFbPixelId
-      } = page.revenue_program;
-
-      setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
+    if (isFetched) {
+      setAnalyticsConfig({
+        hubGaV3Id: HUB_GA_V3_ID,
+        ...(page?.revenue_program && {
+          orgGaV3Id: page.revenue_program.google_analytics_v3_id,
+          orgGaV3Domain: page.revenue_program.google_analytics_v3_domain,
+          orgGaV4Id: page.revenue_program.google_analytics_v4_id,
+          orgFbPixelId: page.revenue_program.facebook_pixel_id
+        })
+      });
     }
-  }, [page?.revenue_program, setAnalyticsConfig]);
+  }, [isFetched, page?.revenue_program, setAnalyticsConfig]);
 
   if (isError) {
-    return <LivePage404 dashboard={false} />;
+    return <PageError {...pageError} />;
   }
 
   if (isLoading || !page) {
@@ -53,7 +67,7 @@ function PublishedDonationPage() {
 
   if (!page.revenue_program) {
     console.error(`Page object has no revenue_program.name property: ${JSON.stringify(page)}`);
-    return <LivePage404 dashboard={false} />;
+    return <PageError {...pageError} />;
   }
 
   return (

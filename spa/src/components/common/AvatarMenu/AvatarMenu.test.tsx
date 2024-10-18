@@ -25,7 +25,7 @@ const settingsMenu = 'Settings';
 
 describe('AvatarMenu', () => {
   it('should be enabled if has user', () => {
-    tree({ user: { email: 'a@a.com' } });
+    tree({ user: { email: 'a@a.com' } as any });
     expect(screen.getByRole('button', { name: settingsMenu })).toBeEnabled();
   });
 
@@ -39,7 +39,7 @@ describe('AvatarMenu', () => {
       firstName: 'first-mock',
       lastName: 'last-mock',
       email: 'email@mock.com'
-    };
+    } as any;
     tree({ user: nameUser });
 
     const avatar = screen.getByTestId('avatar');
@@ -50,7 +50,7 @@ describe('AvatarMenu', () => {
   it('should render email initial if name is empty', () => {
     const emailUser = {
       email: 'email@mock.com'
-    };
+    } as any;
     tree({ user: emailUser });
 
     const avatar = screen.getByTestId('avatar');
@@ -69,7 +69,7 @@ describe('AvatarMenu', () => {
   it('should open settings menu with correct buttons', () => {
     const emailUser = {
       email: 'email@mock.com'
-    };
+    } as any;
     tree({ user: emailUser });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -82,7 +82,7 @@ describe('AvatarMenu', () => {
       email: 'email@mock.com',
       organizations: [{ id: 'mock-org' }],
       role_type: ['mock-role']
-    };
+    } as any;
     tree({ user });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -100,7 +100,7 @@ describe('AvatarMenu', () => {
       email: 'email@mock.com',
       organizations: [{ id: 'mock-org' }],
       role_type: ['mock-role']
-    };
+    } as any;
     const push = jest.fn();
     const historyMock = useHistory as jest.Mock;
     historyMock.mockReturnValue({
@@ -119,7 +119,7 @@ describe('AvatarMenu', () => {
       email: 'email@mock.com',
       organizations: [{ id: 'mock-org' }, { id: 'mock-org-2' }],
       role_type: ['mock-role']
-    };
+    } as any;
     tree({ user });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -133,7 +133,7 @@ describe('AvatarMenu', () => {
       email: 'email@mock.com',
       organizations: [{ id: 'mock-org' }],
       role_type: [USER_ROLE_HUB_ADMIN_TYPE, 'mock-role']
-    };
+    } as any;
     tree({ user });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -146,7 +146,7 @@ describe('AvatarMenu', () => {
     const oldOpen = jest.spyOn(window, 'open').mockImplementation();
     const emailUser = {
       email: 'email@mock.com'
-    };
+    } as any;
     tree({ user: emailUser });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -158,7 +158,7 @@ describe('AvatarMenu', () => {
   it('should logout', () => {
     const emailUser = {
       email: 'email@mock.com'
-    };
+    } as any;
     tree({ user: emailUser });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -171,7 +171,7 @@ describe('AvatarMenu', () => {
       email: 'email@mock.com',
       organizations: [{ id: 'mock-org' }],
       role_type: ['mock-role']
-    };
+    } as any;
     const { container } = tree({ user });
     expect(await axe(container)).toHaveNoViolations();
 

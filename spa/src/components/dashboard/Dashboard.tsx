@@ -20,7 +20,7 @@ import {
 // Children
 import Profile from 'components/account/Profile';
 import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
-import LivePage404 from 'components/common/LivePage404';
+import PageError from 'components/common/PageError/PageError';
 import Content from 'components/content/Content';
 import CustomizeRoute from 'components/content/CustomizeRoute';
 import ContributorPortalRoute from 'components/content/ContributorPortalRoute';
@@ -44,13 +44,14 @@ import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import AnalyticsSetup from 'components/common/AnalyticsSetup/AnalyticsSetup';
 
 function Dashboard() {
   const { user } = useUser();
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, user);
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
-    : hasContributionsSectionAccess(user)
+    : user && hasContributionsSectionAccess(user)
     ? DONATIONS_SLUG
     : 'not-found';
 
@@ -73,7 +74,7 @@ function Dashboard() {
               <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
                 <MailchimpOAuthSuccess />
               </SentryRoute>
-              {hasContributionsSectionAccess(user) ? (
+              {user && hasContributionsSectionAccess(user) ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
                 </SentryRoute>
@@ -122,7 +123,9 @@ function Dashboard() {
                 <Profile />
               </SentryRoute>
               <SentryRoute>
-                <LivePage404 dashboard />
+                <AnalyticsSetup>
+                  <PageError header={404} description="The page you requested can't be found." />
+                </AnalyticsSetup>
               </SentryRoute>
             </Switch>
           </S.DashboardContent>

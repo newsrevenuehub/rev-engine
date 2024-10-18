@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const LivePage404 = styled.div`
+export const PageErrorWrapper = styled.div`
   flex: 1;
   display: flex;
   justify-content: center;
@@ -11,7 +11,7 @@ export const Wrapper = styled.div`
   margin-top: 10%;
 `;
 
-export const FourOhFour = styled.h2`
+export const Header = styled.h2`
   display: block;
   font-size: ${(props) => props.theme.fontSizes[6]};
   font-weight: 900;

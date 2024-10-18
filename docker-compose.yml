@@ -1,5 +1,3 @@
-version: "3.4"
-
 volumes:
   dev_revengine_data: {}
 

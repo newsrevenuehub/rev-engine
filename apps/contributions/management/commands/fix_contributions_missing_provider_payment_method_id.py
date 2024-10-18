@@ -297,7 +297,6 @@ class Command(BaseCommand):
 
         If we need to reprocess, formerly dummy-valued-now-null-valued contributions will still be picked up.
         """
-        qs = Contribution.objects.filter(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID).all()
         if (
             qs := Contribution.objects.filter(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID).all()
         ).exists():

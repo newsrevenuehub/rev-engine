@@ -1,20 +1,7 @@
-import random
-from datetime import timedelta
-from io import BytesIO
-from unittest import mock
-
-from django.apps import apps
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.core.files.images import ImageFile
-from django.db import connection
-from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory
 
-import PIL.Image
 import pytest
-from faker import Faker
 
 from apps.common.utils import (
     create_stripe_webhook,
@@ -33,20 +20,6 @@ from apps.pages.tests.factories import DonationPageFactory
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50
-
-
-def get_test_image_file_jpeg(filename="test.jpg", colour="white", size=(640, 480)):
-    f = BytesIO()
-    image = PIL.Image.new("RGB", size, colour)
-    image.save(f, "JPEG")
-    return ImageFile(f, name=filename)
-
-
-def get_test_image_binary(colour="white", size=(640, 480)):
-    f = BytesIO()
-    image = PIL.Image.new("RGB", size, colour)
-    image.save(f, "JPEG")
-    return image
 
 
 def test_normalize_slug_name_only():
@@ -70,36 +43,6 @@ def test_custom_length_enforced():
     assert len(normalize_slug(f"{'x' * 80}", max_length=70)) == 70
 
 
-def setup_request(user, request):
-    request.user = user
-
-    # Annotate a request object with a session.
-    # Note that we need to pass a callable to the middleware in Django 4.2. Here, we just have a dummy
-    # that returns the request object.
-    middleware = SessionMiddleware(get_response=(dummy := lambda x: x))
-    middleware.process_request(request)
-    request.session.save()
-
-    # Annotate a request object with a message
-    middleware = MessageMiddleware(get_response=dummy)
-    middleware.process_request(request)
-    request.session.save()
-
-    request.session["some"] = "some"
-    request.session.save()
-    return request
-
-
-def generate_random_datetime(start, end):
-    return start + timedelta(seconds=random.randint(0, int((end - start).total_seconds())))
-
-
-def get_random_jpg_filename():
-    fake = Faker()
-    Faker.seed(random.randint(1, 10000000))
-    return f"{fake.word()}.jpg"
-
-
 test_domain = ".test.org"
 custom_map = {"custom.test.org": "test-rp-slug"}
 
@@ -120,49 +63,6 @@ def test_get_subdomain_from_request(hostmap, request_host, expected, settings):
     assert get_subdomain_from_request(request) == expected
 
 
-class TestMigrations(TestCase):
-    @property
-    def app(self):
-        return apps.get_containing_app_config(type(self).__module__).label
-
-    migrate_from = None
-    migrate_to = None
-
-    def setUp(self):
-        assert self.migrate_from, f"TestCase '{type(self).__name__}' must define migrate_from property"
-        assert self.migrate_to, f"TestCase '{type(self).__name__}' must define migrate_to property"
-
-        self.migrate_from = [
-            (
-                self.app,
-                self.migrate_from,
-            )
-        ]
-        self.migrate_to = [
-            (
-                self.app,
-                self.migrate_to,
-            )
-        ]
-        executor = MigrationExecutor(connection)
-        old_apps = executor.loader.project_state(self.migrate_from).apps
-
-        # Reverse to the original migration
-        executor.migrate(self.migrate_from)
-
-        self.setUpBeforeMigration(old_apps)
-
-        # Run the migration to test
-        executor = MigrationExecutor(connection)
-        executor.loader.build_graph()  # reload.
-        executor.migrate(self.migrate_to)
-
-        self.apps = executor.loader.project_state(self.migrate_to).apps
-
-    def setUpBeforeMigration(self, apps):
-        pass
-
-
 @pytest.mark.parametrize(
     ("branch_name", "expected"), [("dev-1234", "dev-1234"), ("dev-1234-foo", "dev-1234"), ("rando", None)]
 )
@@ -175,12 +75,12 @@ def test_extract_ticket_id_from_branch_name(branch_name: str, expected: str, moc
         logger_spy.assert_not_called()
 
 
-@override_settings(HEROKU_APP_NAME="foo")
-@override_settings(CF_ZONE_NAME="bar")
-@mock.patch("CloudFlare.CloudFlare")
-def test_upsert_cloudflare_cnames(cloudflare_class_mock):
-    mock_cloudflare = mock.MagicMock()
-    cloudflare_class_mock.return_value = mock_cloudflare
+def test_upsert_cloudflare_cnames(mocker, settings):
+    settings.CF_ZONE_NAME = "bar"
+    settings.HEROKU_APP_NAME = "foo"
+    mock_cloudflare_class = mocker.patch("CloudFlare.CloudFlare")
+    mock_cloudflare = mocker.MagicMock()
+    mock_cloudflare_class.return_value = mock_cloudflare
 
     mock_cloudflare.zones.get.return_value = {"result": [{"id": "foo"}], "result_info": {"total_count": 1}}
 
@@ -239,35 +139,41 @@ def test_upsert_cloudflare_cnames(cloudflare_class_mock):
     )
 
 
-@mock.patch("stripe.WebhookEndpoint.list")
-@mock.patch("stripe.WebhookEndpoint.delete")
-def test_delete_stripe_webhook(delete_mock, list_mock):
-    list_mock.return_value = {"data": [{"url": "https://notthere.com/webhook", "id": "123"}]}
+def test_delete_stripe_webhook(mocker):
+    list_mock = mocker.patch(
+        "stripe.WebhookEndpoint.list", return_value={"data": [{"url": "https://notthere.com/webhook", "id": "123"}]}
+    )
+    delete_mock = mocker.patch("stripe.WebhookEndpoint.delete")
     delete_stripe_webhook("https://example.com/webhook", api_key="bogus")
-    assert not delete_mock.called
-
+    delete_mock.assert_not_called()
     list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
     delete_stripe_webhook("https://example.com/webhook", api_key="bogus")
-    assert delete_mock.called_with("123", api_key="bogus")
+    delete_mock.assert_called_once_with("123", api_key="bogus")
 
 
-@mock.patch("stripe.WebhookEndpoint.list")
-@mock.patch("stripe.WebhookEndpoint.create")
-def test_create_stripe_webhook(create_mock, list_mock):
-    list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
+def test_create_stripe_webhook(mocker, settings):
+    create_mock = mocker.patch("stripe.WebhookEndpoint.create")
+    list_mock = mocker.patch(
+        "stripe.WebhookEndpoint.list", return_value={"data": [{"url": "https://example.com/webhook", "id": "123"}]}
+    )
     create_stripe_webhook("https://example.com/webhook", api_key="bogus", enabled_events=[])
-    assert not create_mock.called
-
+    create_mock.assert_not_called()
     list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
     create_stripe_webhook("https://notthere.com/webhook", api_key="bogus", enabled_events=[])
-    assert create_mock.called_with("https://notthere.com/webhook", api_key="bogus", enabled_events=[])
+    create_mock.assert_called_once_with(
+        url="https://notthere.com/webhook",
+        api_key="bogus",
+        enabled_events=[],
+        api_version=settings.STRIPE_API_VERSION,
+        connect=True,
+    )
 
 
-@override_settings(HEROKU_APP_NAME="foo")
-@override_settings(CF_ZONE_NAME="bar")
-@mock.patch("CloudFlare.CloudFlare")
-def test_delete_cloudflare_cnames(cloudflare_class_mock):
-    mock_cloudflare = mock.MagicMock()
+def test_delete_cloudflare_cnames(settings, mocker):
+    settings.CF_ZONE_NAME = "bar"
+    settings.HEROKU_APP_NAME = "foo"
+    cloudflare_class_mock = mocker.patch("CloudFlare.CloudFlare")
+    mock_cloudflare = mocker.MagicMock()
     cloudflare_class_mock.return_value = mock_cloudflare
     mock_cloudflare.zones.get.return_value = {"result": [{"id": "foo"}]}
     mock_cloudflare.zones.dns_records.get.return_value = {
@@ -399,25 +305,26 @@ class Test_upsert_with_diff_check:
     def test_upsert_with_diff_check(self, upsert_with_diff_check_case, update_data, unique_identifier, mocker):
         instance, expected_action, dont_update = upsert_with_diff_check_case
         mock_set_comment = mocker.patch("reversion.set_comment")
-        with mock.patch("reversion.create_revision") as create_revision_mock:
-            result, action = upsert_with_diff_check(
-                model=self.model,
-                unique_identifier=unique_identifier,
-                defaults=update_data,
-                caller_name=(caller := "test"),
-                dont_update=dont_update,
-            )
-            if instance:
-                assert result == instance
-            else:
-                assert isinstance(result, self.model)
-            assert action == expected_action
-            create_revision_mock.assert_called_once()
+        create_revision_mock = mocker.patch("reversion.create_revision")
 
-            match action:
-                case "updated":
-                    mock_set_comment.assert_called_once_with(f"{caller} updated {self.model.__name__}")
-                case "created":
-                    mock_set_comment.assert_called_once_with(f"{caller} created {self.model.__name__}")
-                case _:
-                    mock_set_comment.assert_not_called()
+        result, action = upsert_with_diff_check(
+            model=self.model,
+            unique_identifier=unique_identifier,
+            defaults=update_data,
+            caller_name=(caller := "test"),
+            dont_update=dont_update,
+        )
+        if instance:
+            assert result == instance
+        else:
+            assert isinstance(result, self.model)
+        assert action == expected_action
+        create_revision_mock.assert_called_once()
+
+        match action:
+            case "updated":
+                mock_set_comment.assert_called_once_with(f"{caller} updated {self.model.__name__}")
+            case "created":
+                mock_set_comment.assert_called_once_with(f"{caller} created {self.model.__name__}")
+            case _:
+                mock_set_comment.assert_not_called()

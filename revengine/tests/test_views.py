@@ -1,4 +1,4 @@
-from unittest import mock
+from pathlib import Path
 
 from django.test import RequestFactory
 from django.urls import reverse
@@ -12,11 +12,11 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 from revengine.views import ReactAppView
 
 
-@mock.patch("revengine.views.logger.info")
-def test_spa_revenue_program_does_not_exist(logger_info, client):
+def test_spa_revenue_program_does_not_exist(client, mocker):
+    logger_info = mocker.patch("revengine.views.logger.info")
     with (
-        mock.patch("revengine.views.get_subdomain_from_request", return_value="nogood_subdomain"),
-        mock.patch("revengine.views.RevenueProgram.objects.get", side_effect=RevenueProgram.DoesNotExist),
+        mocker.patch("revengine.views.get_subdomain_from_request", return_value="nogood_subdomain"),
+        mocker.patch("revengine.views.RevenueProgram.objects.get", side_effect=RevenueProgram.DoesNotExist),
     ):
         response = client.get(reverse("index"))
         # ReactAppView._get_revenue_program_from_subdomain() just logs.
@@ -24,14 +24,14 @@ def test_spa_revenue_program_does_not_exist(logger_info, client):
         assert response.status_code == 200
 
 
-def test_read_apple_developer_merchant_id(client):
-    # File is not in the location this function expects, at least in DEV environment.
-    #  actual   ./revengine/static/apple-developer-merchantid-domain-association
-    #  expected ./public/static/apple-developer-merchantid-domain-association
-    # mocking open hides this issue. TODO @njh: not sure if on purpose.
-    with mock.patch("pathlib.Path.open", mock.mock_open(read_data="squeeeee!")):
-        response = client.get(reverse("apple_dev_merchantid_domain"))
-        assert response.status_code == 200
+def test_read_apple_developer_merchant_id(client, settings):
+    response = client.get(reverse("apple_dev_merchantid_domain"))
+    assert response.status_code == 200
+    file_content = b"".join(response.streaming_content)
+    assert (
+        file_content.decode("utf-8")
+        == Path(settings.STATIC_ROOT / "apple-developer-merchantid-domain-association").read_text()
+    )
 
 
 def _assert_500_page(soup):

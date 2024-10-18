@@ -21,7 +21,6 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
-from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
 from apps.contributions.models import Contributor
@@ -532,49 +531,45 @@ class VerifyContributorTokenViewTest(APITestCase):
         assert response.data["detail"].code == "missing_claim"
 
 
-class AuthorizedContributorRequestsTest(RevEngineApiAbstractTestCase):
-    def setUp(self):
-        # NB: among other things, this call ensures that required feature flags are in place for
-        # the endpoint tested
-        self.set_up_domain_model()
-        self.contributions_url = reverse("contribution-list")
-
-    def _get_token(self, valid=True):
-        refresh = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+@pytest.mark.usefixtures("default_feature_flags")
+@pytest.mark.django_db
+class TestAuthorizedContributorRequests:
+    def _get_token(self, user, valid=True):
+        refresh = ContributorRefreshToken.for_contributor(user.uuid)
         if valid:
             return str(refresh.long_lived_access_token)
         return str(refresh.short_lived_access_token)
 
-    def _make_request(self, token_present=True, type_valid=True, token_valid=True):
+    def _make_request(self, client, user, rp, token_present=True, type_valid=True, token_valid=True):
         if token_present:
-            self.client.cookies["Authorization"] = (
-                self._get_token(valid=type_valid) if token_valid else "not-valid-token"
+            client.cookies["Authorization"] = (
+                self._get_token(user=user, valid=type_valid) if token_valid else "not-valid-token"
             )
 
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_string()
-        return self.client.get(self.contributions_url, data={"rp": self.org1_rp1.slug})
+        client.cookies["csrftoken"] = csrf._get_new_csrf_string()
+        return client.get(reverse("contribution-list"), data={"rp": rp.slug})
 
-    def test_contributor_request_when_token_valid(self):
-        response = self._make_request()
+    def test_contributor_request_when_token_valid(self, revenue_program, contributor_user, api_client):
+        response = self._make_request(client=api_client, user=contributor_user, rp=revenue_program)
         assert response.status_code == 200
 
-    def test_contributor_request_when_token_missing(self):
-        response = self._make_request(token_present=False)
+    def test_contributor_request_when_token_missing(self, revenue_program, contributor_user, api_client):
+        response = self._make_request(token_present=False, client=api_client, user=contributor_user, rp=revenue_program)
         assert response.status_code == 401
         assert str(response.data["detail"]) == "Authentication credentials were not provided."
 
-    def test_contributor_request_when_token_invalid(self):
-        response = self._make_request(token_valid=False)
+    def test_contributor_request_when_token_invalid(self, revenue_program, contributor_user, api_client):
+        response = self._make_request(token_valid=False, client=api_client, user=contributor_user, rp=revenue_program)
         assert response.status_code == 401
         assert str(response.data["detail"]) == "Given token not valid for any token type"
 
-    def test_contributor_request_when_token_invalid_type(self):
-        response = self._make_request(type_valid=False)
+    def test_contributor_request_when_token_invalid_type(self, revenue_program, contributor_user, api_client):
+        response = self._make_request(type_valid=False, client=api_client, user=contributor_user, rp=revenue_program)
         assert response.status_code == 401
         assert str(response.data["detail"]) == "Authentication credentials were not provided."
 
-    @override_settings(CONTRIBUTOR_LONG_TOKEN_LIFETIME=datetime.timedelta(seconds=0))
-    def test_contributor_request_when_token_expired(self):
-        response = self._make_request()
+    def test_contributor_request_when_token_expired(self, settings, revenue_program, contributor_user, api_client):
+        settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME = datetime.timedelta(seconds=0)
+        response = self._make_request(client=api_client, user=contributor_user, rp=revenue_program)
         assert response.status_code == 401
         assert str(response.data["detail"]) == "Given token not valid for any token type"

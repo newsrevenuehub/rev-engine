@@ -2175,6 +2175,19 @@ class TestContributionQuerySetMethods:
         assert (query := Contribution.objects.exclude_dummy_payment_method_id()).count() == 1
         assert set(query.values_list("id", flat=True)) == {contribution.id}
 
+    def test_exclude_disconnected_stripe_accounts_when_ineligible(self, mocker):
+        contribution = ContributionFactory()
+        assert contribution.revenue_program.payment_provider.stripe_account_id
+        mocker.patch("stripe.Account.retrieve", side_effect=stripe.error.PermissionError("unpermitted"))
+        assert Contribution.objects.exclude_disconnected_stripe_accounts().count() == 0
+
+    def test_exclude_disconnected_stripe_accounts_when_eligible(self, mocker):
+        contribution = ContributionFactory()
+        assert contribution.revenue_program.payment_provider.stripe_account_id
+        mocker.patch("stripe.Account.retrieve", return_value=AttrDict({"id": "acct_1"}))
+        assert (qs := Contribution.objects.exclude_disconnected_stripe_accounts()).count() == 1
+        assert qs.first() == contribution
+
 
 @pytest.fixture
 def charge_refunded_one_time_event():

@@ -213,6 +213,7 @@ def get_stripe_accounts_and_their_connection_status(account_ids: list[str]) -> d
     logger.info("Retrieving stripe accounts and their connection status")
     accounts = {}
     for account_id in account_ids:
+        logger.info("Retrieving account %s", account_id)
         try:
             stripe.Account.retrieve(account_id)
             accounts[account_id] = True

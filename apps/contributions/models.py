@@ -316,7 +316,7 @@ class Contribution(IndexedTimeStampedModel):
     # DEV-4915
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
-    provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_subscription_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)

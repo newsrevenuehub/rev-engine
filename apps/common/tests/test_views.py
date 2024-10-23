@@ -1,7 +1,4 @@
-from unittest.mock import Mock
-
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
 from django.urls import reverse
 
 import pytest
@@ -15,66 +12,71 @@ from revengine.views import SAFE_ADMIN_SELECT_ACCESSOR_METHODS, SAFE_ADMIN_SELEC
 user_model = get_user_model()
 
 
-@override_settings(ALLOWED_HOSTS=["my-test.test-domain.com", "testserver"])
-class ReactAppViewTestCase(TestCase):
-    def setUp(self):
-        self.revenue_program = RevenueProgramFactory(name="My Test", slug="my-test")
+@pytest.mark.django_db
+class TestReactAppView:
+    @pytest.fixture(autouse=True)
+    def _settings(self, settings):
+        settings.ALLOWED_HOSTS = ["my-test.test-domain.com", "testserver"]
 
-    def test_page_title_includes_rev_program_name_when_subdomain(self):
-        response = self.client.get(reverse("index"), HTTP_HOST=f"{self.revenue_program.slug}.test-domain.com")
-        self.assertContains(response, f"<title>Join | {self.revenue_program.name}</title>")
+    def test_page_title_includes_rev_program_name_when_subdomain(self, client):
+        rp = RevenueProgramFactory(name="Join", slug="my-test")
+        response = client.get(reverse("index"), HTTP_HOST=f"{rp.slug}.test-domain.com")
+        assert f"<title>Join | {rp.name}</title>" in response.rendered_content
 
-    def test_page_title_is_default_when_not_subdomain(self):
-        response = self.client.get(reverse("index"))
-        self.assertContains(response, "<title>RevEngine</title>")
+    def test_page_title_is_default_when_not_subdomain(self, client):
+        response = client.get(reverse("index"))
+        assert "<title>RevEngine</title>" in response.rendered_content
 
 
-class AdminSelectOptionsTest(TestCase):
-    def setUp(self):
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing", is_staff=True)
+@pytest.mark.django_db
+class TestAdminSelectOptions:
 
-    def _make_request_to_view(self, user=None, **params):
-        if not user:
-            user = self.user
-        self.client.force_login(user=user)
-        return self.client.get(reverse("admin-select-options"), params)
+    @pytest.fixture
+    def user(self):
+        return user_model.objects.create_user(email="test@test.com", password="testing", is_staff=True)
 
-    def test_does_not_respond_to_non_get_methods(self):
-        response = self.client.post(reverse("admin-select-options"))
+    def _make_request_to_view(self, client, user, **params):
+        return client.get(reverse("admin-select-options"), params | {"user": user})
+
+    def test_does_not_respond_to_non_get_methods(self, admin_client):
+        response = admin_client.post(reverse("admin-select-options"))
         assert response.status_code == 405
 
-        response = self.client.patch(reverse("admin-select-options"))
+        response = admin_client.patch(reverse("admin-select-options"))
         assert response.status_code == 405
 
-        response = self.client.put(reverse("admin-select-options"))
+        response = admin_client.put(reverse("admin-select-options"))
         assert response.status_code == 405
 
-        response = self.client.delete(reverse("admin-select-options"))
+        response = admin_client.delete(reverse("admin-select-options"))
         assert response.status_code == 405
 
-    def test_cannot_be_accessed_by_non_staff(self):
+    def test_cannot_be_accessed_by_non_staff(self, client):
         not_staff = user_model.objects.create(email="notstaff@test.com", password="testing")
-        response = self._make_request_to_view(user=not_staff)
+        client.force_login(not_staff)
+        response = self._make_request_to_view(user=not_staff, client=client)
         # Should redirect...
         assert response.status_code == 302
         # ... to admin login
         assert reverse("admin:login") in response.url
 
-    def test_disallowed_parent_model_name_raises_error(self):
+    def test_disallowed_parent_model_name_raises_error(self, user, admin_client):
         parent_model_name = "bad_name"
         assert parent_model_name not in SAFE_ADMIN_SELECT_PARENTS
         with pytest.raises(ValueError, match="Parent model not accepted"):
-            self._make_request_to_view(parentModel=parent_model_name)
+            self._make_request_to_view(client=admin_client, parentModel=parent_model_name, user=user)
 
-    def test_disallowed_accessor_method_raises_error(self):
+    def test_disallowed_accessor_method_raises_error(self, user, admin_client):
         parent_model_name = SAFE_ADMIN_SELECT_PARENTS[0]
         accessor_method = "naughty_method"
         assert parent_model_name in SAFE_ADMIN_SELECT_PARENTS
         assert accessor_method not in SAFE_ADMIN_SELECT_ACCESSOR_METHODS
         with pytest.raises(ValueError, match="Accessor method not accepted"):
-            self._make_request_to_view(parentModel=parent_model_name, accessorMethod=accessor_method)
+            self._make_request_to_view(
+                client=admin_client, user=user, parentModel=parent_model_name, accessorMethod=accessor_method
+            )
 
-    def test_returns_options_if_successful(self):
+    def test_returns_options_if_successful(self, admin_client, user):
         parent_model_name = SAFE_ADMIN_SELECT_PARENTS[1]
         accessor_method = SAFE_ADMIN_SELECT_ACCESSOR_METHODS[0]
         assert parent_model_name in SAFE_ADMIN_SELECT_PARENTS
@@ -86,7 +88,11 @@ class AdminSelectOptionsTest(TestCase):
         style2 = StyleFactory(revenue_program=revenue_program)
 
         response = self._make_request_to_view(
-            parentModel=parent_model_name, accessorMethod=accessor_method, parentId=revenue_program.pk
+            user=user,
+            client=admin_client,
+            parentModel=parent_model_name,
+            accessorMethod=accessor_method,
+            parentId=revenue_program.pk,
         )
         options = response.json()["data"]
         option1 = next(o for o in options if o[1] == style1.pk)
@@ -102,12 +108,12 @@ class TestFilterForSuperUserOrRoleAssignmentUserMixin:
     def user(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_filter_queryset_for_superuser_or_ra(self, user):
+    def test_filter_queryset_for_superuser_or_ra(self, user, mocker):
         class MyClass(FilterForSuperUserOrRoleAssignmentUserMixin):
             def __init__(self, user):
-                self.request = Mock()
+                self.request = mocker.Mock()
                 self.request.user = user
-                self.model = Mock()
+                self.model = mocker.Mock()
 
         view = MyClass(user)
         view.filter_queryset_for_superuser_or_ra()

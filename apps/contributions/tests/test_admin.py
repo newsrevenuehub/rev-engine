@@ -1,7 +1,6 @@
 import json
 from datetime import timedelta
 from pathlib import Path
-from unittest import mock
 
 from django.contrib.admin.sites import AdminSite
 from django.urls import reverse
@@ -52,7 +51,7 @@ class TestQuarantineAdmin:
 
     @pytest.fixture(autouse=True)
     def _stripe_customer_retrieve(self, mocker):
-        mocker.patch("stripe.Customer.retrieve", return_value=mock.Mock(address=mocker.Mock(postal_code="12345")))
+        mocker.patch("stripe.Customer.retrieve", return_value=mocker.Mock(address=mocker.Mock(postal_code="12345")))
 
     @pytest.mark.parametrize("process_error", [True, False])
     @pytest.mark.parametrize("has_bad_actor_response", [True, False])
@@ -82,10 +81,10 @@ class TestQuarantineAdmin:
             )
         else:
             mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
-            mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=mock.Mock(metadata={}))
+            mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=mocker.Mock(metadata={}))
             mock_subscription_create = mocker.patch(
                 "stripe.Subscription.create",
-                return_value=mock.Mock(
+                return_value=mocker.Mock(
                     id=(sub_id := "sub_id_123"),
                     latest_invoice=mocker.Mock(payment_intent=mocker.Mock(id=(pi_id := "pi_id"))),
                 ),
@@ -130,7 +129,7 @@ class TestQuarantineAdmin:
             )
         else:
             mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
-            mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=mock.Mock(metadata={}))
+            mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=mocker.Mock(metadata={}))
             mock_pm_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
         client.force_login(admin_user)
         response = client.post(

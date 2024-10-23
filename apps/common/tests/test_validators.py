@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 from rest_framework import serializers
 
@@ -33,45 +31,47 @@ class TestValidateFkReferenceOwnership:
         with pytest.raises(serializers.ValidationError):
             ValidateFkReferenceOwnership("", Contribution)
 
-    def test_no_user(self):
+    def test_no_user(self, mocker):
         t = ValidateFkReferenceOwnership("", self.model)
         value = {}
-        serializer = mock.Mock(
-            model=mock.Mock(__name__="NoModel"), context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=None)))
+        serializer = mocker.Mock(
+            model=mocker.Mock(__name__="NoModel"),
+            context=mocker.Mock(get=mocker.Mock(return_value=mocker.Mock(user=None))),
         )
         with pytest.raises(serializers.ValidationError, match="relationship of requesting user to request"):
             t(value, serializer)
 
-    def test_no_roleassignment(self):
+    def test_no_roleassignment(self, mocker):
         t = ValidateFkReferenceOwnership("", self.model, lambda user, role_assignment: False)
         value = {}
-        user = mock.Mock(roleassignment=None)
-        serializer = mock.Mock(
-            model=mock.Mock(__name__="NoModel"), context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=user)))
+        user = mocker.Mock(roleassignment=None)
+        serializer = mocker.Mock(
+            model=mocker.Mock(__name__="NoModel"),
+            context=mocker.Mock(get=mocker.Mock(return_value=mocker.Mock(user=user))),
         )
         with pytest.raises(serializers.ValidationError, match="relationship of requesting user to request"):
             t(value, serializer)
 
     @pytest.mark.django_db
-    def test_no_ownership(self, org_user_free_plan):
+    def test_no_ownership(self, org_user_free_plan, mocker):
         dp = DonationPageFactory()
         value = {"id": dp}
         t = ValidateFkReferenceOwnership("id", self.model)
-        serializer = mock.Mock(
-            model=mock.Mock(__name__="NoModel"),
-            context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=org_user_free_plan))),
+        serializer = mocker.Mock(
+            model=mocker.Mock(__name__="NoModel"),
+            context=mocker.Mock(get=mocker.Mock(return_value=mocker.Mock(user=org_user_free_plan))),
         )
         with pytest.raises(serializers.ValidationError, match="Not found"):
             t(value, serializer)
 
     @pytest.mark.django_db
-    def test_has_ownership(self, org_user_free_plan, live_donation_page):
+    def test_has_ownership(self, org_user_free_plan, live_donation_page, mocker):
         live_donation_page.revenue_program.organization = org_user_free_plan.roleassignment.organization
         live_donation_page.revenue_program.save()
         value = {"id": live_donation_page}
         t = ValidateFkReferenceOwnership("id", self.model)
-        serializer = mock.Mock(
-            model=mock.Mock(__name__="NoModel"),
-            context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=org_user_free_plan))),
+        serializer = mocker.Mock(
+            model=mocker.Mock(__name__="NoModel"),
+            context=mocker.Mock(get=mocker.Mock(return_value=mocker.Mock(user=org_user_free_plan))),
         )
         t(value, serializer)

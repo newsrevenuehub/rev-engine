@@ -48,7 +48,7 @@ class MediaImage(IndexedTimeStampedModel):
         }
 
     @classmethod
-    def create_from_request(cls, data: QueryDict, files: {}, donation_page, image_key="DImage") -> [dict]:
+    def create_from_request(cls, data: QueryDict, files: dict, donation_page, image_key="DImage") -> [dict]:
         """Build MediaImage instance from the json blob data found in the files dict of request.data.
 
         Expected Schemas:

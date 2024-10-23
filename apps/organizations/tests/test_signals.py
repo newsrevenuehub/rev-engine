@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock
-
 import pytest
 
 from apps.common.models import SocialMeta
@@ -25,13 +23,13 @@ class TestRevenueProgramPostSaveHandler:
         assert SocialMeta.objects.count() == before_count + 1
         assert rp.socialmeta
 
-    def test_does_not_create_social_meta_if_already_exists(self):
+    def test_does_not_create_social_meta_if_already_exists(self, mocker):
         rp = RevenueProgramFactory()
 
         before_count = SocialMeta.objects.count()
         assert rp.socialmeta
 
-        create_default_social_meta(sender=MagicMock(), instance=rp, created=True)
+        create_default_social_meta(sender=mocker.MagicMock(), instance=rp, created=True)
 
         assert SocialMeta.objects.count() == before_count
         assert rp.socialmeta
@@ -46,7 +44,7 @@ class TestRevenueProgramPostSaveHandler:
     def test_when_new_instance(self, make_rp_kwargs, expect_task_called, mocker):
         rp = RevenueProgramFactory.build(**make_rp_kwargs)
         setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
-        handle_rp_mailchimp_entity_setup(sender=MagicMock(), instance=rp, created=True)
+        handle_rp_mailchimp_entity_setup(sender=mocker.MagicMock(), instance=rp, created=True)
         if expect_task_called:
             setup_mc_task.delay.assert_called_once_with(rp.id)
         else:

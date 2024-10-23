@@ -1,5 +1,4 @@
 import json
-from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
@@ -940,9 +939,9 @@ class TestHandleStripeAccountLink:
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"requiresVerification": False}
 
-    def test_happy_path_when_stripe_account_not_yet_created(self, monkeypatch, org_user_free_plan, api_client):
+    def test_happy_path_when_stripe_account_not_yet_created(self, monkeypatch, org_user_free_plan, api_client, mocker):
         stripe_account_id = "fakeId"
-        mock_stripe_account_create = mock.MagicMock(
+        mock_stripe_account_create = mocker.MagicMock(
             return_value={
                 "details_submitted": False,
                 "charges_enabled": False,
@@ -952,10 +951,10 @@ class TestHandleStripeAccountLink:
         )
         monkeypatch.setattr("stripe.Account.create", mock_stripe_account_create)
         product_id = "some_id"
-        mock_product_create = mock.MagicMock(return_value={"id": product_id})
+        mock_product_create = mocker.MagicMock(return_value={"id": product_id})
         monkeypatch.setattr("stripe.Product.create", mock_product_create)
         stripe_url = "https://www.stripe.com"
-        mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
+        mock_stripe_account_link_create = mocker.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
@@ -979,11 +978,11 @@ class TestHandleStripeAccountLink:
         assert Version.objects.get_for_object(rp.payment_provider).count() == pp_count + 1
 
     def test_happy_path_when_stripe_account_already_created_and_past_due_reqs(
-        self, monkeypatch, org_user_free_plan, api_client
+        self, monkeypatch, org_user_free_plan, api_client, mocker
     ):
         stripe_account_id = "fakeId"
         stripe_url = "https://www.stripe.com"
-        mock_stripe_account_retrieve = mock.MagicMock(
+        mock_stripe_account_retrieve = mocker.MagicMock(
             return_value={
                 "charges_enabled": False,
                 "id": stripe_account_id,
@@ -992,7 +991,7 @@ class TestHandleStripeAccountLink:
             }
         )
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
-        mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
+        mock_stripe_account_link_create = mocker.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
@@ -1011,11 +1010,11 @@ class TestHandleStripeAccountLink:
         }
 
     def test_happy_path_when_stripe_account_already_created_and_pending_verification(
-        self, monkeypatch, org_user_free_plan, api_client
+        self, monkeypatch, org_user_free_plan, api_client, mocker
     ):
         stripe_account_id = "fakeId"
         stripe_url = "https://www.stripe.com"
-        mock_stripe_account_retrieve = mock.MagicMock(
+        mock_stripe_account_retrieve = mocker.MagicMock(
             return_value={
                 "details_submitted": True,
                 "charges_enabled": False,
@@ -1024,7 +1023,7 @@ class TestHandleStripeAccountLink:
             }
         )
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
-        mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
+        mock_stripe_account_link_create = mocker.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
@@ -1042,10 +1041,10 @@ class TestHandleStripeAccountLink:
         }
 
     def test_happy_path_when_stripe_account_newly_has_charges_enabled(
-        self, org_user_free_plan, monkeypatch, api_client
+        self, org_user_free_plan, monkeypatch, api_client, mocker
     ):
         stripe_account_id = "fakeId"
-        mock_stripe_account_retrieve = mock.MagicMock(
+        mock_stripe_account_retrieve = mocker.MagicMock(
             return_value={
                 "charges_enabled": True,
                 "id": stripe_account_id,
@@ -1102,8 +1101,8 @@ class TestHandleStripeAccountLink:
         response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_creation(self, org_user_free_plan, api_client, monkeypatch):
-        mock_fn = mock.MagicMock()
+    def test_when_stripe_error_on_account_creation(self, org_user_free_plan, api_client, monkeypatch, mocker):
+        mock_fn = mocker.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.create", mock_fn)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
@@ -1116,8 +1115,8 @@ class TestHandleStripeAccountLink:
         response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_retrieval(self, org_user_free_plan, api_client, monkeypatch):
-        mock_fn = mock.MagicMock()
+    def test_when_stripe_error_on_account_retrieval(self, org_user_free_plan, api_client, monkeypatch, mocker):
+        mock_fn = mocker.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.retrieve", mock_fn)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
@@ -1129,8 +1128,8 @@ class TestHandleStripeAccountLink:
         response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_stripe_product_creation(self, org_user_free_plan, api_client, monkeypatch):
-        mock_account_create = mock.MagicMock(
+    def test_when_stripe_error_on_stripe_product_creation(self, org_user_free_plan, api_client, monkeypatch, mocker):
+        mock_account_create = mocker.MagicMock(
             return_value={
                 "id": "account-id",
                 "charges_enabled": False,
@@ -1139,7 +1138,7 @@ class TestHandleStripeAccountLink:
             }
         )
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
-        mock_fn = mock.MagicMock()
+        mock_fn = mocker.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Product.create", mock_fn)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
@@ -1152,9 +1151,9 @@ class TestHandleStripeAccountLink:
         response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_link_creation(self, org_user_free_plan, api_client, monkeypatch):
+    def test_when_stripe_error_on_account_link_creation(self, org_user_free_plan, api_client, monkeypatch, mocker):
         stripe_account_id = "fakefakefake"
-        mock_stripe_account_retrieve = mock.MagicMock(
+        mock_stripe_account_retrieve = mocker.MagicMock(
             return_value={
                 "details_submitted": False,
                 "charges_enabled": False,
@@ -1163,7 +1162,7 @@ class TestHandleStripeAccountLink:
             }
         )
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
-        mock_account_create_link = mock.MagicMock()
+        mock_account_create_link = mocker.MagicMock()
         mock_account_create_link.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.AccountLink.create", mock_account_create_link)
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
@@ -1209,7 +1208,7 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
 
 @pytest.mark.django_db
 class TestHandleMailchimpOauthSuccessView:
-    def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
+    def test_happy_path(self, mocker, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
         mock_task = mocker.patch(
             "apps.organizations.tasks.exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay"

@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 from google.cloud.pubsub_v1 import futures
 
 from apps.google_cloud.pubsub import Message, Publisher
@@ -10,7 +8,7 @@ def test_encodes_string_to_bytes():
 
 
 def test_publishes_to_google_cloud_pub_sub(mocker, settings):
-    publisher_client = Mock()
+    publisher_client = mocker.Mock()
     settings.GOOGLE_CLOUD_PROJECT = "project"
     mocker.patch("google.cloud.pubsub_v1.PublisherClient", return_value=publisher_client)
     mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)

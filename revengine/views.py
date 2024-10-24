@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from django.apps import apps
 from django.conf import settings
@@ -26,6 +25,17 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 # Serve Single Page Application
 class ReactAppView(TemplateView):
     template_name = "index.html"
+
+    def get(self, request, *args, **kwargs):
+        # Check if the subdomain exist and is valid
+        is_valid_subdomain = self._is_valid_rp_subdomain()
+
+        # Render index.html but with a 404 status code if the subdomain is invalid.
+        # Let the SPA handle this instead of Django.
+        response = super().get(request, *args, **kwargs)
+        if not is_valid_subdomain:
+            response.status_code = 404
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -57,6 +67,18 @@ class ReactAppView(TemplateView):
     def _add_gtm_id(self, context):
         context["gtm_id"] = settings.HUB_GTM_ID
 
+    def _is_valid_rp_subdomain(self):
+        if subdomain := get_subdomain_from_request(self.request):
+            try:
+                RevenueProgram.objects.get(slug=subdomain)
+            except RevenueProgram.DoesNotExist:
+                return False
+            else:
+                return True
+
+        # If there is no subdomain, default to True
+        return True
+
 
 # Proxies the single page app in local development, parsing any HTML responses
 # using Django's template parser. If this is used, the single page app must have
@@ -64,8 +86,8 @@ class ReactAppView(TemplateView):
 #
 # This was cribbed from
 # https://fractalideas.com/blog/making-react-and-django-play-well-together-hybrid-app-model/
-
-
+#
+# This doesn't currently work with Vite as local server.
 def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     upstream_url = upstream + request.path
     upstream_response = requests.get(upstream_url, timeout=31)
@@ -86,10 +108,7 @@ def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     )
 
 
-# Only use the dev proxy if we are running locally AND not in pytest. We want
-# the normal view to be tested in pytest.
-
-index = proxy_spa_dev_server if settings.DEBUG and "pytest" not in sys.modules else never_cache(ReactAppView.as_view())
+index = never_cache(ReactAppView.as_view())
 
 
 @require_GET

@@ -1271,7 +1271,13 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Subscription should have only one item")
 
         item = items["data"][0]
-        self.contribution_metadata["donor_selected_amount"] = amount
+
+        # Not all contribution metadata schemas support the
+        # donor_selected_amount field, so we should only set it when it's
+        # already present.
+
+        if "donor_selected_amount" in self.contribution_metadata:
+            self.contribution_metadata["donor_selected_amount"] = amount
         self.amount = amount
 
         logger.info(

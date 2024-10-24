@@ -1852,6 +1852,36 @@ class TestContributionModel:
         assert monthly_contribution.contribution_metadata == metadata
         assert monthly_contribution.amount == new_amount
 
+    @pytest.mark.parametrize("contribution_metadata", [{}, {"donor_selected_amount": 123}])
+    def test_update_subscription_amount_updates_donor_selected_amount_metadata(
+        self, contribution_metadata, monthly_contribution, mocker
+    ):
+        mocker.patch(
+            "stripe.SubscriptionItem.list",
+            return_value={
+                "data": [
+                    {
+                        "id": "si_123",
+                        "price": {
+                            "currency": "usd",
+                            "product": "prod_123",
+                            "recurring": {
+                                "interval": "month",
+                            },
+                        },
+                    }
+                ]
+            },
+        )
+        mocker.patch("stripe.Subscription.modify")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        monthly_contribution.contribution_metadata = contribution_metadata
+        monthly_contribution.update_subscription_amount(456)
+        if "donor_selected_amount" in contribution_metadata:
+            assert monthly_contribution.contribution_metadata["donor_selected_amount"] == 456
+        else:
+            assert "donor_selected_amount" not in monthly_contribution.contribution_metadata
+
     @pytest.mark.usefixtures("_mock_stripe_customer")
     def test_sends_updated_email_when_update_subscription_amount_success(
         self, monthly_contribution: Contribution, mocker

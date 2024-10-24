@@ -5,9 +5,10 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template import engines
+from django.views import View
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.views.defaults import server_error
@@ -24,38 +25,41 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 # Serve Single Page Application
-class ReactAppView(TemplateView):
-    template_name = "index.html"
+class ReactAppView(View):
+    # template_name = "index.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        self._add_gtm_id(context)
-        self._add_spa_env(context)
-        if revenue_program := self._get_revenue_program_from_subdomain():
-            self._add_social_media_context(revenue_program, context)
-            context["revenue_program_name"] = revenue_program.name
+    def get(self, request):
+        raise Http404("Page not found")
 
-        return context
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     self._add_gtm_id(context)
+    #     self._add_spa_env(context)
+    #     if revenue_program := self._get_revenue_program_from_subdomain():
+    #         self._add_social_media_context(revenue_program, context)
+    #         context["revenue_program_name"] = revenue_program.name
 
-    def _add_spa_env(self, context):
-        context["spa_env"] = settings.SPA_ENV_VARS
+    #     return context
 
-    def _get_revenue_program_from_subdomain(self):
-        if subdomain := get_subdomain_from_request(self.request):
-            try:
-                return RevenueProgram.objects.get(slug=subdomain)
-            except RevenueProgram.DoesNotExist:
-                logger.info('ReactAppView failed to retrieve RevenueProgram by subdomain "%s"', subdomain)
+    # def _add_spa_env(self, context):
+    #     context["spa_env"] = settings.SPA_ENV_VARS
 
-    def _add_social_media_context(self, revenue_program, context):
-        try:
-            serializer = SocialMetaInlineSerializer(revenue_program.socialmeta, context={"request": self.request})
-            context["social_meta"] = serializer.data
-        except RevenueProgram.socialmeta.RelatedObjectDoesNotExist:
-            pass
+    # def _get_revenue_program_from_subdomain(self):
+    #     if subdomain := get_subdomain_from_request(self.request):
+    #         try:
+    #             return RevenueProgram.objects.get(slug=subdomain)
+    #         except RevenueProgram.DoesNotExist:
+    #             logger.info('ReactAppView failed to retrieve RevenueProgram by subdomain "%s"', subdomain)
 
-    def _add_gtm_id(self, context):
-        context["gtm_id"] = settings.HUB_GTM_ID
+    # def _add_social_media_context(self, revenue_program, context):
+    #     try:
+    #         serializer = SocialMetaInlineSerializer(revenue_program.socialmeta, context={"request": self.request})
+    #         context["social_meta"] = serializer.data
+    #     except RevenueProgram.socialmeta.RelatedObjectDoesNotExist:
+    #         pass
+
+    # def _add_gtm_id(self, context):
+    #     context["gtm_id"] = settings.HUB_GTM_ID
 
 
 # Proxies the single page app in local development, parsing any HTML responses
@@ -64,7 +68,8 @@ class ReactAppView(TemplateView):
 #
 # This was cribbed from
 # https://fractalideas.com/blog/making-react-and-django-play-well-together-hybrid-app-model/
-
+#
+# This doesn't currently work with Vite as local server.
 
 def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     upstream_url = upstream + request.path
@@ -85,11 +90,7 @@ def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
         status=upstream_response.status_code,
     )
 
-
-# Only use the dev proxy if we are running locally AND not in pytest. We want
-# the normal view to be tested in pytest.
-
-index = proxy_spa_dev_server if settings.DEBUG and "pytest" not in sys.modules else never_cache(ReactAppView.as_view())
+index = never_cache(ReactAppView.as_view())
 
 
 @require_GET

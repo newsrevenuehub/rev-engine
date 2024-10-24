@@ -1852,12 +1852,10 @@ class TestContributionModel:
         assert monthly_contribution.contribution_metadata == metadata
         assert monthly_contribution.amount == new_amount
 
-    @pytest.mark.parametrize("contribution_metadata",
-        [
-            {},
-            {"donor_selected_amount": 123}
-        ])
-    def test_update_subscription_amount_updates_donor_selected_amount_metadata(self, contribution_metadata, monthly_contribution, mocker):
+    @pytest.mark.parametrize("contribution_metadata", [{}, {"donor_selected_amount": 123}])
+    def test_update_subscription_amount_updates_donor_selected_amount_metadata(
+        self, contribution_metadata, monthly_contribution, mocker
+    ):
         mocker.patch(
             "stripe.SubscriptionItem.list",
             return_value={

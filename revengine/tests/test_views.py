@@ -19,8 +19,27 @@ def test_spa_revenue_program_does_not_exist(logger_info, client):
         mock.patch("revengine.views.RevenueProgram.objects.get", side_effect=RevenueProgram.DoesNotExist),
     ):
         response = client.get(reverse("index"))
-        # ReactAppView._get_revenue_program_from_subdomain() just logs.
+        # ReactAppView._get_revenue_program_from_subdomain() logs and
+        # ReactAppView._is_valid_rp_subdomain is False, so 404 status code.
         assert logger_info.was_called
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_spa_revenue_program_exist(client):
+    with (
+        mock.patch("revengine.views.get_subdomain_from_request", return_value="subdomain"),
+        mock.patch("revengine.views.RevenueProgram.objects.get", return_value=RevenueProgramFactory()),
+    ):
+        response = client.get(reverse("index"))
+        # ReactAppView._is_valid_rp_subdomain is True, so no 404 status code.
+        assert response.status_code == 200
+
+
+def test_no_subdomains(client):
+    with (mock.patch("revengine.views.get_subdomain_from_request", return_value=None),):
+        response = client.get(reverse("index"))
+        # ReactAppView._is_valid_rp_subdomain defaults to True, so no 404 status code.
         assert response.status_code == 200
 
 

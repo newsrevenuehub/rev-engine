@@ -1,4 +1,5 @@
 import datetime
+from copy import deepcopy
 from zoneinfo import ZoneInfo
 
 from django.core.management import call_command
@@ -297,7 +298,6 @@ def test_clear_stripe_transactions_import_cache(mocker):
 
 @pytest.mark.django_db
 class Test_fix_imported_contributions_with_incorrect_donation_page_value:
-
     @pytest.fixture
     def rp_1(self):
         return RevenueProgramFactory()
@@ -373,7 +373,6 @@ class Test_fix_imported_contributions_with_incorrect_donation_page_value:
 
 @pytest.mark.django_db
 class Test_sync_missing_provider_payment_method_details:
-
     @pytest.fixture
     def fetch_stripe_payment_method(self, mocker, payment_method):
         return mocker.patch(
@@ -437,7 +436,6 @@ def test_mark_abandoned_carts(mocker):
 
 @pytest.mark.django_db
 class Test_fix_incident_2445:
-
     @pytest.fixture
     def command(self):
         return FixIncident2445Command()
@@ -706,11 +704,17 @@ class Test_fix_missing_provider_payment_method_id:
         return contribution, payment_intent_for_one_time_contribution
 
     @pytest.fixture
-    def recurring_contribution_and_subscription_with_conforming_metadata(self, stripe_subscription, payment_method):
-
+    def recurring_contribution_and_subscription_with_conforming_metadata(
+        self, stripe_subscription, payment_method, faker
+    ):
+        # We need to assign a unique ID to the subscription to avoid conflicting
+        # with the other recurring_contribution fixture below.
+        sub = deepcopy(stripe_subscription)
+        sub.id = f"sub_{faker.uuid4()}"
+        sub.default_payment_method = payment_method
         contribution = ContributionFactory(
             provider_payment_method_id=None,
-            provider_subscription_id=stripe_subscription.id,
+            provider_subscription_id=sub.id,
             provider_payment_id=None,
             interval=ContributionInterval.MONTHLY,
         )
@@ -719,18 +723,25 @@ class Test_fix_missing_provider_payment_method_id:
         contribution.save()
         stripe_subscription.default_payment_method = payment_method
         stripe_subscription.metadata["contributor_id"] = contribution.contributor.id
-        return contribution, stripe_subscription
+        return contribution, sub
 
     @pytest.fixture
-    def recurring_contribution_and_subscription_with_non_conforming_metadata(self, stripe_subscription):
+    def recurring_contribution_and_subscription_with_non_conforming_metadata(
+        self, stripe_subscription, payment_method, faker
+    ):
+        # We need to assign a unique ID to the subscription to avoid conflicting
+        # with the other recurring_contribution fixture above.
+        sub = deepcopy(stripe_subscription)
+        sub.id = f"sub_{faker.uuid4()}"
+        sub.default_payment_method = payment_method
         contribution = ContributionFactory(
             provider_payment_method_id=None,
-            provider_subscription_id=stripe_subscription.id,
+            provider_subscription_id=sub.id,
             interval=ContributionInterval.MONTHLY,
             provider_payment_id=None,
             contribution_metadata={},
         )
-        return contribution, stripe_subscription
+        return contribution, sub
 
     @pytest.fixture
     def one_time_contribution_with_pi_with_non_conforming_contribution_metadata(
@@ -888,14 +899,18 @@ class Test_fix_missing_provider_payment_method_id:
         command.process_contributions_via_search_api(Contribution.objects.all())
 
     def test_process_contributions_via_search_api_when_multiple_contributions(
-        self, mocker, command, stripe_subscription
+        self, mocker, command, payment_method, stripe_subscription, faker
     ):
-        ContributionFactory.create_batch(
-            size=2, monthly_subscription=True, provider_subscription_id=stripe_subscription.id
-        )
+        # We need separate subscription IDs to avoid integrity exceptions.
+        subs = []
+        for _ in range(2):
+            sub = deepcopy(stripe_subscription)
+            sub.id = f"sub_{faker.uuid4()}"
+            sub.default_payment_method = payment_method
+            ContributionFactory(monthly_subscription=True, provider_subscription_id=sub.id)
+            subs.append(sub)
         mocker.patch.object(command, "get_metadata_queries", side_effect=[[], [("acct_id", "somequery")]])
-        stripe_subscription.default_payment_method = "truthy"
-        mocker.patch.object(command, "search_subscriptions", return_value=[stripe_subscription])
+        mocker.patch.object(command, "search_subscriptions", return_value=subs)
         command.process_contributions_via_search_api(Contribution.objects.all())
 
     @pytest.fixture

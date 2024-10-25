@@ -13,6 +13,7 @@ MOCK_HEROKU_APP_NAME = f"rev-engine-{MOCK_TICKET_ID.lower()}-some-uid"
 MOCK_CF_ZONE_NAME = "some-domain.org"
 
 
+@pytest.mark.django_db
 class TestBootstrapReviewApp:
     """Test that bootstrap review app calls different functions as expected."""
 

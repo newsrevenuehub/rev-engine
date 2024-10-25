@@ -103,14 +103,17 @@ class Command(BaseCommand):
 
     def get_pm_from_subscription(self, subscription: stripe.Subscription) -> stripe.PaymentMethod | None:
         """Get payment method from subscription."""
-        if pm := subscription.get("default_payment_method"):
-            return pm
-        if (invoice_settings := subscription.get("customer", {}).get("invoice_settings")) and (
-            pm := invoice_settings.get("default_payment_method")
-        ):
-            return pm
-        if (invoice := subscription.get("latest_invoice")) and (pi := invoice.get("payment_intent")):
-            return pi.get("payment_method")
+        self.stdout.write(self.style.HTTP_INFO(f"Getting payment method from subscription {subscription.id}"))
+        pm = subscription.get("default_payment_method")
+        if not pm and (invoice_settings := subscription.get("customer", {}).get("invoice_settings")):
+            pm = invoice_settings.get("default_payment_method")
+        if not pm and (invoice := subscription.get("latest_invoice")) and (pi := invoice.get("payment_intent")):
+            pm = pi.get("payment_method")
+        if not isinstance(pm, stripe.PaymentMethod):
+            self.stderr.write(
+                f"Expected a stripe.PaymentMethod object but got {type(pm)} for subscription {subscription.id}. Skipping"
+            )
+        return pm
 
     def process_contribution_via_retrieve_api(self, contribution: Contribution) -> tuple[Contribution, bool]:
         """Process contribution via stripe retrieve API.
@@ -124,15 +127,24 @@ class Command(BaseCommand):
         except stripe.error.StripeError:
             self.stdout.write(self.style.ERROR(f"Failed to retrieve payment object for contribution {contribution.id}"))
         else:
-            pm = (
+            if pm := (
                 self.get_pm_from_subscription(payment_object)
                 if contribution.interval != ContributionInterval.ONE_TIME
                 else payment_object.get("payment_method")
-            )
-            if pm:
-                self._update_and_save(contribution, pm)
-                updated = True
-                self.stdout.write(self.style.SUCCESS(f"Updated contribution {contribution.id} with new payment data"))
+            ):
+                if isinstance(pm, stripe.PaymentMethod):
+                    self._update_and_save(contribution, pm)
+                    updated = True
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Updated contribution {contribution.id} with new payment data")
+                    )
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Expected a stripe.PaymentMethod object but got {type(pm)} for contribution {contribution.id}: {pm}"
+                        )
+                    )
+
             else:
                 self.stdout.write(
                     self.style.ERROR(

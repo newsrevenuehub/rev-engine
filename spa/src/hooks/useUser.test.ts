@@ -17,6 +17,8 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const mockUser: User = {
+  firstName: 'mock-first-name',
+  lastName: 'mock-last-name',
   email: 'mock-email',
   email_verified: true,
   flags: [],

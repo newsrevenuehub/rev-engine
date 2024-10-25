@@ -26,6 +26,7 @@ from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
 from apps.emails.helpers import convert_to_timezone_formatted
@@ -233,6 +234,43 @@ class ContributionQuerySet(models.QuerySet):
     def exclude_dummy_payment_method_id(self) -> models.QuerySet[Contribution]:
         return self.exclude(provider_payment_method_id=settings.DUMMY_PAYMENT_METHOD_ID)
 
+    def exclude_disconnected_stripe_accounts(self) -> models.QuerySet[Contribution]:
+        """Remove contributions with disconnected Stripe accounts from queryset of otherwise eligible contributions.
+
+        NB: Unlike your typical queryset method, this makes round trips to Stripe API and can possibly
+        take a while and/or raise exceptions. The method was originally written for use in
+        `fix_contribution_missing_provider_payment_method_id` management command.
+
+        Probably not something you'd want to use in a synchronous request context.
+        """
+        account_ids = set(
+            (qs := self.with_stripe_account())
+            .order_by("stripe_account")
+            .values_list("stripe_account", flat=True)
+            .distinct()
+        )
+        accounts = get_stripe_accounts_and_their_connection_status(list(account_ids))
+        unretrievable_accounts = [k for k, v in accounts.items() if not v]
+        connected_accounts = [k for k, v in accounts.items() if v]
+        connected_contributions = qs.filter(stripe_account__in=connected_accounts)
+        connected_contributions_count = connected_contributions.count()
+        ineligible_because_of_account = qs.filter(stripe_account__in=unretrievable_accounts)
+        logger.info(
+            "Found %s eligible contribution%s to fix",
+            connected_contributions_count,
+            "" if connected_contributions_count == 1 else "s",
+        )
+        if ineligible_because_of_account.exists():
+            _inel_account = ineligible_because_of_account.count()
+            _plural = "" if _inel_account == 1 else "s"
+            logger.info(
+                "Found %s contribution%s with disconnected Stripe accounts: %s",
+                _inel_account,
+                _plural,
+                ", ".join(str(x) for x in ineligible_because_of_account.values_list("id", flat=True)),
+            )
+        return connected_contributions
+
     def unmarked_abandoned_carts(self) -> models.QuerySet:
         """Return contributions that have been abandoned.
 
@@ -278,7 +316,7 @@ class Contribution(IndexedTimeStampedModel):
     # DEV-4915
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
-    provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_subscription_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)

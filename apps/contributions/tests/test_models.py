@@ -18,6 +18,7 @@ import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
+from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
     BillingHistoryItem,
     Contribution,
@@ -39,7 +40,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.contributions.types import StripeEventData
+from apps.contributions.types import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
@@ -1647,6 +1648,34 @@ class TestContributionModel:
         contribution = ContributionFactory(provider_payment_method_details=None)
         assert contribution.card_owner_name == ""
 
+    def test_set_metadata_field_happy_path(self, contribution: Contribution):
+        # This field is present in all schema versions.
+        contribution.set_metadata_field(
+            "agreed_to_pay_fees", not contribution.contribution_metadata["agreed_to_pay_fees"]
+        )
+
+    def test_set_metadata_field_bad_key(self, contribution: Contribution):
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("nonexistent", True)
+
+    def test_set_metadata_field_bad_value(self, contribution: Contribution):
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("agreed_to_pay_fees", "bad")
+
+    def test_set_metadata_field_no_schema_version(self, contribution: Contribution):
+        del contribution.contribution_metadata["schema_version"]
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("agreed_to_pay_fees", True)
+
+    def test_set_metadata_field_bad_schema_version(self, contribution: Contribution):
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("schema_version", "bad")
+
+    def test_set_metadata_field_schema_version_change_invalidates_existing(self, contribution: Contribution):
+        assert contribution.contribution_metadata["schema_version"] != "1.0"
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("schema_version", "1.0")
+
     def test_stripe_payment_method_when_no_pm_id(self, mocker):
         mock_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
         contribution = ContributionFactory(provider_payment_method_id=None)
@@ -1852,10 +1881,33 @@ class TestContributionModel:
         assert monthly_contribution.contribution_metadata == metadata
         assert monthly_contribution.amount == new_amount
 
-    @pytest.mark.parametrize("contribution_metadata", [{}, {"donor_selected_amount": 123}])
+    @pytest.mark.parametrize(
+        "contribution_metadata",
+        [
+            {
+                "agreed_to_pay_fees": True,
+                "recurring_donation_id": "",
+                "revenue_program_id": "",
+                "revenue_program_slug": "",
+                "schema_version": "1.3",
+                "source": "legacy-migration",
+            },
+            {
+                "agreed_to_pay_fees": True,
+                "donor_selected_amount": 123,
+                "referer": "https://fundjournalism.org",
+                "revenue_program_id": "",
+                "revenue_program_slug": "",
+                "schema_version": "1.4",
+                "source": "rev-engine",
+            },
+        ],
+    )
     def test_update_subscription_amount_updates_donor_selected_amount_metadata(
         self, contribution_metadata, monthly_contribution, mocker
     ):
+        # Verify our fixture is valid.
+        assert cast_metadata_to_stripe_payment_metadata_schema(contribution_metadata)
         mocker.patch(
             "stripe.SubscriptionItem.list",
             return_value={

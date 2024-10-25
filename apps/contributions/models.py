@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import datetime
 import logging
 import uuid
@@ -21,6 +22,7 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
+from pydantic import ValidationError
 from reversion.models import Version
 from stripe.error import StripeError
 
@@ -28,7 +30,12 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
-from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
+from apps.contributions.exceptions import InvalidMetadataError
+from apps.contributions.types import (
+    STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
+    StripeEventData,
+    StripePiAsPortalContribution,
+)
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
@@ -764,6 +771,26 @@ class Contribution(IndexedTimeStampedModel):
             next_charge_date,
         )
 
+    def set_metadata_field(self, key: str, value: Any) -> None:
+        """Set a field in contribution_metadata, ensuring that the result is valid according to its schema version.
+
+        If an invalid key or value is set, this will raise an InvalidMetadataError exception and contribution_metadata will not be changed.
+
+        This doesn't make any changes in Stripe.
+        """
+        if key != "schema_version" and "schema_version" not in self.contribution_metadata:
+            raise InvalidMetadataError("No schema version set in metadata")
+        schema = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.get(
+            key if key == "schema_version" else self.contribution_metadata["schema_version"], None
+        )
+        if not schema:
+            raise InvalidMetadataError(f"No schema found for version {self.contribution_metadata['schema_version']}")
+        try:
+            schema(**(self.contribution_metadata | {key: value}))
+        except ValidationError as error:
+            raise InvalidMetadataError(f"Change to {key} results in invalid contribution metadata") from error
+        self.contribution_metadata[key] = value
+
     @cached_property
     def stripe_subscriptions_for_customer(self) -> Generator[stripe.Subscription]:
         """Return all subscriptions for the customer associated with this contribution."""
@@ -1272,12 +1299,11 @@ class Contribution(IndexedTimeStampedModel):
 
         item = items["data"][0]
 
-        # Not all contribution metadata schemas support the
-        # donor_selected_amount field, so we should only set it when it's
-        # already present.
+        # Set the amount in metadata if the schema supports it.
 
-        if "donor_selected_amount" in self.contribution_metadata:
-            self.contribution_metadata["donor_selected_amount"] = amount
+        with contextlib.suppress(InvalidMetadataError):
+            self.set_metadata_field("donor_selected_amount", amount)
+
         self.amount = amount
 
         logger.info(

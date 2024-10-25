@@ -127,23 +127,25 @@ class Command(BaseCommand):
         except stripe.error.StripeError:
             self.stdout.write(self.style.ERROR(f"Failed to retrieve payment object for contribution {contribution.id}"))
         else:
-            pm = (
+            if pm := (
                 self.get_pm_from_subscription(payment_object)
                 if contribution.interval != ContributionInterval.ONE_TIME
                 else payment_object.get("payment_method")
-            )
-            if pm and isinstance(pm, stripe.PaymentMethod):
-                self._update_and_save(contribution, pm)
-                updated = True
-                self.stdout.write(self.style.SUCCESS(f"Updated contribution {contribution.id} with new payment data"))
-            if pm and not isinstance(pm, stripe.PaymentMethod):
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"Expected a stripe.PaymentMethod object but got {type(pm)} for contribution {contribution.id}: {pm}"
+            ):
+                if isinstance(pm, stripe.PaymentMethod):
+                    self._update_and_save(contribution, pm)
+                    updated = True
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Updated contribution {contribution.id} with new payment data")
                     )
-                )
-                pm = None
-            if not pm:
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Expected a stripe.PaymentMethod object but got {type(pm)} for contribution {contribution.id}: {pm}"
+                        )
+                    )
+
+            else:
                 self.stdout.write(
                     self.style.ERROR(
                         f"Failed to retrieve payment method for contribution {contribution.id} from payment object"

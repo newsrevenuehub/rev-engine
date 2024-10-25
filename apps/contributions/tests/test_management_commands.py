@@ -878,6 +878,14 @@ class Test_fix_missing_provider_payment_method_id:
         mocker.patch.object(command, "get_stripe_payment_object_for_contribution", return_value=payment_object)
         command.process_contribution_via_retrieve_api(contribution)
 
+    def test_process_contribution_via_retrieve_api_when_payment_object_pm_not_object(
+        self, mocker, command, one_time_contribution_with_pi_with_non_conforming_contribution_metadata
+    ):
+        contribution, payment_object = one_time_contribution_with_pi_with_non_conforming_contribution_metadata
+        payment_object.payment_method = "pm_99999"
+        mocker.patch.object(command, "get_stripe_payment_object_for_contribution", return_value=payment_object)
+        command.process_contribution_via_retrieve_api(contribution)
+
     def test_process_contributions_via_retrieve_api_when_not_updated(self, mocker, command):
         contribution = ContributionFactory()
         mocker.patch.object(command, "process_contribution_via_retrieve_api", return_value=(contribution, False))

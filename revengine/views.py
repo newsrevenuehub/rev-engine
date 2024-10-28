@@ -27,13 +27,10 @@ class ReactAppView(TemplateView):
     template_name = "index.html"
 
     def get(self, request, *args, **kwargs):
-        # Check if the subdomain exist and is valid
-        is_valid_subdomain = self._is_valid_rp_subdomain()
-
         # Render index.html but with a 404 status code if the subdomain is invalid.
         # Let the SPA handle this instead of Django.
         response = super().get(request, *args, **kwargs)
-        if not is_valid_subdomain:
+        if not self._is_valid_rp_subdomain():
             response.status_code = 404
         return response
 
@@ -76,7 +73,8 @@ class ReactAppView(TemplateView):
             else:
                 return True
 
-        # If there is no subdomain, default to True
+        # If there is no subdomain, it is a non-RP subdomain like "engine.fundjournalism.org"
+        # so we default to True
         return True
 
 

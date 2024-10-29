@@ -1649,9 +1649,8 @@ class TestContributionModel:
         assert contribution.card_owner_name == ""
 
     def test_set_metadata_field_happy_path(self, contribution: Contribution):
-        # This field is present in all schema versions.
         contribution.set_metadata_field(
-            "agreed_to_pay_fees", not contribution.contribution_metadata["agreed_to_pay_fees"]
+            "donor_selected_amount", contribution.contribution_metadata["donor_selected_amount"] + 1
         )
 
     def test_set_metadata_field_bad_key(self, contribution: Contribution):
@@ -1660,7 +1659,7 @@ class TestContributionModel:
 
     def test_set_metadata_field_bad_value(self, contribution: Contribution):
         with pytest.raises(InvalidMetadataError):
-            contribution.set_metadata_field("agreed_to_pay_fees", "bad")
+            contribution.set_metadata_field("donor_selected_amount", "bad")
 
     def test_set_metadata_field_no_schema_version(self, contribution: Contribution):
         del contribution.contribution_metadata["schema_version"]

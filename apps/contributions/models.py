@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import json
 import logging
 import uuid
 from collections.abc import Callable, Generator
@@ -775,21 +776,20 @@ class Contribution(IndexedTimeStampedModel):
         """Set a field in contribution_metadata, ensuring that the result is valid according to its schema version.
 
         If an invalid key or value is set, this will raise an InvalidMetadataError exception and contribution_metadata will not be changed.
-
         This doesn't make any changes in Stripe.
         """
-        if key != "schema_version" and "schema_version" not in self.contribution_metadata:
+        if key == "schema_version":
+            raise InvalidMetadataError("Schema version may not be changed")
+        if not (version := self.contribution_metadata.get("schema_version")):
             raise InvalidMetadataError("No schema version set in metadata")
-        schema = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.get(
-            key if key == "schema_version" else self.contribution_metadata["schema_version"], None
-        )
-        if not schema:
-            raise InvalidMetadataError(f"No schema found for version {self.contribution_metadata['schema_version']}")
         try:
-            schema(**(self.contribution_metadata | {key: value}))
+            schema = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[version]
+        except KeyError as error:
+            raise InvalidMetadataError(f"No schema found for version {version}") from error
+        try:
+            self.contribution_metadata = json.loads(schema(**(self.contribution_metadata | {key: value})).json())
         except ValidationError as error:
             raise InvalidMetadataError(f"Change to {key} results in invalid contribution metadata") from error
-        self.contribution_metadata[key] = value
 
     @cached_property
     def stripe_subscriptions_for_customer(self) -> Generator[stripe.Subscription]:

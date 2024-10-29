@@ -1666,12 +1666,7 @@ class TestContributionModel:
         with pytest.raises(InvalidMetadataError):
             contribution.set_metadata_field("agreed_to_pay_fees", True)
 
-    def test_set_metadata_field_bad_schema_version(self, contribution: Contribution):
-        with pytest.raises(InvalidMetadataError):
-            contribution.set_metadata_field("schema_version", "bad")
-
-    def test_set_metadata_field_schema_version_change_invalidates_existing(self, contribution: Contribution):
-        assert contribution.contribution_metadata["schema_version"] != "1.0"
+    def test_set_metadata_field_cannot_change_schema_version(self, contribution: Contribution):
         with pytest.raises(InvalidMetadataError):
             contribution.set_metadata_field("schema_version", "1.0")
 

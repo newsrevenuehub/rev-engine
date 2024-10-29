@@ -63,3 +63,23 @@ class TestAppleDomainVerifyCommandTest:
             domain_name=expected_domain,
             stripe_account=rp.payment_provider.stripe_account_id,
         )
+
+
+@pytest.mark.django_db
+class TestClearMailchimpIntegrationCommand:
+    def test_happy_path(self, revenue_program: RevenueProgram):
+        revenue_program.mailchimp_access_token = "test-token"
+        revenue_program.mailchimp_server_prefix = "test-prefix"
+        revenue_program.save()
+        call_command("clear_mailchimp_integration", slug=revenue_program.slug)
+        edited_rp = RevenueProgram.objects.get(id=revenue_program.id)
+        assert edited_rp.mailchimp_access_token is None
+        assert edited_rp.mailchimp_server_prefix is None
+
+    def test_nonexistent_rp(self):
+        with pytest.raises(RevenueProgram.DoesNotExist):
+            call_command("clear_mailchimp_integration", slug="nonexistent")
+
+    def test_requires_slug(self):
+        with pytest.raises(CommandError):
+            call_command("clear_mailchimp_integration")

@@ -440,7 +440,6 @@ class TestStripeTransactionsImporter:
         ("method", "entity", "has_exclude", "has_prune", "has_list_kwargs"),
         [
             ("list_and_cache_payment_intents", "PaymentIntent", True, True, True),
-            ("list_and_cache_subscriptions", "Subscription", True, True, True),
             ("list_and_cache_charges", "Charge", False, True, False),
             ("list_and_cache_refunds", "Refund", False, True, False),
             ("list_and_cache_customers", "Customer", False, True, False),
@@ -464,6 +463,23 @@ class TestStripeTransactionsImporter:
         if has_exclude:
             kwargs["exclude_fn"] = mock_should_exclude
         mock_list_and_cache.assert_called_once_with(**kwargs)
+
+    def test_list_and_cache_subscriptions(self, mocker):
+        mock_list_and_cache = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_entities"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.should_exclude_from_cache_because_of_metadata"
+        )
+        importer = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_kwargs",
+            new_callable=mocker.PropertyMock,
+            return_value=(default_kwargs := {"foo": "bar"}),
+        )
+        importer.list_and_cache_subscriptions()
+        assert mock_list_and_cache.call_count == 1
+        assert mock_list_and_cache.call_args[1].get("list_kwargs") == default_kwargs | {"status": "all"}
 
     def test_list_and_cache_payment_intents_with_metadata_version(self, mocker):
         mock_list_and_patch = mocker.patch(

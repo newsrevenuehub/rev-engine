@@ -478,7 +478,7 @@ class StripeTransactionsImporter:
             entity_name="Subscription",
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_SUBSCRIPTION_FIELDS},
-            list_kwargs=self.list_kwargs,
+            list_kwargs=self.list_kwargs | {"status": "all"},
         )
 
     def list_and_cache_charges(self) -> None:

@@ -8,6 +8,11 @@ async function patchRevenueProgram(rpId: number, body: Partial<RevenueProgram>) 
   return result;
 }
 
+export interface UpdateRevenueProgramError {
+  contact_email?: string[];
+  contact_phone?: string[];
+}
+
 export function useRevenueProgram(rpId?: number) {
   const queryClient = useQueryClient();
 

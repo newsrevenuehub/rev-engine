@@ -61,6 +61,17 @@ export interface EditablePageContextResult {
   updatedPagePreview?: ContributionPage;
 }
 
+export interface SavePageChangesValidationErrors {
+  /**
+   * Slug error message.
+   */
+  slug?: string[];
+  /**
+   * Non-field error message.
+   */
+  non_field_errors?: string;
+}
+
 export const EditablePageContext = createContext<EditablePageContextResult>({
   deletePage: () => {
     throw new Error('EditablePageContext must be used inside a EditablePageContextProvider');

@@ -278,6 +278,8 @@ class StripeTransactionsImporter:
     to_date: datetime.datetime = None
     retrieve_payment_method: bool = False
     sentry_profiler: bool = False
+    include_one_time_contributions: bool = True
+    include_recurring_contributions: bool = True
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -606,19 +608,32 @@ class StripeTransactionsImporter:
             destination_entity_name="RefundByChargeId", entity_name="Refund", by_entity_name="charge"
         )
 
-    def list_and_cache_required_stripe_resources(self) -> None:
-        """List and cache required stripe resources for a given stripe account."""
-        logger.info("Listing and caching required stripe resources for account %s", self.stripe_account_id)
-        self.list_and_cache_payment_intents()
+    def list_and_cache_stripe_resources_for_recurring_contributions(self) -> None:
         self.list_and_cache_subscriptions()
-        self.list_and_cache_charges()
         self.list_and_cache_invoices()
+        self.cache_invoices_by_subscription_id()
+
+    def list_and_cache_stripe_resources_for_one_time_contributions(self) -> None:
+        self.list_and_cache_payment_intents()
+        self.cache_charges_by_payment_intent_id()
+
+    def list_and_cache_resources_shared(self) -> None:
+        """List and cache shared stripe resources for a given stripe account."""
+        self.list_and_cache_charges()
         self.list_and_cache_balance_transactions()
         self.list_and_cache_customers()
         self.list_and_cache_refunds()
-        self.cache_invoices_by_subscription_id()
-        self.cache_charges_by_payment_intent_id()
         self.cache_refunds_by_charge_id()
+
+    def list_and_cache_required_stripe_resources(self) -> None:
+        """List and cache required stripe resources for a given stripe account."""
+        logger.info("Listing and caching required stripe resources for account %s", self.stripe_account_id)
+        if self.include_recurring_contributions or self.include_one_time_contributions:
+            self.list_and_cache_resources_shared()
+        if self.include_recurring_contributions:
+            self.list_and_cache_stripe_resources_for_recurring_contributions()
+        if self.include_one_time_contributions:
+            self.list_and_cache_stripe_resources_for_one_time_contributions()
 
     def get_resource_from_cache(self, key: str) -> dict | None:
         """Get a stripe resource from cache, loading JSON."""
@@ -1060,8 +1075,10 @@ class StripeTransactionsImporter:
                 len(self._subscription_keys),
                 len(self._payment_intent_keys),
             )
-            self.process_transactions_for_recurring_contributions()
-            self.process_transactions_for_one_time_contributions()
+            if self.include_one_time_contributions:
+                self.process_transactions_for_one_time_contributions()
+            if self.include_recurring_contributions:
+                self.process_transactions_for_recurring_contributions()
             self.log_results()
             self.clear_cache_for_account()
             logger.info(

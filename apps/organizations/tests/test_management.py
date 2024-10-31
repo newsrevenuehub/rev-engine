@@ -4,6 +4,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 
 import pytest
+import pytest_mock
 
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -66,20 +67,20 @@ class TestAppleDomainVerifyCommandTest:
 
 
 @pytest.mark.django_db
-class TestClearMailchimpIntegrationCommand:
-    def test_happy_path(self, revenue_program: RevenueProgram):
-        revenue_program.mailchimp_access_token = "test-token"
-        revenue_program.mailchimp_server_prefix = "test-prefix"
-        revenue_program.save()
-        call_command("clear_mailchimp_integration", slug=revenue_program.slug)
-        edited_rp = RevenueProgram.objects.get(id=revenue_program.id)
-        assert edited_rp.mailchimp_access_token is None
-        assert edited_rp.mailchimp_server_prefix is None
+class TestDisableMailchimpIntegrationCommand:
+    def test_happy_path(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
+        mock_disable = mocker.patch("apps.organizations.models.RevenueProgram.disable_mailchimp_integration")
+        call_command("disable_mailchimp_integration", slug=revenue_program.slug)
+        mock_disable.assert_called_once()
 
-    def test_nonexistent_rp(self):
+    def test_nonexistent_rp(self, mocker: pytest_mock.MockerFixture):
+        mock_disable = mocker.patch("apps.organizations.models.RevenueProgram.disable_mailchimp_integration")
         with pytest.raises(RevenueProgram.DoesNotExist):
-            call_command("clear_mailchimp_integration", slug="nonexistent")
+            call_command("disable_mailchimp_integration", slug="nonexistent")
+        mock_disable.assert_not_called()
 
-    def test_requires_slug(self):
+    def test_requires_slug(self, mocker: pytest_mock.MockerFixture):
+        mock_disable = mocker.patch("apps.organizations.models.RevenueProgram.disable_mailchimp_integration")
         with pytest.raises(CommandError):
-            call_command("clear_mailchimp_integration")
+            call_command("disable_mailchimp_integration")
+        mock_disable.assert_not_called()

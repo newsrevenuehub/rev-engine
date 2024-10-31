@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable
 from contextlib import nullcontext
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -280,6 +280,11 @@ class StripeTransactionsImporter:
     sentry_profiler: bool = False
     include_one_time_contributions: bool = True
     include_recurring_contributions: bool = True
+    # # see https://docs.stripe.com/api/subscriptions/list#list_subscriptions-status for available values.
+    # Note that "uncanceled" is not a valid value, but we use it to indicate that no value should be sent to
+    # Stripe when retrieving subscriptions, which results in default behavior of all being returned that are not
+    # canceled.
+    subscription_status: Literal["all", "ended", "canceled", "uncanceled"] | None = "all"
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -292,6 +297,8 @@ class StripeTransactionsImporter:
         self.created_contributor_ids = set()
         self.created_payment_ids = set()
         self.updated_payment_ids = set()
+        if self.subscription_status == "uncanceled":
+            self.subscription_status = None
 
     @staticmethod
     def get_redis_for_transactions_import() -> Redis:
@@ -480,7 +487,7 @@ class StripeTransactionsImporter:
             entity_name="Subscription",
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_SUBSCRIPTION_FIELDS},
-            list_kwargs=self.list_kwargs | {"status": "all"},
+            list_kwargs=self.list_kwargs | {"status": self.subscription_status},
         )
 
     def list_and_cache_charges(self) -> None:

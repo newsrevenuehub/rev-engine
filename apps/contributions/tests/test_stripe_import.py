@@ -281,6 +281,18 @@ class TestStripeTransactionsImporter:
     def _default_settings(self, settings):
         settings.DOMAIN_APEX = DOMAIN_APEX
 
+    @pytest.mark.parametrize(
+        "status",
+        [
+            None,
+            "uncanceled",
+        ],
+    )
+    def test_subscription_status(self, status):
+        instance = StripeTransactionsImporter(stripe_account_id="test", subscription_status=status)
+        if status == "uncanceled":
+            assert instance.subscription_status is None
+
     @pytest.mark.parametrize("include_recurring", [True, False])
     @pytest.mark.parametrize("include_one_off", [True, False])
     def test_list_and_cache_required_stripe_resources(self, mocker, include_recurring, include_one_off):

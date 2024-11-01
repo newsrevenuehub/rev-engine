@@ -1303,7 +1303,6 @@ class Contribution(IndexedTimeStampedModel):
         item = items["data"][0]
 
         # Set the amount in metadata if the schema supports it.
-
         with contextlib.suppress(InvalidMetadataError):
             self.set_metadata_field("donor_selected_amount", amount)
 

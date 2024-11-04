@@ -280,7 +280,7 @@ class StripeTransactionsImporter:
     sentry_profiler: bool = False
     include_one_time_contributions: bool = True
     include_recurring_contributions: bool = True
-    # # see https://docs.stripe.com/api/subscriptions/list#list_subscriptions-status for available values.
+    # see https://docs.stripe.com/api/subscriptions/list#list_subscriptions-status for available values.
     # Note that "uncanceled" is not a valid value, but we use it to indicate that no value should be sent to
     # Stripe when retrieving subscriptions, which results in default behavior of all being returned that are not
     # canceled.

@@ -59,15 +59,22 @@ class Command(BaseCommand):
         )
         parser.add_argument("--suppress-stripe-info-logs", action="store_true", default=False)
         parser.add_argument("--sentry-profiler", action="store_true", default=False)
-        parser.add_argument("--exclude-one-times", action="store_true", default=False)
-        parser.add_argument("--exclude-recurring", action="store_true", default=False)
+        parser.add_argument(
+            "--exclude-one-times",
+            action="store_true",
+            default=False,
+            help="Exclude Stripe one-time payments from import",
+        )
+        parser.add_argument(
+            "--exclude-recurring", action="store_true", default=False, help="Exclude Stripe subscriptions from import"
+        )
         # see https://docs.stripe.com/api/subscriptions/list#list_subscriptions-status for available values.
         # Note that "uncanceled" is not a valid value, but we use it to indicate that no value should be sent to
         # Stripe when retrieving subscriptions, which results in default behavior of all being returned that are not
         # canceled.
         parser.add_argument(
             "--subscription-status", type=str, default="all", choices=["all", "ended", "canceled", "uncanceled"]
-        )  # need to limit to acceptable values
+        )
 
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)

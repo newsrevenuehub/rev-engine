@@ -790,7 +790,7 @@ class Contribution(IndexedTimeStampedModel):
             self.contribution_metadata = json.loads(schema(**(self.contribution_metadata | {key: value})).json())
         except ValidationError as error:
             # To be specific, this might *not* be the root cause. If there is
-            # pre-existing incorrect metadata, then validation would fail here.
+            # pre-existing incorrect metadata, then validation would fail here
             # too.
             raise InvalidMetadataError(f"Change to {key} results in invalid contribution metadata") from error
 

@@ -259,7 +259,7 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
         extra = "forbid"
 
 
-STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
+STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS: dict[str, StripeMetadataSchemaBase] = {
     "1.0": StripePaymentMetadataSchemaV1_0,
     "1.1": StripePaymentMetadataSchemaV1_1,
     # NB: 1.2 is obsolete and was never used

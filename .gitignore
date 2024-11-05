@@ -13,7 +13,6 @@ env-local.sh
 */__pycache__/*
 *.pyc
 .postgres
-.python-version
 .vsls.json
 .idea/
 .direnv

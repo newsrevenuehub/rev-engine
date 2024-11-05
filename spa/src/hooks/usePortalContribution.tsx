@@ -70,8 +70,9 @@ export interface PortalContributionUpdate {
   amount?: number;
 }
 
-export interface CancelContributionValidationError {
-  detail: string;
+// This interface can be altered to include other errors that may be returned from the API.
+export interface CancelContributionValidationErrors {
+  detail?: string;
 }
 
 /**
@@ -129,7 +130,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
           )
         });
       },
-      onError: (error: AxiosError<CancelContributionValidationError>) => {
+      onError: (error: AxiosError<CancelContributionValidationErrors>) => {
         console.error('[usePortalContribution:cancelContribution] ', error);
         enqueueSnackbar(error?.response?.data?.detail ?? 'Something went wrong. Please, try again later.', {
           persist: true,

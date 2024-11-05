@@ -13,7 +13,8 @@ export type PortalFormValues = {
   email: string;
 };
 
-export interface SendMagicLinkError {
+// This interface can be altered to include other errors that may be returned from the API.
+export interface SendMagicLinkErrors {
   email?: string[];
 }
 
@@ -61,7 +62,7 @@ export default function usePortal() {
       return postMagicLink({ email, subdomain: rpSlug });
     },
     {
-      onError: (error: AxiosError<SendMagicLinkError>) => {
+      onError: (error: AxiosError<SendMagicLinkErrors>) => {
         if (error.response?.status === 429) {
           setError({ email: ['Too many attempts. Try again in one minute.'] });
         } else if (error.response?.data?.email) {

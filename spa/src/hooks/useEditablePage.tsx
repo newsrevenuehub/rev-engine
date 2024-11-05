@@ -61,6 +61,7 @@ export interface EditablePageContextResult {
   updatedPagePreview?: ContributionPage;
 }
 
+// This interface can be altered to include other errors that may be returned from the API.
 export interface SavePageChangesValidationErrors {
   /**
    * Slug error message.

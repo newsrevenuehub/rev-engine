@@ -46,11 +46,11 @@ function handle401Response(error: AxiosError) {
        that, when caught, will affect the display of the re-auth modal.
   */
   if (error?.config?.url === TOKEN) return Promise.reject(error);
-  else return Promise.reject(new AuthenticationError('User token expired'));
+  else return Promise.reject(new AuthenticationError('User token expired', error?.cause));
 }
 
 export class AuthenticationError extends Error {
-  constructor(message: string, cause?: string) {
+  constructor(message: string, cause?: unknown) {
     super(message);
     this.cause = cause;
     this.name = 'AuthenticationError';

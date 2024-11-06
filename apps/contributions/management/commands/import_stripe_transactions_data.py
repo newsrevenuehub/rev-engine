@@ -104,8 +104,8 @@ class Command(BaseCommand):
                 "retrieve_payment_method": options["retrieve_payment_method"],
                 "sentry_profiler": options["sentry_profiler"],
                 "subscription_status": options["subscription_status"],
-                "include_one_times": not options["exclude_one_times"],
-                "include_recurring": not options["exclude_recurring"],
+                "include_one_contributions": not options["exclude_one_times"],
+                "include_recurring_contributions": not options["exclude_recurring"],
             }
             if options["async_mode"]:
                 result = task_import_contributions_and_payments_for_stripe_account.delay(**kwargs)

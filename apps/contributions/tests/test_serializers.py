@@ -1848,7 +1848,16 @@ class TestPortalContributionDetailSerializer:
         mocker.patch("stripe.Subscription.modify")
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
-            serializer.update(one_time_contribution, {"amount": 123})
+            serializer.update(one_time_contribution, {"amount": 123, "donor_selected_amount": 1.23})
+
+    def test_amount_donor_selected_amount_validation(self, monthly_contribution):
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        with pytest.raises(
+            ValidationError, match="If this field is updated, donor_selected_amount must be provided as well."
+        ):
+            serializer.validate({"amount": 123})
+        with pytest.raises(ValidationError, match="If this field is updated, amount must be provided as well."):
+            serializer.validate({"donor_selected_amount": 1.23})
 
 
 @pytest.mark.django_db

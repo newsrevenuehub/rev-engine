@@ -1264,11 +1264,13 @@ class Contribution(IndexedTimeStampedModel):
 
             raise
 
-    def update_subscription_amount(self, amount: int) -> None:
-        """Update Stripe's Subscription Item amount to the new value.
+    def update_subscription_amount(self, amount: int, donor_selected_amount: float) -> None:
+        """Update the item amount and donor-selected amount (in metadata) of the Stripe subscription of this contribution.
 
-        If it's a recurring subscription, update the amount of the next payment
-        without proration (paying difference of existing month).
+        **amount is in cents, but donor_selected_amount is in dollars.** This difference is because amount is tracked in Stripe
+        natively as cents, while donor_selected_amount is a metadata field we added that uses float dollars.
+
+        This doesn't prorate the change (e.g. paying difference of existing month next time).
         """
         # vs circular import
         from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
@@ -1302,9 +1304,9 @@ class Contribution(IndexedTimeStampedModel):
 
         item = items["data"][0]
 
-        # Set the amount in metadata if the schema supports it.
+        # Set the donor-selected amount in metadata if the schema supports it.
         with contextlib.suppress(InvalidMetadataError):
-            self.set_metadata_field("donor_selected_amount", amount)
+            self.set_metadata_field("donor_selected_amount", donor_selected_amount)
 
         self.amount = amount
 

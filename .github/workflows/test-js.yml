@@ -87,7 +87,7 @@ jobs:
       - name: Debug hosts
         run: cat /etc/hosts
       - name: Cypress tests
-        uses: cypress-io/github-action@v4
+        uses: cypress-io/github-action@v6
         with:
           working-directory: spa
           build: npm run build

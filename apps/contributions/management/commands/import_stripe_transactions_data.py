@@ -104,7 +104,7 @@ class Command(BaseCommand):
                 "retrieve_payment_method": options["retrieve_payment_method"],
                 "sentry_profiler": options["sentry_profiler"],
                 "subscription_status": options["subscription_status"],
-                "include_one_contributions": not options["exclude_one_times"],
+                "include_one_time_contributions": not options["exclude_one_times"],
                 "include_recurring_contributions": not options["exclude_recurring"],
             }
             if options["async_mode"]:

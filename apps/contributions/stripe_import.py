@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable
 from contextlib import nullcontext
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -278,6 +278,13 @@ class StripeTransactionsImporter:
     to_date: datetime.datetime = None
     retrieve_payment_method: bool = False
     sentry_profiler: bool = False
+    include_one_time_contributions: bool = True
+    include_recurring_contributions: bool = True
+    # see https://docs.stripe.com/api/subscriptions/list#list_subscriptions-status for available values.
+    # Note that "uncanceled" is not a valid value, but we use it to indicate that no value should be sent to
+    # Stripe when retrieving subscriptions, which results in default behavior of all being returned that are not
+    # canceled.
+    subscription_status: Literal["all", "ended", "canceled", "uncanceled"] | None = "all"
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -290,6 +297,8 @@ class StripeTransactionsImporter:
         self.created_contributor_ids = set()
         self.created_payment_ids = set()
         self.updated_payment_ids = set()
+        if self.subscription_status == "uncanceled":
+            self.subscription_status = None
 
     @staticmethod
     def get_redis_for_transactions_import() -> Redis:
@@ -478,7 +487,7 @@ class StripeTransactionsImporter:
             entity_name="Subscription",
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_SUBSCRIPTION_FIELDS},
-            list_kwargs=self.list_kwargs,
+            list_kwargs=self.list_kwargs | {"status": self.subscription_status},
         )
 
     def list_and_cache_charges(self) -> None:
@@ -606,19 +615,32 @@ class StripeTransactionsImporter:
             destination_entity_name="RefundByChargeId", entity_name="Refund", by_entity_name="charge"
         )
 
-    def list_and_cache_required_stripe_resources(self) -> None:
-        """List and cache required stripe resources for a given stripe account."""
-        logger.info("Listing and caching required stripe resources for account %s", self.stripe_account_id)
-        self.list_and_cache_payment_intents()
+    def list_and_cache_stripe_resources_for_recurring_contributions(self) -> None:
         self.list_and_cache_subscriptions()
-        self.list_and_cache_charges()
         self.list_and_cache_invoices()
+        self.cache_invoices_by_subscription_id()
+
+    def list_and_cache_stripe_resources_for_one_time_contributions(self) -> None:
+        self.list_and_cache_payment_intents()
+        self.cache_charges_by_payment_intent_id()
+
+    def list_and_cache_resources_shared(self) -> None:
+        """List and cache shared stripe resources for a given stripe account."""
+        self.list_and_cache_charges()
         self.list_and_cache_balance_transactions()
         self.list_and_cache_customers()
         self.list_and_cache_refunds()
-        self.cache_invoices_by_subscription_id()
-        self.cache_charges_by_payment_intent_id()
         self.cache_refunds_by_charge_id()
+
+    def list_and_cache_required_stripe_resources(self) -> None:
+        """List and cache required stripe resources for a given stripe account."""
+        logger.info("Listing and caching required stripe resources for account %s", self.stripe_account_id)
+        if self.include_recurring_contributions or self.include_one_time_contributions:
+            self.list_and_cache_resources_shared()
+        if self.include_recurring_contributions:
+            self.list_and_cache_stripe_resources_for_recurring_contributions()
+        if self.include_one_time_contributions:
+            self.list_and_cache_stripe_resources_for_one_time_contributions()
 
     def get_resource_from_cache(self, key: str) -> dict | None:
         """Get a stripe resource from cache, loading JSON."""
@@ -1060,8 +1082,10 @@ class StripeTransactionsImporter:
                 len(self._subscription_keys),
                 len(self._payment_intent_keys),
             )
-            self.process_transactions_for_recurring_contributions()
-            self.process_transactions_for_one_time_contributions()
+            if self.include_one_time_contributions:
+                self.process_transactions_for_one_time_contributions()
+            if self.include_recurring_contributions:
+                self.process_transactions_for_recurring_contributions()
             self.log_results()
             self.clear_cache_for_account()
             logger.info(

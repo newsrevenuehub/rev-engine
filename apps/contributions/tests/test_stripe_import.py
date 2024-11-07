@@ -1,4 +1,5 @@
 import datetime
+import importlib
 import json
 import random
 from copy import deepcopy
@@ -11,6 +12,7 @@ import stripe
 from django_redis import get_redis_connection
 
 import apps.common.utils as common_utils
+from apps.contributions import stripe_import
 from apps.contributions.exceptions import (
     InvalidIntervalError,
     InvalidMetadataError,
@@ -260,6 +262,15 @@ class Test_upsert_payment_for_transaction:
         assert action is None
 
 
+def test_module_logger(mocker):
+    """Test to narrowly execute an otherwise untested path with module logger."""
+    mock_logger = mocker.Mock(handlers=(handlers := ["foo", "bar"]))
+    mocker.patch("logging.getLogger", return_value=mock_logger)
+    importlib.reload(stripe_import)
+    assert mock_logger.removeHandler.call_count == len(handlers)
+    assert mock_logger.removeHandler.call_args_list == [mocker.call(handler) for handler in handlers]
+
+
 @pytest.mark.django_db
 class TestStripeTransactionsImporter:
     @pytest.fixture(autouse=True)
@@ -269,6 +280,44 @@ class TestStripeTransactionsImporter:
     @pytest.fixture(autouse=True)
     def _default_settings(self, settings):
         settings.DOMAIN_APEX = DOMAIN_APEX
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            None,
+            "uncanceled",
+        ],
+    )
+    def test_subscription_status(self, status):
+        instance = StripeTransactionsImporter(stripe_account_id="test", subscription_status=status)
+        if status == "uncanceled":
+            assert instance.subscription_status is None
+
+    @pytest.mark.parametrize("include_recurring", [True, False])
+    @pytest.mark.parametrize("include_one_off", [True, False])
+    def test_list_and_cache_required_stripe_resources(self, mocker, include_recurring, include_one_off):
+
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_get_recurring = mocker.patch.object(
+            instance, "list_and_cache_stripe_resources_for_recurring_contributions"
+        )
+        mock_get_one_times = mocker.patch.object(instance, "list_and_cache_stripe_resources_for_one_time_contributions")
+        mock_get_shared = mocker.patch.object(instance, "list_and_cache_resources_shared")
+        instance.include_one_time_contributions = include_one_off
+        instance.include_recurring_contributions = include_recurring
+        instance.list_and_cache_required_stripe_resources()
+        if include_recurring:
+            mock_get_recurring.assert_called_once()
+        else:
+            mock_get_recurring.assert_not_called()
+        if include_one_off:
+            mock_get_one_times.assert_called_once()
+        else:
+            mock_get_one_times.assert_not_called()
+        if include_recurring or include_one_off:
+            mock_get_shared.assert_called_once()
+        else:
+            mock_get_shared.assert_not_called()
 
     def test_created_query(self, mocker):
         from_date = mocker.Mock()
@@ -440,7 +489,6 @@ class TestStripeTransactionsImporter:
         ("method", "entity", "has_exclude", "has_prune", "has_list_kwargs"),
         [
             ("list_and_cache_payment_intents", "PaymentIntent", True, True, True),
-            ("list_and_cache_subscriptions", "Subscription", True, True, True),
             ("list_and_cache_charges", "Charge", False, True, False),
             ("list_and_cache_refunds", "Refund", False, True, False),
             ("list_and_cache_customers", "Customer", False, True, False),
@@ -464,6 +512,23 @@ class TestStripeTransactionsImporter:
         if has_exclude:
             kwargs["exclude_fn"] = mock_should_exclude
         mock_list_and_cache.assert_called_once_with(**kwargs)
+
+    def test_list_and_cache_subscriptions(self, mocker):
+        mock_list_and_cache = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_entities"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.should_exclude_from_cache_because_of_metadata"
+        )
+        importer = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_kwargs",
+            new_callable=mocker.PropertyMock,
+            return_value=(default_kwargs := {"foo": "bar"}),
+        )
+        importer.list_and_cache_subscriptions()
+        assert mock_list_and_cache.call_count == 1
+        assert mock_list_and_cache.call_args[1].get("list_kwargs") == default_kwargs | {"status": "all"}
 
     def test_list_and_cache_payment_intents_with_metadata_version(self, mocker):
         mock_list_and_patch = mocker.patch(
@@ -588,33 +653,6 @@ class TestStripeTransactionsImporter:
         getattr(StripeTransactionsImporter(stripe_account_id="test"), method)()
         mock_cache_entity_by_entity.assert_called_once()
 
-    def test_list_and_cache_required_stripe_resources(self, mocker):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        mock_cache_pis = mocker.patch.object(instance, "list_and_cache_payment_intents")
-        mock_cache_subs = mocker.patch.object(instance, "list_and_cache_subscriptions")
-        mock_cache_charges = mocker.patch.object(instance, "list_and_cache_charges")
-        mock_cache_invoices = mocker.patch.object(instance, "list_and_cache_invoices")
-        mock_cache_balance_transactions = mocker.patch.object(instance, "list_and_cache_balance_transactions")
-        mock_cache_customers = mocker.patch.object(instance, "list_and_cache_customers")
-        mock_cache_refunds = mocker.patch.object(instance, "list_and_cache_refunds")
-        mock_cache_invs_by_sub_id = mocker.patch.object(instance, "cache_invoices_by_subscription_id")
-        mock_cache_charges_by_pi_id = mocker.patch.object(instance, "cache_charges_by_payment_intent_id")
-        mock_cache_refunds_by_charge_id = mocker.patch.object(instance, "cache_refunds_by_charge_id")
-        instance.list_and_cache_required_stripe_resources()
-        for mock in (
-            mock_cache_pis,
-            mock_cache_subs,
-            mock_cache_charges,
-            mock_cache_invoices,
-            mock_cache_refunds,
-            mock_cache_customers,
-            mock_cache_balance_transactions,
-            mock_cache_invs_by_sub_id,
-            mock_cache_charges_by_pi_id,
-            mock_cache_refunds_by_charge_id,
-        ):
-            mock.assert_called_once()
-
     @pytest.mark.parametrize("in_cache", [True, False])
     def test_get_resource_from_cache(self, in_cache, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -695,6 +733,12 @@ class TestStripeTransactionsImporter:
         else:
             with pytest.raises(InvalidStripeTransactionDataError):
                 instance.get_or_create_contributor_from_customer("cus_1")
+
+    def test_get_or_create_contributor_from_customer_when_no_customer_in_cache(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch.object(instance, "get_resource_from_cache", return_value=None)
+        with pytest.raises(InvalidStripeTransactionDataError):
+            instance.get_or_create_contributor_from_customer("cus_1")
 
     @pytest.mark.parametrize(
         ("payment_method", "default_payment_method", "is_one_time", "invoice_settings", "expect_pm_id"),
@@ -1013,7 +1057,12 @@ class TestStripeTransactionsImporter:
         else:
             mock_logger.assert_not_called()
 
-    def test_import_contributions_and_payments(self, mocker):
+    @pytest.mark.parametrize("include_recurring", [True, False])
+    @pytest.mark.parametrize("include_one_off", [True, False])
+    def test_import_contributions_and_payments(self, mocker, include_recurring, include_one_off):
+        importer = StripeTransactionsImporter(stripe_account_id="test")
+        importer.include_one_time_contributions = include_one_off
+        importer.include_recurring_contributions = include_recurring
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter._subscription_keys",
             new_callable=mocker.PropertyMock,
@@ -1041,19 +1090,48 @@ class TestStripeTransactionsImporter:
         mock_log_ttl_concerns = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.log_ttl_concerns"
         )
+        importer.import_contributions_and_payments()
+        mock_log_memory_usage.assert_called_once()
+        mock_log_results.assert_called_once()
+        mock_clear_cache.assert_called_once()
+        mock_log_ttl_concerns.assert_called_once()
+        mock_list_cache.assert_called_once()
+        if include_recurring:
+            mock_process_recurring.assert_called_once()
+        else:
+            mock_process_recurring.assert_not_called()
+        if include_one_off:
+            mock_process_one_time.assert_called_once()
+        else:
+            mock_process_one_time.assert_not_called()
 
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        instance.import_contributions_and_payments()
-        for mock in (
-            mock_list_cache,
-            mock_log_memory_usage,
-            mock_process_recurring,
-            mock_process_one_time,
-            mock_log_results,
-            mock_clear_cache,
-            mock_log_ttl_concerns,
-        ):
-            mock.assert_called_once()
+    def test_list_and_cache_stripe_resources_for_recurring_contributions(self, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_subscriptions", return_value=[]
+        )
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_invoices")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.cache_entity_by_another_entity_id")
+        importer = StripeTransactionsImporter(stripe_account_id="test")
+        importer.list_and_cache_stripe_resources_for_recurring_contributions()
+
+    def test_list_and_cache_stripe_resources_for_one_time_contributions(self, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_payment_intents",
+            return_value=[],
+        )
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_charges")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.cache_entity_by_another_entity_id")
+        importer = StripeTransactionsImporter(stripe_account_id="test")
+        importer.list_and_cache_stripe_resources_for_one_time_contributions()
+
+    def test_list_and_cache_resources_shared(self, mocker):
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_charges")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_balance_transactions")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_customers")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_refunds")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.cache_refunds_by_charge_id")
+        importer = StripeTransactionsImporter(stripe_account_id="test")
+        importer.list_and_cache_resources_shared()
 
     def test_log_results(self):
         instance = StripeTransactionsImporter(stripe_account_id="test")

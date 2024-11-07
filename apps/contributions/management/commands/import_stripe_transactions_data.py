@@ -59,6 +59,22 @@ class Command(BaseCommand):
         )
         parser.add_argument("--suppress-stripe-info-logs", action="store_true", default=False)
         parser.add_argument("--sentry-profiler", action="store_true", default=False)
+        parser.add_argument(
+            "--exclude-one-times",
+            action="store_true",
+            default=False,
+            help="Exclude Stripe one-time payments from import",
+        )
+        parser.add_argument(
+            "--exclude-recurring", action="store_true", default=False, help="Exclude Stripe subscriptions from import"
+        )
+        # see https://docs.stripe.com/api/subscriptions/list#list_subscriptions-status for available values.
+        # Note that "uncanceled" is not a valid value, but we use it to indicate that no value should be sent to
+        # Stripe when retrieving subscriptions, which results in default behavior of all being returned that are not
+        # canceled.
+        parser.add_argument(
+            "--subscription-status", type=str, default="all", choices=["all", "ended", "canceled", "uncanceled"]
+        )
 
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
@@ -79,15 +95,20 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
         account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
+
         for account in account_ids:
+            kwargs = {
+                "stripe_account_id": account,
+                "from_date": int(options["gte"].timestamp()) if options["gte"] else None,
+                "to_date": int(options["lte"].timestamp()) if options["lte"] else None,
+                "retrieve_payment_method": options["retrieve_payment_method"],
+                "sentry_profiler": options["sentry_profiler"],
+                "subscription_status": options["subscription_status"],
+                "include_one_time_contributions": not options["exclude_one_times"],
+                "include_recurring_contributions": not options["exclude_recurring"],
+            }
             if options["async_mode"]:
-                result = task_import_contributions_and_payments_for_stripe_account.delay(
-                    stripe_account_id=account,
-                    from_date=int(options["gte"].timestamp()) if options["gte"] else None,
-                    to_date=int(options["lte"].timestamp()) if options["lte"] else None,
-                    retrieve_payment_method=options["retrieve_payment_method"],
-                    sentry_profiler=options["sentry_profiler"],
-                )
+                result = task_import_contributions_and_payments_for_stripe_account.delay(**kwargs)
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"Celery task {result.task_id} to import transactions for account {account} has been scheduled"
@@ -95,17 +116,9 @@ class Command(BaseCommand):
                 )
             else:
                 try:
-                    StripeTransactionsImporter(
-                        from_date=options["gte"],
-                        to_date=options["lte"],
-                        stripe_account_id=account,
-                        retrieve_payment_method=options["retrieve_payment_method"],
-                        sentry_profiler=options["sentry_profiler"],
-                    ).import_contributions_and_payments()
-                # this will happen if the stripe account is not connected
+                    StripeTransactionsImporter(**kwargs).import_contributions_and_payments()
                 except stripe.error.PermissionError as e:
                     self.stdout.write(self.style.ERROR(f"Error importing transactions for account {account}: {e}"))
                 else:
                     self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
-
         self.stdout.write(self.style.SUCCESS(f"{command_name} is done"))

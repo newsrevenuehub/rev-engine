@@ -235,6 +235,9 @@ def task_import_contributions_and_payments_for_stripe_account(
     stripe_account_id: str,
     retrieve_payment_method: bool,
     sentry_profiler: bool,
+    include_one_times: bool,
+    include_recurring: bool,
+    subscription_status: str,
 ):
     """Task for syncing Stripe payment data to revengine."""
     logger.info(
@@ -251,12 +254,8 @@ def task_import_contributions_and_payments_for_stripe_account(
         stripe_account_id=stripe_account_id,
         retrieve_payment_method=retrieve_payment_method,
         sentry_profiler=sentry_profiler,
-    ).import_contributions_and_payments()
-    StripeTransactionsImporter(
-        from_date=from_date,
-        to_date=to_date,
-        stripe_account_id=stripe_account_id,
-        retrieve_payment_method=retrieve_payment_method,
-        sentry_profiler=sentry_profiler,
+        include_one_time_contributions=include_one_times,
+        include_recurring_contributions=include_recurring,
+        subscription_status=subscription_status,
     ).import_contributions_and_payments()
     logger.info("`task_import_contributions_and_payments` is done")

@@ -8,7 +8,7 @@ import { MaxPagesPublishedModal } from 'components/common/Modal/MaxPagesPublishe
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { ContributionPage } from 'hooks/useContributionPage';
 import useContributionPageList from 'hooks/useContributionPageList';
-import { useEditablePageContext } from 'hooks/useEditablePage';
+import { SavePageChangesValidationErrors, useEditablePageContext } from 'hooks/useEditablePage';
 import useModal from 'hooks/useModal';
 import useUser from 'hooks/useUser';
 import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
@@ -165,17 +165,18 @@ function PublishButton({ className }: PublishButtonProps) {
           console.error(`Couldn't track a page publish event in Pendo: ${(error as Error).message}`);
         }
       }
-    } catch (error) {
+    } catch (err) {
+      const error = err as AxiosError<SavePageChangesValidationErrors>;
       const { isHubAdmin, isSuperUser } = getUserRole(user);
 
-      if ((error as AxiosError).response?.data?.slug) {
+      if (error.response?.data?.slug) {
         // If there is a slug error, we pass it to the modal.
 
-        setSlugError((error as AxiosError).response?.data?.slug);
-      } else if ((isHubAdmin || isSuperUser) && (error as AxiosError).response?.data?.non_field_errors?.[0]) {
+        setSlugError(error.response.data.slug);
+      } else if ((isHubAdmin || isSuperUser) && error.response?.data?.non_field_errors?.[0]) {
         // Hub admins can see errors directly.
 
-        alert.error((error as AxiosError).response?.data?.non_field_errors?.[0]);
+        alert.error(error.response.data.non_field_errors[0]);
       } else {
         alert.error(GENERIC_ERROR);
       }

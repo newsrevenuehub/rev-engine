@@ -6,7 +6,7 @@ import SuccessBanner from 'components/common/SuccessBanner';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { RevenueProgram } from 'hooks/useContributionPage';
-import { useRevenueProgram } from 'hooks/useRevenueProgram';
+import { UpdateRevenueProgramErrors, useRevenueProgram } from 'hooks/useRevenueProgram';
 import PropTypes, { InferProps } from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
@@ -75,12 +75,13 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
     } catch (error) {
       setShowSuccess(false);
 
-      const axiosError = error as AxiosError;
+      const axiosError = error as AxiosError<UpdateRevenueProgramErrors>;
       if (axiosError.response?.data) {
         setErrorMessage({
-          contact_email: axiosError.response.data?.contact_email?.[0],
-          contact_phone: axiosError.response.data?.contact_phone?.[0]
+          contact_email: axiosError.response.data?.contact_email?.[0] ?? '',
+          contact_phone: axiosError.response.data?.contact_phone?.[0] ?? ''
         });
+
         return;
       }
 

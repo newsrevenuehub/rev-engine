@@ -161,7 +161,7 @@ describe('usePayment', () => {
         await act(async () => {
           await result.current.createPayment!(mockFormData, mockPage);
         });
-        expect(axiosMock.history.post[0].headers['X-CSRFTOKEN']).toBe('mock-csrf-token');
+        expect(axiosMock.history.post?.[0]?.headers?.['X-CSRFTOKEN']).toBe('mock-csrf-token');
       });
 
       it("rejects and doesn't do a POST if the page has no slug", async () => {
@@ -272,7 +272,7 @@ describe('usePayment', () => {
         await act(async () => {
           await result.current.deletePayment!();
         });
-        expect(axiosMock.history.delete[0].headers['X-CSRFTOKEN']).toBe('mock-csrf-token');
+        expect(axiosMock.history.delete?.[0]?.headers?.['X-CSRFTOKEN']).toBe('mock-csrf-token');
       });
 
       it('rejects if the DELETE fails', async () => {

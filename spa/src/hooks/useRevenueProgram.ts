@@ -8,6 +8,12 @@ async function patchRevenueProgram(rpId: number, body: Partial<RevenueProgram>) 
   return result;
 }
 
+// This interface can be altered to include other errors that may be returned from the API.
+export interface UpdateRevenueProgramErrors {
+  contact_email?: string[];
+  contact_phone?: string[];
+}
+
 export function useRevenueProgram(rpId?: number) {
   const queryClient = useQueryClient();
 

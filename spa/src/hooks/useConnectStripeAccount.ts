@@ -8,6 +8,7 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { useHistory } from 'react-router-dom';
 import { SIGN_IN } from 'routes';
 import useUser from './useUser';
+import { AxiosError } from 'axios';
 
 export type UnverifiedReason = '' | 'pending_verification' | 'past_due';
 
@@ -102,7 +103,7 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
           setDisplayConnectionSuccess(true);
         }
       },
-      onError: (err: Error) => {
+      onError: (err: AxiosError) => {
         if (err?.name === 'AuthenticationError') {
           history.push(SIGN_IN);
         } else {

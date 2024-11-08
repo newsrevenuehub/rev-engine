@@ -6,6 +6,7 @@ import { LIST_FONTS } from 'ajax/endpoints';
 import axios from 'ajax/axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { SIGN_IN } from 'routes';
+import { AxiosError } from 'axios';
 
 async function fetchFonts() {
   const { data } = await axios.get(LIST_FONTS);
@@ -38,7 +39,7 @@ function useFontList(): UseFontListResult {
     isError
   } = useQuery(['fonts'], fetchFonts, {
     initialData: [],
-    onError: (err: Error) => {
+    onError: (err: AxiosError) => {
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {

@@ -118,7 +118,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
               variant="contained"
               onClick={handlePublish}
               disableElevation
-              disabled={!slug ?? loading}
+              disabled={!slug || !!loading}
             >
               {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Publish'}
             </PublishButton>

@@ -563,7 +563,7 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
 class PortalContributorsViewSet(viewsets.GenericViewSet):
     """Furnish contributions data to the (new) contributor portal."""
 
-    permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
+    permission_classes = [(IsAuthenticated & IsContributor & UserIsRequestedContributor) | IsActiveSuperUser]
     DEFAULT_ORDERING_FIELDS = ["created", "first_payment_date"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "first_payment_date", "status"]
     # NB: This view is about returning contributor.contributions and never returns contributors, but

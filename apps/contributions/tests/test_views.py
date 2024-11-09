@@ -1802,11 +1802,15 @@ class TestPortalContributorsViewSet:
     def non_contributor_user(self, request):
         return request.getfixturevalue(request.param)
 
+    @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "rp_user"])
+    def unpermitted_user_for_contributions_list(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_contributions_list_when_im_not_contributor_user_type(
-        self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions
+        self, api_client, unpermitted_user_for_contributions_list, portal_contributor_with_multiple_contributions
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
-        api_client.force_authenticate(non_contributor_user)
+        api_client.force_authenticate(unpermitted_user_for_contributions_list)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

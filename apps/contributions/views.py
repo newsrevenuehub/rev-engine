@@ -563,7 +563,7 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
 class PortalContributorsViewSet(viewsets.GenericViewSet):
     """Furnish contributions data to the (new) contributor portal."""
 
-    permission_classes = [(IsAuthenticated & IsContributor & UserIsRequestedContributor) | IsActiveSuperUser]
+    permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
     DEFAULT_ORDERING_FIELDS = ["created", "first_payment_date"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "first_payment_date", "status"]
     # NB: This view is about returning contributor.contributions and never returns contributors, but
@@ -632,6 +632,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_name="contributions-list",
         detail=True,
         serializer_class=serializers.PortalContributionListSerializer,
+        permission_classes=[(IsContributor & UserIsRequestedContributor) | IsActiveSuperUser],
     )
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor."""

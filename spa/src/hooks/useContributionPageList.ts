@@ -10,6 +10,7 @@ import { SIGN_IN } from 'routes';
 import { ContributionPage } from './useContributionPage';
 import { User } from './useUser.types';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
+import { AxiosError } from 'axios';
 
 export interface CreatePageProperties extends Partial<Omit<ContributionPage, 'revenue_program'>> {
   // These are required when creating a page.
@@ -82,14 +83,14 @@ function useContributionPageList(): UseContributionPageListResult {
   } = useQuery(['pages'], fetchPages, {
     // if it's an authentication error, we don't want to retry. if it's some other
     // error we'll retry up to 1 time.
-    retry: (failureCount, error) => {
-      return (error as Error).name !== 'AuthenticationError' && failureCount < 1;
+    retry: (failureCount, error: AxiosError) => {
+      return error.name !== 'AuthenticationError' && failureCount < 1;
     },
     // Retain data for 2 minutes, same as useUser. Mutations will invalidate
     // the cache immediately.
     staleTime: 120000,
-    onError: (error) => {
-      if ((error as Error).name === 'AuthenticationError') {
+    onError: (error: AxiosError) => {
+      if (error.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {
         console.error(error);

@@ -963,7 +963,8 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
     )
-    # Note that donor_selected_amount is float dollars, not int cents.
+    # Note that donor_selected_amount is float dollars, not int cents. This
+    # value is persisted in Stripe as a string.
     donor_selected_amount = serializers.FloatField(
         required=False,
         min_value=REVENGINE_MIN_AMOUNT / 100,

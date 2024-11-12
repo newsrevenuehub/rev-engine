@@ -1267,10 +1267,13 @@ class Contribution(IndexedTimeStampedModel):
     def update_subscription_amount(self, amount: int, donor_selected_amount: float) -> None:
         """Update the item amount and donor-selected amount (in metadata) of the Stripe subscription of this contribution.
 
-        **amount is in cents, but donor_selected_amount is in dollars.** This difference is because amount is tracked in Stripe
-        natively as cents, while donor_selected_amount is a metadata field we added that uses float dollars.
+        **amount is in cents, but donor_selected_amount is in dollars.** This
+        difference is because amount is tracked in Stripe natively as cents,
+        while donor_selected_amount is a metadata field we added that uses float
+        dollars. This field is persisted in Stripe as a string.
 
-        This doesn't prorate the change (e.g. paying difference of existing month next time).
+        This doesn't prorate the change (e.g. paying difference of existing
+        month next time).
         """
         # vs circular import
         from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT

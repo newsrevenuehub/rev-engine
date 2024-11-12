@@ -45,6 +45,10 @@ export type OrganizationFormFields = {
   fiscalSponsorName: string;
 };
 
+type PatchOrganizationNameErrors = {
+  name?: string[];
+};
+
 interface RevenueProgramPatch extends Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
   tax_id: string;
 }
@@ -150,10 +154,10 @@ const Organization = () => {
         }
         setShowSuccess(true);
       } catch (err) {
-        const error = err as AxiosError;
+        const error = err as AxiosError<PatchOrganizationNameErrors>;
         if ('response' in error) {
           if (error.response?.data?.name) {
-            setError({ companyName: error?.response?.data?.name?.[0] });
+            setError({ companyName: error.response.data.name[0] });
             return;
           }
         }

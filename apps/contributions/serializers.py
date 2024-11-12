@@ -992,7 +992,9 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                     provider_payment_method_id=provider_payment_method_id,
                 )
             donor_selected_amount = validated_data.pop("donor_selected_amount", None)
-            if donor_selected_amount and (amount := validated_data.get("amount", None)):
+            if amount := validated_data.get("amount", None):
+                # We can trust that donor_selected_amount is not None because of
+                # the check in validate().
                 instance.update_subscription_amount(amount=amount, donor_selected_amount=donor_selected_amount)
             for key, value in validated_data.items():
                 setattr(instance, key, value)
@@ -1003,6 +1005,10 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
 
     def validate(self, data):
         data = super().validate(data)
+        self.validate_amount_and_donor_selected_amount(data)
+        return data
+
+    def validate_amount_and_donor_selected_amount(self, data):
         if "amount" in data and "donor_selected_amount" not in data:
             raise serializers.ValidationError(
                 {"amount": "If this field is updated, donor_selected_amount must be provided as well."}
@@ -1011,7 +1017,6 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             raise serializers.ValidationError(
                 {"donor_selected_amount": "If this field is updated, amount must be provided as well."}
             )
-        return data
 
 
 class PortalContributionListSerializer(PortalContributionBaseSerializer):

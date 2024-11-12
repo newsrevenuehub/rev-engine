@@ -237,6 +237,7 @@ describe('Settings Organization Page', () => {
       });
     });
   });
+
   it('should render Organization Tax Status disclaimer if organization has multiple revenue programs', () => {
     useUserMock.mockReturnValue({
       user: {
@@ -391,6 +392,22 @@ describe('Settings Organization Page', () => {
 
       await waitFor(() => {
         expect(screen.getByText(ORGANIZATION_SUCCESS_TEXT)).toBeVisible();
+      });
+    });
+
+    it('should show company name API error message when patch returns error', async () => {
+      axiosMock.onPatch(`organizations/1/`).reply(400, { name: ['custom-api-error'] });
+      tree();
+
+      expect(screen.queryByText('custom-api-error')).not.toBeInTheDocument();
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+        target: { value: 'Mock-new-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('custom-api-error')).toBeVisible();
       });
     });
 

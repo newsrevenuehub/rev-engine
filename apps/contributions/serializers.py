@@ -991,6 +991,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                 instance.update_payment_method_for_subscription(
                     provider_payment_method_id=provider_payment_method_id,
                 )
+            # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
             donor_selected_amount = validated_data.pop("donor_selected_amount", None)
             if amount := validated_data.get("amount", None):
                 # We can trust that donor_selected_amount is not None because of

@@ -1274,6 +1274,8 @@ class Contribution(IndexedTimeStampedModel):
 
         This doesn't prorate the change (e.g. paying difference of existing
         month next time).
+
+        TODO in DEV-5465: improved validation of donor_selected_amount in Pydantic
         """
         # vs circular import
         from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT

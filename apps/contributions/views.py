@@ -27,6 +27,7 @@ from apps.api.permissions import (
     HasRoleAssignment,
     IsContributor,
     IsContributorOwningContribution,
+    IsHubAdmin,
     IsSwitchboardAccount,
     UserIsRequestedContributor,
 )
@@ -632,7 +633,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_name="contributions-list",
         detail=True,
         serializer_class=serializers.PortalContributionListSerializer,
-        permission_classes=[(IsContributor & UserIsRequestedContributor) | IsActiveSuperUser],
+        permission_classes=[(IsContributor & UserIsRequestedContributor) | IsHubAdmin],
     )
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor."""

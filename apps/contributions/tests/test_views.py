@@ -1598,11 +1598,11 @@ class TestPortalContributorsViewSet:
         """Test the happy path for the contributions list endpoint.
 
         Note that our tests show that this endpoint can be accessed both by a contributor (implicitly, when it's their own)
-        or by a superuser
+        or by a hub_admin
         """
         user = (
             request.getfixturevalue(user_fixture)
-            if user_fixture == "superuser"
+            if user_fixture == "hub_admin"
             else portal_contributor_with_multiple_contributions[0]
         )
         api_client.force_authenticate(user)
@@ -1802,7 +1802,7 @@ class TestPortalContributorsViewSet:
     def non_contributor_user(self, request):
         return request.getfixturevalue(request.param)
 
-    @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "rp_user"])
+    @pytest.fixture(params=["superuser", "org_user_free_plan", "rp_user"])
     def unpermitted_user_for_contributions_list(self, request):
         return request.getfixturevalue(request.param)
 

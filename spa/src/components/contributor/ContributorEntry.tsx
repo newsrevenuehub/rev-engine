@@ -17,6 +17,11 @@ import { AxiosError } from 'axios';
 import { ContributionPage } from 'hooks/useContributionPage';
 import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
+// This interface can be altered to include other errors that may be returned from the API.
+interface GetMagicLinkErrors {
+  email?: string[];
+}
+
 function ContributorEntry({ page }: { page?: ContributionPage }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
@@ -35,11 +40,12 @@ function ContributorEntry({ page }: { page?: ContributionPage }) {
     try {
       const response = await axios.post(GET_MAGIC_LINK, { email, subdomain: rpSlug });
       if (response.status === 200) setShowConfirmation(true);
-    } catch (error) {
-      if ((error as AxiosError).response?.status === 429) {
+    } catch (err) {
+      const error = err as AxiosError<GetMagicLinkErrors>;
+      if (error.response?.status === 429) {
         setErrors({ email: ['Too many attempts. Try again in one minute.'] });
-      } else if ((error as AxiosError).response?.data?.email) {
-        setErrors((error as AxiosError).response?.data);
+      } else if (error.response?.data?.email) {
+        setErrors(error.response?.data);
       } else {
         alert.error(GENERIC_ERROR_WITH_SUPPORT_INFO);
       }

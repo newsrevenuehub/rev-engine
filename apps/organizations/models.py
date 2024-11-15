@@ -138,6 +138,7 @@ class Organization(IndexedTimeStampedModel):
     # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
     # by stripe webhooks.
     class Meta:
+        # Custom name necessary to format model name correctly in API layer
         verbose_name = "Organization"  # Singular custom name
         verbose_name_plural = "Organizations"  # Plural custom name
 

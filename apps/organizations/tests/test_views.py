@@ -257,6 +257,15 @@ class TestOrganizationViewSet:
     def patch_test_case(self, request):
         return request.getfixturevalue(request.param[0]), request.param[1], request.param[2], request.param[3]
 
+    def test_patch_duplicate_org_name_error_message(self, superuser, api_client, organization):
+        existing_org = OrganizationFactory()
+        api_client.force_authenticate(superuser)
+        response = api_client.patch(
+            reverse("organization-detail", args=(organization.id,)), data={"name": existing_org.name}
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"name": ["Organization with this name already exists."]}
+
     def test_patch_when_expected_user(self, patch_user, patch_test_case, organization, mocker, api_client):
         """Show that expected users can patch what they should be able to, and cannot what they shouldn't.
 

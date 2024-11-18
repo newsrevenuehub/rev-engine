@@ -40,12 +40,8 @@ class IsHubAdmin(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return all(
-            [
-                role_assignment := getattr(request.user, "roleassignment", False),
-                role_assignment.role_type == Roles.HUB_ADMIN,
-            ]
-        )
+        role_assignment = getattr(request.user, "roleassignment", None)
+        return role_assignment and role_assignment.role_type == Roles.HUB_ADMIN
 
 
 class IsOrgAdmin(permissions.BasePermission):

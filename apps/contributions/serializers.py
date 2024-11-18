@@ -993,9 +993,14 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                 )
             # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
             donor_selected_amount = validated_data.pop("donor_selected_amount", None)
+
             if amount := validated_data.get("amount", None):
-                # We can trust that donor_selected_amount is not None because of
-                # the check in validate().
+                if not donor_selected_amount:
+                    # amount and donor_selected_amount should always be set in tandem in real life thanks to validate(),
+                    # but we want to be certain.
+                    raise serializers.ValidationError(
+                        "If amount is updated, donor_selected_amount must be set as well."
+                    )
                 instance.update_subscription_amount(amount=amount, donor_selected_amount=donor_selected_amount)
             for key, value in validated_data.items():
                 setattr(instance, key, value)

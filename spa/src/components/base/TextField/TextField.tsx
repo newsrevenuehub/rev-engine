@@ -14,10 +14,6 @@ const StyledMuiTextField = styled(MuiTextField)`
         color: rgb(60, 60, 60);
         font-size: 12px;
         padding: 4px;
-
-        ::first-letter {
-          text-transform: capitalize;
-        }
       }
     }
 

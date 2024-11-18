@@ -69,7 +69,6 @@ class Command(BaseCommand):
             sub.id: {
                 "expected_status": StripeTransactionsImporter.get_status_for_subscription(sub.status),
                 "expected_interval": self.get_expected_interval(sub),
-                # not totally clear why, but need to access via dict because the .items on a subscription object
                 # is a method
                 "expected_amount": sub["items"].data[0].plan.amount,
                 "subscription_status": sub.status,

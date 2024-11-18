@@ -1859,6 +1859,16 @@ class TestPortalContributionDetailSerializer:
         with pytest.raises(ValidationError, match="If this field is updated, amount must be provided as well."):
             serializer.validate({"donor_selected_amount": 1.23})
 
+    def test_amount_donor_selected_amount_too_small(self):
+        serializer = PortalContributionDetailSerializer(data={"amount": 0, "donor_selected_amount": 0})
+        with pytest.raises(ValidationError, match="We can only accept contributions greater than or equal to 1.00"):
+            serializer.is_valid(raise_exception=True)
+
+    def test_amount_donor_selected_amount_too_big(self):
+        serializer = PortalContributionDetailSerializer(data={"amount": 100000000, "donor_selected_amount": 1000000})
+        with pytest.raises(ValidationError, match="We can only accept contributions less than or equal to 999,999.99"):
+            serializer.is_valid(raise_exception=True)
+
 
 @pytest.mark.django_db
 class TestPortalContributionPaymentSerializer:

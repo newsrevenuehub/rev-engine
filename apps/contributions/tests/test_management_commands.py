@@ -1020,7 +1020,7 @@ class Test_audit_recurring_contributions:
         )
 
     @pytest.fixture
-    def contributions_with_unexpected_status_result(self, donation_page, stripe_subscription):
+    def contributions_with_unexpected_status_result(self, donation_page):
         con = ContributionFactory(
             monthly_subscription=True,
             donation_page=donation_page,
@@ -1040,17 +1040,30 @@ class Test_audit_recurring_contributions:
             )
         )
 
+    @pytest.mark.parametrize(
+        ("plan_interval", "expected_interval"),
+        [("month", ContributionInterval.MONTHLY), ("year", ContributionInterval.YEARLY), ("unexpected", None)],
+    )
+    def test_get_expected_interval(self, command, plan_interval, expected_interval, mocker, faker):
+        subscription = self.get_subscription(mocker, faker)
+        subscription.items.data[0].plan.interval = plan_interval
+        if expected_interval is None:
+            with pytest.raises(ValueError, match=f"Unexpected interval {plan_interval}"):
+                command.get_expected_interval(subscription)
+        else:
+            assert command.get_expected_interval(subscription) == expected_interval
+
     def test_do_audit(
         self,
         mocker,
+        faker,
         command,
-        stripe_subscription,
         contributions_with_unexpected_status_result,
         orphaned_contribution,
     ):
         mocker.patch(
             "apps.contributions.management.commands.audit_recurring_contributions.Command.get_stripe_subscriptions_for_account",
-            return_value=[stripe_subscription],
+            return_value=[self.get_subscription(mocker, faker) for _ in range(3)],
         )
         mock_contributions_qs = mocker.patch(
             "apps.contributions.management.commands.audit_recurring_contributions.Command.get_recurring_contributions_for_account"
@@ -1059,49 +1072,121 @@ class Test_audit_recurring_contributions:
             id__in=[orphaned_contribution.id, contributions_with_unexpected_status_result.first()["id"]]
         )
         mocker.patch(
-            "apps.contributions.management.commands.audit_recurring_contributions.Command.get_contributions_with_unexpected_status",
+            "apps.contributions.management.commands.audit_recurring_contributions.Command.get_contributions_with_mismatched_data",
             return_value=contributions_with_unexpected_status_result,
         )
         command.do_audit(stripe_account_id="acct_1")
 
     @pytest.fixture
-    def contribution_and_sub_with_matched_status(self, faker):
-        sub_id = f"sub_{faker.uuid4()}"
-        subscription = stripe.Subscription.construct_from({"id": sub_id, "status": "active"}, "fake-key")
+    def contribution_and_sub_with_matched_status(self, mocker, faker):
+        subscription = self.get_subscription(mocker, faker)
         con = ContributionFactory(
-            status=ContributionStatus.PAID, monthly_subscription=True, provider_subscription_id=sub_id
+            status=ContributionStatus.PAID,
+            monthly_subscription=True,
+            provider_subscription_id=subscription.id,
+            amount=subscription.items.data[0].plan.amount,
+        )
+        return con, subscription
+
+    def get_subscription(self, mocker, faker):
+        return mocker.Mock(
+            id=f"sub_{faker.uuid4()}",
+            status="active",
+            items=mocker.Mock(data=[mocker.Mock(plan=mocker.Mock(interval="month", amount=100))]),
+        )
+
+    @pytest.fixture
+    def contribution_and_sub_with_mismatched_status(self, mocker, faker):
+        subscription = self.get_subscription(mocker, faker)
+        subscription.status = "canceled"
+        con = ContributionFactory(
+            status=ContributionStatus.PAID,
+            monthly_subscription=True,
+            provider_subscription_id=subscription.id,
+            amount=subscription.items.data[0].plan.amount,
         )
         return con, subscription
 
     @pytest.fixture
-    def contribution_and_sub_with_mismatched_status(self, faker):
-        sub_id = f"sub_{faker.uuid4()}"
-        subscription = stripe.Subscription.construct_from({"id": sub_id, "status": "active"}, "fake-key")
+    def contribution_and_sub_with_mismatched_interval(self, mocker, faker):
+        subscription = self.get_subscription(mocker, faker)
         con = ContributionFactory(
-            status=ContributionStatus.CANCELED, monthly_subscription=True, provider_subscription_id=sub_id
+            annual_subscription=True,
+            status=ContributionStatus.PAID,
+            provider_subscription_id=subscription.id,
+            amount=subscription.items.data[0].plan.amount,
         )
         return con, subscription
 
-    def test_get_contributions_with_unexpected_status(
-        self, command, contribution_and_sub_with_matched_status, contribution_and_sub_with_mismatched_status
+    @pytest.fixture
+    def contribution_and_sub_with_mismatched_amount(self, mocker, faker):
+        subscription = self.get_subscription(mocker, faker)
+        con = ContributionFactory(
+            status=ContributionStatus.PAID,
+            monthly_subscription=True,
+            provider_subscription_id=subscription.id,
+            amount=subscription.items.data[0].plan.amount + 1,
+        )
+        return con, subscription
+
+    def test_get_contributions_with_mismatched_data(
+        self,
+        command,
+        contribution_and_sub_with_matched_status,
+        contribution_and_sub_with_mismatched_status,
+        contribution_and_sub_with_mismatched_interval,
+        contribution_and_sub_with_mismatched_amount,
     ):
-        qs = command.get_contributions_with_unexpected_status(
+        qs = command.get_contributions_with_mismatched_data(
             contributions=Contribution.objects.filter(
                 id__in=[
                     contribution_and_sub_with_matched_status[0].id,
                     contribution_and_sub_with_mismatched_status[0].id,
+                    contribution_and_sub_with_mismatched_interval[0].id,
+                    contribution_and_sub_with_mismatched_amount[0].id,
                 ]
             ),
-            subscriptions=[contribution_and_sub_with_matched_status[1], contribution_and_sub_with_mismatched_status[1]],
+            subscriptions=[
+                contribution_and_sub_with_matched_status[1],
+                contribution_and_sub_with_mismatched_status[1],
+                contribution_and_sub_with_mismatched_interval[1],
+                contribution_and_sub_with_mismatched_amount[1],
+            ],
             stripe_account_id="acct_1",
         )
-        assert qs.count() == 1
-        assert qs.first() == {
+        assert qs.count() == 3
+        assert qs.get(pk=contribution_and_sub_with_mismatched_status[0].id) == {
             "id": contribution_and_sub_with_mismatched_status[0].id,
             "provider_subscription_id": contribution_and_sub_with_mismatched_status[1].id,
-            "expected_status": ContributionStatus.PAID,
-            "status": ContributionStatus.CANCELED,
+            "expected_status": ContributionStatus.CANCELED,
+            "status": contribution_and_sub_with_mismatched_status[0].status,
             "subscription_status": contribution_and_sub_with_mismatched_status[1].status,
+            "expected_interval": ContributionInterval.MONTHLY,
+            "interval": ContributionInterval.MONTHLY,
+            "expected_amount": contribution_and_sub_with_mismatched_status[1].items.data[0].plan.amount,
+            "amount": contribution_and_sub_with_mismatched_status[0].amount,
+        }
+        assert qs.get(pk=contribution_and_sub_with_mismatched_interval[0].id) == {
+            "id": contribution_and_sub_with_mismatched_interval[0].id,
+            "provider_subscription_id": contribution_and_sub_with_mismatched_interval[1].id,
+            "expected_status": ContributionStatus.PAID,
+            "status": contribution_and_sub_with_mismatched_interval[0].status,
+            "subscription_status": contribution_and_sub_with_mismatched_interval[1].status,
+            "expected_interval": ContributionInterval.MONTHLY,
+            "interval": ContributionInterval.YEARLY,
+            "expected_amount": contribution_and_sub_with_mismatched_interval[1].items.data[0].plan.amount,
+            "amount": contribution_and_sub_with_mismatched_interval[0].amount,
+        }
+        assert qs.get(pk=contribution_and_sub_with_mismatched_amount[0].id) == {
+            "id": contribution_and_sub_with_mismatched_amount[0].id,
+            "provider_subscription_id": contribution_and_sub_with_mismatched_amount[1].id,
+            "expected_status": ContributionStatus.PAID,
+            "status": ContributionStatus.PAID,
+            "subscription_status": contribution_and_sub_with_mismatched_amount[1].status,
+            "expected_interval": ContributionInterval.MONTHLY,
+            "interval": ContributionInterval.MONTHLY,
+            "expected_amount": contribution_and_sub_with_mismatched_amount[1].items.data[0].plan.amount,
+            "amount": contribution_and_sub_with_mismatched_amount[0].amount,
         }
 
     def test_get_stripe_subscriptions_for_account(self, mocker, command):

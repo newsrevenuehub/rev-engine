@@ -50,43 +50,72 @@ class Command(BaseCommand):
             ).auto_paging_iter()
         )
 
-    def get_contributions_with_unexpected_status(
+    def get_expected_interval(self, subscription: stripe.Subscription) -> ContributionInterval:
+        match subscription.items.data[0].plan.interval:
+            case "month":
+                return ContributionInterval.MONTHLY
+            case "year":
+                return ContributionInterval.YEARLY
+            case _:
+                raise ValueError(f"Unexpected interval {subscription.items.data[0].plan.interval}")
+
+    def get_contributions_with_mismatched_data(
         self, contributions: QuerySet[Contribution], subscriptions: list[stripe.Subscription], stripe_account_id: str
     ) -> QuerySet[dict]:
         self.stdout.write(
-            self.style.HTTP_INFO(
-                f"Getting contributions with unexpected status for stripe account `{stripe_account_id}`"
-            )
+            self.style.HTTP_INFO(f"Getting contributions with mismatched data for stripe account `{stripe_account_id}`")
         )
-        expected_status_map = {
-            sub.id: StripeTransactionsImporter.get_status_for_subscription(sub.status) for sub in subscriptions
+        expectations_map = {
+            sub.id: {
+                "expected_status": StripeTransactionsImporter.get_status_for_subscription(sub.status),
+                "expected_interval": self.get_expected_interval(sub),
+                "expected_amount": sub.items.data[0].plan.amount,
+                "subscription_status": sub.status,
+            }
+            for sub in subscriptions
         }
-        subscription_status_map = {sub.id: sub.status for sub in subscriptions}
-        return (
-            contributions.annotate(
-                expected_status=Case(
-                    *[
-                        When(provider_subscription_id=sub_id, then=Value(status))
-                        for sub_id, status in expected_status_map.items()
-                    ],
-                    default=Value(None),
-                ),
-                subscription_status=Case(
-                    *[
-                        When(provider_subscription_id=sub_id, then=Value(status))
-                        for sub_id, status in subscription_status_map.items()
-                    ],
-                    default=Value(None),
-                ),
-            )
-            .filter(~Q(status=F("expected_status")))
-            .values(
-                "id",
-                "provider_subscription_id",
-                "expected_status",
-                "status",
-                "subscription_status",
-            )
+        annotated = contributions.annotate(
+            expected_status=Case(
+                *[
+                    When(provider_subscription_id=sub_id, then=Value(data["expected_status"]))
+                    for sub_id, data in expectations_map.items()
+                ],
+                default=Value(None),
+            ),
+            subscription_status=Case(
+                *[
+                    When(provider_subscription_id=sub_id, then=Value(data["subscription_status"]))
+                    for sub_id, data in expectations_map.items()
+                ],
+                default=Value(None),
+            ),
+            expected_interval=Case(
+                *[
+                    When(provider_subscription_id=sub_id, then=Value(data["expected_interval"]))
+                    for sub_id, data in expectations_map.items()
+                ]
+            ),
+            expected_amount=Case(
+                *[
+                    When(provider_subscription_id=sub_id, then=Value(data["expected_amount"]))
+                    for sub_id, data in expectations_map.items()
+                ]
+            ),
+        )
+
+        # Filter for mismatched data and return only relevant fields
+        return annotated.filter(
+            ~Q(status=F("expected_status")) | ~Q(interval=F("expected_interval")) | ~Q(amount=F("expected_amount"))
+        ).values(
+            "id",
+            "provider_subscription_id",
+            "expected_status",
+            "status",
+            "subscription_status",
+            "expected_interval",
+            "interval",
+            "expected_amount",
+            "amount",
         )
 
     def do_audit(self, stripe_account_id: str) -> None:
@@ -126,7 +155,7 @@ class Command(BaseCommand):
                     f"ORPHANED SUBSCRIPTION: Stripe subscription {x.id} with status {x.status} has no corresponding contribution"
                 )
             )
-        contributions_with_unexpected_status = self.get_contributions_with_unexpected_status(
+        contributions_with_unexpected_status = self.get_contributions_with_mismatched_data(
             existing_contributions.exclude(id__in=orphaned_contributions.values_list("id", flat=True)),
             stripe_subscriptions,
             stripe_account_id,

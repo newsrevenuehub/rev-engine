@@ -36,12 +36,17 @@ import {
   WarningMessage,
   Wrapper
 } from './Organization.styled';
+import { AxiosError } from 'axios';
 
 export type OrganizationFormFields = {
   companyName: string;
   companyTaxStatus: FiscalStatus;
   taxId: string;
   fiscalSponsorName: string;
+};
+
+type PatchOrganizationNameErrors = {
+  name?: string[];
 };
 
 interface RevenueProgramPatch extends Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
@@ -65,13 +70,14 @@ const Organization = () => {
 
   const { isOrgAdmin } = getUserRole(user);
 
+  const [apiError, setApiError] = useState<Partial<OrganizationFormFields>>({});
   const {
     control,
     watch,
     reset,
     resetField,
     handleSubmit,
-    formState: { errors }
+    formState: { errors: formErrors }
   } = useForm<OrganizationFormFields>({
     defaultValues: {
       companyName: currentOrganization?.name ?? '',
@@ -147,8 +153,15 @@ const Organization = () => {
           }
         }
         setShowSuccess(true);
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        const typedError = err as AxiosError<PatchOrganizationNameErrors>;
+
+        if (typedError?.response?.data?.name) {
+          setApiError({ companyName: typedError.response.data.name[0] });
+          return;
+        }
+
+        console.error(typedError);
         alert.error(GENERIC_ERROR);
       }
     },
@@ -189,8 +202,8 @@ const Organization = () => {
                 id="settings-company-name"
                 label="Display Name"
                 disabled={!isOrgAdmin}
-                error={!!errors.companyName}
-                helperText={errors?.companyName?.message}
+                error={!!formErrors.companyName || !!apiError?.companyName}
+                helperText={formErrors?.companyName?.message ?? apiError?.companyName}
               />
             )}
           />
@@ -288,8 +301,8 @@ const Organization = () => {
                       id="profile-fiscal-sponsor-name"
                       label="Fiscal Sponsor Name"
                       style={{ gridColumnStart: 'span 2' }}
-                      error={!!errors.fiscalSponsorName}
-                      helperText={errors?.fiscalSponsorName?.message}
+                      error={!!formErrors.fiscalSponsorName}
+                      helperText={formErrors?.fiscalSponsorName?.message}
                       {...field}
                     />
                   )}
@@ -319,6 +332,7 @@ const Organization = () => {
                 taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
                 fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
               });
+              setApiError({});
             }}
           >
             Undo

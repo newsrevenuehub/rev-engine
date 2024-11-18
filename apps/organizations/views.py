@@ -78,7 +78,6 @@ class OrganizationViewSet(
         patch_serializer = serializers.OrganizationPatchSerializer(organization, data=request.data, partial=True)
         patch_serializer.is_valid()
         if patch_serializer.errors:
-            logger.warning("Request %s is invalid; errors: %s", request.data, patch_serializer.errors)
             raise ValidationError(patch_serializer.errors)
         patch_serializer.save()
         organization.refresh_from_db()

@@ -43,8 +43,16 @@ describe('Settings Organization Page', () => {
       }
     });
   });
-  afterEach(() => axiosMock.reset());
-  afterAll(() => axiosMock.restore());
+
+  afterEach(() => {
+    axiosMock.reset();
+    jest.resetAllMocks();
+  });
+
+  afterAll(() => {
+    axiosMock.restore();
+    jest.restoreAllMocks();
+  });
 
   it('should render loading if isLoading === true', () => {
     useUserMock.mockReturnValue({ isLoading: true });
@@ -237,6 +245,7 @@ describe('Settings Organization Page', () => {
       });
     });
   });
+
   it('should render Organization Tax Status disclaimer if organization has multiple revenue programs', () => {
     useUserMock.mockReturnValue({
       user: {
@@ -392,6 +401,48 @@ describe('Settings Organization Page', () => {
       await waitFor(() => {
         expect(screen.getByText(ORGANIZATION_SUCCESS_TEXT)).toBeVisible();
       });
+    });
+
+    it('should show company name API error message when patch returns error', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      axiosMock.onPatch(`organizations/1/`).reply(400, { name: ['custom-api-error'] });
+      tree();
+
+      expect(screen.queryByText('custom-api-error')).not.toBeInTheDocument();
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+        target: { value: 'Mock-new-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('custom-api-error')).toBeVisible();
+      });
+    });
+
+    it('validation error supersedes API error message', async () => {
+      axiosMock.onPatch(`organizations/1/`).reply(400, { name: ['custom-api-error'] });
+      tree();
+
+      expect(screen.queryByText('custom-api-error')).not.toBeInTheDocument();
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+        target: { value: 'Mock-new-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('custom-api-error')).toBeVisible();
+      });
+
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+        target: { value: '' }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Display Name is required.')).toBeVisible();
+      });
+      expect(screen.queryByText('custom-api-error')).not.toBeInTheDocument();
     });
 
     it('should hide success message when patch returns 200 and user makes any change', async () => {

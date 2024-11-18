@@ -3,7 +3,6 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandParser
 from django.db.models import Case, F, Q, QuerySet, Value, When
-from django.utils import timezone
 
 import stripe
 
@@ -90,7 +89,7 @@ class Command(BaseCommand):
             )
         )
 
-    def do_audit(self, stripe_account_id: str, timestamp_str) -> None:
+    def do_audit(self, stripe_account_id: str) -> None:
         stripe_subscriptions = self.get_stripe_subscriptions_for_account(stripe_account_id)
         self.stdout.write(
             self.style.HTTP_INFO(f"Found {len(stripe_subscriptions)} subscriptions for account {stripe_account_id}")
@@ -165,7 +164,5 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.HTTP_INFO(f"Auditing recurring contributions for stripe account `{stripe_account_id}`")
                 )
-                self.do_audit(
-                    stripe_account_id=stripe_account_id, timestamp_str=timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
-                )
+                self.do_audit(stripe_account_id=stripe_account_id)
         self.stdout.write(self.style.SUCCESS(f"`{self.name}` is done"))

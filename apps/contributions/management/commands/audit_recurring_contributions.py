@@ -51,13 +51,13 @@ class Command(BaseCommand):
         )
 
     def get_expected_interval(self, subscription: stripe.Subscription) -> ContributionInterval:
-        match subscription.items.data[0].plan.interval:
+        match subscription["items"].data[0].plan.interval:
             case "month":
                 return ContributionInterval.MONTHLY
             case "year":
                 return ContributionInterval.YEARLY
             case _:
-                raise ValueError(f"Unexpected interval {subscription.items.data[0].plan.interval}")
+                raise ValueError(f"Unexpected interval {subscription['items'].data[0].plan.interval}")
 
     def get_contributions_with_mismatched_data(
         self, contributions: QuerySet[Contribution], subscriptions: list[stripe.Subscription], stripe_account_id: str
@@ -69,7 +69,9 @@ class Command(BaseCommand):
             sub.id: {
                 "expected_status": StripeTransactionsImporter.get_status_for_subscription(sub.status),
                 "expected_interval": self.get_expected_interval(sub),
-                "expected_amount": sub.items.data[0].plan.amount,
+                # not totally clear why, but need to access via dict because the .items on a subscription object
+                # is a method
+                "expected_amount": sub["items"].data[0].plan.amount,
                 "subscription_status": sub.status,
             }
             for sub in subscriptions

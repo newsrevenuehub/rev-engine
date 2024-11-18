@@ -36,12 +36,17 @@ import {
   WarningMessage,
   Wrapper
 } from './Organization.styled';
+import { AxiosError } from 'axios';
 
 export type OrganizationFormFields = {
   companyName: string;
   companyTaxStatus: FiscalStatus;
   taxId: string;
   fiscalSponsorName: string;
+};
+
+type PatchOrganizationNameErrors = {
+  name?: string[];
 };
 
 interface RevenueProgramPatch extends Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
@@ -65,6 +70,7 @@ const Organization = () => {
 
   const { isOrgAdmin } = getUserRole(user);
 
+  const [error, setError] = useState<Partial<OrganizationFormFields> | null>(null);
   const {
     control,
     watch,
@@ -147,7 +153,14 @@ const Organization = () => {
           }
         }
         setShowSuccess(true);
-      } catch (error) {
+      } catch (err) {
+        const error = err as AxiosError<PatchOrganizationNameErrors>;
+        if ('response' in error) {
+          if (error.response?.data?.name) {
+            setError({ companyName: error.response.data.name[0] });
+            return;
+          }
+        }
         console.error(error);
         alert.error(GENERIC_ERROR);
       }
@@ -189,8 +202,8 @@ const Organization = () => {
                 id="settings-company-name"
                 label="Display Name"
                 disabled={!isOrgAdmin}
-                error={!!errors.companyName}
-                helperText={errors?.companyName?.message}
+                error={!!errors.companyName || !!error?.companyName}
+                helperText={errors?.companyName?.message || error?.companyName}
               />
             )}
           />
@@ -319,6 +332,7 @@ const Organization = () => {
                 taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
                 fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
               });
+              setError(null);
             }}
           >
             Undo

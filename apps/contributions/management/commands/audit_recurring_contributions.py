@@ -157,23 +157,16 @@ class Command(BaseCommand):
                     f"ORPHANED SUBSCRIPTION: Stripe subscription {x.id} with status {x.status} has no corresponding contribution"
                 )
             )
-        contributions_with_unexpected_status = self.get_contributions_with_mismatched_data(
+        contributions_with_mismatched_data = self.get_contributions_with_mismatched_data(
             existing_contributions.exclude(id__in=orphaned_contributions.values_list("id", flat=True)),
             stripe_subscriptions,
             stripe_account_id,
         )
         self.stdout.write(
-            self.style.HTTP_INFO(
-                f"Found {len(contributions_with_unexpected_status)} contributions with unexpected status"
-            )
+            self.style.HTTP_INFO(f"Found {len(contributions_with_mismatched_data)} contributions with mismatched data")
         )
-        for x in contributions_with_unexpected_status:
-            self.stdout.write(
-                self.style.HTTP_INFO(
-                    f"UNEXPECTED STATUS: Contribution {x['id']} has status {x['status']} but expected "
-                    f"{x['expected_status']}. Subscription {x['provider_subscription_id']} has status {x['subscription_status']}"
-                )
-            )
+        for x in contributions_with_mismatched_data:
+            self.stdout.write(self.style.HTTP_INFO(f"MISMATCHED DATA: {x}"))
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(

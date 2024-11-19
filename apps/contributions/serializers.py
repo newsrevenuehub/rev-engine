@@ -7,6 +7,7 @@ from django.db.models import TextChoices
 from django.utils import timezone
 
 import reversion
+import stripe
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -962,23 +963,81 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
     )
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, write_only=True, required=False)
 
     class Meta:
         model = Contribution
         fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
+    def validate_subscription_update_data(
+        self,
+        contribution: Contribution,
+        new_amount: int | None,
+        new_interval: str | None,
+        subscription: stripe.Subscription,
+    ) -> None:
+        if contribution.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("One time contributions are not valid for subscription updates")
+        if subscription is None:
+            raise ValueError("Cannot update subscription because none found")
+        if getattr(subscription, "status", None) not in Contribution.ACTIVE_SUBSCRIPTION_STATUSES:
+            raise ValueError("Cannot update amount for inactive subscription")
+        if new_amount is not None:
+            if new_amount < REVENGINE_MIN_AMOUNT:
+                raise ValueError("Amount value must be greater than $0.99")
+            if new_amount > STRIPE_MAX_AMOUNT:
+                raise ValueError("Amount value must be smaller than $999,999.99")
+        if new_interval is not None and new_interval not in ContributionInterval.choices:
+            raise ValueError("Invalid interval value")
+
+    def create_stripe_price(
+        self, amount: int, interval: Literal["month", "year"], stripe_product_id: str, currency: str = "usd"
+    ) -> stripe.Price:
+        return stripe.Price.create(
+            unit_amount=amount,
+            currency=currency,
+            recurring={"interval": interval},
+            product=stripe_product_id,
+        )
+
+    def update_stripe_subscription(self, instance: Contribution, validated_data) -> stripe.Subscription:
+        sub = instance.stripe_subscription
+        self.validate_subscription_update_data(
+            instance, validated_data.get("amount"), validated_data.get("interval"), sub
+        )
+        price = self.create_stripe_price(
+            amount=validated_data.get("amount", instance.amount),
+            interval=validated_data.get("interval", instance.interval),
+            stripe_product_id=instance.revenue_program.stripe_product_id,
+        )
+        return stripe.Subscription.modify(
+            sub.id,
+            items=[{"id": sub["items"]["data"][0].id, "price": price.id}],
+        )
+
+    def update_payment_method(self, instance: Contribution, validated_data) -> dict:
+        instance.update_payment_method_for_subscription(
+            provider_payment_method_id=validated_data["provider_payment_method_id"],
+        )
+        return {"provider_payment_method_id": validated_data["provider_payment_method_id"]}
+
+    def is_payment_method_update(self, validated_data) -> bool:
+        return "provider_payment_method_id" in validated_data
+
     def update(self, instance: Contribution, validated_data) -> Contribution:
         if validated_data:
-            if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
-                instance.update_payment_method_for_subscription(
-                    provider_payment_method_id=provider_payment_method_id,
-                )
-            if amount := validated_data.get("amount", None):
-                instance.update_subscription_amount(
-                    amount=amount,
-                )
-            for key, value in validated_data.items():
+            if self.is_payment_method_update(validated_data):
+                self.update_payment_method(instance, validated_data)
+                model_updates = {"provider_payment_method_id": validated_data["provider_payment_method_id"]}
+            else:
+                self.update_stripe_subscription(instance, validated_data)
+                model_updates = {}
+                if amount := validated_data.get("amount"):
+                    model_updates["amount"] = amount
+                if interval := validated_data.get("interval"):
+                    model_updates["interval"] = interval
+            for key, value in model_updates.items():
                 setattr(instance, key, value)
             with reversion.create_revision():
                 instance.save(update_fields={*validated_data.keys(), "modified"})

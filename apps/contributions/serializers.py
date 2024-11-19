@@ -1014,6 +1014,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
         return stripe.Subscription.modify(
             sub.id,
             items=[{"id": sub["items"]["data"][0].id, "price": price.id}],
+            proration_behavior="none",
         )
 
     def update_payment_method(self, instance: Contribution, validated_data) -> dict:

@@ -1014,7 +1014,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
         price = self.create_stripe_price(
             amount=validated_data.get("amount", instance.amount),
             interval=validated_data.get("interval", instance.interval),
-            stripe_product_id=instance.revenue_program.stripe_product_id,
+            stripe_product_id=instance.revenue_program.payment_provider.stripe_product_id,
         )
         return stripe.Subscription.modify(
             sub.id,

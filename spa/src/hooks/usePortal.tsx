@@ -13,6 +13,11 @@ export type PortalFormValues = {
   email: string;
 };
 
+// This interface can be altered to include other errors that may be returned from the API.
+export interface SendMagicLinkErrors {
+  email?: string[];
+}
+
 async function fetchPage(rpSlug: string): Promise<ContributionPage> {
   try {
     const { data } = await axios.get(LIVE_PAGE_DETAIL, { params: { revenue_program: rpSlug } });
@@ -57,11 +62,11 @@ export default function usePortal() {
       return postMagicLink({ email, subdomain: rpSlug });
     },
     {
-      onError: (error) => {
-        if ((error as AxiosError).response?.status === 429) {
+      onError: (error: AxiosError<SendMagicLinkErrors>) => {
+        if (error.response?.status === 429) {
           setError({ email: ['Too many attempts. Try again in one minute.'] });
-        } else if ((error as AxiosError).response?.data?.email) {
-          setError((error as AxiosError).response?.data);
+        } else if (error.response?.data?.email) {
+          setError(error.response?.data);
         } else {
           enqueueSnackbar(
             'There’s been a problem sending your magic link. Please try again. If this issue persists, please contact revenginesupport@fundjournalism.org',

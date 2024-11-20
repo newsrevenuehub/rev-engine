@@ -175,7 +175,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     agreed_to_pay_fees: bool
     donor_selected_amount: float
-    referer: pydantic.HttpUrl
+    referer: pydantic.HttpUrl | None = None
     revenue_program_id: str
     revenue_program_slug: str
 

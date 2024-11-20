@@ -702,6 +702,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         try:
             serializer.save()
         except stripe.error.StripeError:
+            logger.exception("stripe error updating contribution %s", serializer.instance)
             return Response({"detail": "Problem updating contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

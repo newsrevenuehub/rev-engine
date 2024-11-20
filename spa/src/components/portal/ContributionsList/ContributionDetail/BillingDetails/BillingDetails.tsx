@@ -17,12 +17,16 @@ const BillingDetailsPropTypes = {
   editable: PropTypes.bool,
   onEdit: PropTypes.func.isRequired,
   onEditComplete: PropTypes.func.isRequired,
-  onUpdateBillingDetails: PropTypes.func.isRequired
+  onUpdateAmount: PropTypes.func.isRequired
 };
 
 export interface BillingDetailsProps extends InferProps<typeof BillingDetailsPropTypes> {
   contribution: PortalContributionDetail;
-  onUpdateBillingDetails: (amount: number) => void;
+  /**
+   * @param amount New amount in integer cents, not dollars.
+   * @param donorSelectedAmount Donor-selected amount in dollars, not integer cents.
+   */
+  onUpdateAmount: (amount: number, donorSelectedAmount: number) => void;
 }
 
 /**
@@ -41,10 +45,10 @@ export function BillingDetails({
   editable,
   onEdit,
   onEditComplete,
-  onUpdateBillingDetails
+  onUpdateAmount: onUpdateBillingDetails
 }: BillingDetailsProps) {
-  const amountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
-  const [amount, setAmount] = useState(amountInDollars.toString());
+  const originalAmountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
+  const [editedAmount, setEditedAmount] = useState(originalAmountInDollars.toString());
 
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
     // TODO in DEV-5138: use only first_payment_date
@@ -52,15 +56,15 @@ export function BillingDetails({
   );
 
   const disableSave = useMemo(() => {
-    const parsedValue = parseFloatStrictly(amount);
+    const parsedValue = parseFloatStrictly(editedAmount);
 
-    return isNaN(parsedValue) || parsedValue <= 0 || parsedValue === amountInDollars;
-  }, [amount, amountInDollars]);
+    return isNaN(parsedValue) || parsedValue <= 0 || parsedValue === originalAmountInDollars;
+  }, [editedAmount, originalAmountInDollars]);
 
   const handleSave = () => {
-    const formattedAmount = parseFloatStrictly(amount);
+    const parsedAmount = parseFloatStrictly(editedAmount);
 
-    if (isNaN(formattedAmount)) {
+    if (isNaN(parsedAmount)) {
       // Should never happen
       throw new Error('Amount is not a number');
     }
@@ -68,12 +72,12 @@ export function BillingDetails({
     // Need "Math.round" because "parseFloatStrictly" * 100 can result in numbers like:
     // amount = 9.45 -> formattedAmount * 100 = 944.9999999999999
     // amount = 9.46 -> formattedAmount * 100 = 946.0000000000001
-    onUpdateBillingDetails(Math.round(formattedAmount * 100));
+    onUpdateBillingDetails(Math.round(parsedAmount * 100), parsedAmount);
     onEditComplete();
   };
 
   const handleCancel = () => {
-    setAmount(amountInDollars?.toString());
+    setEditedAmount(originalAmountInDollars?.toString());
     onEditComplete();
   };
 
@@ -106,11 +110,11 @@ export function BillingDetails({
                   .replace(/[^\d\.]/g, '')
                   // Remove anything after first decimal point and two digits
                   .replace(/^(.*?\.\d?\d?).*/, '$1');
-                setAmount(filteredValue);
+                setEditedAmount(filteredValue);
               }}
               inputMode="decimal"
               type="text"
-              value={amount}
+              value={editedAmount}
               InputProps={{
                 classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } as any,
                 startAdornment: <StartInputAdornment>$</StartInputAdornment>

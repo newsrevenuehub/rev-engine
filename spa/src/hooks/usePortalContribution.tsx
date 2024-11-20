@@ -67,7 +67,16 @@ export interface PortalContributionDetail extends PortalContribution {
  */
 export interface PortalContributionUpdate {
   provider_payment_method_id?: string;
+  /**
+   * Amount in integer cents, not dollars. Integers are used here because that's
+   * how Stripe stores amounts.
+   */
   amount?: number;
+  /**
+   * Donor-selected amount in dollars, not integer cents. Dollars are used here
+   * because this is a metadata field we've defined that is in Stripe.
+   */
+  donor_selected_amount?: number;
 }
 
 /**

@@ -9,7 +9,7 @@ import { SIGN_IN } from 'routes';
 import { useSnackbar } from 'notistack';
 import SystemNotification from 'components/common/SystemNotification';
 import { ContributionPage } from './useContributionPage';
-import { AxiosResponse } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 
 async function fetchStyles() {
   const { data } = await axios.get(LIST_STYLES);
@@ -55,7 +55,7 @@ function useStyleList(): UseStyleListResult {
     isError
   } = useQuery(['styles'], fetchStyles, {
     initialData: [],
-    onError: (err: Error) => {
+    onError: (err: AxiosError) => {
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {
@@ -65,7 +65,7 @@ function useStyleList(): UseStyleListResult {
     }
   });
 
-  const onSaveStylesError = (error: Error) => {
+  const onSaveStylesError = (error: AxiosError) => {
     console.error(error);
     enqueueSnackbar('Style changes were not saved. Please wait and try again or changes will be lost.', {
       persist: true,

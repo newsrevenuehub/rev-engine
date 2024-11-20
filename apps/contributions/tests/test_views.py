@@ -1642,15 +1642,31 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert response.json().keys() == {"total", "total_paid", "total_refunded"}
 
-    def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        api_client.force_authenticate(contributor)
-        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+    @pytest.mark.parametrize("user_fixture", ["superuser", "portal_contributor_with_multiple_contributions"])
+    def test_contributions_list_happy_path(
+        self, user_fixture, portal_contributor_with_multiple_contributions, request, api_client
+    ):
+        """Test the happy path for the contributions list endpoint.
+
+        Note that our tests show that this endpoint can be accessed both by a contributor (implicitly, when it's their own)
+        or by a hub_admin
+        """
+        user = (
+            request.getfixturevalue(user_fixture)
+            if user_fixture == "hub_admin"
+            else portal_contributor_with_multiple_contributions[0]
+        )
+        api_client.force_authenticate(user)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions[0].id,)
+            )
+        )
         assert response.status_code == status.HTTP_200_OK
         assert set(response.json().keys()) == {"count", "next", "previous", "results"}
         assert len(response.json()["results"]) == 3
         assert {x["id"] for x in response.json()["results"]} == set(
-            contributor.contribution_set.all().values_list("id", flat=True)
+            portal_contributor_with_multiple_contributions[0].contribution_set.all().values_list("id", flat=True)
         )
         for x in response.json()["results"]:
             contribution = Contribution.objects.get(id=x["id"])
@@ -1837,11 +1853,15 @@ class TestPortalContributorsViewSet:
     def non_contributor_user(self, request):
         return request.getfixturevalue(request.param)
 
+    @pytest.fixture(params=["superuser", "org_user_free_plan", "rp_user"])
+    def unpermitted_user_for_contributions_list(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_contributions_list_when_im_not_contributor_user_type(
-        self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions
+        self, api_client, unpermitted_user_for_contributions_list, portal_contributor_with_multiple_contributions
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
-        api_client.force_authenticate(non_contributor_user)
+        api_client.force_authenticate(unpermitted_user_for_contributions_list)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

@@ -137,6 +137,11 @@ class Organization(IndexedTimeStampedModel):
     # used in self-upgrade flow. Stripe checkouts can have associated client-reference-id, and we set that
     # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
     # by stripe webhooks.
+    class Meta:
+        # Custom name necessary to format model name correctly in API layer
+        verbose_name = "Organization"  # Singular custom name
+        verbose_name_plural = "Organizations"  # Plural custom name
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=ORG_NAME_MAX_LENGTH, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)

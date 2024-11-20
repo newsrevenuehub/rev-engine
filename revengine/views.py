@@ -27,6 +27,14 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class ReactAppView(TemplateView):
     template_name = "index.html"
 
+    def get(self, request, *args, **kwargs):
+        # Render index.html but with a 404 status code if the subdomain is invalid.
+        # Let the SPA handle this instead of Django.
+        response = super().get(request, *args, **kwargs)
+        if not self._is_valid_rp_subdomain():
+            response.status_code = 404
+        return response
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         self._add_gtm_id(context)
@@ -57,6 +65,23 @@ class ReactAppView(TemplateView):
     def _add_gtm_id(self, context):
         context["gtm_id"] = settings.HUB_GTM_ID
 
+    def _is_valid_rp_subdomain(self):
+        if subdomain := get_subdomain_from_request(self.request):
+            try:
+                RevenueProgram.objects.get(slug=subdomain)
+            except RevenueProgram.DoesNotExist:
+                logger.warning(
+                    'ReactAppView failed to retrieve RevenueProgram by subdomain "%s". Returning Page Not Found (404) Status',
+                    subdomain,
+                )
+                return False
+            else:
+                return True
+
+        # If there is no subdomain, it is a non-RP subdomain like "engine.fundjournalism.org"
+        # so we default to True
+        return True
+
 
 # Proxies the single page app in local development, parsing any HTML responses
 # using Django's template parser. If this is used, the single page app must have
@@ -64,8 +89,9 @@ class ReactAppView(TemplateView):
 #
 # This was cribbed from
 # https://fractalideas.com/blog/making-react-and-django-play-well-together-hybrid-app-model/
-
-
+#
+# TODO(Gui): Remove function as this doesn't currently work with Vite as local server.
+# https://news-revenue-hub.atlassian.net/browse/DEV-5405
 def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     upstream_url = upstream + request.path
     upstream_response = requests.get(upstream_url, timeout=31)
@@ -86,9 +112,11 @@ def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     )
 
 
+# TODO(Gui): use only "index = never_cache(ReactAppView.as_view())""
+# https://news-revenue-hub.atlassian.net/browse/DEV-5405
+
 # Only use the dev proxy if we are running locally AND not in pytest. We want
 # the normal view to be tested in pytest.
-
 index = proxy_spa_dev_server if settings.DEBUG and "pytest" not in sys.modules else never_cache(ReactAppView.as_view())
 
 

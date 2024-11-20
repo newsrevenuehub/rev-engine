@@ -236,8 +236,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 ## Cache Settings
-# Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
-CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
 STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
 # For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will (hopefully) give us

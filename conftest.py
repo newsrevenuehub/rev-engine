@@ -30,9 +30,8 @@ from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.bad_actor import BadActorOverallScore
-from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
+from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
-from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
@@ -597,33 +596,6 @@ def minimally_valid_contribution_form_data(donation_page):
 
 
 @pytest.fixture
-def pi_as_portal_contribution_factory(faker):
-    class Factory:
-        def get(self, *args, **kwargs):
-            defaults = {
-                "id": faker.uuid4(),
-                "revenue_program": f"rp-{faker.word()}",
-                "payment_type": "card",
-                "status": "paid",
-                "amount": 100,
-                "card_brand": "visa",
-                "created": faker.date_time(tzinfo=datetime.timezone.utc),
-                "credit_card_expiration_date": "12/29",
-                "interval": ContributionInterval["MONTHLY"],
-                "is_cancelable": True,
-                "is_modifiable": True,
-                "last_payment_date": faker.date_time(tzinfo=datetime.timezone.utc),
-                "last4": "1234",
-                "provider_customer_id": faker.pystr_format(string_format="cus_????"),
-                "stripe_account_id": faker.pystr_format(string_format="acct_????"),
-                "subscription_id": faker.pystr_format(string_format="sub_????"),
-            }
-            return StripePiAsPortalContribution(**(defaults | kwargs))
-
-    return Factory()
-
-
-@pytest.fixture
 def valid_metadata_factory(faker, domain_apex):
     VALID_METADTA_V1_1 = {
         "schema_version": "1.1",
@@ -671,7 +643,7 @@ def payment_method_data_factory(faker):
             "name": faker.name(),
             "phone": faker.phone_number(),
         },
-        "card": {"brand": CardBrand.VISA.value, "last4": "4242", "exp_month": 8, "exp_year": 2022},
+        "card": {"brand": "visa", "last4": "4242", "exp_month": 8, "exp_year": 2022},
         "created": faker.unix_time(),
         "customer": faker.pystr_format(string_format="cus_??????"),
         "livemode": False,

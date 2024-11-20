@@ -3,8 +3,6 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
-from django.http import Http404
-from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
@@ -12,10 +10,9 @@ import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
-from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.exceptions import NotFound
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from reversion.views import create_revision
@@ -26,7 +23,6 @@ from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
     IsContributor,
-    IsContributorOwningContribution,
     IsHubAdmin,
     IsSwitchboardAccount,
     UserIsRequestedContributor,
@@ -41,15 +37,9 @@ from apps.contributions.models import (
     ContributionStatusError,
     Contributor,
 )
-from apps.contributions.stripe_contributions_provider import (
-    ContributionsCacheProvider,
-    StripePiAsPortalContribution,
-    SubscriptionsCacheProvider,
-)
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     process_stripe_webhook_task,
-    task_pull_serialized_stripe_contributions_to_cache,
     task_verify_apple_domain,
 )
 from apps.organizations.models import PaymentProvider, RevenueProgram
@@ -243,28 +233,20 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     # are permitted
     permission_classes = [
         IsAuthenticated,
-        (
-            # `IsContributorOwningContribution` needs to come before
-            # any role-assignment based permission, as those assume that contributor users have had
-            # their permission validated (in case of valid permission) upstream -- the role assignment
-            # based permissions will not give permission to a contributor user.
-            IsContributorOwningContribution
-            | (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser))
-        ),
+        (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser)),
     ]
     model = Contribution
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend]
+    serializer_class = serializers.ContributionSerializer
 
-    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet | list[StripePiAsPortalContribution]:
+    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet[Contribution]:
         """Return the right results to the right user.
 
         Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
         query to Stripe will happen in background, and this will return an empty list).
         """
         ra = getattr(user, "get_role_assignment", lambda: None)()
-        if isinstance(user, Contributor):
-            return self.filter_queryset_for_contributor(user)
         if user.is_anonymous:
             return self.model.objects.none()
         if user.is_superuser:
@@ -275,28 +257,20 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         raise ApiConfigurationError
 
     def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user)
+        """Return the right results to the right user.
 
-    def filter_queryset_for_contributor(self, contributor) -> list[StripePiAsPortalContribution]:
-        if (rp_slug := self.request.GET.get("rp", None)) is None:
-            raise ParseError("rp not supplied")
-        rp = get_object_or_404(RevenueProgram, slug=rp_slug)
-        return self.model.objects.filter_queryset_for_contributor(contributor, rp)
-
-    def filter_queryset(self, queryset):
-        """Remove filter backend if user is a contributor.
-
-        We need to do this because for contributor users we return a list of dicts representing
-        contributions, and not a normal Django queryset.
+        Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
+        query to Stripe will happen in background, and this will return an empty list).
         """
-        if isinstance(self.request.user, Contributor):
-            return queryset
-        return super().filter_queryset(queryset)
-
-    def get_serializer_class(self):
-        if isinstance(self.request.user, Contributor):
-            return serializers.PaymentProviderContributionSerializer
-        return serializers.ContributionSerializer
+        ra = getattr((user := self.request.user), "get_role_assignment", lambda: None)()
+        if user.is_anonymous:
+            return self.model.objects.none()
+        if user.is_superuser:
+            return self.model.objects.all()
+        if ra:
+            return self.model.objects.filtered_by_role_assignment(ra)
+        logger.warning("Encountered unexpected user")
+        raise ApiConfigurationError
 
     @action(
         methods=["post"],
@@ -332,224 +306,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             show_upgrade_prompt,
         )
         return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
-
-
-class SubscriptionsViewSet(viewsets.ViewSet):
-    permission_classes = [
-        IsAuthenticated,
-    ]
-    serializer_class = serializers.SubscriptionsSerializer
-
-    @staticmethod
-    def _fetch_subscriptions(request: Request) -> list[StripePiAsPortalContribution]:
-        revenue_program_slug = request.query_params.get("revenue_program_slug")
-        try:
-            revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        except RevenueProgram.DoesNotExist:
-            logger.warning("Revenue program not found for slug %s", revenue_program_slug)
-            raise Http404("Revenue program not found") from None
-        cache_provider = SubscriptionsCacheProvider(request.user.email, revenue_program.stripe_account_id)
-        subscriptions = cache_provider.load()
-        if not subscriptions:
-            task_pull_serialized_stripe_contributions_to_cache(request.user.email, revenue_program.stripe_account_id)
-            subscriptions = cache_provider.load()
-        return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
-
-    def retrieve(self, request, pk):
-        # TODO @BW: Revisit SubscriptionsViewSet with a view towards security concerns...
-        # DEV-3227
-        subscriptions = self._fetch_subscriptions(request)
-        for subscription in subscriptions:
-            if (
-                subscription.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
-                and subscription.get("id") == pk
-            ):
-                return Response(subscription, status=status.HTTP_200_OK)
-        return Response({"detail": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
-
-    def list(self, request):
-        subscriptions = self._fetch_subscriptions(request)
-        return Response(subscriptions, status=status.HTTP_200_OK)
-
-    def partial_update(self, request: Request, pk: str) -> Response:
-        logger.info("Updating subscription %s", pk)
-        if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
-            return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
-
-        revenue_program_slug = request.data.get("revenue_program_slug")
-        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-
-        try:
-            subscription = stripe.Subscription.retrieve(
-                pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.retrieve returned a StripeError")
-            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if (email := request.user.email.lower()) != subscription.customer.email.lower():
-            # TODO @DC: should we find a way to user DRF's permissioning scheme here instead?
-            # DEV-2287
-            # treat as not found so as to not leak info about subscription
-            logger.warning("User %s attempted to update unowned subscription %s", email, pk)
-            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-        payment_method_id = request.data.get("payment_method_id")
-
-        try:
-            stripe.PaymentMethod.attach(
-                payment_method_id,
-                customer=subscription.customer.id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-            return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        try:
-            subscription = stripe.Subscription.modify(
-                pk,
-                default_payment_method=payment_method_id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-                expand=[
-                    # this is expanded so can properly serialize sub and upsert in cache
-                    "default_payment_method",
-                    # this is expanded so can re-retrieve PI below
-                    "latest_invoice",
-                ],
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.modify returned a StripeError when modifying subscription %s", pk)
-            return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        try:
-            self._re_retrieve_pi_and_insert_pi_and_sub_into_cache(
-                subscription=subscription,
-                email=email,
-                stripe_account_id=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            # we only log an exception here because the subscription has already been updated
-            logger.exception(
-                "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi related to subscription %s after update",
-                subscription.id,
-            )
-        # TODO @DC: return the updated sub
-        # DEV-2438
-        return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
-
-    def destroy(self, request: Request, pk: str) -> Response:
-        logger.info("Attempting to cancel subscription %s", pk)
-        revenue_program_slug = request.data.get("revenue_program_slug")
-        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        try:
-            subscription = stripe.Subscription.retrieve(
-                pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.retrieve returned a StripeError")
-            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if (email := request.user.email.lower()) != subscription.customer.email.lower():
-            logger.warning("User %s attempted to delete unowned subscription %s", email, pk)
-            # TODO @DC: should we find a way to user DRF's permissioning scheme here instead?
-            # DEV-2287
-            # treat as not found so not leak info about subscription
-            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            stripe.Subscription.delete(pk, stripe_account=revenue_program.payment_provider.stripe_account_id)
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.delete returned a StripeError")
-            return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        response = Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
-        # We re-retrieve here in order to update the cache with updated subscription data
-        try:
-            sub = stripe.Subscription.retrieve(
-                pk,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-                expand=[
-                    "default_payment_method",
-                    "latest_invoice.payment_intent",
-                ],
-            )
-        except stripe.error.StripeError:
-            # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
-            logger.exception(
-                "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
-                subscription.id,
-            )
-            return response
-        try:
-            # we need to re-retrieve the PI separately because Stripe only lets you have 4 levels of expansion
-            self._re_retrieve_pi_and_insert_pi_and_sub_into_cache(
-                subscription=sub,
-                email=email,
-                stripe_account_id=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
-            logger.exception(
-                "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when working on subscription %s",
-                subscription.id,
-            )
-        # TODO @DC: return the canceled sub
-        # DEV-2438
-        return response
-
-    @staticmethod
-    def update_subscription_and_pi_in_cache(
-        email: str,
-        stripe_account_id: str,
-        subscription: stripe.Subscription,
-        payment_intent: stripe.PaymentIntent | None = None,
-    ) -> None:
-        """Update respective caches after a subscription is updated or canceled."""
-        logger.info(
-            "Updating caches for subscription %s and payment intent %s",
-            subscription.id,
-            payment_intent.id if payment_intent else None,
-        )
-        pi_cache_provider = ContributionsCacheProvider(email, stripe_account_id)
-        sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
-        sub_cache_provider.upsert([subscription])
-        if payment_intent:
-            pi_cache_provider.upsert([payment_intent])
-        # this means it's for an uninvoiced subscription
-        elif not subscription.latest_invoice:
-            pi_cache_provider.upsert_uninvoiced_subscriptions(
-                pi_cache_provider.convert_uninvoiced_subs_into_contributions([subscription])
-            )
-
-    @staticmethod
-    def update_uninvoiced_subscription_in_cache(email: str, stripe_account_id: str, subscription: stripe.Subscription):
-        """Update respective caches after a subscription is updated or canceled."""
-        logger.info("Updating caches for subscription %s", subscription.id)
-        sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
-        sub_cache_provider.upsert([subscription])
-
-    @classmethod
-    def _re_retrieve_pi_and_insert_pi_and_sub_into_cache(
-        cls, subscription: stripe.Subscription, email: str, stripe_account_id: str
-    ) -> None:
-        """Re-retrieve PI and insert into cache after a subscription is updated or canceled."""
-        logger.info("Called for subscription %s", subscription.id)
-        pi_id = subscription.latest_invoice.payment_intent if subscription.latest_invoice else None
-        pi = (
-            stripe.PaymentIntent.retrieve(
-                pi_id,
-                stripe_account=stripe_account_id,
-                expand=["payment_method", "invoice.subscription.default_payment_method"],
-            )
-            if pi_id
-            else None
-        )
-        cls.update_subscription_and_pi_in_cache(
-            email=email,
-            stripe_account_id=stripe_account_id,
-            subscription=subscription,
-            payment_intent=pi,
-        )
 
 
 class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):

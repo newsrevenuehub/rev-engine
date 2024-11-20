@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Literal
 
 from django.conf import settings
@@ -14,7 +14,7 @@ from stripe.error import StripeError
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorOverallScore
-from apps.contributions.choices import BadActorAction, CardBrand, PaymentType
+from apps.contributions.choices import BadActorAction
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -749,120 +749,6 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """A Stripe recurring payment tracks payment information using a Stripe PaymentMethod."""
 
     payment_method_id = serializers.CharField(max_length=255)
-
-
-class PaymentProviderContributionSerializer(serializers.Serializer):
-    """Payments provider serializer, payment provider Eg: Stripe."""
-
-    # id will be payment intent object id in our case, which will start with ch_ and doesn't exceed 255 chars
-    # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
-    id = serializers.CharField(max_length=255)
-    subscription_id = serializers.CharField(
-        max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
-    )
-    # TODO @DC: remove these two booleans after the frontend is fully using the Subscriptions API
-    # DEV-2320
-    is_modifiable = serializers.BooleanField(
-        required=True, help_text="if recurring then can the payment method be modified"
-    )
-    is_cancelable = serializers.BooleanField(
-        required=True, help_text="if recurring then can the payment method be canceled"
-    )
-    status = serializers.ChoiceField(choices=ContributionStatus.choices)
-    card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
-    last4 = serializers.IntegerField()
-    payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False, allow_null=True)
-    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
-    revenue_program = serializers.CharField(max_length=63)
-    amount = serializers.IntegerField()
-    provider_customer_id = serializers.CharField(max_length=255)
-    credit_card_expiration_date = serializers.CharField(max_length=7)
-    created = serializers.DateTimeField()
-    # we allow_null and set default to None because apps.contributions.stripe_contributions_provider.StripePaymentIntent
-    # is used for both Stripe payment intents (main use case) and for wrapping Stripe subscriptions
-    # that don't have invoices (that is, subscriptions with a future first charge date)
-    last_payment_date = serializers.DateTimeField(allow_null=True, default=None)
-    stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-
-class SubscriptionsSerializer(serializers.Serializer):
-    """Serializer for Stripe Subscriptions."""
-
-    id = serializers.SerializerMethodField()
-    is_modifiable = serializers.SerializerMethodField()
-    is_cancelable = serializers.SerializerMethodField()
-    status = serializers.ChoiceField(choices=ContributionStatus.choices)
-    card_brand = serializers.SerializerMethodField()
-    last4 = serializers.SerializerMethodField()
-    payment_type = serializers.SerializerMethodField()
-    next_payment_date = serializers.SerializerMethodField()
-    interval = serializers.SerializerMethodField()
-    revenue_program_slug = serializers.SerializerMethodField()
-    amount = serializers.SerializerMethodField()
-    customer_id = serializers.SerializerMethodField()
-    credit_card_expiration_date = serializers.SerializerMethodField()
-    created = serializers.SerializerMethodField()
-    last_payment_date = serializers.SerializerMethodField()
-    stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-    def _card(self, instance):
-        return instance.default_payment_method.card
-
-    def get_id(self, instance):
-        return instance.id
-
-    def get_card_brand(self, instance):
-        return self._card(instance).brand
-
-    def get_next_payment_date(self, instance):
-        return datetime.fromtimestamp(int(instance.current_period_end), tz=timezone.utc)
-
-    def get_last_payment_date(self, instance):
-        return datetime.fromtimestamp(int(instance.current_period_start), tz=timezone.utc)
-
-    def get_created(self, instance):
-        return datetime.fromtimestamp(int(instance.created), tz=timezone.utc)
-
-    def get_last4(self, instance):
-        return instance.default_payment_method.card.last4
-
-    def get_credit_card_expiration_date(self, instance):
-        return (
-            f"{self._card(instance).exp_month}/{self._card(instance).exp_year}"
-            if self._card(instance).exp_month
-            else None
-        )
-
-    def get_is_modifiable(self, instance):
-        return instance.status not in ["incomplete_expired", "canceled", "unpaid"]
-
-    def get_is_cancelable(self, instance):
-        return instance.status not in ["incomplete", "incomplete_expired", "canceled", "unpaid"]
-
-    def get_interval(self, instance):
-        plan = instance.get("plan")
-        interval = plan.get("interval")
-        interval_count = plan.get("interval_count")
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise serializers.ValidationError(f"Invalid interval: {plan.id}{interval}/{interval_count}")
-
-    def get_revenue_program_slug(self, instance):
-        metadata = instance.get("metadata")
-        if not metadata or "revenue_program_slug" not in metadata:
-            raise serializers.ValidationError(f"Metadata is invalid for subscription: {instance.id}")
-        return metadata["revenue_program_slug"]
-
-    def get_amount(self, instance):
-        return instance.plan.amount
-
-    def get_customer_id(self, instance):
-        return instance.get("customer")
-
-    def get_payment_type(self, instance):
-        return instance.default_payment_method.type
 
 
 PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [

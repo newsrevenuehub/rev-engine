@@ -968,7 +968,9 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     class Meta:
         model = Contribution
         fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
-        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+        read_only_fields = [
+            _ for _ in PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS if _ not in ["amount", "interval"]
+        ]
 
     def validate_subscription_update_data(
         self,
@@ -988,7 +990,10 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                 raise ValueError("Amount value must be greater than $0.99")
             if new_amount > STRIPE_MAX_AMOUNT:
                 raise ValueError("Amount value must be smaller than $999,999.99")
-        if new_interval is not None and new_interval not in ContributionInterval.choices:
+        if new_interval is not None and new_interval not in (
+            ContributionInterval.MONTHLY.value,
+            ContributionInterval.YEARLY.value,
+        ):
             raise ValueError("Invalid interval value")
 
     def create_stripe_price(

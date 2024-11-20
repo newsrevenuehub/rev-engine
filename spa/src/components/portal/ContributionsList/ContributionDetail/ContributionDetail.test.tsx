@@ -421,12 +421,14 @@ describe('ContributionDetail', () => {
           } as any);
         });
 
-        it('calls updateContribution with the amount value and appropriate change type', () => {
+        it('calls updateContribution with the amount and donor-selected amount values and appropriate change type', () => {
           tree();
           fireEvent.click(screen.getByRole('button', { name: 'onEditBillingDetails' }));
           expect(updateContribution).not.toBeCalled();
-          fireEvent.click(screen.getByRole('button', { name: 'onUpdateBillingDetails' }));
-          expect(updateContribution.mock.calls).toEqual([[{ amount: 999 }, 'billingDetails']]);
+          fireEvent.click(screen.getByRole('button', { name: 'onUpdateAmount' }));
+          expect(updateContribution.mock.calls).toEqual([
+            [{ amount: 12345, donor_selected_amount: 123.45 }, 'billingDetails']
+          ]);
         });
       });
 

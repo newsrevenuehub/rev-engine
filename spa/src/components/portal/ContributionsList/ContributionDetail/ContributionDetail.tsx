@@ -44,8 +44,8 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
     updateContribution({ provider_payment_method_id: method.id }, 'paymentMethod');
   }
 
-  function handleBillingDetailsUpdate(amount: number) {
-    updateContribution({ amount }, 'billingDetails');
+  function handleAmountUpdate(amount: number, donorSelectedAmount: number) {
+    updateContribution({ amount, donor_selected_amount: donorSelectedAmount }, 'billingDetails');
   }
 
   if (isError) {
@@ -85,7 +85,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
             editable={editableSection === 'billingDetails' && contribution.is_modifiable}
             onEdit={() => setEditableSection('billingDetails')}
             onEditComplete={() => setEditableSection(undefined)}
-            onUpdateBillingDetails={handleBillingDetailsUpdate}
+            onUpdateAmount={handleAmountUpdate}
           />
           <PaymentMethod
             contribution={contribution}

@@ -218,7 +218,7 @@ class TestDonationPageFullDetailSerializer:
     def test_serializer_not_broken_by_no_payment_provider(self, live_donation_page):
         live_donation_page.revenue_program.payment_provider.delete()
         live_donation_page.refresh_from_db()
-        DonationPageFullDetailSerializer(instance=live_donation_page).data  # noqa: B018 Ruff doesn't understand this is
+        DonationPageFullDetailSerializer(instance=live_donation_page).data  # noqa: B018 doesn't understand this is
         # a property and accessing it has side effects we are testing.
 
     def test_has_analytics_data(self, live_donation_page):

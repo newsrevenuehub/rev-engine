@@ -1,9 +1,13 @@
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.db.models import Min
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.timezone import now
+from django.utils.translation import gettext_lazy as _
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
@@ -72,6 +76,38 @@ class PaymentInline(admin.TabularInline):
         return False
 
 
+class FirstPaymentDateFilter(admin.SimpleListFilter):
+    """Cannot use DateFieldListFilter for built-in date filter because this is not a field, it's an annotation."""
+
+    title = _("First Payment Date")
+    parameter_name = "first_payment_date"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("today", _("Today")),
+            ("past_week", _("Past 7 days")),
+            ("this_month", _("This month")),
+            ("this_year", _("This year")),
+            ("no_date", _("No Payment Date")),
+        ]
+
+    def queryset(self, request, queryset):
+        queryset = queryset.annotate(first_payment_date=Min("payment__transaction_time"))
+        filter_value = self.value()
+        match filter_value:
+            case "today":
+                return queryset.filter(first_payment_date__date=now().date())
+            case "past_week":
+                return queryset.filter(first_payment_date__gte=now() - timedelta(days=7))
+            case "this_month":
+                return queryset.filter(first_payment_date__year=now().year, first_payment_date__month=now().month)
+            case "this_year":
+                return queryset.filter(first_payment_date__year=now().year)
+            case "no_date":
+                return queryset.filter(first_payment_date__isnull=True)
+        return queryset
+
+
 @admin.register(Contribution)
 class ContributionAdmin(RevEngineBaseAdmin):
     fieldsets = (
@@ -128,7 +164,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "interval",
         "status",
         "bad_actor_score",
-        "created",
+        "first_payment_date_display",
         "modified",
     )
 
@@ -138,12 +174,12 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "status",
         "bad_actor_score",
         "modified",
-        "created",
+        FirstPaymentDateFilter,
     )
 
     order = (
         "modified",
-        "created",
+        "first_payment_date_display",
     )
 
     search_fields = (
@@ -152,6 +188,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "donation_page__name",
         "modified",
         "created",
+        "first_payment_date_display",
     )
 
     readonly_fields = (
@@ -178,6 +215,16 @@ class ContributionAdmin(RevEngineBaseAdmin):
     )
 
     inlines = [PaymentInline]
+
+    def get_queryset(self, request):
+        # Annotate the queryset with the first_payment_date
+        queryset = super().get_queryset(request)
+        return queryset.annotate(first_payment_date=Min("payment__transaction_time"))
+
+    def first_payment_date_display(self, obj):
+        return obj.first_payment_date
+
+    first_payment_date_display.short_description = "First Payment Date"
 
     def has_add_permission(self, request):
         return False

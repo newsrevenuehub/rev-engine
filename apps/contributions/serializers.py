@@ -1004,6 +1004,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             currency=currency,
             recurring={"interval": interval},
             product=stripe_product_id,
+            stripe_account=self.instance.stripe_account_id,
         )
 
     def update_stripe_subscription(self, instance: Contribution, validated_data) -> stripe.Subscription:
@@ -1020,6 +1021,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             sub.id,
             items=[{"id": sub["items"]["data"][0].id, "price": price.id}],
             proration_behavior="none",
+            stripe_account=instance.stripe_account_id,
         )
 
     def update_payment_method(self, instance: Contribution, validated_data) -> dict:

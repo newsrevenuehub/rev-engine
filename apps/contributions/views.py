@@ -260,7 +260,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             return self.model.objects.all()
         if ra:
             return self.model.objects.filtered_by_role_assignment(ra)
-        logger.warning("Encountered unexpected user")
+        logger.warning("Encountered unexpected user %s", user.id)
         raise ApiConfigurationError
 
     def get_queryset(self):
@@ -276,7 +276,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             return self.model.objects.all()
         if ra:
             return self.model.objects.filtered_by_role_assignment(ra)
-        logger.warning("Encountered unexpected user")
+        logger.warning("Encountered unexpected user %s", user.id)
         raise ApiConfigurationError
 
     @action(

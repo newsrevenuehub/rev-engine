@@ -8,6 +8,7 @@ from apps.contributions import views
 
 router = routers.DefaultRouter()
 router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
+router.register(r"payments", views.PaymentViewset, basename="payment")
 router.register(r"contributors", views.PortalContributorsViewSet, basename="portal-contributor")
 router.register(
     r"switchboard-contributions", views.SwitchboardContributionsViewSet, basename="switchboard-contribution"

@@ -145,6 +145,13 @@ def process_stripe_webhook(request):
 
 @method_decorator(csrf_protect, name="dispatch")
 class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    """Viewset for creating and deleting contributions.
+
+    Note that the name of this class `PaymentViewset` is a misnomer, as this viewet results in creation
+    and mutation of `Contribution` objects, not `Payment` objects.  This class was named before
+    we had a Payment model in revengine.
+    """
+
     permission_classes = []
     lookup_field = "uuid"
     queryset = Contribution.objects.all()

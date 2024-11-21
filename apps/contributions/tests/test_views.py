@@ -35,13 +35,11 @@ from apps.contributions.serializers import (
     ContributionSerializer,
 )
 from apps.contributions.tasks import email_contribution_csv_export_to_user
-
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
     PaymentFactory,
 )
-
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,

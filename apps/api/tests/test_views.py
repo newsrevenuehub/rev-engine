@@ -19,12 +19,13 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.utils import datetime_to_epoch
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
-from apps.contributions.models import Contributor
-from apps.contributions.tests.factories import ContributorFactory, ContributionFactory
+from apps.contributions.models import Contribution, Contributor
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -535,6 +536,13 @@ class VerifyContributorTokenViewTest(APITestCase):
 @pytest.mark.usefixtures("default_feature_flags")
 class TestAuthorizedContributor:
 
+    @pytest.fixture(autouse=True)
+    def _mock_contribution_queryset(self, mocker):
+        mocker.patch(
+            "apps.contributions.views.PortalContributorsViewSet.get_contributor_queryset",
+            return_value=Contribution.objects.with_first_payment_date().none(),
+        )
+
     @pytest.fixture
     def contribution(self, contributor_user):
         return ContributionFactory(contributor=contributor_user)
@@ -548,8 +556,19 @@ class TestAuthorizedContributor:
         return str(ContributorRefreshToken.for_contributor(contributor_user.uuid).long_lived_access_token)
 
     @pytest.fixture
-    def invalid_token(self, contributor_user):
-        return str(ContributorRefreshToken.for_contributor(contributor_user.uuid).long_lived_access_token)
+    def invalid_token(self):
+        return "invalid_token"
+
+    @pytest.fixture
+    def invalid_token_because_short_lived(self, contributor_user):
+        return str(ContributorRefreshToken.for_contributor(contributor_user.uuid).short_lived_access_token)
+
+    @pytest.fixture
+    def expired_token(self, contributor_user):
+        token = ContributorRefreshToken.for_contributor(contributor_user.uuid)
+        access = token.long_lived_access_token
+        access["exp"] = datetime_to_epoch(ContributorRefreshToken().current_time - datetime.timedelta(days=1))
+        return str(access)
 
     @pytest.fixture
     def request_with_valid_token(self, valid_token, contributions_url, api_client, contribution):
@@ -560,7 +579,7 @@ class TestAuthorizedContributor:
     @pytest.fixture
     def request_with_invalid_token(self, invalid_token, contributions_url, api_client, contribution):
         api_client.cookies["Authorization"] = invalid_token
-        api_client.cookies["csrftoken"] = csrf._get_new_csrf_string()
+        api_client.cookies["csrftoken"] = "fake"
         return api_client.get(contributions_url, data={"rp": contribution.revenue_program.slug})
 
     @pytest.fixture
@@ -569,10 +588,18 @@ class TestAuthorizedContributor:
         return api_client.get(contributions_url, data={"rp": contribution.revenue_program.slug})
 
     @pytest.fixture
-    def request_with_expired_token(self, valid_token, contributions_url, api_client, contribution, settings):
-        api_client.cookies["Authorization"] = valid_token
+    def request_with_expired_token(self, expired_token, contributions_url, api_client, contribution, settings):
+        api_client.cookies["Authorization"] = expired_token
         api_client.cookies["csrftoken"] = csrf._get_new_csrf_string()
         settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME = datetime.timedelta(seconds=0)
+        return api_client.get(contributions_url, data={"rp": contribution.revenue_program.slug})
+
+    @pytest.fixture
+    def request_with_invalid_token_because_short_lived(
+        self, invalid_token_because_short_lived, contributions_url, api_client, contribution
+    ):
+        api_client.cookies["Authorization"] = invalid_token_because_short_lived
+        api_client.cookies["csrftoken"] = csrf._get_new_csrf_string()
         return api_client.get(contributions_url, data={"rp": contribution.revenue_program.slug})
 
     def test_contributor_request_when_token_valid(self, request_with_valid_token):
@@ -586,10 +613,14 @@ class TestAuthorizedContributor:
         assert request_with_invalid_token.status_code == 401
         assert str(request_with_invalid_token.data["detail"]) == "Given token not valid for any token type"
 
-    # def test_contributor_request_when_token_invalid_type(self):
-    #     response = self._make_request(type_valid=False)
-    #     assert response.status_code == 401
-    #     assert str(response.data["detail"]) == "Authentication credentials were not provided."
+    def test_contributor_request_when_short_lived_token_invalid_type(
+        self, request_with_invalid_token_because_short_lived
+    ):
+        assert request_with_invalid_token_because_short_lived.status_code == 401
+        assert (
+            str(request_with_invalid_token_because_short_lived.data["detail"])
+            == "Authentication credentials were not provided."
+        )
 
     def test_contributor_request_when_token_expired(self, request_with_expired_token):
         assert request_with_expired_token.status_code == 401

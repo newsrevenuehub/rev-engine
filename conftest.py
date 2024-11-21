@@ -80,16 +80,6 @@ def _suppress_stripe_webhook_sig_verification(mocker):
 
 
 @pytest.fixture
-def _mock_stripe_retrieve_payment_method(monkeypatch):
-    with Path("apps/contributions/tests/fixtures/provider-payment-method-details.json").open() as f:
-        payment_method_details = json.load(f)
-    monkeypatch.setattr(
-        "stripe.PaymentMethod.retrieve",
-        lambda *args, **kwargs: payment_method_details,
-    )
-
-
-@pytest.fixture
 def default_feature_flags() -> list[get_waffle_flag_model()]:
     Flag = get_waffle_flag_model()
     return [
@@ -660,117 +650,6 @@ def payment_method_data_factory(faker):
 
 
 @pytest.fixture
-def default_paid_pi_data_factory(payment_method_data_factory, valid_metadata_factory, faker):
-    """Generate data for a PaymentIntent."""
-    DEFAULT_DATA = {
-        "id": faker.pystr_format(string_format="pi_??????"),
-        "object": "payment_intent",
-        "amount": (amt := faker.random_int(min=100, max=100000)),
-        "amount_capturable": 0,
-        "amount_details": {},
-        "amount_received": amt,
-        "application": None,
-        "application_fee_amount": None,
-        "automatic_payment_methods": None,
-        "capture_method": "automatic",
-        "client_secret": faker.pystr_format(string_format="pi_??????_secret_??????"),
-        "confirmation_method": "automatic",
-        "created": faker.unix_time(),
-        "currency": "usd",
-        "customer": faker.pystr_format(string_format="cus_??????"),
-        "description": "",
-        "invoice": None,
-        "last_payment_error": None,
-        "latest_charge": None,
-        "live_mode": False,
-        "metadata": valid_metadata_factory.get(),
-        "next_action": None,
-        "on_behalf_of": None,
-        "payment_method": payment_method_data_factory.get(),
-        "payment_method_options": {},
-        "payment_method_types": ["card"],
-        "processing": None,
-        "receipt_email": None,
-        "redaction": None,
-        "review": None,
-        "setup_future_usage": None,
-        "shipping": None,
-        "statement_descriptor": None,
-        "statement_descriptor_suffix": None,
-        "status": "succeeded",
-        "transfer_data": None,
-        "transfer_group": None,
-    }
-
-    class Factory:
-        def get(self, *args, **kwargs) -> dict:
-            return DEFAULT_DATA | kwargs
-
-    return Factory()
-
-
-@pytest.fixture
-def invoice_line_item_data_factory(faker):
-    """Fixture factory to generate data for an InvoiceLineItem."""
-    DEFAULT_DATA = {
-        "id": faker.pystr_format(string_format="ii_??????"),
-        "object": "invoiceitem",
-        "amount": 2000,
-        "currency": "usd",
-        "customer": faker.pystr_format(string_format="cus_??????"),
-        "date": faker.unix_time(),
-        "description": "support news",
-        "discountable": True,
-        "discounts": [],
-        "invoice": faker.pystr_format(string_format="in_??????"),
-        "livemode": False,
-        "metadata": {},
-        "period": {
-            "end": faker.unix_time(),
-            "start": faker.unix_time(),
-        },
-        "plan": {
-            "interval": "month",
-            "interval_count": 1,
-        },
-        "price": {
-            "id": faker.pystr_format(string_format="price_??????"),
-            "object": "price",
-            "active": False,
-            "billing_scheme": "per_unit",
-            "created": faker.unix_time(),
-            "currency": "usd",
-            "custom_unit_amount": None,
-            "livemode": False,
-            "lookup_key": None,
-            "metadata": {},
-            "nickname": None,
-            "product": faker.pystr_format(string_format="prod_??????"),
-            "recurring": None,
-            "tax_behavior": "unspecified",
-            "tiers_mode": None,
-            "transform_quantity": None,
-            "type": "one_time",
-            "unit_amount": 2000,
-            "unit_amount_decimal": "2000",
-        },
-        "proration": False,
-        "quantity": 1,
-        "subscription": None,
-        "tax_rates": [],
-        "test_clock": None,
-        "unit_amount": 2000,
-        "unit_amount_decimal": "2000",
-    }
-
-    class Factory:
-        def get(self, *args, **kwargs) -> dict:
-            return DEFAULT_DATA | kwargs
-
-    return Factory()
-
-
-@pytest.fixture
 def plan_data_factory(faker):
     """Fixture factory to generate data for a Plan."""
     DEFAULT_DATA = {
@@ -910,72 +789,6 @@ def subscription_data_factory(faker, plan_data_factory, payment_method_data_fact
             return DEFAULT_DATA | kwargs
 
     return Factory()
-
-
-@pytest.fixture
-def invoice_data_for_active_sub_factory(faker, subscription_data_factory, invoice_line_item_data_factory):
-    """Create data that can be used to create a Stripe invoice using .construct_from factory.
-
-    In practice, this is for data that gets returned when retrieving a payment intent
-    from Stripe when "invoice.subscription.plan" is expanded (the plan attribute is expanded in `subscription`
-    above).
-    """
-    DEFAULT_DATA = {
-        "id": faker.pystr_format(string_format="in_??????"),
-        "status_transitions": {"paid_at": faker.unix_time()},
-        "lines": {"data": [invoice_line_item_data_factory.get()]},
-        "next_payment_attempt": faker.unix_time(),
-        "subscription": subscription_data_factory.get(),
-    }
-
-    class Factory:
-        def get(self, *args, **kwargs) -> dict:
-            return DEFAULT_DATA | kwargs
-
-    return Factory()
-
-
-@pytest.fixture
-def pi_data_for_active_subscription_factory(
-    default_paid_pi_data_factory,
-    invoice_data_for_active_sub_factory,
-):
-    DEFAULT_DATA = default_paid_pi_data_factory.get() | {"invoice": invoice_data_for_active_sub_factory.get()}
-
-    class Factory:
-        def get(self, *args, **kwargs) -> dict:
-            return DEFAULT_DATA | kwargs
-
-    return Factory()
-
-
-@pytest.fixture
-def pi_for_active_subscription_factory(pi_data_for_active_subscription_factory):
-    class Factory:
-        def get(self, *args, **kwargs) -> stripe.PaymentIntent:
-            return stripe.PaymentIntent.construct_from(
-                pi_data_for_active_subscription_factory.get() | kwargs, key="test"
-            )
-
-    return Factory()
-
-
-@pytest.fixture
-def pi_for_valid_one_time_factory(default_paid_pi_data_factory):
-    class Factory:
-        def get(self, *args, **kwargs) -> stripe.PaymentIntent:
-            return stripe.PaymentIntent.construct_from(default_paid_pi_data_factory.get() | kwargs, key="test")
-
-    return Factory()
-
-
-@pytest.fixture
-def pi_for_accepted_flagged_recurring_contribution(pi_for_active_subscription_factory):
-    pm = stripe.PaymentMethod.construct_from({}, key="test")
-    return pi_for_active_subscription_factory.get(
-        payment_method=None,
-        invoice=stripe.Invoice.construct_from({"subscription": {"default_payment_method": pm}}, key="test"),
-    )
 
 
 @pytest.fixture

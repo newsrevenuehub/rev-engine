@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import datetime
+import json
 import logging
 import uuid
 from collections.abc import Callable, Generator
@@ -21,6 +23,7 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
+from pydantic import ValidationError
 from reversion.models import Version
 from stripe.error import StripeError
 
@@ -28,7 +31,12 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
-from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
+from apps.contributions.exceptions import InvalidMetadataError
+from apps.contributions.types import (
+    STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
+    StripeEventData,
+    StripePiAsPortalContribution,
+)
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
@@ -764,6 +772,28 @@ class Contribution(IndexedTimeStampedModel):
             next_charge_date,
         )
 
+    def set_metadata_field(self, key: str, value: Any) -> None:
+        """Set a field in contribution_metadata, ensuring that the result is valid according to its schema version.
+
+        If an invalid key or value is set, this will raise an InvalidMetadataError exception and contribution_metadata will not be changed.
+        This doesn't make any changes in Stripe.
+        """
+        if key == "schema_version":
+            raise InvalidMetadataError("Schema version may not be changed")
+        if not (version := self.contribution_metadata.get("schema_version")):
+            raise InvalidMetadataError("No schema version set in metadata")
+        try:
+            schema = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[version]
+        except KeyError as error:
+            raise InvalidMetadataError(f"No schema found for version {version}") from error
+        try:
+            self.contribution_metadata = json.loads(schema(**(self.contribution_metadata | {key: value})).json())
+        except ValidationError as error:
+            # To be specific, this might *not* be the root cause. If there is
+            # pre-existing incorrect metadata, then validation would fail here
+            # too.
+            raise InvalidMetadataError(f"Change to {key} results in invalid contribution metadata") from error
+
     @cached_property
     def stripe_subscriptions_for_customer(self) -> Generator[stripe.Subscription]:
         """Return all subscriptions for the customer associated with this contribution."""
@@ -1234,11 +1264,18 @@ class Contribution(IndexedTimeStampedModel):
 
             raise
 
-    def update_subscription_amount(self, amount: int) -> None:
-        """Update Stripe's Subscription Item amount to the new value.
+    def update_subscription_amount(self, amount: int, donor_selected_amount: float) -> None:
+        """Update the item amount and donor-selected amount (in metadata) of the Stripe subscription of this contribution.
 
-        If it's a recurring subscription, update the amount of the next payment
-        without proration (paying difference of existing month).
+        **amount is in cents, but donor_selected_amount is in dollars.** This
+        difference is because amount is tracked in Stripe natively as cents,
+        while donor_selected_amount is a metadata field we added that uses float
+        dollars. This field is persisted in Stripe as a string.
+
+        This doesn't prorate the change (e.g. paying difference of existing
+        month next time).
+
+        TODO in DEV-5465: improved validation of donor_selected_amount in Pydantic
         """
         # vs circular import
         from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
@@ -1271,7 +1308,11 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Subscription should have only one item")
 
         item = items["data"][0]
-        self.contribution_metadata["donor_selected_amount"] = amount
+
+        # Set the donor-selected amount in metadata if the schema supports it.
+        with contextlib.suppress(InvalidMetadataError):
+            self.set_metadata_field("donor_selected_amount", donor_selected_amount)
+
         self.amount = amount
 
         logger.info(

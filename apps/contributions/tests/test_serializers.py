@@ -7,7 +7,6 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pydantic
-import pydantic_core
 import pytest
 import stripe
 from addict import Dict as AttrDict
@@ -997,7 +996,7 @@ class TestBaseCreatePaymentSerializer:
         metadata = serializer.generate_stripe_metadata(contribution)
         assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
-        assert metadata.referer == pydantic_core.Url(referer)
+        assert str(metadata.referer) == str(pydantic.HttpUrl(referer))
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == "1.4"
         assert metadata.source == "rev-engine"

@@ -192,6 +192,14 @@ class TestContributorAdmin:
             == 200
         )
 
+    def test_first_payment_date_display(self, client, admin_user):
+        contribution = ContributionFactory()
+        PaymentFactory(contribution=contribution, transaction_time=timezone.now())
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:contributions_contribution_changelist"), follow=True)
+        assert response.status_code == 200
+        assert "First Payment Date" in response.content.decode()
+
 
 @pytest.mark.django_db
 class TestPaymentAdmin:

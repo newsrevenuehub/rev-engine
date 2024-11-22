@@ -3,7 +3,9 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import admin, messages
-from django.db.models import Min
+from django.contrib.admin import ModelAdmin
+from django.db.models import Min, QuerySet
+from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.timezone import now
@@ -82,7 +84,7 @@ class FirstPaymentDateFilter(admin.SimpleListFilter):
     title = _("First Payment Date")
     parameter_name = "first_payment_date"
 
-    def lookups(self, request, model_admin):
+    def lookups(self, request: HttpRequest, model_admin: ModelAdmin):
         return [
             ("today", _("Today")),
             ("past_week", _("Past 7 days")),
@@ -91,7 +93,7 @@ class FirstPaymentDateFilter(admin.SimpleListFilter):
             ("no_date", _("No Payment Date")),
         ]
 
-    def queryset(self, request, queryset):
+    def queryset(self, request: HttpRequest, queryset: QuerySet[Contribution]):
         queryset = queryset.annotate(first_payment_date=Min("payment__transaction_time"))
         filter_value = self.value()
         match filter_value:

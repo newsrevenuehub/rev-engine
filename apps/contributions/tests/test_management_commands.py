@@ -907,19 +907,18 @@ class Test_fix_missing_provider_payment_method_id:
         command.process_contributions_via_search_api(Contribution.objects.all())
 
     def test_process_contributions_via_search_api_when_multiple_contributions(
-        self, mocker, command, payment_method, faker
+        self, mocker, command, payment_method, stripe_subscription, faker
     ):
-        payment_id = "pi_1"
-        mocker.patch.object(command, "get_metadata_queries", return_value=[("acct_id", "somequery")])
-        mocker.patch.object(command, "search_subscriptions", return_value=[])
-        mocker.patch.object(
-            command,
-            "search_payment_intents",
-            return_value=[
-                stripe.PaymentIntent.construct_from({"id": payment_id, "payment_method": payment_method}, "fake")
-            ],
-        )
-        ContributionFactory.create_batch(size=2, provider_payment_id=payment_id, one_time=True)
+        # We need separate subscription IDs to avoid integrity exceptions.
+        subs = []
+        for _ in range(2):
+            sub = deepcopy(stripe_subscription)
+            sub.id = f"sub_{faker.uuid4()}"
+            sub.default_payment_method = payment_method
+            ContributionFactory(monthly_subscription=True, provider_subscription_id=sub.id)
+            subs.append(sub)
+        mocker.patch.object(command, "get_metadata_queries", side_effect=[[], [("acct_id", "somequery")]])
+        mocker.patch.object(command, "search_subscriptions", return_value=subs)
         command.process_contributions_via_search_api(Contribution.objects.all())
 
     @pytest.fixture

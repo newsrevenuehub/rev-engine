@@ -234,6 +234,34 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         methods=["GET"],
         detail=True,
         permission_classes=[IsAuthenticated, IsActiveSuperUser],
+        serializer_class=serializers.ActiveCampaignRevenueProgramForSwitchboard,
+    )
+    def activecampaign(self, request, pk=None):
+        """Return the ActiveCampaign data for the revenue program with the given ID.
+
+        The primary consumer of this data at time of this comment is Switchboard API.
+        """
+        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        return Response(self.serializer_class(revenue_program).data)
+
+    @action(
+        methods=["GET", "PATCH"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
+        serializer_class=serializers.ActiveCampaignRevenueProgramForSpa,
+    )
+    def activecampaign_configure(self, request, pk=None):
+        """Allow retrieval and update of ActiveCampaign data for the revenue program with the given ID.
+
+        The primary consumer of this data at time of this comment is the SPA.
+        """
+        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        return Response(self.serializer_class(revenue_program).data)
+
+    @action(
+        methods=["GET"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsActiveSuperUser],
         serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
     )
     def mailchimp(self, request, pk=None):

@@ -152,6 +152,7 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
             "id",
             "name",
             "slug",
+            "activecampaign_integration_connected",
             "chosen_mailchimp_email_list",
             "available_mailchimp_email_lists",
             "mailchimp_integration_connected",
@@ -222,6 +223,57 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
             if obj.mailchimp_recurring_contribution_product
             else None
         )
+
+
+class ActiveCampaignRevenueProgramForSpa(serializers.ModelSerializer):
+    """A serializer that parallels MailchimpRevenueProgramForSpa.
+
+    This is different from the Mailchimp serializer in that it allows PATCHing
+    both fields, because the user will directly give them to us instead of us
+    doing a token exchange with an external service.
+    """
+
+    activecampaign_integration_connected = serializers.ReadOnlyField()
+    activecampaign_access_token = serializers.CharField(max_length=100, write_only=True)
+    activecampaign_server_url = serializers.CharField(max_length=100)
+    stripe_account_id = serializers.ReadOnlyField(allow_null=True)
+    id = serializers.ReadOnlyField()
+    name = serializers.ReadOnlyField()
+    slug = serializers.ReadOnlyField()
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "stripe_account_id",
+            "activecampaign_integration_connected",
+            "activecampaign_access_token",
+            "activecampaign_server_url",
+        ]
+
+
+class ActiveCampaignRevenueProgramForSwitchboard(serializers.ModelSerializer):
+    """A read-only serializer that parallels MailchimpRevenueProgramForSwitchboard."""
+
+    activecampaign_integration_connected = serializers.ReadOnlyField()
+    activecampaign_server_url = serializers.ReadOnlyField(allow_null=True)
+    stripe_account_id = serializers.ReadOnlyField(allow_null=True)
+    id = serializers.ReadOnlyField()
+    name = serializers.ReadOnlyField()
+    slug = serializers.ReadOnlyField()
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "stripe_account_id",
+            "activecampaign_integration_connected",
+            "activecampaign_server_url",
+        ]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):

@@ -16,6 +16,29 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @receiver(post_save, sender=RevenueProgram)
+def handle_rp_activecampaign_setup(sender, instance: RevenueProgram, created: bool, **kwargs) -> None:
+    logger.debug("handle_rp_activecampaign_setup called on rp %s", instance.id)
+
+    # - We have been created:
+    #   - And we have enough for the integration to be active
+    # - Or we have been updated:
+    #   - And either property has changed
+    #   - And we have enough for the integration to be active
+
+    update_fields = kwargs.get("update_fields", {})
+
+    if (created and instance.activecampaign_integration_connected) or (
+        not created
+        and ("activecampaign_access_token" in update_fields and "activecampaign_server_url" in update_fields)
+        and instance.activecampaign_integration_connected
+    ):
+        logger.info("Publishing ActiveCampaign configuration complete message for RP %s", instance.id)
+        instance.publish_revenue_program_activecampaign_configuration_complete()
+    else:
+        logger.debug("Not publishing ActiveCampaign configuration complete message for RP %s", instance.id)
+
+
+@receiver(post_save, sender=RevenueProgram)
 def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: bool, **kwargs) -> None:
     logger.debug("handle_mailchimp_entity_setup called on rp %s", instance.id)
     if any(

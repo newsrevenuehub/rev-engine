@@ -792,10 +792,21 @@ class RevenueProgram(IndexedTimeStampedModel):
     # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
+    # API key used for ActiveCampaign integration.
+    activecampaign_access_token = GoogleCloudSecretProvider(model_attr="activecampaign_access_token_secret_name")
+    # Server used for ActiveCampaign integration. This should be a URL that includes the protocol, like
+    # https://newsrevenuehub12345.api-us1.com.
+    activecampaign_server_url = models.TextField(blank=True, null=True, max_length=100)
+
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @property
+    def activecampaign_integration_connected(self):
+        """Determine ActiveCampaign connection state for the revenue program."""
+        return all([self.activecampaign_access_token, self.activecampaign_server_url])
 
     @cached_property
     def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -1011,6 +1022,13 @@ class RevenueProgram(IndexedTimeStampedModel):
             },
         )
 
+    def publish_revenue_program_activecampaign_configuration_complete(self):
+        """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""
+        logger.info("Publishing RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC for rp_id=[%s]", self.id)
+        Publisher.get_instance().publish(
+            settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))
+        )
+
     def publish_revenue_program_mailchimp_list_configuration_complete(self):
         """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic."""
         logger.info("Publishing RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC for rp_id=[%s]", self.id)
@@ -1046,6 +1064,11 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @property
+    def activecampaign_access_token_secret_name(self) -> str:
+        """Value used as the name of the secret in Google Cloud Secrets Manager."""
+        return f"ACTIVECAMPAIGN_ACCESS_TOKEN_FOR_RP_{self.id}_{settings.ENVIRONMENT}"
 
     @property
     def mailchimp_access_token_secret_name(self) -> str:

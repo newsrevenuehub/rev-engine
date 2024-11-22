@@ -153,7 +153,7 @@ def generate_email_data(
         ),
         contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
-        contributor_name=customer.name or CONTRIBUTOR_DEFAULT_VALUE,
+        contributor_name=getattr(customer, "name", CONTRIBUTOR_DEFAULT_VALUE) or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,

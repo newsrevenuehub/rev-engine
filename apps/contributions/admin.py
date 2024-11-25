@@ -221,7 +221,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
     def get_queryset(self, request):
         # Annotate the queryset with the first_payment_date
         queryset = super().get_queryset(request)
-        return queryset.annotate(first_payment_date=Min("payment__transaction_time"))
+        return queryset.with_first_payment_date()
 
     def first_payment_date_display(self, obj):
         return obj.first_payment_date

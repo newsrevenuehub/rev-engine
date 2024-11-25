@@ -33,7 +33,7 @@ const defaultProps = {
   editable: false,
   onEdit: jest.fn(),
   onEditComplete: jest.fn(),
-  onUpdateBillingDetails: jest.fn()
+  onUpdateAmount: jest.fn()
 };
 
 function tree(props?: Partial<BillingDetailsProps>) {
@@ -197,14 +197,14 @@ describe('BillingDetails', () => {
       });
 
       describe('When clicked', () => {
-        it('calls onUpdateBillingDetails with the amount in cents', () => {
+        it('calls onUpdateAmount with the amount in cents, and user-entered amount in dollars', () => {
           tree({ editable: true, enableEditMode: true });
           const amountInput = screen.getByRole('textbox', { name: /amount/i });
 
           fireEvent.change(amountInput, { target: { value: '99.45' } });
           screen.getByRole('button', { name: 'Save' }).click();
 
-          expect(defaultProps.onUpdateBillingDetails).toHaveBeenCalledWith(9945);
+          expect(defaultProps.onUpdateAmount).toHaveBeenCalledWith(9945, 99.45);
         });
 
         it('calls onEditComplete', () => {

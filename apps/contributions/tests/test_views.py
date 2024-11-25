@@ -1313,7 +1313,7 @@ class TestPortalContributorsViewSet:
             mock_pm_attach.assert_not_called()
             mock_update_sub.assert_not_called()
 
-    @pytest.mark.parametrize("request_data", [{}, {"amount": 100}])
+    @pytest.mark.parametrize("request_data", [{}, {"amount": 123, "donor_selected_amount": 1.23}])
     def test_contribution_detail_patch_amount(
         self,
         request_data,
@@ -1356,7 +1356,7 @@ class TestPortalContributorsViewSet:
         contribution.refresh_from_db()
         if amount := request_data.get("amount"):
             assert contribution.amount == amount
-            assert contribution.contribution_metadata["donor_selected_amount"] == amount
+            assert contribution.contribution_metadata["donor_selected_amount"] == request_data["donor_selected_amount"]
             mock_update_sub.assert_called()
         else:
             mock_sub_item_list.assert_not_called()

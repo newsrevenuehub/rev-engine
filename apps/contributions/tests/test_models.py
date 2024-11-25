@@ -18,6 +18,7 @@ import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
+from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
     BillingHistoryItem,
     Contribution,
@@ -38,7 +39,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.contributions.types import StripeEventData
+from apps.contributions.types import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
@@ -1646,6 +1647,33 @@ class TestContributionModel:
         contribution = ContributionFactory(provider_payment_method_details=None)
         assert contribution.card_owner_name == ""
 
+    def test_set_metadata_field_happy_path(self, contribution: Contribution):
+        contribution.set_metadata_field(
+            "donor_selected_amount", contribution.contribution_metadata["donor_selected_amount"] + 1
+        )
+
+    def test_set_metadata_field_bad_key(self, contribution: Contribution):
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("nonexistent", True)
+
+    def test_set_metadata_field_bad_value(self, contribution: Contribution):
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("donor_selected_amount", "bad")
+
+    def test_set_metadata_field_no_schema_version(self, contribution: Contribution):
+        del contribution.contribution_metadata["schema_version"]
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("agreed_to_pay_fees", True)
+
+    def test_set_metadata_field_unknown_schema_version(self, contribution: Contribution):
+        contribution.contribution_metadata["schema_version"] = "nonexistent"
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("agreed_to_pay_fees", True)
+
+    def test_set_metadata_field_cannot_change_schema_version(self, contribution: Contribution):
+        with pytest.raises(InvalidMetadataError):
+            contribution.set_metadata_field("schema_version", "1.0")
+
     def test_stripe_payment_method_when_no_pm_id(self, mocker):
         mock_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
         contribution = ContributionFactory(provider_payment_method_id=None)
@@ -1712,7 +1740,7 @@ class TestContributionModel:
     def test_update_subscription_amount_when_one_time(self, one_time_contribution: Contribution):
         one_time_contribution.stripe_subscription = MockSubscription("active")
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
-            one_time_contribution.update_subscription_amount(amount=100)
+            one_time_contribution.update_subscription_amount(amount=100, donor_selected_amount=1)
 
     @pytest.mark.parametrize(
         "amount",
@@ -1721,12 +1749,14 @@ class TestContributionModel:
     def test_update_subscription_amount_when_invalid_amount(self, amount, monthly_contribution: Contribution):
         monthly_contribution.stripe_subscription = MockSubscription("active")
         with pytest.raises(ValueError, match=r"Amount value must be greater than \$0.99"):
-            monthly_contribution.update_subscription_amount(amount)
+            monthly_contribution.update_subscription_amount(amount=amount, donor_selected_amount=amount / 100)
 
     def test_update_subscription_amount_when_invalid_amount_above_max(self, monthly_contribution: Contribution):
         monthly_contribution.stripe_subscription = MockSubscription("active")
         with pytest.raises(ValueError, match=r"Amount value must be smaller than \$999,999.99"):
-            monthly_contribution.update_subscription_amount(STRIPE_MAX_AMOUNT + 1)
+            monthly_contribution.update_subscription_amount(
+                amount=STRIPE_MAX_AMOUNT + 1, donor_selected_amount=(STRIPE_MAX_AMOUNT + 1) / 100
+            )
 
     @pytest.mark.parametrize(
         "status",
@@ -1743,13 +1773,13 @@ class TestContributionModel:
     def test_update_subscription_amount_when_inactive_subscription(self, status, monthly_contribution: Contribution):
         monthly_contribution.stripe_subscription = MockSubscription(status)
         with pytest.raises(ValueError, match="Cannot update amount for inactive subscription"):
-            monthly_contribution.update_subscription_amount(amount=123)
+            monthly_contribution.update_subscription_amount(amount=123, donor_selected_amount=1.23)
 
     def test_update_subscription_amount_when_no_subscription_id(self, monthly_contribution: Contribution):
         monthly_contribution.stripe_subscription = MockSubscription("active")
         monthly_contribution.provider_subscription_id = None
         with pytest.raises(ValueError, match="Cannot update amount for contribution without a subscription ID"):
-            monthly_contribution.update_subscription_amount(amount=123)
+            monthly_contribution.update_subscription_amount(amount=123, donor_selected_amount=1.23)
 
     def test_update_subscription_amount_when_error_on_sub_item_retrieval(
         self, monthly_contribution: Contribution, mocker
@@ -1760,7 +1790,7 @@ class TestContributionModel:
         monthly_contribution.stripe_subscription = MockSubscription("active")
         monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
         with pytest.raises(stripe.error.StripeError):
-            monthly_contribution.update_subscription_amount(amount=123)
+            monthly_contribution.update_subscription_amount(amount=123, donor_selected_amount=1.23)
         mock_sub_item_list.assert_called_once_with(
             subscription=sub_id, stripe_account=monthly_contribution.stripe_account_id
         )
@@ -1771,7 +1801,7 @@ class TestContributionModel:
         mocker.patch("stripe.SubscriptionItem.list", return_value={"data": [{"id": "si_123"}, {"id": "si_456"}]})
         monthly_contribution.stripe_subscription = MockSubscription("active")
         with pytest.raises(ValueError, match="Subscription should have only one item"):
-            monthly_contribution.update_subscription_amount(amount=123)
+            monthly_contribution.update_subscription_amount(amount=123, donor_selected_amount=1.23)
 
     def test_update_subscription_amount_when_error_on_subscription_modify(
         self, monthly_contribution: Contribution, mocker
@@ -1797,7 +1827,7 @@ class TestContributionModel:
         monthly_contribution.stripe_subscription = MockSubscription("active")
         monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
         with pytest.raises(stripe.error.StripeError):
-            monthly_contribution.update_subscription_amount(amount := 123)
+            monthly_contribution.update_subscription_amount(amount := 123, donor_selected_amount=1.23)
 
         metadata = monthly_contribution.contribution_metadata
         metadata["amount"] = amount
@@ -1845,16 +1875,39 @@ class TestContributionModel:
         mocker.patch("stripe.Subscription.modify")
         monthly_contribution.stripe_subscription = MockSubscription("active")
         new_amount = monthly_contribution.amount * 2
-        monthly_contribution.update_subscription_amount(new_amount)
+        monthly_contribution.update_subscription_amount(amount=new_amount, donor_selected_amount=new_amount / 100)
         metadata = monthly_contribution.contribution_metadata
         metadata["amount"] = new_amount
         assert monthly_contribution.contribution_metadata == metadata
         assert monthly_contribution.amount == new_amount
 
-    @pytest.mark.parametrize("contribution_metadata", [{}, {"donor_selected_amount": 123}])
+    @pytest.mark.parametrize(
+        "contribution_metadata",
+        [
+            {
+                "agreed_to_pay_fees": True,
+                "recurring_donation_id": "",
+                "revenue_program_id": "",
+                "revenue_program_slug": "",
+                "schema_version": "1.3",
+                "source": "legacy-migration",
+            },
+            {
+                "agreed_to_pay_fees": True,
+                "donor_selected_amount": 123,
+                "referer": "https://fundjournalism.org",
+                "revenue_program_id": "",
+                "revenue_program_slug": "",
+                "schema_version": "1.4",
+                "source": "rev-engine",
+            },
+        ],
+    )
     def test_update_subscription_amount_updates_donor_selected_amount_metadata(
         self, contribution_metadata, monthly_contribution, mocker
     ):
+        # Verify our fixture is valid.
+        assert cast_metadata_to_stripe_payment_metadata_schema(contribution_metadata)
         mocker.patch(
             "stripe.SubscriptionItem.list",
             return_value={
@@ -1875,9 +1928,9 @@ class TestContributionModel:
         mocker.patch("stripe.Subscription.modify")
         monthly_contribution.stripe_subscription = MockSubscription("active")
         monthly_contribution.contribution_metadata = contribution_metadata
-        monthly_contribution.update_subscription_amount(456)
+        monthly_contribution.update_subscription_amount(amount=456, donor_selected_amount=4.56)
         if "donor_selected_amount" in contribution_metadata:
-            assert monthly_contribution.contribution_metadata["donor_selected_amount"] == 456
+            assert monthly_contribution.contribution_metadata["donor_selected_amount"] == 4.56
         else:
             assert "donor_selected_amount" not in monthly_contribution.contribution_metadata
 
@@ -1907,7 +1960,7 @@ class TestContributionModel:
         new_amount = monthly_contribution.amount * 2
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="http://magic-link.com")
         send_email_spy = mocker.patch("apps.emails.tasks.send_templated_email.delay")
-        monthly_contribution.update_subscription_amount(new_amount)
+        monthly_contribution.update_subscription_amount(amount=new_amount, donor_selected_amount=new_amount / 100)
 
         data = generate_email_data(
             monthly_contribution,

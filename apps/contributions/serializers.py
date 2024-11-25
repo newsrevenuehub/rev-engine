@@ -839,6 +839,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
     provider_payment_method_id = serializers.CharField(write_only=True, required=False)
+    # Note that amount is int cents, not float dollars.
     amount = serializers.IntegerField(
         required=False,
         min_value=REVENGINE_MIN_AMOUNT,
@@ -848,10 +849,26 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
     )
+    # Note that donor_selected_amount is float dollars, not int cents. This
+    # value is persisted in Stripe as a string.
+    donor_selected_amount = serializers.FloatField(
+        required=False,
+        min_value=REVENGINE_MIN_AMOUNT / 100,
+        max_value=STRIPE_MAX_AMOUNT / 100,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+        write_only=True,
+    )
 
     class Meta:
         model = Contribution
-        fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
+        fields = [
+            *PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS,
+            "donor_selected_amount",
+            "provider_payment_method_id",
+        ]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
     def update(self, instance: Contribution, validated_data) -> Contribution:
@@ -860,16 +877,38 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                 instance.update_payment_method_for_subscription(
                     provider_payment_method_id=provider_payment_method_id,
                 )
+            # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
+            donor_selected_amount = validated_data.pop("donor_selected_amount", None)
+
             if amount := validated_data.get("amount", None):
-                instance.update_subscription_amount(
-                    amount=amount,
-                )
+                if not donor_selected_amount:
+                    # amount and donor_selected_amount should always be set in tandem in real life thanks to validate(),
+                    # but we want to be certain.
+                    raise serializers.ValidationError(
+                        "If amount is updated, donor_selected_amount must be set as well."
+                    )
+                instance.update_subscription_amount(amount=amount, donor_selected_amount=donor_selected_amount)
             for key, value in validated_data.items():
                 setattr(instance, key, value)
             with reversion.create_revision():
                 instance.save(update_fields={*validated_data.keys(), "modified"})
                 reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
         return instance
+
+    def validate(self, data):
+        data = super().validate(data)
+        self.validate_amount_and_donor_selected_amount(data)
+        return data
+
+    def validate_amount_and_donor_selected_amount(self, data):
+        if "amount" in data and "donor_selected_amount" not in data:
+            raise serializers.ValidationError(
+                {"amount": "If this field is updated, donor_selected_amount must be provided as well."}
+            )
+        if "donor_selected_amount" in data and "amount" not in data:
+            raise serializers.ValidationError(
+                {"donor_selected_amount": "If this field is updated, amount must be provided as well."}
+            )
 
 
 class PortalContributionListSerializer(PortalContributionBaseSerializer):

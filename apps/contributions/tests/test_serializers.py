@@ -7,7 +7,6 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pydantic
-import pydantic_core
 import pytest
 import stripe
 from addict import Dict as AttrDict
@@ -997,7 +996,7 @@ class TestBaseCreatePaymentSerializer:
         metadata = serializer.generate_stripe_metadata(contribution)
         assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
-        assert metadata.referer == pydantic_core.Url(referer)
+        assert str(metadata.referer) == str(pydantic.HttpUrl(referer))
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == "1.4"
         assert metadata.source == "rev-engine"
@@ -1822,33 +1821,42 @@ class TestPortalContributionDetailSerializer:
         )
         mocker.patch("stripe.Subscription.modify")
         serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
-        updated_contribution = serializer.update(monthly_contribution, {"amount": 123})
-
-        assert updated_contribution.amount == 123
-
-    def test_update_amount_one_time_contribution(self, mocker, one_time_contribution):
-        one_time_contribution.stripe_subscription = MockSubscription("active")
-        mocker.patch(
-            "stripe.SubscriptionItem.list",
-            return_value={
-                "data": [
-                    {
-                        "id": "si_123",
-                        "price": {
-                            "currency": "usd",
-                            "product": "prod_123",
-                            "recurring": {
-                                "interval": "month",
-                            },
-                        },
-                    }
-                ]
-            },
+        updated_contribution = serializer.update(
+            monthly_contribution, {"amount": 12345, "donor_selected_amount": 123.45}
         )
-        mocker.patch("stripe.Subscription.modify")
+        assert updated_contribution.amount == 12345
+        assert updated_contribution.contribution_metadata["donor_selected_amount"] == 123.45
+
+    def test_update_amount_one_time_contribution(self, one_time_contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
-            serializer.update(one_time_contribution, {"amount": 123})
+            serializer.update(one_time_contribution, {"amount": 12345, "donor_selected_amount": 123.45})
+
+    def test_update_raises_if_donor_selected_amount_omitted(self, mocker, monthly_contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        with pytest.raises(ValidationError, match="If amount is updated, donor_selected_amount must be set as well."):
+            serializer.update(monthly_contribution, {"amount": 12345})
+
+    def test_amount_donor_selected_amount_validation(self, monthly_contribution):
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        with pytest.raises(
+            ValidationError, match="If this field is updated, donor_selected_amount must be provided as well."
+        ):
+            serializer.validate({"amount": 12345})
+        with pytest.raises(ValidationError, match="If this field is updated, amount must be provided as well."):
+            serializer.validate({"donor_selected_amount": 123.45})
+
+    def test_amount_donor_selected_amount_too_small(self):
+        serializer = PortalContributionDetailSerializer(data={"amount": 0, "donor_selected_amount": 0})
+        with pytest.raises(ValidationError, match="We can only accept contributions greater than or equal to 1.00"):
+            serializer.is_valid(raise_exception=True)
+
+    def test_amount_donor_selected_amount_too_big(self):
+        serializer = PortalContributionDetailSerializer(data={"amount": 100000000, "donor_selected_amount": 1000000})
+        with pytest.raises(ValidationError, match="We can only accept contributions less than or equal to 999,999.99"):
+            serializer.is_valid(raise_exception=True)
 
 
 @pytest.mark.django_db

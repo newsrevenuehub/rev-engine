@@ -218,7 +218,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     inlines = [PaymentInline]
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Contribution]:
         # Annotate the queryset with the first_payment_date
         queryset = super().get_queryset(request)
         return queryset.with_first_payment_date()

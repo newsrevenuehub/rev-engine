@@ -142,6 +142,12 @@ class TestContributorModel:
     def test__str__(self, contributor_user):
         assert str(contributor_user) == contributor_user.email
 
+    def test_case_insensitive_email_constraint(self):
+        email = "foo@bar.com"
+        ContributorFactory(email=email)
+        with pytest.raises(IntegrityError):
+            ContributorFactory(email=email.upper())
+
     def test_is_authenticated(self, contributor_user):
         assert contributor_user.is_authenticated is True
 

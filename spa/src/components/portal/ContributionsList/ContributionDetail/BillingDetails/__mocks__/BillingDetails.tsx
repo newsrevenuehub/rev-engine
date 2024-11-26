@@ -7,7 +7,7 @@ export const BillingDetails = ({
   editable,
   onEdit,
   onEditComplete,
-  onUpdateBillingDetails
+  onUpdateAmount
 }: BillingDetailsProps) => (
   <div
     data-testid="mock-billing-details"
@@ -18,7 +18,7 @@ export const BillingDetails = ({
   >
     <button onClick={onEdit}>onEditBillingDetails</button>
     <button onClick={onEditComplete}>onEditCompleteBillingDetails</button>
-    <button onClick={() => onUpdateBillingDetails(999)}>onUpdateBillingDetails</button>
+    <button onClick={() => onUpdateAmount(12345, 123.45)}>onUpdateAmount</button>
   </div>
 );
 export default BillingDetails;

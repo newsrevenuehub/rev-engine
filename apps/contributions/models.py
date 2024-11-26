@@ -16,6 +16,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Min, Q, Sum
+from django.db.models.functions import Lower
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
@@ -72,7 +73,11 @@ class BillingHistoryItem(TypedDict):
 
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
-    email = models.EmailField(unique=True)
+    # note we don't enforce unique=True here because we have a custom constraint below that enforces case-insensitive uniqueness
+    email = models.EmailField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(Lower("email"), name="unique_email_lower")]
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""

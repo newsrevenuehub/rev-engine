@@ -311,9 +311,12 @@ class StripeTransactionsImporter:
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
     def get_or_create_contributor(self, email: str) -> tuple[Contributor, str]:
-        """Get or create a contributor."""
+        """Get or create a contributor.
+
+        Note that we lower the lower the email when calling get_or_create to ensure that we don't create duplicate
+        """
         logger.debug("Retrieving or creating a contributor for email %s", email)
-        contributor, created = Contributor.objects.get_or_create(email=email)
+        contributor, created = Contributor.objects.get_or_create(email=email.lower())
         if created:
             logger.info("Created new contributor %s for %s", contributor.id, email)
         return contributor, common_utils.CREATED if created else common_utils.LEFT_UNCHANGED

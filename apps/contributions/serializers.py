@@ -303,6 +303,13 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     # without relying on easy-to-guess, integer ID value.
     uuid = serializers.CharField(read_only=True)
 
+    def to_internal_value(self, data):
+        """Convert email to lowercase on input."""
+        data = super().to_internal_value(data)
+        if "email" in data:
+            data["email"] = data["email"].strip().lower()
+        return data
+
     def validate_tribute_type(self, value):
         """Ensure there are no unexpected values for tribute_type."""
         if value and value not in ("type_in_memory_of", "type_honoree"):

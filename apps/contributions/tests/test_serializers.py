@@ -27,6 +27,7 @@ from apps.contributions.models import (
 from apps.contributions.serializers import (
     PAYMENT_PAID,
     PAYMENT_REFUNDED,
+    BaseCreatePaymentSerializer,
     ContributionSerializer,
     PortalContributionBaseSerializer,
     PortalContributionDetailSerializer,
@@ -1029,6 +1030,18 @@ class TestBaseCreatePaymentSerializer:
             serializer.get_bad_actor_score(serializer.validated_data, action=BadActorAction.CONTRIBUTION.value) is None
         )
         get_bad_actor_score_causes_uncaught.assert_called_once()
+
+    @pytest.mark.parametrize("pre_exists", [True, False])
+    def test_get_or_create_contributor_for_email(self, pre_exists):
+        email = "test_get_or_create@fundjournalism.org"
+        if pre_exists:
+            pre_existing = ContributorFactory(email=email)
+        contributor = BaseCreatePaymentSerializer().get_or_create_contributor_for_email(email)
+        if pre_exists:
+            assert contributor == pre_existing
+        assert isinstance(contributor, Contributor)
+        assert contributor.email == email
+        assert Contributor.objects.filter(email__iexact=email).count() == 1
 
 
 @pytest.fixture

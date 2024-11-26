@@ -494,6 +494,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             schema_version="1.4",
         )
 
+    def get_or_create_contributor_for_email(self, email: str) -> Contributor:
+        if existing := Contributor.objects.filter(email=email).order_by("created").first():
+            return existing
+        return Contributor.objects.create(email=email)
+
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
     """Serializer to enable creating a contribution + one-time payment."""
@@ -516,7 +521,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
         """
         logger.info("`CreateOneTimePaymentSerializer.create` called with validated data: %s", validated_data)
-        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        contributor = self.get_or_create_contributor_for_email(validated_data["email"])
         contribution = self.build_contribution(
             contributor,
             validated_data,
@@ -621,7 +626,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         that the PaymentElement should not be loaded.
         """
         logger.info("`CreateRecurringPaymentSerializer.create` called with validated data: %s", validated_data)
-        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        contributor = self.get_or_create_contributor_for_email(validated_data["email"])
         logger.info("`CreateRecurringPaymentSerializer.create` is building a contribution")
         contribution = self.build_contribution(
             contributor,

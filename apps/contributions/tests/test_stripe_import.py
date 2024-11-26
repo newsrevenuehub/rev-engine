@@ -339,6 +339,14 @@ class TestStripeTransactionsImporter:
         assert contributor.email == email
         assert action == (common_utils.LEFT_UNCHANGED if already_exists else common_utils.CREATED)
 
+    def test_get_or_create_contributor_case_insensitivity(self):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        email = "foo@bar.com"
+        expected_contributor = ContributorFactory(email=email.upper())
+        contributor, action = instance.get_or_create_contributor(email=email)
+        assert contributor == expected_contributor
+        assert action == common_utils.LEFT_UNCHANGED
+
     @pytest.mark.parametrize(
         ("plan_interval", "plan_interval_count", "expected"),
         [

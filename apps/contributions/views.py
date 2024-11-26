@@ -611,7 +611,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint that returns the sum of all contributions for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         rp = request.query_params.get("revenue_program", None)
-        # TODO(BW): solve for email case sensitivity after DEV-5494
+        # TODO(BW): Solve for email case-sensitivity after DEV-5494
         # DEV-5501
         impact = contributor.get_impact([rp] if rp else None)
         return Response(impact, status=status.HTTP_200_OK)

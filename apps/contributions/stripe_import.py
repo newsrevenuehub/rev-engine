@@ -313,10 +313,11 @@ class StripeTransactionsImporter:
     def get_or_create_contributor(self, email: str) -> tuple[Contributor, str]:
         """Get or create a contributor."""
         logger.debug("Retrieving or creating a contributor for email %s", email)
-        contributor, created = Contributor.objects.get_or_create(email=email)
-        if created:
-            logger.info("Created new contributor %s for %s", contributor.id, email)
-        return contributor, common_utils.CREATED if created else common_utils.LEFT_UNCHANGED
+        contributor = Contributor.objects.filter(email__iexact=email).order_by("created").first()
+        if contributor:
+            return contributor, common_utils.LEFT_UNCHANGED
+        logger.info("Created new contributor for email %s", email)
+        return Contributor.objects.create(email=email), common_utils.CREATED
 
     @staticmethod
     def get_interval_from_plan(plan: dict) -> ContributionInterval:

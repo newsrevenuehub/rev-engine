@@ -12,7 +12,7 @@ module.exports = defineConfig({
   requestTimeout: 15000,
   e2e: {
     setupNodeEvents(on, config) {
-      on('file:preprocessor', vitePreprocessor({ configFile: path.resolve(__dirname, './vite.cypress.config.js') }));
+      on('file:preprocessor', vitePreprocessor({ configFile: path.resolve(__dirname, './vite.cypress.config.cjs') }));
     },
     baseUrl: 'http://localhost:3000',
     specPattern: 'cypress/e2e/**/*cy.js'

@@ -16,6 +16,7 @@ from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
+    CONTRIBUTOR_DEFAULT_VALUE,
     EmailTaskException,
     SendContributionEmailData,
     generate_email_data,
@@ -68,8 +69,8 @@ class TestGenerateEmailData:
         ("contributor_name", "expected_name"),
         [
             (AttrDict(name="customer_name"), "customer_name"),
-            (AttrDict(name=None), "contributor"),
-            (None, "contributor"),
+            (AttrDict(name=None), CONTRIBUTOR_DEFAULT_VALUE),
+            (None, CONTRIBUTOR_DEFAULT_VALUE),
         ],
     )
     @pytest.mark.parametrize("custom_timestamp", ["custom_timestamp", None])

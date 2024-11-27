@@ -27,10 +27,17 @@ def handle_rp_activecampaign_setup(sender, instance: RevenueProgram, created: bo
 
     update_fields = kwargs.get("update_fields", {})
 
-    if (created and instance.activecampaign_integration_connected) or (
-        not created
-        and ("activecampaign_access_token" in update_fields and "activecampaign_server_url" in update_fields)
-        and instance.activecampaign_integration_connected
+    if any(
+        [
+            all([created, instance.activecampaign_integration_connected]),
+            all(
+                [
+                    not created,
+                    any(_ in update_fields for _ in ("activecampaign_access_token", "activecampaign_server_url")),
+                    instance.activecampaign_integration_connected,
+                ]
+            ),
+        ]
     ):
         logger.info("Publishing ActiveCampaign configuration complete message for RP %s", instance.id)
         instance.publish_revenue_program_activecampaign_configuration_complete()

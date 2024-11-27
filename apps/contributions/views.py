@@ -236,8 +236,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     NB: There are bespoke actions on this viewset that override the default permission classes set here.
     """
 
-    # only superusers, users with roles, and contributors owning contributions
-    # are permitted
     permission_classes = [
         IsAuthenticated,
         (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser)),

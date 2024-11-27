@@ -247,12 +247,8 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend]
     serializer_class = serializers.ContributionSerializer
 
-    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet[Contribution]:
-        """Return the right results to the right user.
-
-        Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
-        query to Stripe will happen in background, and this will return an empty list).
-        """
+    def filter_queryset_for_user(self, user: UserModel) -> QuerySet[Contribution]:
+        """Return the right results to the right user."""
         ra = getattr(user, "get_role_assignment", lambda: None)()
         if user.is_anonymous:
             return self.model.objects.none()
@@ -264,11 +260,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         raise ApiConfigurationError
 
     def get_queryset(self):
-        """Return the right results to the right user.
-
-        Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
-        query to Stripe will happen in background, and this will return an empty list).
-        """
+        """Return the right results to the right user."""
         ra = getattr((user := self.request.user), "get_role_assignment", lambda: None)()
         if user.is_anonymous:
             return self.model.objects.none()

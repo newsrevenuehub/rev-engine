@@ -25,6 +25,7 @@ from apps.api.permissions import (
     IsOrgAdmin,
     IsPatchRequest,
     IsRpAdmin,
+    IsSwitchboardAccount,
 )
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.emails.tasks import (
@@ -231,32 +232,26 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         return self.filter_queryset_for_superuser_or_ra()
 
     @action(
-        methods=["GET"],
         detail=True,
-        permission_classes=[IsAuthenticated, IsActiveSuperUser],
-        serializer_class=serializers.ActiveCampaignRevenueProgramForSwitchboard,
-    )
-    def activecampaign(self, request, pk=None):
-        """Return the ActiveCampaign data for the revenue program with the given ID.
-
-        The primary consumer of this data at time of this comment is Switchboard API.
-        """
-        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
-        return Response(self.serializer_class(revenue_program).data)
-
-    @action(
-        methods=["GET", "PATCH"],
-        detail=True,
-        permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
+        permission_classes=[IsOrgAdmin | IsHubAdmin | IsActiveSuperUser],
         serializer_class=serializers.ActiveCampaignRevenueProgramForSpa,
     )
-    def activecampaign_configure(self, request, pk=None):
+    def activecampaign_configure(self, request: HttpRequest, pk: int) -> Response:
         """Allow retrieval and update of ActiveCampaign data for the revenue program with the given ID.
 
-        The primary consumer of this data at time of this comment is the SPA.
+        The primary consumer of this data at time of this comment is the org dashboard in SPA.
+
+        NB: This endpoint assumes that the RPs returned by the queryset are filtered by the user's role assignment.
         """
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
-        return Response(self.serializer_class(revenue_program).data)
+        if request.method == "PATCH":
+            serializer = self.serializer_class(revenue_program, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            revenue_program.refresh_from_db()
+        else:
+            serializer = self.serializer_class(revenue_program)
+        return Response(serializer.data)
 
     @action(
         methods=["GET"],
@@ -290,6 +285,14 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
             serializer.save()
             revenue_program.refresh_from_db()
         return Response(self.serializer_class(revenue_program).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsSwitchboardAccount])
+def switchboard_rp_activecampaign_detail(request: HttpRequest, pk: int) -> Response:
+    """Return the ActiveCampaign data for the revenue program with the given ID."""
+    revenue_program = get_object_or_404(RevenueProgram, pk=pk)
+    return Response(serializers.ActiveCampaignRevenueProgramForSwitchboard(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

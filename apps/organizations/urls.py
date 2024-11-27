@@ -8,6 +8,11 @@ from apps.organizations import views
 router = routers.DefaultRouter()
 router.register(r"organizations", views.OrganizationViewSet, basename="organization")
 router.register(r"revenue-programs", views.RevenueProgramViewSet, basename="revenue-program")
+router.register(
+    r"switchboard/revenue-programs/<int:pk>/activecampaign",
+    views.switchboard_rp_activecampaign_detail,
+    basename="switchboard-revenue-program-activecampaign-detail",
+)
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -190,3 +190,8 @@ class TestGetPageToBeSetAsDefault:
         # created second
         DonationPageFactory(published=False, revenue_program=revenue_program)
         assert get_page_to_be_set_as_default(revenue_program) == created_first
+
+
+@pytest.mark.django_db
+class Test_handle_set_default_donation_page_on_select_core_plan:
+    pass

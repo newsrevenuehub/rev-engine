@@ -2391,11 +2391,6 @@ class TestPortalContributorsViewSet:
 class TestSwitchboardContributionsViewSet:
 
     @pytest.fixture
-    def switchboard_user(self, settings):
-        settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
-        return UserFactory(email=email)
-
-    @pytest.fixture
     def other_user(self):
         return UserFactory(is_superuser=True)
 

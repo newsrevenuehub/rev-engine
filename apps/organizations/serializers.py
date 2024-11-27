@@ -3,6 +3,7 @@ from dataclasses import asdict
 
 from django.conf import settings
 
+import reversion
 from rest_framework import serializers
 
 from apps.organizations.models import (
@@ -245,11 +246,11 @@ class BaseActiveCampaignRevenueProgram(serializers.ModelSerializer):
         ]
 
 
-class ActiveCampaignRevenueProgramForSpa(BaseActiveCampaignRevenueProgram):
+class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProgram):
     """A serializer that allows PATCHing of additional fields."""
 
-    activecampaign_access_token = serializers.CharField(max_length=100, write_only=True)
-    activecampaign_server_url = serializers.CharField(max_length=100)
+    activecampaign_access_token = serializers.CharField(max_length=100, write_only=True, required=False)
+    activecampaign_server_url = serializers.URLField(max_length=100, required=False)
 
     class Meta(BaseActiveCampaignRevenueProgram.Meta):
         fields = [
@@ -258,8 +259,16 @@ class ActiveCampaignRevenueProgramForSpa(BaseActiveCampaignRevenueProgram):
             "activecampaign_server_url",
         ]
 
+    def save(self, **kwargs):
+        """Override save to create a reversion."""
+        logger.info("Saving ActiveCampaign fields for RP %s", self.instance)
+        with reversion.create_revision():
+            instance = super().save(**kwargs)
+            reversion.set_comment("ActiveCampaignRevenueProgramForSpaSerializer updated")
+        return instance
 
-class ActiveCampaignRevenueProgramForSwitchboard(BaseActiveCampaignRevenueProgram):
+
+class ActiveCampaignRevenueProgramForSwitchboardSerializer(BaseActiveCampaignRevenueProgram):
     """A read-only serializer."""
 
     activecampaign_server_url = serializers.ReadOnlyField(allow_null=True)

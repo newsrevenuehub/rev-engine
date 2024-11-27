@@ -11,6 +11,7 @@ from apps.organizations.models import (
     MailchimpStore,
 )
 from apps.organizations.serializers import (
+    ActiveCampaignRevenueProgramForSpaSerializer,
     MailchimpRevenueProgramForSpaConfiguration,
     MailchimpRevenueProgramForSwitchboard,
     OrganizationInlineSerializer,
@@ -262,3 +263,16 @@ class TestMailchimpRevenueProgramForSwitchboard:
         assert mc_connected_rp.stripe_account_id is None
         serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
         assert serialized["stripe_account_id"] is None
+
+
+@pytest.mark.django_db
+def test_calling_ActiveCampaignRevenueProgramForSpaSerializer_save_creates_revision(revenue_program, mocker):
+    create_revision = mocker.patch("reversion.create_revision")
+    set_comment = mocker.patch("reversion.set_comment")
+    serializer = ActiveCampaignRevenueProgramForSpaSerializer(
+        instance=revenue_program, data={"activecampaign_server_url": "http://example.com"}
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    create_revision.assert_called_once_with()
+    set_comment.assert_called_once_with("ActiveCampaignRevenueProgramForSpaSerializer updated")

@@ -8,11 +8,6 @@ from apps.organizations import views
 router = routers.DefaultRouter()
 router.register(r"organizations", views.OrganizationViewSet, basename="organization")
 router.register(r"revenue-programs", views.RevenueProgramViewSet, basename="revenue-program")
-router.register(
-    r"switchboard/revenue-programs/<int:pk>/activecampaign",
-    views.switchboard_rp_activecampaign_detail,
-    basename="switchboard-revenue-program-activecampaign-detail",
-)
 
 urlpatterns = [
     path("", include(router.urls)),
@@ -27,4 +22,9 @@ urlpatterns = [
         name="handle-stripe-account-link",
     ),
     path("mailchimp-oauth-success/", views.handle_mailchimp_oauth_success, name="handle-mailchimp-oauth-success"),
+    path(
+        "switchboard/revenue-programs/<int:pk>/activecampaign/",
+        views.switchboard_rp_activecampaign_detail,
+        name="switchboard-revenue-program-activecampaign-detail",
+    ),
 ]

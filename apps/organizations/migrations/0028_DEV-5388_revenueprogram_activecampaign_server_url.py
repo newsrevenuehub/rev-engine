@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="revenueprogram",
             name="activecampaign_server_url",
-            field=models.TextField(blank=True, max_length=100, null=True),
+            field=models.URLField(blank=True, max_length=100, null=True),
         ),
     ]

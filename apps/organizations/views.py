@@ -234,9 +234,10 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
     @action(
         detail=True,
         permission_classes=[IsOrgAdmin | IsHubAdmin | IsActiveSuperUser],
-        serializer_class=serializers.ActiveCampaignRevenueProgramForSpa,
+        serializer_class=serializers.ActiveCampaignRevenueProgramForSpaSerializer,
+        methods=["GET", "PATCH"],
     )
-    def activecampaign_configure(self, request: HttpRequest, pk: int) -> Response:
+    def activecampaign_configure(self, request: HttpRequest, pk: str) -> Response:
         """Allow retrieval and update of ActiveCampaign data for the revenue program with the given ID.
 
         The primary consumer of this data at time of this comment is the org dashboard in SPA.
@@ -292,7 +293,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
 def switchboard_rp_activecampaign_detail(request: HttpRequest, pk: int) -> Response:
     """Return the ActiveCampaign data for the revenue program with the given ID."""
     revenue_program = get_object_or_404(RevenueProgram, pk=pk)
-    return Response(serializers.ActiveCampaignRevenueProgramForSwitchboard(revenue_program).data)
+    return Response(serializers.ActiveCampaignRevenueProgramForSwitchboardSerializer(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

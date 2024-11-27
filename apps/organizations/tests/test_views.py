@@ -930,6 +930,68 @@ class TestRevenueProgramViewSet:
         assert response.json() == MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp).data
         assert mc_connected_rp.mailchimp_list_id == mailchimp_email_list.id
 
+    @pytest.fixture
+    def org_admin_who_owns_rp(self, org_user_free_plan, revenue_program):
+        revenue_program.organization = org_user_free_plan.get_role_assignment().organization
+        revenue_program.save()
+        org_user_free_plan.roleassignment.revenue_programs.add(revenue_program)
+        org_user_free_plan.roleassignment.save()
+        return org_user_free_plan
+
+    @pytest.fixture
+    def org_admin_who_does_not_own_rp(self, org_user_free_plan, revenue_program):
+        assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
+        return org_user_free_plan
+
+    @pytest.mark.parametrize(
+        ("user_fixture", "permitted"),
+        [
+            ("org_admin_who_owns_rp", True),
+            ("org_admin_who_does_not_own_rp", False),
+            ("hub_admin_user", True),
+            ("superuser", True),
+        ],
+    )
+    def test_activecampaign_configure_when_get(self, revenue_program, user_fixture, permitted, api_client, request):
+        user = request.getfixturevalue(user_fixture)
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("revenue-program-activecampaign-configure", args=(revenue_program.pk,)))
+        assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_404_NOT_FOUND)
+        if permitted:
+            assert response.json() == {
+                "id": revenue_program.id,
+                "name": revenue_program.name,
+                "slug": revenue_program.slug,
+                "stripe_account_id": revenue_program.stripe_account_id,
+                "activecampaign_integration_connected": revenue_program.activecampaign_integration_connected,
+                "activecampaign_server_url": revenue_program.activecampaign_server_url,
+            }
+
+    @pytest.mark.parametrize(
+        ("user_fixture", "permitted"),
+        [
+            ("org_admin_who_owns_rp", True),
+            ("org_admin_who_does_not_own_rp", False),
+            ("hub_admin_user", True),
+            ("superuser", True),
+        ],
+    )
+    def test_activecampaign_configure_when_patch(self, revenue_program, user_fixture, permitted, api_client, request):
+        user = request.getfixturevalue(user_fixture)
+        api_client.force_authenticate(user)
+        assert (old_url := revenue_program.activecampaign_server_url) != (new_url := "https://new.url")
+        response = api_client.patch(
+            reverse("revenue-program-activecampaign-configure", args=(revenue_program.pk,)),
+            data={"activecampaign_server_url": new_url},
+        )
+        assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_404_NOT_FOUND)
+        revenue_program.refresh_from_db()
+        if permitted:
+            assert response.json()["activecampaign_server_url"] == new_url
+            assert revenue_program.activecampaign_server_url == new_url
+        else:
+            assert revenue_program.activecampaign_server_url == old_url
+
 
 class FakeStripeProduct:
     def __init__(self, id_):
@@ -1184,6 +1246,42 @@ class TestHandleStripeAccountLink:
         api_client.force_authenticate(user=ra.user)
         response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("user_fixture", "permitted"),
+    [
+        ("switchboard_user", True),
+        ("org_user_free_plan", False),
+        ("hub_admin_user", False),
+        ("superuser", False),
+    ],
+)
+def test_switchboard_rp_activecampaign_detail(request, user_fixture, permitted, api_client, revenue_program, mocker):
+    mocker.patch(
+        "apps.organizations.models.RevenueProgram.publish_revenue_program_activecampaign_configuration_complete"
+    )
+    revenue_program.activecampaign_server_url = "https://foo.bar"
+    revenue_program.save()
+    mocker.patch(
+        "apps.organizations.models.RevenueProgram.activecampaign_integration_connected",
+        return_value=(is_connnected := True),
+        new_callable=mocker.PropertyMock,
+    )
+    user = request.getfixturevalue(user_fixture)
+    api_client.force_authenticate(user)
+    response = api_client.get(reverse("switchboard-revenue-program-activecampaign-detail", args=(revenue_program.pk,)))
+    assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_403_FORBIDDEN)
+    if permitted:
+        assert response.json() == {
+            "id": revenue_program.id,
+            "name": revenue_program.name,
+            "slug": revenue_program.slug,
+            "stripe_account_id": revenue_program.payment_provider.stripe_account_id,
+            "activecampaign_integration_connected": is_connnected,
+            "activecampaign_server_url": revenue_program.activecampaign_server_url,
+        }
 
 
 def test_get_stripe_account_link_return_url_when_env_var_set(settings):

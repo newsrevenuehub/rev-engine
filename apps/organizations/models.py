@@ -789,7 +789,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
-    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request. Also include
+    # activecampaign_access_token below
     # DEV-3581
     # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")

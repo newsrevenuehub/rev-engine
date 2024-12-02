@@ -661,13 +661,20 @@ class TestRevenueProgram:
         revenue_program = RevenueProgramFactory(activecampaign_server_url=activecampaign_server_url)
         assert revenue_program.activecampaign_integration_connected is expect_connected
 
-    def test_publish_revenue_program_activecampaign_configuration_complete(self, revenue_program, mocker, settings):
+    @pytest.mark.parametrize("pubsub_enabled", [True, False])
+    def test_publish_revenue_program_activecampaign_configuration_complete(
+        self, pubsub_enabled, revenue_program, mocker, settings
+    ):
+        mocker.patch("apps.organizations.models.google_cloud_pub_sub_is_configured", return_value=pubsub_enabled)
         mock_publisher = mocker.patch("apps.organizations.models.Publisher")
         settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC = (topic := "something")
         revenue_program.publish_revenue_program_activecampaign_configuration_complete()
-        mock_publisher.get_instance.return_value.publish.assert_called_once_with(
-            topic, Message(data=str(revenue_program.id))
-        )
+        if pubsub_enabled:
+            mock_publisher.get_instance.return_value.publish.assert_called_once_with(
+                topic, Message(data=str(revenue_program.id))
+            )
+        else:
+            mock_publisher.get_instance.return_value.publish.assert_not_called()
 
     @pytest.fixture(
         params=[

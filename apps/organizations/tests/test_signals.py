@@ -212,6 +212,8 @@ class TestGetPageToBeSetAsDefault:
 def test_handle_rp_activecampaign_setup(
     is_connected: bool, created: bool, update_fields: dict, expect_published: bool, mocker
 ):
+    publisher = mocker.patch("apps.organizations.models.Publisher")
+    publisher.get_instance.return_value = mocker.MagicMock()
     mocker.patch(
         "apps.organizations.models.RevenueProgram.activecampaign_integration_connected",
         return_value=is_connected,

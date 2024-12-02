@@ -18,7 +18,7 @@ from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.secrets import GoogleCloudSecretProvider
-from apps.common.utils import normalize_slug
+from apps.common.utils import google_cloud_pub_sub_is_configured, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.validators import (
@@ -1027,9 +1027,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     def publish_revenue_program_activecampaign_configuration_complete(self):
         """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""
         logger.info("Publishing RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC for rp_id=[%s]", self.id)
-        Publisher.get_instance().publish(
-            settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))
-        )
+        if google_cloud_pub_sub_is_configured():
+            Publisher.get_instance().publish(
+                settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))
+            )
 
     def publish_revenue_program_mailchimp_list_configuration_complete(self):
         """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic."""

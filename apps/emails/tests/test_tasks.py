@@ -66,11 +66,12 @@ class TestGenerateEmailData:
 
     @pytest.mark.parametrize("show_billing_history", [False, True])
     @pytest.mark.parametrize(
-        ("contributor_name", "expected_name"),
+        ("customer", "expected_name"),
         [
             (AttrDict(name="customer_name"), "customer_name"),
             (AttrDict(name=None), CONTRIBUTOR_DEFAULT_VALUE),
             (None, CONTRIBUTOR_DEFAULT_VALUE),
+            (AttrDict(), CONTRIBUTOR_DEFAULT_VALUE),
         ],
     )
     @pytest.mark.parametrize("custom_timestamp", ["custom_timestamp", None])
@@ -79,13 +80,13 @@ class TestGenerateEmailData:
         self,
         contribution,
         show_billing_history,
-        contributor_name,
+        customer,
         expected_name,
         custom_timestamp,
         has_donation_page,
         mocker,
     ):
-        mocker.patch("stripe.Customer.retrieve", return_value=contributor_name)
+        mocker.patch("stripe.Customer.retrieve", return_value=customer)
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )

@@ -329,24 +329,6 @@ class TestStripeTransactionsImporter:
             "lte": to_date,
         }
 
-    @pytest.mark.parametrize("already_exists", [True, False])
-    def test_get_or_create_contributor(self, already_exists):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        email = "foo@bar.com"
-        if already_exists:
-            ContributorFactory(email=email)
-        contributor, action = instance.get_or_create_contributor(email=email)
-        assert contributor.email == email
-        assert action == (common_utils.LEFT_UNCHANGED if already_exists else common_utils.CREATED)
-
-    def test_get_or_create_contributor_case_insensitivity(self):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        email = "foo@bar.com"
-        expected_contributor = ContributorFactory(email=email.upper())
-        contributor, action = instance.get_or_create_contributor(email=email)
-        assert contributor == expected_contributor
-        assert action == common_utils.LEFT_UNCHANGED
-
     @pytest.mark.parametrize(
         ("plan_interval", "plan_interval_count", "expected"),
         [
@@ -730,12 +712,15 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("customer_has_email", [True, False])
     def test_get_or_create_contributor_from_customer(self, mocker, customer_has_email):
         instance = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch(
+            "apps.contributions.models.Contributor.get_or_create_contributor_for_email",
+            return_value=mocker.Mock(),
+        )
         mocker.patch.object(
             instance,
             "get_resource_from_cache",
             return_value={"email": "foo@bar.com" if customer_has_email else None},
         )
-        mocker.patch.object(instance, "get_or_create_contributor", return_value=mocker.Mock())
         if customer_has_email:
             assert instance.get_or_create_contributor_from_customer("cus_1")
         else:

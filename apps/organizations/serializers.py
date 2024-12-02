@@ -259,11 +259,11 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
             "activecampaign_server_url",
         ]
 
-    def update(self, instance, validated_data):
-        """Override update to create a reversion."""
-        logger.info("Updating ActiveCampaign fields for RP %s", instance.id)
+    def save(self, **kwargs):
+        """Override save to create a reversion."""
+        logger.info("Saving ActiveCampaign fields for RP %s", self.instance)
         with reversion.create_revision():
-            instance.save(update_fields={*validated_data.keys(), "modified"})
+            instance = super().save(**kwargs)
             reversion.set_comment("ActiveCampaignRevenueProgramForSpaSerializer updated")
         return instance
 

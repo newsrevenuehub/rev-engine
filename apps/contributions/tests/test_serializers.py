@@ -1032,15 +1032,15 @@ class TestBaseCreatePaymentSerializer:
         get_bad_actor_score_causes_uncaught.assert_called_once()
 
     @pytest.mark.parametrize("pre_exists", [True, False])
-    def test_get_or_create_contributor_for_email(self, pre_exists):
+    def test_get_or_create_contributor_for_email_case_insensitivity(self, pre_exists):
         email = "test_get_or_create@fundjournalism.org"
         if pre_exists:
-            pre_existing = ContributorFactory(email=email)
+            pre_existing = ContributorFactory(email=email.upper())
         contributor = BaseCreatePaymentSerializer().get_or_create_contributor_for_email(email)
         if pre_exists:
             assert contributor == pre_existing
         assert isinstance(contributor, Contributor)
-        assert contributor.email == email
+        assert contributor.email.lower() == email.lower()
         assert Contributor.objects.filter(email__iexact=email).count() == 1
 
 

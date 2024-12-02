@@ -496,7 +496,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
     def get_or_create_contributor_for_email(self, email: str) -> Contributor:
         """Get existing contributor for email (case insensitive) or create a new one."""
-        if existing := Contributor.objects.filter(email=email).order_by("created").first():
+        if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
             return existing
         return Contributor.objects.create(email=email)
 

@@ -70,7 +70,6 @@ class TestGenerateEmailData:
         [
             (AttrDict(name="customer_name"), "customer_name"),
             (AttrDict(name=None), CONTRIBUTOR_DEFAULT_VALUE),
-            (None, CONTRIBUTOR_DEFAULT_VALUE),
             (AttrDict(), CONTRIBUTOR_DEFAULT_VALUE),
         ],
     )

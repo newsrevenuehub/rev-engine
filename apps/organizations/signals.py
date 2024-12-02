@@ -17,6 +17,11 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 @receiver(post_save, sender=RevenueProgram)
 def handle_rp_activecampaign_setup(sender, instance: RevenueProgram, created: bool, **kwargs) -> None:
+    """In certain conditions, send pubsub message to RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC.
+
+    NB: This function only runs in update (vs. create) case if update_fields is passed in kwargs. It's up
+    to upstream callers to ensure that this is the case if they want this signal to run on update of these fields.
+    """
     logger.debug("handle_rp_activecampaign_setup called on rp %s", instance.id)
 
     # - We have been created:
@@ -26,7 +31,6 @@ def handle_rp_activecampaign_setup(sender, instance: RevenueProgram, created: bo
     #   - And we have enough for the integration to be active
 
     update_fields = kwargs.get("update_fields") or {}
-    logger.info("update_fields: %s", update_fields)
     if any(
         [
             all([created, instance.activecampaign_integration_connected]),

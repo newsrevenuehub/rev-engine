@@ -647,9 +647,32 @@ def invalid_patch_data_unexpected_fields():
 
 
 @pytest.fixture
-def _mock_secret_manager(mocker):
-    mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
-    mocker.patch.object(GoogleCloudSecretProvider, "__set__")
+def secret_value() -> str:
+    return "my-top-secret-value"
+
+
+@pytest.fixture
+def new_secret_value(secret_value) -> str:
+    return secret_value[::-1]
+
+
+@pytest.fixture
+def _mock_secret_manager(mocker, secret_value, new_secret_value):
+
+    class SecretManager:
+        def __init__(self, secret_value):
+            self.secret = secret_value
+
+        def get(self, *args, **kwargs):
+            return self.secret
+
+        def set(self, *args, **kwargs):
+            self.secret = new_secret_value
+
+    manager = SecretManager(secret_value)
+
+    mocker.patch.object(GoogleCloudSecretProvider, "__get__", side_effect=manager.get)
+    mocker.patch.object(GoogleCloudSecretProvider, "__set__", side_effect=manager.set)
     mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
 
 
@@ -976,21 +999,35 @@ class TestRevenueProgramViewSet:
             ("superuser", True),
         ],
     )
-    def test_activecampaign_configure_when_patch(self, revenue_program, user_fixture, permitted, api_client, request):
+    @pytest.mark.parametrize("update_access_token", [True, False])
+    @pytest.mark.usefixtures("_mock_secret_manager")
+    def test_activecampaign_configure_when_patch(
+        self, update_access_token, revenue_program, user_fixture, permitted, api_client, request, new_secret_value
+    ):
         user = request.getfixturevalue(user_fixture)
         api_client.force_authenticate(user)
         assert (old_url := revenue_program.activecampaign_server_url) != (new_url := "https://new.url")
+        data = {"activecampaign_server_url": new_url}
+        if update_access_token:
+            data["activecampaign_access_token"] = "something-truthy"
         response = api_client.patch(
             reverse("revenue-program-activecampaign-configure", args=(revenue_program.pk,)),
-            data={"activecampaign_server_url": new_url},
+            data=data,
         )
         assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_404_NOT_FOUND)
         revenue_program.refresh_from_db()
         if permitted:
             assert response.json()["activecampaign_server_url"] == new_url
             assert revenue_program.activecampaign_server_url == new_url
+            if update_access_token:
+                assert revenue_program.activecampaign_access_token == new_secret_value
         else:
             assert revenue_program.activecampaign_server_url == old_url
+
+    def test_mailchimp(self, api_client, superuser, revenue_program):
+        api_client.force_authenticate(superuser)
+        response = api_client.get(reverse("revenue-program-mailchimp", args=(revenue_program.id,)))
+        assert response.status_code == status.HTTP_200_OK
 
 
 class FakeStripeProduct:

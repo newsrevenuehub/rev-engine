@@ -248,9 +248,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         if request.method == "PATCH":
             serializer = self.serializer_class(revenue_program, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            # NB: it's important that update fields gets passed here because there is a downstream
-            # post save signal that specifically filters on update fields.
-            serializer.save(update_fields={*serializer.validated_data.keys(), "modified"})
+            serializer.save()
             revenue_program.refresh_from_db()
         else:
             serializer = self.serializer_class(revenue_program)

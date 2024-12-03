@@ -145,10 +145,8 @@ class UpdateFieldsBaseSerializer(serializers.ModelSerializer):
     def update_with_update_fields_and_revision(self, instance, validated_data):
         logger.info("Updating RP %s", instance)
         logger.debug("Updating RP %s with data %s", instance, validated_data)
-        update_fields = [field for field in validated_data if field in self.fields]
         for attr, value in validated_data.items():
-            if attr in update_fields:
-                setattr(instance, attr, value)
+            setattr(instance, attr, value)
         with reversion.create_revision():
             instance.save(update_fields={*[field for field in validated_data if field in self.fields], "modified"})
             reversion.set_comment(f"Updated by {self.__class__.__name__}")

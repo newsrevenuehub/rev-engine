@@ -139,6 +139,23 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class UpdateFieldsBaseSerializer(serializers.ModelSerializer):
+    """Base serializer for serializers that need to pass update_fields to `instance.save()`."""
+
+    def update(self, instance, validated_data):
+        """Override `.update` so we can pass update_fields to `instance.save()`."""
+        logger.info("Updating RP %s", instance)
+        logger.debug("Updating RP %s with data %s", instance, validated_data)
+        update_fields = [field for field in validated_data if field in self.fields]
+        for attr, value in validated_data.items():
+            if attr in update_fields:
+                setattr(instance, attr, value)
+        with reversion.create_revision():
+            instance.save(update_fields={field for field in validated_data if field in self.fields})
+            reversion.set_comment(f"Updated by {self.__class__.__name__}")
+        return instance
+
+
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
     """Used by the SPA configuration endpoint.
 
@@ -172,7 +189,7 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             if attr in update_fields:
                 setattr(instance, attr, value)
-        instance.save(update_fields={field for field in validated_data if field in self.fields})
+        instance.save(update_fields={*[field for field in validated_data if field in self.fields], "modified"})
         return instance
 
     def validate_mailchimp_list_id(self, value):
@@ -246,7 +263,7 @@ class BaseActiveCampaignRevenueProgram(serializers.ModelSerializer):
         ]
 
 
-class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProgram):
+class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProgram, UpdateFieldsBaseSerializer):
     """A serializer that allows PATCHing of additional fields."""
 
     activecampaign_access_token = serializers.CharField(max_length=100, write_only=True, required=False)
@@ -258,14 +275,6 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
             "activecampaign_access_token",
             "activecampaign_server_url",
         ]
-
-    def save(self, **kwargs):
-        """Override save to create a reversion."""
-        logger.info("Saving ActiveCampaign fields for RP %s", self.instance)
-        with reversion.create_revision():
-            instance = super().save(**kwargs)
-            reversion.set_comment("ActiveCampaignRevenueProgramForSpaSerializer updated")
-        return instance
 
 
 class ActiveCampaignRevenueProgramForSwitchboardSerializer(BaseActiveCampaignRevenueProgram):
@@ -280,7 +289,7 @@ class ActiveCampaignRevenueProgramForSwitchboardSerializer(BaseActiveCampaignRev
         ]
 
 
-class RevenueProgramSerializer(serializers.ModelSerializer):
+class RevenueProgramSerializer(UpdateFieldsBaseSerializer):
     """RevenueProgram serializer you should consider updating."""
 
     slug = serializers.SlugField(required=False)
@@ -297,17 +306,6 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "contact_phone",
             "contact_email",
         ]
-
-    def update(self, instance, validated_data):
-        """We override `.update` so we can pass update_fields to `instance.save()`."""
-        logger.info("Updating RP %s", instance)
-        logger.debug("Updating RP %s with data %s", instance, validated_data)
-        update_fields = [field for field in validated_data if field in self.fields]
-        for attr, value in validated_data.items():
-            if attr in update_fields:
-                setattr(instance, attr, value)
-        instance.save(update_fields={field for field in validated_data if field in self.fields})
-        return instance
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

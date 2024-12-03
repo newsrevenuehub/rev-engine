@@ -150,12 +150,12 @@ class UpdateFieldsBaseSerializer(serializers.ModelSerializer):
             if attr in update_fields:
                 setattr(instance, attr, value)
         with reversion.create_revision():
-            instance.save(update_fields={field for field in validated_data if field in self.fields})
+            instance.save(update_fields={*[field for field in validated_data if field in self.fields], "modified"})
             reversion.set_comment(f"Updated by {self.__class__.__name__}")
         return instance
 
 
-class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
+class MailchimpRevenueProgramForSpaConfiguration(UpdateFieldsBaseSerializer, serializers.ModelSerializer):
     """Used by the SPA configuration endpoint.
 
     This is a read-only except for mailchimp_list_id which gets validated vs. the available lists.
@@ -182,14 +182,9 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
         We have code that creates mailchimp entities if mailchimp_list_id is being updated. Beyond that, `update_fields`
         guards against race conditions.
         """
-        logger.info("Updating RP %s", instance)
-        logger.debug("Updating RP %s with data %s", instance, validated_data)
-        update_fields = [field for field in validated_data if field in self.fields]
-        for attr, value in validated_data.items():
-            if attr in update_fields:
-                setattr(instance, attr, value)
-        instance.save(update_fields={*[field for field in validated_data if field in self.fields], "modified"})
-        return instance
+        if "activecampaign_access_token" in validated_data:
+            instance.activecampaign_access_token = validated_data.pop("activecampaign_access_token")
+        return self.update_with_update_fields_and_revision(instance, validated_data)
 
     def validate_mailchimp_list_id(self, value):
         logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)

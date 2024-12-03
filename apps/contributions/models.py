@@ -75,7 +75,7 @@ class Contributor(IndexedTimeStampedModel):
     email = models.EmailField(unique=True)
 
     @staticmethod
-    def get_or_create_contributor_for_email(email: str) -> tuple[Contributor, str]:
+    def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
         """Get existing contributor for email (case insensitive) or create a new one."""
         if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
             return existing, LEFT_UNCHANGED

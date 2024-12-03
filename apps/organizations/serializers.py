@@ -142,8 +142,7 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 class UpdateFieldsBaseSerializer(serializers.ModelSerializer):
     """Base serializer for serializers that need to pass update_fields to `instance.save()`."""
 
-    def update(self, instance, validated_data):
-        """Override `.update` so we can pass update_fields to `instance.save()`."""
+    def update_with_update_fields_and_revision(self, instance, validated_data):
         logger.info("Updating RP %s", instance)
         logger.debug("Updating RP %s with data %s", instance, validated_data)
         update_fields = [field for field in validated_data if field in self.fields]
@@ -276,6 +275,12 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
             "activecampaign_server_url",
         ]
 
+    def update(self, instance: RevenueProgram, validated_data: dict) -> RevenueProgram:
+        """Override `.update` so we can call custom .update_with_update_fields_and_revision` and set secret."""
+        if "activecampaign_access_token" in validated_data:
+            instance.activecampaign_access_token = validated_data.pop("activecampaign_access_token")
+        return self.update_with_update_fields_and_revision(instance, validated_data)
+
 
 class ActiveCampaignRevenueProgramForSwitchboardSerializer(BaseActiveCampaignRevenueProgram):
     """A read-only serializer."""
@@ -306,6 +311,10 @@ class RevenueProgramSerializer(UpdateFieldsBaseSerializer):
             "contact_phone",
             "contact_email",
         ]
+
+    def update(self, instance: RevenueProgram, validated_data: dict) -> RevenueProgram:
+        """Override `.update` so we can call custom .update_with_update_fields_and_revision`."""
+        return self.update_with_update_fields_and_revision(instance, validated_data)
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

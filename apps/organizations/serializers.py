@@ -177,9 +177,6 @@ class MailchimpRevenueProgramForSpaConfiguration(UpdateFieldsBaseSerializer, ser
         ]
 
     def update(self, instance, validated_data):
-        """Override update so we can set mailchimp_access_token secret descriptor and get revision."""
-        if "mailchimp_access_token" in validated_data:
-            instance.mailchimp_access_token = validated_data.pop("mailchimp_access_token")
         return self.update_with_update_fields_and_revision(instance, validated_data)
 
     def validate_mailchimp_list_id(self, value):

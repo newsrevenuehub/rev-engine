@@ -26,7 +26,6 @@ def handle_rp_activecampaign_setup(sender, instance: RevenueProgram, created: bo
     #   - And we have enough for the integration to be active
 
     update_fields = kwargs.get("update_fields") or {}
-    logger.info("update_fields: %s", update_fields)
     if any(
         [
             all([created, instance.activecampaign_integration_connected]),

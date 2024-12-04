@@ -1560,12 +1560,28 @@ class TestPortalContributorsViewSet:
 
 
 @pytest.mark.django_db
-class TestSwitchboardContributionsViewSet:
+class TestSwitchboardContributorsViewSet:
+    @pytest.mark.parametrize("already_exists", [True, False])
+    def test_create(self, api_client, switchboard_user, faker, already_exists):
+        email = faker.email()
+        if already_exists:
+            existing = ContributorFactory(email=email)
+        api_client.force_authenticate(switchboard_user)
+        response = api_client.post(
+            reverse("switchboard-contributor-list"),
+            data={"email": email},
+        )
+        if already_exists:
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.json() == {"error": f"A contributor (ID: {existing.id}) with this email already exists"}
+        else:
+            assert response.status_code == status.HTTP_201_CREATED
+            contributor = Contributor.objects.get(email=email)
+            assert response.json() == {"email": email, "id": contributor.id}
 
-    @pytest.fixture
-    def switchboard_user(self, settings):
-        settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
-        return UserFactory(email=email)
+
+@pytest.mark.django_db
+class TestSwitchboardContributionsViewSet:
 
     @pytest.fixture
     def other_user(self):

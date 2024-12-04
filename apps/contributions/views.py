@@ -314,7 +314,9 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
     serializer_class = serializers.SwitchboardContributionSerializer
 
 
-class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class SwitchboardContributorsViewSet(
+    mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
     """Viewset for switchboard to update contributors."""
 
     permission_classes = [IsSwitchboardAccount]
@@ -322,17 +324,15 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.UpdateMod
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request):
         email = request.data.get("email")
         if (existing := Contributor.objects.filter(email__iexact=email.strip())).exists():
 
             return Response(
-                {
-                    "error": f"A contributor (ID: {existing.first().id} with this email already exists and can be patched instead"
-                },
+                {"error": f"A contributor (ID: {existing.first().id}) with this email already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return super().create(request, *args, **kwargs)
+        return super().create(request)
 
 
 class PortalContributorsViewSet(viewsets.GenericViewSet):

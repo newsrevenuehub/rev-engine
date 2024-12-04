@@ -22,7 +22,7 @@ class ContributorRefreshToken(RefreshToken):
 
     @classmethod
     def for_contributor(cls, contributor_uuid):
-        """Returnsa refresh token that is used to generate an access token.
+        """Return a refresh token that is used to generate an access token.
 
         Following the pattern set by simplejwt, but in this case we're using a contributor instance, and setting the CONTRIBUTOR_ID_CLAIM.
         """

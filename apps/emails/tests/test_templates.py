@@ -45,3 +45,19 @@ def test_upgrade_confirmation_email_html(upgrade_confirmation_email_context):
     assert 'src="' + mail_icon + '"' in rendered_email
     assert 'src="' + paint_icon + '"' in rendered_email
     assert 'src="' + check_icon + '"' in rendered_email
+
+
+@pytest.fixture
+def csv_export_template_data(settings):
+    return {"logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png"}
+
+
+def test_csv_export_email_template(csv_export_template_data):
+    expect_missing = (
+        "Tired of manual exports and imports?",
+        "Let us streamline your workflow",
+        "https://fundjournalism.org/pricing/",
+    )
+    # Check that the email body does not contain the upgrade prompt
+    for x in expect_missing:
+        assert x not in render_to_string("nrh-contribution-csv-email-body.html", csv_export_template_data)

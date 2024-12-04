@@ -91,27 +91,12 @@ class UserIsRequestedContributor(permissions.BasePermission):
         return obj == request.user if isinstance(obj, Contributor) else False
 
 
-class ContributorOwnsContribution(permissions.BasePermission):
-    """Handle object-level permissions for contributors vis-a-vis contributions."""
-
-    def has_object_permission(self, request, view, obj):
-        """If request is coming from a contributor, verify that the requested contribution belongs to them."""
-        return all([is_a_contributor(request.user), obj.contributor.pk == request.user.pk])
-
-
-IsContributorOwningContribution = IsContributor & ContributorOwnsContribution
-
-
 class HasRoleAssignment(permissions.BasePermission):
     """Determine if the request user has a role assignment. Contributors will not."""
 
     def has_permission(self, request, view):
         ra = getattr(request.user, "get_role_assignment", lambda: None)()
         return bool(ra) and ra.role_type in [Roles.HUB_ADMIN, Roles.ORG_ADMIN, Roles.RP_ADMIN]
-
-
-def is_a_contributor(user):
-    return isinstance(user, Contributor)
 
 
 class BaseFlaggedResourceAccess(permissions.BasePermission):

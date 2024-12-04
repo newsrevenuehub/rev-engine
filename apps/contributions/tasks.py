@@ -12,16 +12,10 @@ import stripe
 from celery import Task, shared_task
 from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
-from sentry_sdk import configure_scope
 from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.stripe_contributions_provider import (
-    ContributionsCacheProvider,
-    StripeContributionsProvider,
-    SubscriptionsCacheProvider,
-)
 from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
@@ -93,59 +87,6 @@ def auto_accept_flagged_contributions():
 
     ping_healthchecks("auto_accept_flagged_contributions", settings.HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS)
     return successful_captures, failed_captures
-
-
-@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_account_id):
-    """Pull all payment intents for a given email associated with a stripe account."""
-    logger.info(
-        "[task_pull_serialized_stripe_contributions_to_cache] called with email_id (%s) and stripe_account_id (%s)",
-        email_id,
-        stripe_account_id,
-    )
-    with configure_scope() as scope:
-        scope.user = {"email": email_id}
-        provider = StripeContributionsProvider(email_id, stripe_account_id)
-        # trigger async tasks to pull payment intents for a given set of customer queries, if there are two queries
-        # the task will get triggered two times which are asynchronous
-        for customer_query in provider.generate_chunked_customers_query():
-            logger.info("Pulling payment intents for %s", customer_query)
-            task_pull_payment_intents_and_uninvoiced_subs.delay(email_id, customer_query, stripe_account_id)
-
-
-@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_query, stripe_account_id):
-    """Pull all payment_intents and uninvoiced subscriptions from stripe for a given set of customers."""
-    logger.info(
-        "Pulling payment intents and uninvoiced subscriptions for email %s with query %s", email_id, customers_query
-    )
-    with configure_scope() as scope:
-        scope.user = {"email": email_id}
-        provider = StripeContributionsProvider(email_id, stripe_account_id)
-        pi_cache_provider = ContributionsCacheProvider(
-            email_id,
-            stripe_account_id,
-        )
-        sub_cache_provider = SubscriptionsCacheProvider(
-            email_id,
-            stripe_account_id,
-        )
-        keep_going = True
-        page = None
-        # iterate through all pages of stripe payment intents
-        logger.info("Pulling payment intents for email %s with query %s", email_id, customers_query)
-        while keep_going:
-            pi_search_response = provider.fetch_payment_intents(query=customers_query, page=page)
-            pi_cache_provider.upsert(pi_search_response.data)
-            subscriptions = [x.invoice.subscription for x in pi_search_response.data if x.invoice]
-            sub_cache_provider.upsert(subscriptions)
-            keep_going = pi_search_response.has_more
-            page = pi_search_response.next_page
-        logger.info("Pulling uninvoiced subscriptions for %s", email_id)
-        uninvoiced_subs = provider.fetch_uninvoiced_subscriptions_for_contributor()
-        sub_cache_provider.upsert(uninvoiced_subs)
-        converted = pi_cache_provider.convert_uninvoiced_subs_into_contributions(uninvoiced_subs)
-        pi_cache_provider.upsert_uninvoiced_subscriptions(converted)
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})

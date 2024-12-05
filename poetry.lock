@@ -733,26 +733,6 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
-name = "django-anymail"
-version = "8.6"
-description = "Django email backends and webhooks for Amazon SES, Mailgun, Mailjet, Mandrill, Postal, Postmark, SendGrid, SendinBlue, and SparkPost"
-optional = false
-python-versions = ">=3.5"
-files = [
-    {file = "django-anymail-8.6.tar.gz", hash = "sha256:783342d49dd07d68778b81dd12a94c86e1d217463a68a85450a0513fabe31345"},
-    {file = "django_anymail-8.6-py3-none-any.whl", hash = "sha256:49d83d7c16316ca86a624097496881d59b7d71b16bf1c5211cffa5b19ef98d0c"},
-]
-
-[package.dependencies]
-django = ">=2.0"
-requests = ">=2.4.3"
-
-[package.extras]
-amazon-ses = ["boto3"]
-dev = ["flake8", "sphinx", "sphinx-rtd-theme", "tox", "twine", "wheel"]
-postal = ["cryptography"]
-
-[[package]]
 name = "django-celery-beat"
 version = "2.7.0"
 description = "Database-backed Periodic Tasks."
@@ -3477,4 +3457,4 @@ bandit = []
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0d2f666f1d3aebb100f816863a81fdc440cafb7ae7c6c19892678fe1e9f0962f"
+content-hash = "cf89b0fc3da259ad238cc5f4b6c9990621de1f29591830bda09136dc69ab90d4"

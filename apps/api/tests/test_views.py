@@ -378,7 +378,6 @@ def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email,
     assert jwt_data["contrib_id"] == str(contributor.uuid)
 
 
-@override_settings(EMAIL_BACKEND="anymail.backends.test.EmailBackend")
 class RequestContributorTokenEmailViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
@@ -443,7 +442,6 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         assert self.outbox[0].to[0] == target_email
 
 
-@override_settings(EMAIL_BACKEND="anymail.backends.test.EmailBackend")
 class VerifyContributorTokenViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()

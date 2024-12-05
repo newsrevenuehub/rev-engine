@@ -137,7 +137,6 @@ INSTALLED_APPS = [
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
     "solo",  # Single row models, e.g. HubSlackIntegration.
-    "anymail",  # Email service provider integration.
     "health_check",  # Checks for various conditions and provides reports when anomalous behavior is detected.
     "health_check.db",
     "health_check.cache",
@@ -578,6 +577,7 @@ PAGE_SLUG_PARAM = "slug"
 REQUESTS_TIMEOUT_DEFAULT = 31
 
 ## Email and ESP Settings
+# Because we're using the console backend, we don't specify credentials or host here. See deploy.py for those.
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = f"[RevEngine {ENVIRONMENT.title()}] "

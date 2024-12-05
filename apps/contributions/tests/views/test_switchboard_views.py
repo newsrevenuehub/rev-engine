@@ -21,7 +21,9 @@ class TestSwitchboardContributorsViewSet:
         email = faker.email()
         if already_exists:
             existing = ContributorFactory(email=email)
-        api_client.force_authenticate(switchboard_user)
+        # note on why
+        api_client.login(email=switchboard_user.email, password="password")
+        api_client.enforce_csrf = True
         response = api_client.post(
             reverse("switchboard-contributor-list"),
             data={"email": email},

@@ -3,8 +3,6 @@
 import logging
 
 from django.conf import settings
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
@@ -27,9 +25,6 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
     serializer_class = serializers.SwitchboardContributionSerializer
 
 
-# This is CSRF exempt because it's locked down to known, in-system user
-# via permission class
-@method_decorator(csrf_exempt, name="dispatch")
 class SwitchboardContributorsViewSet(
     mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
 ):

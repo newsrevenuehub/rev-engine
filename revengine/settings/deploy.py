@@ -16,15 +16,13 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")
 
 ## Email
-EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-MAILGUN_SENDER_DOMAIN = "fundjournalism.org"
-
-ANYMAIL = {
-    "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
-    "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
-}
-
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 

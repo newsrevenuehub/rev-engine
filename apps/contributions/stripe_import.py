@@ -310,14 +310,6 @@ class StripeTransactionsImporter:
         """Generates a query that can supplied for "created" param when listing stripe resources."""
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
-    def get_or_create_contributor(self, email: str) -> tuple[Contributor, str]:
-        """Get or create a contributor."""
-        logger.debug("Retrieving or creating a contributor for email %s", email)
-        contributor, created = Contributor.objects.get_or_create(email=email)
-        if created:
-            logger.info("Created new contributor %s for %s", contributor.id, email)
-        return contributor, common_utils.CREATED if created else common_utils.LEFT_UNCHANGED
-
     @staticmethod
     def get_interval_from_plan(plan: dict) -> ContributionInterval:
         """Map Stripe plan interval to Revengine contribution interval."""
@@ -715,7 +707,7 @@ class StripeTransactionsImporter:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
         if not (email := customer.get("email")):
             raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
-        return self.get_or_create_contributor(email=email)
+        return Contributor.get_or_create_contributor_by_email(email)
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:

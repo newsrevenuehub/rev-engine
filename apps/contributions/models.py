@@ -29,7 +29,7 @@ from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import get_stripe_accounts_and_their_connection_status
+from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.types import (
@@ -72,6 +72,15 @@ class BillingHistoryItem(TypedDict):
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
+
+    @staticmethod
+    def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
+        """Get existing contributor for email (case insensitive) or create a new one."""
+        if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
+            return existing, LEFT_UNCHANGED
+
+        logger.info("Creating new contributor for email %s", email)
+        return Contributor.objects.create(email=email), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""

@@ -1054,3 +1054,9 @@ def bad_actor_bad_score(settings):
 @pytest.fixture
 def bad_actor_super_bad_score(settings):
     return BadActorOverallScore(overall_judgment=settings.BAD_ACTOR_REJECT_SCORE, items=[])
+
+
+@pytest.fixture
+def switchboard_user(settings):
+    settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
+    return UserFactory(email=email)

@@ -632,6 +632,50 @@ class TestRevenueProgram:
             error_text,
         )
 
+    @pytest.mark.parametrize("enabled", [True, False])
+    def test_activecampaign_access_token(self, enabled, revenue_program, settings, mocker):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = enabled
+        mock_get_client = mocker.patch("apps.common.secrets.get_secret_manager_client")
+        mock_get_client.return_value.access_secret_version.return_value.payload.data = (val := b"something")
+        assert revenue_program.activecampaign_access_token == (val.decode("utf-8") if enabled else None)
+
+    @pytest.mark.parametrize(
+        ("activecampaign_server_url", "activecampaign_access_token", "expect_connected"),
+        [
+            ("something", "something", True),
+            (None, "something", False),
+            ("something", None, False),
+            (None, None, False),
+        ],
+    )
+    def test_activecampaign_integration_connected_property(
+        self, activecampaign_server_url, activecampaign_access_token, expect_connected, settings, mocker
+    ):
+        mocker.patch("apps.google_cloud.pubsub.Publisher.publish")
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.activecampaign_access_token",
+            return_value=activecampaign_access_token,
+            new_callable=mocker.PropertyMock,
+        )
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        revenue_program = RevenueProgramFactory(activecampaign_server_url=activecampaign_server_url)
+        assert revenue_program.activecampaign_integration_connected is expect_connected
+
+    @pytest.mark.parametrize("pubsub_enabled", [True, False])
+    def test_publish_revenue_program_activecampaign_configuration_complete(
+        self, pubsub_enabled, revenue_program, mocker, settings
+    ):
+        mocker.patch("apps.organizations.models.google_cloud_pub_sub_is_configured", return_value=pubsub_enabled)
+        mock_publisher = mocker.patch("apps.organizations.models.Publisher")
+        settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC = (topic := "something")
+        revenue_program.publish_revenue_program_activecampaign_configuration_complete()
+        if pubsub_enabled:
+            mock_publisher.get_instance.return_value.publish.assert_called_once_with(
+                topic, Message(data=str(revenue_program.id))
+            )
+        else:
+            mock_publisher.get_instance.return_value.publish.assert_not_called()
+
     @pytest.fixture(
         params=[
             (

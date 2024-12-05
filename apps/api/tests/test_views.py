@@ -539,7 +539,7 @@ class TestAuthorizedContributor:
     @pytest.fixture(autouse=True)
     def _mock_contribution_queryset(self, mocker):
         mocker.patch(
-            "apps.contributions.views.PortalContributorsViewSet.get_contributor_queryset",
+            "apps.contributions.views.portal.PortalContributorsViewSet.get_contributor_queryset",
             return_value=Contribution.objects.with_first_payment_date().none(),
         )
 

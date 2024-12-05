@@ -133,6 +133,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_json_widget",
     "rest_framework",
+    "rest_framework.authtoken",
     "django_rest_passwordreset",  # NB: this needs to come after rest_framework
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",

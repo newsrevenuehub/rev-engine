@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 
 from rest_framework import mixins, status, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 
 from apps.api.permissions import IsSwitchboardAccount
@@ -34,6 +35,7 @@ class SwitchboardContributorsViewSet(
     http_method_names = ["get", "patch", "post"]
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
+    authentication_classes = [TokenAuthentication]
 
     def create(self, request):
         """Create a new contributor but return error response if contributor with email already exists."""

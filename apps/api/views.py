@@ -10,6 +10,8 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
@@ -238,3 +240,17 @@ class VerifyContributorTokenView(APIView):
         }
 
         return response
+
+
+class BearerAuthToken(ObtainAuthToken):
+    """A simple idiomatic DRF Bearer token view.
+
+    By default DRF uses `Token` in the hezder instead of `Bearer` but the value is the same.
+    """
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key, "user_id": user.pk, "email": user.email})

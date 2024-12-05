@@ -16,17 +16,24 @@ from apps.users.tests.factories import UserFactory
 
 @pytest.mark.django_db
 class TestSwitchboardContributorsViewSet:
+
+    @pytest.fixture
+    def token(self, api_client, switchboard_user):
+        response = api_client.post(
+            reverse("switchboard-token-auth"), {"username": switchboard_user.email, "password": "password"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        return response.json()["token"]
+
     @pytest.mark.parametrize("already_exists", [True, False])
-    def test_create(self, api_client, switchboard_user, faker, already_exists):
+    def test_create(self, api_client, faker, already_exists, token):
         email = faker.email()
         if already_exists:
             existing = ContributorFactory(email=email)
-        # note on why
-        api_client.login(email=switchboard_user.email, password="password")
-        api_client.enforce_csrf = True
         response = api_client.post(
             reverse("switchboard-contributor-list"),
             data={"email": email},
+            headers={"Authorization": f"Token {token}"},
         )
         if already_exists:
             assert response.status_code == status.HTTP_400_BAD_REQUEST

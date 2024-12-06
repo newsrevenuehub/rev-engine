@@ -24,7 +24,7 @@ from rest_framework_simplejwt.utils import datetime_to_epoch
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.tests.factories import (
@@ -535,13 +535,6 @@ class VerifyContributorTokenViewTest(APITestCase):
 @pytest.mark.django_db
 @pytest.mark.usefixtures("default_feature_flags")
 class TestAuthorizedContributor:
-
-    @pytest.fixture(autouse=True)
-    def _mock_contribution_queryset(self, mocker):
-        mocker.patch(
-            "apps.contributions.views.portal.PortalContributorsViewSet.get_contributor_queryset",
-            return_value=Contribution.objects.with_first_payment_date().none(),
-        )
 
     @pytest.fixture
     def contribution(self, contributor_user):

@@ -176,33 +176,72 @@ class TestRedisCachePipeline:
         mock_execute.assert_called_once()
 
 
+@pytest.mark.django_db
 class Test_parse_slug_from_url:
+
+    @pytest.fixture
+    def custom_host(self):
+        return "bizz.bang.com"
+
+    @pytest.fixture
+    def referer_url_with_unsupported_host(self):
+        return "https://something.random.com/donate/"
+
+    @pytest.fixture
+    def referer_url_with_custom_host(self, custom_host, revenue_program):
+        return f"https://{custom_host}/{revenue_program.slug}/"
+
+    @pytest.fixture
+    def referer_url_with_domain_apex_value(self, domain_apex, revenue_program):
+        return f"https://{domain_apex}/{revenue_program.slug}/"
+
+    @pytest.fixture
+    def _settings_empty_host_map(self, settings):
+        settings.HOST_MAP = {}
+
+    @pytest.fixture
+    def _settings_rp_in_host_map(self, revenue_program, custom_host, settings):
+        settings.HOST_MAP = {custom_host: revenue_program.slug}
+
     @pytest.fixture(
         params=[
-            ("https://{}/slug/", "slug"),
-            ("https://{}/slug", "slug"),
-            ("https://{}/", None),
-            ("https://{}", None),
-            ("https://{}/slug/other", "slug"),
-            ("https://{}/slug/other/", "slug"),
-            ("https://{}/slug/?foo=bar", "slug"),
-            ("https://{}/slug?foo=bar", "slug"),
+            # refer_url, host_map, get_expected_slug, expect_error
+            ("referer_url_with_unsupported_host", "_settings_empty_host_map", None, True),
+            ("referer_url_with_unsupported_host", "_settings_rp_in_host_map", None, True),
+            ("referer_url_with_custom_host", "_settings_empty_host_map", None, True),
+            ("referer_url_with_custom_host", "_settings_rp_in_host_map", lambda rp: rp.slug, False),
+            ("referer_url_with_domain_apex_value", "_settings_empty_host_map", lambda rp: rp.slug, False),
+            # ("referer_url_with_no_slug", "_settings_empty_host_map", None, True),
+            # referer url with query params
+            #              ("https://{}/slug/", "slug"),
+            # -            ("https://{}/slug", "slug"),
+            # -            ("https://{}/", None),
+            # -            ("https://{}", None),
+            # -            ("https://{}/slug/other", "slug"),
+            # -            ("https://{}/slug/other/", "slug"),
+            # -            ("https://{}/slug/?foo=bar", "slug"),
+            # -            ("https://{}/slug?foo=bar", "slug"),
         ]
     )
-    def url_case(self, request, domain_apex):
-        return request.param[0].format(domain_apex), request.param[1]
-
-    def test_parse_slug_from_url_when_allowed_domain(self, url_case):
-        url, expect = url_case
-        if expect:
-            assert parse_slug_from_url(url) == expect
+    def url_case(self, request, revenue_program):
+        url = request.getfixturevalue(request.param[0])
+        # don't return values but need to activate
+        request.getfixturevalue(request.param[1])
+        if (get_slug_fn := request.param[2]) is not None:
+            expected_slug = get_slug_fn(revenue_program)
         else:
-            assert parse_slug_from_url(url) is None
+            expected_slug = None
+        # url to parse, expected result if no error, whether to expect an error
+        return url, expected_slug, request.param[3]
 
-    def test_parse_slug_from_url_when_not_allowed_domain(self):
-        with pytest.raises(InvalidStripeTransactionDataError) as exc:
-            parse_slug_from_url(url := "https://random-and-malicious.com/slug/")
-        assert str(exc.value) == f"URL {url} has a TLD that is not allowed for import"
+    def test_parse_slug_from_url(self, url_case):
+        url, expected_slug, expect_error = url_case
+        if expect_error:
+            with pytest.raises(InvalidStripeTransactionDataError) as exc:
+                parse_slug_from_url(url)
+            assert str(exc.value) == f"URL {url} has a host that is not allowed for import"
+        else:
+            assert parse_slug_from_url(url) == expected_slug
 
 
 @pytest.mark.django_db

@@ -218,9 +218,18 @@ def upsert_payment_for_transaction(
 
 def parse_slug_from_url(url: str) -> str | None:
     """Parse RP slug, if any, from a given URL."""
-    if tldextract.extract(url).domain not in settings.DOMAIN_APEX:
-        logger.warning("URL %s has a TLD that is not allowed for import", url)
-        raise InvalidStripeTransactionDataError(f"URL {url} has a TLD that is not allowed for import")
+    extracted = tldextract.extract(url)
+    parts = [_ for _ in [extracted.subdomain, extracted.domain] if _]
+    if (query := f"{'.'.join(parts)}.{extracted.suffix}") not in (
+        allowed := [*settings.HOST_MAP.keys(), settings.DOMAIN_APEX]
+    ):
+        logger.warning(
+            "URL %s has a host that is not allowed for import: (%s).  Acceptable values are %s",
+            url,
+            query,
+            ", ".join(allowed),
+        )
+        raise InvalidStripeTransactionDataError(f"URL {url} has a host that is not allowed for import")
     parsed = urlparse(url)
     path_segments = [segment for segment in parsed.path.split("/") if segment]
     return path_segments[0] if len(path_segments) else None

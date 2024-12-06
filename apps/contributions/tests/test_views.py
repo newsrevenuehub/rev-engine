@@ -211,7 +211,12 @@ class TestContributionsViewSet:
             assert response.status_code == status.HTTP_200_OK
             assert response.json() == json.loads(
                 json.dumps(
-                    ContributionSerializer(Contribution.objects.get(id=response.json()["id"])).data,
+                    ContributionSerializer(
+                        instance=Contribution.objects.all()
+                        .with_first_payment_date()
+                        .filter(id=response.json()["id"])
+                        .first()
+                    ).data,
                     cls=DjangoJSONEncoder,
                 )
             )

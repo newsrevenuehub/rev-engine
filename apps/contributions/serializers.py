@@ -57,6 +57,7 @@ class ContributionSerializer(serializers.ModelSerializer):
     contributor_email = serializers.StringRelatedField(read_only=True, source="contributor")
 
     auto_accepted_on = serializers.SerializerMethodField()
+    first_payment_date = serializers.DateTimeField()
     formatted_payment_provider_used = serializers.SerializerMethodField()
     provider_payment_url = serializers.SerializerMethodField()
     provider_subscription_url = serializers.SerializerMethodField()
@@ -119,6 +120,7 @@ class ContributionSerializer(serializers.ModelSerializer):
             "created",
             "currency",
             "donation_page_id",
+            "first_payment_date",
             "flagged_date",
             "formatted_payment_provider_used",
             "id",

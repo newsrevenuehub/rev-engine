@@ -2,7 +2,6 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
@@ -245,27 +244,15 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend]
     serializer_class = serializers.ContributionSerializer
 
-    def filter_queryset_for_user(self, user: UserModel) -> QuerySet[Contribution]:
-        """Return the right results to the right user."""
-        ra = getattr(user, "get_role_assignment", lambda: None)()
-        if user.is_anonymous:
-            return self.model.objects.none()
-        if user.is_superuser:
-            return self.model.objects.all()
-        if ra:
-            return self.model.objects.filtered_by_role_assignment(ra)
-        logger.warning("Encountered unexpected user %s", user.id)
-        raise ApiConfigurationError
-
     def get_queryset(self):
         """Return the right results to the right user."""
         ra = getattr((user := self.request.user), "get_role_assignment", lambda: None)()
         if user.is_anonymous:
-            return self.model.objects.none()
+            return self.model.objects.none().with_first_payment_date()
         if user.is_superuser:
-            return self.model.objects.all()
+            return self.model.objects.all().with_first_payment_date()
         if ra:
-            return self.model.objects.filtered_by_role_assignment(ra)
+            return self.model.objects.filtered_by_role_assignment(ra).with_first_payment_date()
         logger.warning("Encountered unexpected user %s", user.id)
         raise ApiConfigurationError
 

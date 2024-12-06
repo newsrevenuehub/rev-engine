@@ -112,7 +112,7 @@ const Donations = () => {
     const defaultColumns = [
       {
         Header: 'Date',
-        accessor: 'created',
+        accessor: 'first_payment_date',
         Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },
       {

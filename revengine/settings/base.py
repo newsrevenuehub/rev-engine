@@ -133,6 +133,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_json_widget",
     "rest_framework",
+    "rest_framework.authtoken",
     "django_rest_passwordreset",  # NB: this needs to come after rest_framework
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
@@ -355,11 +356,12 @@ REST_FRAMEWORK = {
 }
 
 ### django-test-migrations
-# we ignore waffle and celery beat's migrations because they are beyond our control,
+# we these migrations because they are beyond our control,
 # and dtm complains about their migration file names
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
+    ("authtoken", "*"),
 }
 
 

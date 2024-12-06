@@ -248,6 +248,7 @@ class BearerAuthToken(ObtainAuthToken):
     """
 
     def post(self, request, *args, **kwargs):
+        logger.info("Request received for user (%s)", request.user)
         serializer = self.serializer_class(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]

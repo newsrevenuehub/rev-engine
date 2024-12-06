@@ -356,11 +356,12 @@ REST_FRAMEWORK = {
 }
 
 ### django-test-migrations
-# we ignore waffle and celery beat's migrations because they are beyond our control,
+# we these migrations because they are beyond our control,
 # and dtm complains about their migration file names
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
+    ("authtoken", "*"),
 }
 
 

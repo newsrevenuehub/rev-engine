@@ -26,13 +26,11 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
     serializer_class = serializers.SwitchboardContributionSerializer
 
 
-class SwitchboardContributorsViewSet(
-    mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
-):
+class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     """Viewset for switchboard to update contributors."""
 
     permission_classes = [IsSwitchboardAccount]
-    http_method_names = ["get", "patch", "post"]
+    http_method_names = ["get", "post"]
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
     authentication_classes = [TokenAuthentication]

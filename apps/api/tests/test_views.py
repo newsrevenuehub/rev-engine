@@ -618,3 +618,15 @@ class TestAuthorizedContributor:
     def test_contributor_request_when_token_expired(self, request_with_expired_token):
         assert request_with_expired_token.status_code == 401
         assert str(request_with_expired_token.data["detail"]) == "Given token not valid for any token type"
+
+
+@pytest.mark.django_db
+class TestBearerAuthToken:
+    @pytest.mark.parametrize("is_switchboard_user", [True, False])
+    def test_create_token(self, is_switchboard_user, api_client, superuser_with_pw, switchboard_user):
+        user = switchboard_user if is_switchboard_user else superuser_with_pw
+        pw = "password" if is_switchboard_user else KNOWN_PASSWORD
+        response = api_client.post(reverse("switchboard-token-auth"), {"username": user.email, "password": pw})
+        assert response.status_code == (200 if is_switchboard_user else 403)
+        if is_switchboard_user:
+            assert response.json()["token"]

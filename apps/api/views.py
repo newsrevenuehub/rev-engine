@@ -22,7 +22,6 @@ from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contributor
 from apps.contributions.serializers import ContributorSerializer
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import RevenueProgram
 from apps.users.serializers import AuthedUserSerializer
@@ -172,12 +171,6 @@ class RequestContributorTokenEmailView(APIView):
         logger.info("Trying to retrieve revenue program by slug: %s", serializer.validated_data.get("subdomain"))
 
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
-        # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
-        # data by the time the user opens contributor portal.
-        task_pull_serialized_stripe_contributions_to_cache.delay(
-            serializer.validated_data["email"], revenue_program.stripe_account_id
-        )
-
         magic_link = self.get_magic_link(
             domain, serializer.validated_data["access"], serializer.validated_data["email"]
         )

@@ -1,7 +1,6 @@
 import datetime
 from dataclasses import asdict
-from unittest import TestCase
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -340,55 +339,25 @@ class TestSendThankYouEmail:
             assert x not in mail.outbox[0].alternatives[0][0]
 
 
-class TestTaskStripeContributions(TestCase):
-    @patch("apps.emails.tasks.EmailMultiAlternatives")
-    def test_task_pull_serialized_stripe_contributions_to_cache(self, email_message):
-        data = {
-            "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
-        }
-        send_templated_email_with_attachment(
-            "to@to.com",
-            "This is a subject",
-            render_to_string("nrh-contribution-csv-email-body.txt", data),
-            render_to_string("nrh-contribution-csv-email-body.html", data),
-            "data",
-            "text/csv",
-            "contributions.csv",
-        )
-        calls = [
-            call().attach(filename="contributions.csv", content=b"data", mimetype="text/csv"),
-            call().attach_alternative(render_to_string("nrh-contribution-csv-email-body.html", data), "text/html"),
-            call().send(),
-        ]
-        email_message.assert_has_calls(calls)
-        expect_missing = (
-            "Tired of manual exports and imports?",
-            "Let us streamline your workflow",
-            "https://fundjournalism.org/pricing/",
-        )
-        for x in expect_missing:
-            assert x not in render_to_string("nrh-contribution-csv-email-body.html", data)
-
-    def test_export_csv_free_organization(self):
-        data = {
-            "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
-            "show_upgrade_prompt": True,
-        }
-        send_templated_email_with_attachment(
-            "to@to.com",
-            "This is a subject",
-            render_to_string("nrh-contribution-csv-email-body.txt", data),
-            render_to_string("nrh-contribution-csv-email-body.html", data),
-            "data",
-            "text/csv",
-            "contributions.csv",
-        )
-
-        expect_present = (
-            "Tired of manual exports and imports?",
-            "Let us streamline your workflow",
-            "https://fundjournalism.org/pricing/",
-        )
-
-        for x in expect_present:
-            assert x in render_to_string("nrh-contribution-csv-email-body.html", data)
+def test_send_templated_email_with_attachment(mocker):
+    email_message = mocker.patch("apps.emails.tasks.EmailMultiAlternatives")
+    send_templated_email_with_attachment(
+        (to_email := "to@to.com"),
+        (subject := "This is a subject"),
+        (msg_as_text := "text"),
+        (msg_as_html := "html"),
+        (attachment := "data"),
+        (mimetype := "text/csv"),
+        (file_name := "contributions.csv"),
+    )
+    email_message.assert_called_once_with(
+        to=(to_email,),
+        subject=subject,
+        body=msg_as_text,
+        from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+    )
+    email_message.return_value.attach.assert_called_once_with(
+        filename=file_name, content=attachment.encode(), mimetype=mimetype
+    )
+    email_message.return_value.attach_alternative.assert_called_once_with(msg_as_html, "text/html")
+    email_message.return_value.send.assert_called_once()

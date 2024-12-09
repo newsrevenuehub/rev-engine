@@ -799,7 +799,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     activecampaign_access_token = GoogleCloudSecretProvider(model_attr="activecampaign_access_token_secret_name")
     # Server used for ActiveCampaign integration. This should be a URL that includes the protocol, like
     # https://newsrevenuehub12345.api-us1.com.
-    activecampaign_server_url = models.URLField(blank=True, null=True, max_length=100)
+    activecampaign_server_url = models.URLField(blank=True, null=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 

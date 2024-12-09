@@ -32,7 +32,7 @@ def handle_rp_activecampaign_setup(sender, instance: RevenueProgram, created: bo
             all(
                 [
                     not created,
-                    any(_ in update_fields for _ in ("activecampaign_access_token", "activecampaign_server_url")),
+                    any(x in update_fields for x in ("activecampaign_access_token", "activecampaign_server_url")),
                     instance.activecampaign_integration_connected,
                 ]
             ),

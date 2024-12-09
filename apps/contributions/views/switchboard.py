@@ -16,7 +16,6 @@ from apps.contributions.models import Contribution, Contributor
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-# Note: will this even work without CSRF being passed? Who's calling this?
 class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """Viewset for switchboard to update contributions."""
 

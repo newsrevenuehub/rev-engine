@@ -142,7 +142,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 class UpdateFieldsBaseSerializer(serializers.ModelSerializer):
     """Base serializer for serializers that need to pass update_fields to `instance.save()`."""
 
-    def update_with_update_fields_and_revision(self, instance, validated_data):
+    def update(self, instance, validated_data):
+        """Overridden update to pass update_fields to instance.save()."""
         logger.info("Updating RP %s", instance)
         logger.debug("Updating RP %s with data %s", instance, validated_data)
         for attr, value in validated_data.items():
@@ -173,9 +174,6 @@ class MailchimpRevenueProgramForSpaConfiguration(UpdateFieldsBaseSerializer, ser
             "mailchimp_integration_connected",
             "mailchimp_list_id",
         ]
-
-    def update(self, instance, validated_data):
-        return self.update_with_update_fields_and_revision(instance, validated_data)
 
     def validate_mailchimp_list_id(self, value):
         logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
@@ -265,7 +263,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
         """Override `.update` so we can call custom .update_with_update_fields_and_revision` and set secret."""
         if "activecampaign_access_token" in validated_data:
             instance.activecampaign_access_token = validated_data.pop("activecampaign_access_token")
-        return self.update_with_update_fields_and_revision(instance, validated_data)
+        return super().update(instance, validated_data)
 
 
 class ActiveCampaignRevenueProgramForSwitchboardSerializer(BaseActiveCampaignRevenueProgram):
@@ -297,10 +295,6 @@ class RevenueProgramSerializer(UpdateFieldsBaseSerializer):
             "contact_phone",
             "contact_email",
         ]
-
-    def update(self, instance: RevenueProgram, validated_data: dict) -> RevenueProgram:
-        """Override `.update` so we can call custom .update_with_update_fields_and_revision`."""
-        return self.update_with_update_fields_and_revision(instance, validated_data)
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

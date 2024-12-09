@@ -244,7 +244,7 @@ class VerifyContributorTokenView(APIView):
 class BearerAuthToken(ObtainAuthToken):
     """A simple idiomatic DRF Bearer token view.
 
-    By default DRF uses `Token` in the hezder instead of `Bearer` but the value is the same.
+    By default DRF uses `Token` in the header instead of `Bearer` but the value is the same.
     """
 
     def post(self, request, *args, **kwargs):

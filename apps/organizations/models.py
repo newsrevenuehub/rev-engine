@@ -1027,7 +1027,11 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def publish_revenue_program_activecampaign_configuration_complete(self):
         """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""
-        logger.info("Publishing RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC for rp_id=[%s]", self.id)
+        logger.info(
+            "Publishing RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC (%s) for rp_id=[%s]",
+            settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC,
+            self.id,
+        )
         if google_cloud_pub_sub_is_configured():
             Publisher.get_instance().publish(
                 settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))

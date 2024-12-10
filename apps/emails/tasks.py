@@ -153,7 +153,10 @@ def generate_email_data(
         ),
         contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
-        contributor_name=customer.name or CONTRIBUTOR_DEFAULT_VALUE,
+        # `customer.name` could be non truthy, but if customer was created without providing value for `name`,
+        # there will not be a `customer.name` attribute. This ensures we get default value in
+        # both cases.
+        contributor_name=getattr(customer, "name", CONTRIBUTOR_DEFAULT_VALUE) or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,

@@ -250,7 +250,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
     """A serializer that allows PATCHing of additional fields."""
 
     activecampaign_access_token = serializers.CharField(max_length=100, write_only=True, required=False)
-    activecampaign_server_url = serializers.URLField(max_length=100, required=False)
+    activecampaign_server_url = serializers.URLField(required=False)
 
     class Meta(BaseActiveCampaignRevenueProgram.Meta):
         fields = [

@@ -356,7 +356,7 @@ REST_FRAMEWORK = {
 }
 
 ### django-test-migrations
-# we these migrations because they are beyond our control,
+# we ignore these migrations because they are beyond our control,
 # and dtm complains about their migration file names
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),

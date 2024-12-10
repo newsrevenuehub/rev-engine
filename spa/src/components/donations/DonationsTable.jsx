@@ -9,7 +9,7 @@ import PaginatedTable from 'elements/table/PaginatedTable';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 export const DEFAULT_RESULTS_ORDERING = [
-  { id: 'created', desc: true },
+  { id: 'first_payment_date', desc: true },
   { id: 'contributor_email', desc: false }
 ];
 

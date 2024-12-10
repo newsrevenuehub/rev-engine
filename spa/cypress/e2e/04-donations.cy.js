@@ -92,7 +92,7 @@ describe('Donations list', () => {
       const columnExpectations = [
         {
           renderedName: 'Date',
-          rawName: 'created',
+          rawName: 'first_payment_date',
           transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : NO_VALUE)
         },
         {

@@ -26,9 +26,11 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Viewset for switchboard to update contributors.
+    """Viewset for switchboard to create and retrieve contributors.
 
-    Notes:
+    Note that for this viewset, the lookup_field is email and the lookup_url_kwarg is email.
+    We need to add lookup_value_regex to ensure that the email can contain special characters. Note that
+    we don't guarantee that the email is valid, but that valid emails can pass through.
     """
 
     permission_classes = [IsSwitchboardAccount]
@@ -36,7 +38,6 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
     authentication_classes = [TokenAuthentication]
-    # notes on why this is necessary
     lookup_field = "email"
     lookup_url_kwarg = "email"
     lookup_value_regex = "[^/]+"

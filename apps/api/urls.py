@@ -9,7 +9,6 @@ from apps.api.views import (
     SwitchboardLoginView,
     TokenObtainPairCookieView,
     VerifyContributorTokenView,
-    SwitchboardLoginView,
 )
 from apps.contributions.urls import urlpatterns as contributions_urlpatterns
 from apps.contributions.views.switchboard import SwitchboardContributionsViewSet, SwitchboardContributorsViewSet
@@ -18,6 +17,9 @@ from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
 from apps.users.urls import api_urlpatterns as users_urlpatterns
 
+
+# Switchboard-facing API is not a distinct app in this project, but we can still group its URLs together so
+# they're namespaced under /switchboard/.
 switchboard_router = DefaultRouter()
 switchboard_router.register(r"contributions", SwitchboardContributionsViewSet, basename="switchboard-contribution")
 switchboard_router.register(r"contributors", SwitchboardContributorsViewSet, basename="switchboard-contributor")

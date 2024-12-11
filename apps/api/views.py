@@ -3,13 +3,12 @@ import logging
 from dataclasses import asdict
 from urllib.parse import quote_plus, urlparse
 
-from django.contrib.auth import login
 from django.conf import settings
+from django.contrib.auth import login
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
-
 
 from knox.views import LoginView
 from rest_framework import permissions, status
@@ -20,7 +19,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
 from rest_framework_simplejwt import views as simplejwt_views
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework.authentication import BasicAuthentication
 
 from apps.api.authentication import ShortLivedTokenAuthentication
 from apps.api.permissions import IsSwitchboardAccount
@@ -248,7 +246,8 @@ class VerifyContributorTokenView(APIView):
 
 
 class SwitchboardLoginView(LoginView):
-    # # we need to override global authentication classes to allow for public using basic auth here
+    """Subclass of Knox's LoginView to check if user is switchboard account before login."""
+
     permission_classes = [permissions.AllowAny]
 
     authentication_classes = [BasicAuthentication]

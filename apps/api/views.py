@@ -10,7 +10,6 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from rest_framework import status
-from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
@@ -239,19 +238,3 @@ class VerifyContributorTokenView(APIView):
         }
 
         return response
-
-
-class BearerAuthToken(ObtainAuthToken):
-    """A simple idiomatic DRF Bearer token view.
-
-    By default DRF uses `Token` in the header instead of `Bearer` but the value is the same.
-    """
-
-    def post(self, request, *args, **kwargs):
-        logger.info("Request received for user (%s)", request.user)
-        serializer = self.serializer_class(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
-        if user.email != settings.SWITCHBOARD_ACCOUNT_EMAIL:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        return super().post(request, *args, **kwargs)

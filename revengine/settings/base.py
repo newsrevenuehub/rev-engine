@@ -355,13 +355,14 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,
 }
 
+
 ### django-test-migrations
 # we ignore these migrations because they are beyond our control,
 # and dtm complains about their migration file names
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
-    ("authtoken", "*"),
+    ("knox", "*"),
 }
 
 

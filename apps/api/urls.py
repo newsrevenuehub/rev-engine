@@ -8,6 +8,7 @@ from apps.api.views import (
     RequestContributorTokenEmailView,
     TokenObtainPairCookieView,
     VerifyContributorTokenView,
+    SwitchboardLoginView,
 )
 from apps.contributions.urls import urlpatterns as contributions_urlpatterns
 from apps.contributions.views.switchboard import SwitchboardContributionsViewSet, SwitchboardContributorsViewSet
@@ -16,13 +17,12 @@ from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
 from apps.users.urls import api_urlpatterns as users_urlpatterns
 
-
 switchboard_router = DefaultRouter()
-switchboard_router.register(r"contributions", SwitchboardContributionsViewSet, basename="switchboard-contributions")
-switchboard_router.register(r"contributors", SwitchboardContributorsViewSet, basename="switchboard-contributors")
+switchboard_router.register(r"contributions", SwitchboardContributionsViewSet, basename="switchboard-contribution")
+switchboard_router.register(r"contributors", SwitchboardContributorsViewSet, basename="switchboard-contributor")
 switchboard_urlpatterns = [
-    path("auth/", include("knox.urls")),
-    path("", include(switchboard_router.urls)),
+    path("switchboard/login/", SwitchboardLoginView.as_view(), name="switchboard-login"),
+    path("switchboard/", include(switchboard_router.urls)),
 ]
 
 urlpatterns = [

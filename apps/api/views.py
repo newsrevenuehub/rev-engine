@@ -9,7 +9,9 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
-from rest_framework import status
+from knox.views import LoginView
+from rest_framework import permissions, status
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
@@ -17,6 +19,7 @@ from rest_framework_simplejwt import views as simplejwt_views
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.api.authentication import ShortLivedTokenAuthentication
+from apps.api.permissions import IsSwitchboardAccount
 from apps.api.serializers import ContributorObtainTokenSerializer
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
@@ -238,3 +241,24 @@ class VerifyContributorTokenView(APIView):
         }
 
         return response
+
+
+from django.contrib.auth import login
+
+from rest_framework.authtoken.serializers import AuthTokenSerializer
+
+
+class SwitchboardLoginView(LoginView):
+    # # we need to override global authentication classes to allow for public using basic auth here
+    permission_classes = [permissions.AllowAny]
+
+    authentication_classes = [BasicAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        serializer = AuthTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        if not IsSwitchboardAccount.user_has_permission(user):
+            return Response({"detail": "User is not switchboard account"}, status=status.HTTP_403_FORBIDDEN)
+        login(request, user)
+        return super().post(request, format=None)

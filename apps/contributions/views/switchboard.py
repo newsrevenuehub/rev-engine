@@ -3,7 +3,6 @@
 import logging
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404
 
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
@@ -27,21 +26,21 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Viewset for switchboard to update contributors."""
+    """Viewset for switchboard to update contributors.
+
+    Notes:
+
+    """
 
     permission_classes = [IsSwitchboardAccount]
     http_method_names = ["get", "post"]
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
     authentication_classes = [TokenAuthentication]
-
-    def get_object(self):
-        """Get a contributor by email.
-
-        NB: This method is case insensitive and needs to be until DEV-5503 is resolved.
-        """
-        email = self.kwargs.get("email")
-        return get_object_or_404(self.queryset, email=email)
+    # notes on why this is necessary
+    lookup_field = "email"
+    lookup_url_kwarg = "email"
+    lookup_value_regex = "[^/]+"
 
     def create(self, request):
         """Create a new contributor but return error response if contributor with email already exists.

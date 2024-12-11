@@ -29,7 +29,6 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
     """Viewset for switchboard to update contributors.
 
     Notes:
-
     """
 
     permission_classes = [IsSwitchboardAccount]

@@ -9,6 +9,7 @@ from apps.api.views import (
     SwitchboardLoginView,
     TokenObtainPairCookieView,
     VerifyContributorTokenView,
+    SwitchboardLoginView,
 )
 from apps.contributions.urls import urlpatterns as contributions_urlpatterns
 from apps.contributions.views.switchboard import SwitchboardContributionsViewSet, SwitchboardContributorsViewSet
@@ -16,7 +17,6 @@ from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
 from apps.users.urls import api_urlpatterns as users_urlpatterns
-
 
 switchboard_router = DefaultRouter()
 switchboard_router.register(r"contributions", SwitchboardContributionsViewSet, basename="switchboard-contribution")

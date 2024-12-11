@@ -3,20 +3,24 @@ import logging
 from dataclasses import asdict
 from urllib.parse import quote_plus, urlparse
 
+from django.contrib.auth import login
 from django.conf import settings
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
+
 from knox.views import LoginView
 from rest_framework import permissions, status
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
 from rest_framework_simplejwt import views as simplejwt_views
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.authentication import BasicAuthentication
 
 from apps.api.authentication import ShortLivedTokenAuthentication
 from apps.api.permissions import IsSwitchboardAccount
@@ -241,11 +245,6 @@ class VerifyContributorTokenView(APIView):
         }
 
         return response
-
-
-from django.contrib.auth import login
-
-from rest_framework.authtoken.serializers import AuthTokenSerializer
 
 
 class SwitchboardLoginView(LoginView):

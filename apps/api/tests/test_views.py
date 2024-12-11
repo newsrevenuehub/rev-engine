@@ -621,12 +621,17 @@ class TestAuthorizedContributor:
 
 
 @pytest.mark.django_db
-class TestBearerAuthToken:
-    @pytest.mark.parametrize("is_switchboard_user", [True, False])
-    def test_create_token(self, is_switchboard_user, api_client, superuser_with_pw, switchboard_user):
-        user = switchboard_user if is_switchboard_user else superuser_with_pw
-        pw = "password" if is_switchboard_user else KNOWN_PASSWORD
-        response = api_client.post(reverse("switchboard-token-auth"), {"username": user.email, "password": pw})
-        assert response.status_code == (200 if is_switchboard_user else 403)
-        if is_switchboard_user:
-            assert response.json()["token"]
+class TestSwitchboardLoginView:
+    @pytest.fixture
+    def url(self):
+        return reverse("switchboard-login")
+
+    def test_response_when_valid_credentials(self, url, switchboard_user, switchboard_password, api_client):
+        response = api_client.post(url, {"username": switchboard_user.email, "password": switchboard_password})
+        assert response.status_code == 200
+        assert set(response.data.keys()) == {"expiry", "token"}
+
+    def test_response_when_invalid_credentials(self, url, api_client):
+        response = api_client.post(url, {"username": "invalid_email", "password": "invalid_password"})
+        assert response.status_code == 400
+        assert response.json()["non_field_errors"][0] == "Unable to log in with provided credentials."

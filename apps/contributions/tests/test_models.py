@@ -18,6 +18,7 @@ import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
+from apps.common.utils import CREATED, LEFT_UNCHANGED
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
     BillingHistoryItem,
@@ -34,7 +35,6 @@ from apps.contributions.models import (
     send_thank_you_email,
 )
 from apps.contributions.serializers import STRIPE_MAX_AMOUNT
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -229,6 +229,21 @@ class TestContributorModel:
     def test_create_magic_link_with_invalid_values(self, value):
         with pytest.raises(ValueError, match="Invalid value provided for `contribution`"):
             Contributor.create_magic_link(value)
+
+    @pytest.mark.parametrize("pre_exists", [True, False])
+    def test_get_or_create_contributor_by_email_case_insensitivity(self, pre_exists):
+        email = "test_get_or_create@fundjournalism.org"
+        if pre_exists:
+            pre_existing = ContributorFactory(email=email.upper())
+        contributor, action = Contributor.get_or_create_contributor_by_email(email)
+        if pre_exists:
+            assert contributor == pre_existing
+            assert action == LEFT_UNCHANGED
+        else:
+            assert action == CREATED
+        assert isinstance(contributor, Contributor)
+        assert contributor.email.lower() == email.lower()
+        assert Contributor.objects.filter(email__iexact=email).count() == 1
 
 
 test_key = "test_key"
@@ -2111,41 +2126,6 @@ class TestContributionQuerySetMethods:
         assert returned_recurring.count() == recurring.count()
         assert set(returned_recurring.values_list("id", flat=True)) == set(recurring.values_list("id", flat=True))
 
-    def test_filter_queryset_for_contributor_when_cache_empty(
-        self, contributor_user, revenue_program, mocker, monkeypatch
-    ):
-        """Show behavior of this method when no results in cache."""
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            lambda *args, **kwargs: [],
-        )
-        monkeypatch.setattr(
-            "apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay",
-            lambda *args, **kwargs: None,
-        )
-        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
-        results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-        assert results == []
-        spy.assert_called_once_with(contributor_user.email, revenue_program.stripe_account_id)
-
-    def test_filter_queryset_for_contributor_when_cache_not_empty(
-        self, contributor_user, revenue_program, mocker, pi_as_portal_contribution_factory
-    ):
-        """Show behavior of this method when results in cache."""
-        results = [
-            (pi_1 := pi_as_portal_contribution_factory.get(revenue_program=revenue_program.slug)),
-            pi_as_portal_contribution_factory.get(revenue_program=revenue_program.slug, payment_type=None),
-            pi_as_portal_contribution_factory.get(revenue_program="something-different"),
-        ]
-        mocker.patch(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load", return_value=results
-        )
-        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
-        results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-        # the results contain one that's got wrong rp slug, and another with no payment type, so only should get one back
-        assert {pi_1.id} == {item.id for item in results}
-        spy.assert_not_called()
-
     @pytest.fixture
     def abandoned_contribution(self):
         return ContributionFactory(abandoned=True)
@@ -2177,39 +2157,6 @@ class TestContributionQuerySetMethods:
             refunded_contribution.id,
             successful_contribution.id,
         }
-
-    def test_filter_queryset_for_contributor_excludes_statuses_other_than_paid(
-        self, contributor_user, revenue_program, mocker, pi_as_portal_contribution_factory
-    ):
-        mocker.patch(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            return_value=[
-                pi_as_portal_contribution_factory.get(
-                    revenue_program=revenue_program.slug, status=ContributionStatus.CANCELED
-                ),
-                pi_as_portal_contribution_factory.get(
-                    revenue_program=revenue_program.slug, status=ContributionStatus.FLAGGED
-                ),
-                (
-                    paid := pi_as_portal_contribution_factory.get(
-                        revenue_program=revenue_program.slug, status=ContributionStatus.PAID
-                    )
-                ),
-                pi_as_portal_contribution_factory.get(
-                    revenue_program=revenue_program.slug, status=ContributionStatus.PROCESSING
-                ),
-                pi_as_portal_contribution_factory.get(
-                    revenue_program=revenue_program.slug, status=ContributionStatus.REFUNDED
-                ),
-                pi_as_portal_contribution_factory.get(
-                    revenue_program=revenue_program.slug, status=ContributionStatus.REJECTED
-                ),
-            ],
-        )
-        mocker.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
-        results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-        assert len(results) == 1
-        assert results[0].id == paid.id
 
     @pytest.mark.usefixtures("not_unmarked_abandoned_contributions")
     def test_unmarked_abandoned_carts(self, unmarked_abandoned_contributions):

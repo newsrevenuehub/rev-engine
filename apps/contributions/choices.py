@@ -23,38 +23,6 @@ class ContributionStatus(TextChoices):
     ABANDONED = "abandoned", "abandoned"
 
 
-class CardBrand(TextChoices):
-    AMEX = "amex", "Amex"
-    DINERS = "diners", "Diners"
-    DISCOVER = "discover", "Discover"
-    JCB = "jcb", "JCB"
-    MASTERCARD = "mastercard", "Mastercard"
-    UNIONPAY = "unionpay", "UnionPay"
-    VISA = "visa", "Visa"
-    UNKNOWN = "unknown", "Unknown"
-
-
-class PaymentType(TextChoices):
-    ACH_CREDIT_TRANSFER = "ach_credit_transfer", "ACH Credit Transfer"
-    ACH_DEBIT = "ach_debit", "ACH Debit"
-    ACSS_DEBIT = "acss_debit", "ACSS Debit"
-    ALIPAY = "alipay", "AliPay"
-    AU_BECS_DEBIT = "au_becs_debit", "AU BECS Debit"
-    BANCONTACT = "bancontact", "Bancontact"
-    CARD = "card", "Card"
-    CARD_PRESENT = "card_present", "Card Present"
-    EPS = "eps", "EPS"
-    GIROPAY = "giropay", "Giropay"
-    IDEAL = "ideal", "Ideal"
-    KLARNA = "klarna", "Klarna"
-    MULTIBANCO = "multibanco", "Multibanco"
-    P24 = "p24", "p24"
-    SEPA_DEBIT = "sepa_debit", "Sepa Debit"
-    SOFORT = "sofort", "Sofort"
-    STRIPE_ACCOUNT = "stripe_account", "Stripe Account"
-    WECHAT = "wechat", "WeChat"
-
-
 class BadActorScores(IntegerChoices):
     INFORMATION = 0, "0 - Information"
     UNKNOWN = 1, "1 - Unknown"

@@ -622,6 +622,7 @@ class TestAuthorizedContributor:
 
 @pytest.mark.django_db
 class TestSwitchboardLoginView:
+
     @pytest.fixture
     def url(self):
         return reverse("switchboard-login")
@@ -633,7 +634,9 @@ class TestSwitchboardLoginView:
         return hub_admin_user
 
     def test_response_when_valid_credentials(self, url, switchboard_user, default_password, api_client):
-        response = api_client.post(url, {"username": switchboard_user.email, "password": default_password})
+        response = api_client.post(
+            url, {"username": switchboard_user.email, "password": default_password}, format="json"
+        )
         assert response.status_code == 200
         assert set(response.data.keys()) == {"expiry", "token"}
 

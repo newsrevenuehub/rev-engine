@@ -153,6 +153,7 @@ class TestSwitchboardContributionsViewSet:
             False,
         ],
     )
+    @pytest.mark.parametrize("url", ["switchboard-contribution-detail", "switchboard-contribution-deprecated-detail"])
     def test_update_revenue_program_happy_path(
         self,
         request_has_revenue_program,
@@ -162,6 +163,7 @@ class TestSwitchboardContributionsViewSet:
         rp_1,
         contribution,
         switchboard_user,
+        url,
     ):
         body = {"revenue_program": rp_2.id} if request_has_revenue_program else {}
         if not instance_has_donation_page:
@@ -169,7 +171,7 @@ class TestSwitchboardContributionsViewSet:
             contribution._revenue_program = rp_1
             contribution.save()
         api_client.force_authenticate(switchboard_user)
-        response = api_client.patch(reverse("switchboard-contribution-detail", args=(contribution.id,)), data=body)
+        response = api_client.patch(reverse(url, args=(contribution.id,)), data=body)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         if request_has_revenue_program:

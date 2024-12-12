@@ -93,7 +93,8 @@ class TestContributionSerializer:
             "revenue_program",
             "status",
         ]
-        # This serializer is called by ContributionsViewSet, which annotates its queryset with first_payment_date.
+        # In real life, this serializer is called by ContributionsViewSet, which
+        # annotates its queryset with first_payment_date.
         serialized = serializers.ContributionSerializer(
             instance=Contribution.objects.all().with_first_payment_date().filter(id=one_time_contribution.id).first()
         )

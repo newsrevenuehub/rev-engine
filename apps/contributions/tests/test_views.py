@@ -220,6 +220,9 @@ class TestContributionsViewSet:
                     cls=DjangoJSONEncoder,
                 )
             )
+            # This specific assert is to ensure that this field appears, because
+            # it's not an inherent feature of the serializer.
+            assert "first_payment_date" in response.json()
         for id_ in unpermitted.values_list("id", flat=True):
             response = api_client.get(reverse("contribution-detail", args=(id_,)))
             assert response.status_code == status.HTTP_404_NOT_FOUND

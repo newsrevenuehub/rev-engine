@@ -186,21 +186,18 @@ export function usePayment() {
     },
     [createPaymentMutation]
   );
-  const deletePaymentMutation = useMutation(() =>
-    axios.delete(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${payment?.uuid}/`, {
-      headers: { [CSRF_HEADER]: cookies.csrftoken }
-    })
-  );
-  const deletePayment = useCallback(
+  const deletePaymentMutation = useMutation(
     () =>
-      deletePaymentMutation.mutateAsync(undefined, {
-        onSuccess: () => setPayment(undefined)
+      axios.delete(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${payment?.uuid}/`, {
+        headers: { [CSRF_HEADER]: cookies.csrftoken }
       }),
-    [deletePaymentMutation]
+    {
+      onSuccess: () => setPayment(undefined)
+    }
   );
 
   if (payment) {
-    return { payment, deletePayment };
+    return { payment, deletePaymentMutation };
   }
 
   return { createPayment, isLoading: createPaymentMutation.isLoading };

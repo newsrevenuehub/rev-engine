@@ -746,6 +746,44 @@ describe('User flow: canceling contribution', () => {
     });
   });
 
+  specify.only('double-clicking the cancel button', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.intercept(
+      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${fakeContributionUuid}/`) },
+      { statusCode: 204 }
+    ).as('cancel-payment');
+    cy.interceptStripeApi();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
+    cy.wait('@create-subscription-payment');
+    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).dblclick();
+    cy.wait('@cancel-payment');
+
+    // Test that we're able to re-do the payment.
+
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
+    cy.wait('@create-subscription-payment');
+    cy.window()
+      .its('stripe')
+      .then((stripe) => cy.spy(stripe, 'confirmPayment').as('stripe-confirm-payment'));
+    cy.get('form #stripe-payment-element');
+    cy.findByRole('button', { name: 'Give 🍁10.53 CAD monthly' }).click();
+    cy.get('@stripe-confirm-payment').should((x) => expect(x).to.be.calledOnce);
+  });
+
   specify('when API request to cancel payment fails', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },

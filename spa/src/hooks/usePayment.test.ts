@@ -239,25 +239,25 @@ describe('usePayment', () => {
       expect(result.current.payment).toBeUndefined();
     });
 
-    it("doesn't return a deletePayment function", async () => {
+    it("doesn't return a deletePaymentMutation", async () => {
       const { result } = hook();
 
-      expect(result.current.deletePayment).toBeUndefined();
+      expect(result.current.deletePaymentMutation).toBeUndefined();
     });
   });
 
   describe('After creating a payment', () => {
-    describe('The deletePayment function it returns', () => {
+    describe('The deletePaymentMutation it returns', () => {
       it('DELETEs to /payments', async () => {
         const { result } = hook();
 
-        expect(result.current.deletePayment).toBeUndefined();
+        expect(result.current.deletePaymentMutation).toBeUndefined();
         await act(async () => {
           await result.current.createPayment!(mockFormData, mockPage);
         });
-        expect(result.current.deletePayment).not.toBeUndefined();
+        expect(result.current.deletePaymentMutation).not.toBeUndefined();
         await act(async () => {
-          await result.current.deletePayment!();
+          await result.current.deletePaymentMutation!.mutateAsync();
         });
         expect(axiosMock.history.delete.length).toBe(1);
         expect(axiosMock.history.delete[0].url).toBe('payments/mock-payment-uuid/');
@@ -270,7 +270,7 @@ describe('usePayment', () => {
           await result.current.createPayment!(mockFormData, mockPage);
         });
         await act(async () => {
-          await result.current.deletePayment!();
+          await result.current.deletePaymentMutation!.mutateAsync();
         });
         expect(axiosMock.history.delete?.[0]?.headers?.['X-CSRFTOKEN']).toBe('mock-csrf-token');
       });
@@ -289,7 +289,7 @@ describe('usePayment', () => {
         await act(async () => {
           await result.current.createPayment!(mockFormData, mockPage);
         });
-        await expect(result.current.deletePayment!()).rejects.toThrow();
+        await expect(result.current.deletePaymentMutation?.mutateAsync()).rejects.toThrow();
         errorSpy.mockReset();
       });
     });
@@ -348,7 +348,7 @@ describe('usePayment', () => {
       });
       expect(result.current.createPayment).toBeUndefined();
       await act(async () => {
-        await result.current.deletePayment!();
+        await result.current.deletePaymentMutation!.mutateAsync();
       });
       expect(result.current.createPayment).not.toBeUndefined();
     });
@@ -361,22 +361,22 @@ describe('usePayment', () => {
       });
       expect(result.current.payment).not.toBeUndefined();
       await act(async () => {
-        await result.current.deletePayment!();
+        await result.current.deletePaymentMutation!.mutateAsync();
       });
       expect(result.current.payment).toBeUndefined();
     });
 
-    it("doesn't return a deletePayment function", async () => {
+    it("doesn't return a deletePaymentMutation", async () => {
       const { result } = hook();
 
       await act(async () => {
         await result.current.createPayment!(mockFormData, mockPage);
       });
-      expect(result.current.deletePayment).not.toBeUndefined();
+      expect(result.current.deletePaymentMutation).not.toBeUndefined();
       await act(async () => {
-        await result.current.deletePayment!();
+        await result.current.deletePaymentMutation!.mutateAsync();
       });
-      expect(result.current.deletePayment).toBeUndefined();
+      expect(result.current.deletePaymentMutation).toBeUndefined();
     });
   });
 });

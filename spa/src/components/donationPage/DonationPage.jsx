@@ -54,7 +54,7 @@ function DonationPage({ page, live = false }, ref) {
   });
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
   const [mailingCountry, setMailingCountry] = useState();
-  const { createPayment, deletePayment, isLoading: paymentIsLoading, payment } = usePayment();
+  const { createPayment, deletePaymentMutation, isLoading: paymentIsLoading, payment } = usePayment();
   const { auditAmountChange, auditFrequencyChange, auditPayFeesChange, auditPaymentCreation } = useAmountAuditing();
 
   // Whenever amount, frequency, or fees changes, track it.
@@ -173,29 +173,31 @@ function DonationPage({ page, live = false }, ref) {
   }
 
   async function handleCompleteContributionCancel() {
-    if (deletePayment) {
+    if (deletePaymentMutation) {
       try {
-        await deletePayment();
+        await deletePaymentMutation.mutateAsync();
       } catch (error) {
-        // calling console.error will create a Sentry error.
+        // Log it for Sentry.
+
         console.error(error);
         alert.error(t('donationPage.mainPage.cancelPaymentFailureMessage'));
       }
     }
   }
 
-  function handleCompleteContributionError() {
-    if (deletePayment) {
-      try {
-        deletePayment();
-      } catch (error) {
-        // Log it for Sentry but continue with error handling.
-        console.error(error);
-      }
-    }
+  async function handleCompleteContributionError() {
+    // Display the error immediately and delete the payment in the background.
 
     setDisplayErrorFallback(true);
     alert.error(t('common.error.generic'));
+
+    try {
+      await deletePaymentMutation.mutateAsync();
+    } catch (error) {
+      // Log it for Sentry.
+
+      console.error(error);
+    }
   }
 
   return (
@@ -254,6 +256,7 @@ function DonationPage({ page, live = false }, ref) {
                 )}
                 {payment && !displayErrorFallback && (
                   <FinishPaymentModal
+                    cancelDisabled={deletePaymentMutation?.isLoading}
                     locale={page.locale}
                     onCancel={handleCompleteContributionCancel}
                     onError={handleCompleteContributionError}

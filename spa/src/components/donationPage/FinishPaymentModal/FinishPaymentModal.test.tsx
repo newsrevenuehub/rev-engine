@@ -39,13 +39,29 @@ describe('FinishPaymentModal', () => {
   });
 
   describe('When open', () => {
-    it('shows a back button which calls the onCancel prop when clicked', () => {
+    it('shows an enabled back button which calls the onCancel prop when clicked', () => {
       const onCancel = jest.fn();
 
       tree({ onCancel });
       expect(onCancel).not.toBeCalled();
-      fireEvent.click(screen.getByRole('button', { name: 'common.actions.back' }));
+
+      const cancelButton = screen.getByRole('button', { name: 'common.actions.back' });
+
+      expect(cancelButton).not.toBeDisabled();
+      fireEvent.click(cancelButton);
       expect(onCancel).toBeCalledTimes(1);
+    });
+
+    it('disables the back button if the cancelDisabled prop is true', () => {
+      const onCancel = jest.fn();
+
+      tree({ onCancel, cancelDisabled: true });
+      expect(onCancel).not.toBeCalled();
+      const cancelButton = screen.getByRole('button', { name: 'common.actions.back' });
+
+      expect(cancelButton).toBeDisabled();
+      fireEvent.click(cancelButton);
+      expect(onCancel).not.toBeCalled();
     });
 
     it('shows a Stripe payment wrapper configured with the onError prop passed and Stripe details in the payment prop', () => {

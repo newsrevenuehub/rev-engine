@@ -626,8 +626,14 @@ class TestSwitchboardLoginView:
     def url(self):
         return reverse("switchboard-login")
 
-    def test_response_when_valid_credentials(self, url, switchboard_user, switchboard_password, api_client):
-        response = api_client.post(url, {"username": switchboard_user.email, "password": switchboard_password})
+    @pytest.fixture
+    def hub_admin_user(self, hub_admin_user, default_password):
+        hub_admin_user.set_password(default_password)
+        hub_admin_user.save()
+        return hub_admin_user
+
+    def test_response_when_valid_credentials(self, url, switchboard_user, default_password, api_client):
+        response = api_client.post(url, {"username": switchboard_user.email, "password": default_password})
         assert response.status_code == 200
         assert set(response.data.keys()) == {"expiry", "token"}
 
@@ -635,3 +641,7 @@ class TestSwitchboardLoginView:
         response = api_client.post(url, {"username": "invalid_email", "password": "invalid_password"})
         assert response.status_code == 400
         assert response.json()["non_field_errors"][0] == "Unable to log in with provided credentials."
+
+    def test_when_valid_credentials_for_non_switchboard_user(self, url, api_client, default_password, hub_admin_user):
+        response = api_client.post(url, {"username": hub_admin_user.email, "password": default_password})
+        assert response.status_code == 403

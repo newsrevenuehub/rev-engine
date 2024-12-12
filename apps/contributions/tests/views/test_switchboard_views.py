@@ -27,7 +27,7 @@ class TestSwitchboardContributorsViewSet:
         return AuthToken.objects.create(switchboard_user)[1]
 
     @pytest.fixture
-    def expired_token(self, api_client, switchboard_user, switchboard_password, monkeypatch, settings):
+    def expired_token(self, api_client, switchboard_user, default_password, monkeypatch, settings):
         token, token_string = AuthToken.objects.create(switchboard_user)
         token.expiry = now() - timedelta(days=1)
         token.save()

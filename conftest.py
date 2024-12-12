@@ -1057,11 +1057,11 @@ def bad_actor_super_bad_score(settings):
 
 
 @pytest.fixture
-def switchboard_password():
+def default_password():
     return "password"
 
 
 @pytest.fixture
-def switchboard_user(settings, switchboard_password):
+def switchboard_user(settings, default_password):
     settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
-    return UserFactory(email=email, password=switchboard_password)
+    return UserFactory(email=email, password=default_password)

@@ -11,7 +11,7 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from knox.views import LoginView
-from rest_framework import permissions, status
+from rest_framework import status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.response import Response
@@ -248,15 +248,12 @@ class VerifyContributorTokenView(APIView):
 class SwitchboardLoginView(LoginView):
     """Subclass of Knox's LoginView to check if user is switchboard account before login."""
 
-    permission_classes = [permissions.AllowAny]
-
+    permission_classes = [IsSwitchboardAccount]
     authentication_classes = [BasicAuthentication]
 
     def post(self, request, *args, **kwargs):
         serializer = AuthTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        if not IsSwitchboardAccount.user_has_permission(user):
-            return Response(status=status.HTTP_403_FORBIDDEN)
         login(request, user)
         return super().post(request, format=None)

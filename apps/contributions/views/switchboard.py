@@ -8,6 +8,7 @@ from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
 
+from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor
@@ -23,6 +24,9 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
     http_method_names = ["patch"]
     queryset = Contribution.objects.all()
     serializer_class = serializers.SwitchboardContributionSerializer
+    # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
+    # DEV-5571
+    authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -37,7 +41,9 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
     http_method_names = ["get", "post"]
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
-    authentication_classes = [TokenAuthentication]
+    # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
+    # DEV-5571
+    authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
     lookup_field = "email"
     lookup_url_kwarg = "email"
     lookup_value_regex = "[^/]+"

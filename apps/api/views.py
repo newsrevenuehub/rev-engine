@@ -257,6 +257,6 @@ class SwitchboardLoginView(LoginView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         if not IsSwitchboardAccount.user_has_permission(user):
-            return Response({"detail": "User is not switchboard account"}, status=status.HTTP_403_FORBIDDEN)
+            return Response(status=status.HTTP_403_FORBIDDEN)
         login(request, user)
         return super().post(request, format=None)

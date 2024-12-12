@@ -41,9 +41,7 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
     http_method_names = ["get", "post"]
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
-    # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
-    # DEV-5571
-    authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
+    authentication_classes = [TokenAuthentication]
     lookup_field = "email"
     lookup_url_kwarg = "email"
     lookup_value_regex = "[^/]+"

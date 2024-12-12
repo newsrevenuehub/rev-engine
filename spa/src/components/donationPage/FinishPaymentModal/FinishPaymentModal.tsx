@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { StripeElementLocale } from '@stripe/stripe-js';
 
 const FinishPaymentModalPropTypes = {
+  cancelDisabled: PropTypes.bool,
   onCancel: PropTypes.func.isRequired,
   onError: PropTypes.func,
   open: PropTypes.bool.isRequired,
@@ -31,7 +32,14 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
  * appropriate thank you page.
  * @see https://stripe.com/docs/payments/payment-element
  */
-export function FinishPaymentModal({ onCancel, onError, open, payment, locale }: FinishPaymentModalProps) {
+export function FinishPaymentModal({
+  cancelDisabled,
+  onCancel,
+  onError,
+  open,
+  payment,
+  locale
+}: FinishPaymentModalProps) {
   const { t } = useTranslation();
 
   return (
@@ -44,7 +52,7 @@ export function FinishPaymentModal({ onCancel, onError, open, payment, locale }:
       <Modal open={open}>
         <AlertProvider template={Alert} {...alertOptions}>
           <Root>
-            <BackButton onClick={onCancel}>
+            <BackButton disabled={!!cancelDisabled} onClick={onCancel}>
               <ChevronLeft />
               {t('common.actions.back')}
             </BackButton>

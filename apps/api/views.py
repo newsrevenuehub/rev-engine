@@ -4,7 +4,6 @@ from dataclasses import asdict
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
-from django.contrib.auth import login
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -13,7 +12,6 @@ from django.utils.safestring import mark_safe
 from knox.views import LoginView
 from rest_framework import status
 from rest_framework.authentication import BasicAuthentication
-from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
@@ -250,10 +248,3 @@ class SwitchboardLoginView(LoginView):
 
     permission_classes = [IsSwitchboardAccount]
     authentication_classes = [BasicAuthentication]
-
-    def post(self, request, *args, **kwargs):
-        serializer = AuthTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
-        login(request, user)
-        return super().post(request, format=None)

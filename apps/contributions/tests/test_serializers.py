@@ -95,6 +95,8 @@ class TestContributionSerializer:
         ]
         # In real life, this serializer is called by ContributionsViewSet, which
         # annotates its queryset with first_payment_date.
+        # test_retrieve_when_expected_non_contributor_user in test_views.py
+        # checks that.
         serialized = serializers.ContributionSerializer(
             instance=Contribution.objects.all().with_first_payment_date().filter(id=one_time_contribution.id).first()
         )

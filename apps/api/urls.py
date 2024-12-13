@@ -11,7 +11,11 @@ from apps.api.views import (
     VerifyContributorTokenView,
 )
 from apps.contributions.urls import urlpatterns as contributions_urlpatterns
-from apps.contributions.views.switchboard import SwitchboardContributionsViewSet, SwitchboardContributorsViewSet
+from apps.contributions.views.switchboard import (
+    SwitchboardContributionsViewSet,
+    SwitchboardContributorsViewSet,
+    contributor_by_email,
+)
 from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
@@ -33,6 +37,11 @@ urlpatterns = [
     path("v1/", include(organizations_urlpatterns)),
     path("v1/", include(pages_urlpatterns)),
     path("v1/", include(contributions_urlpatterns)),
+    re_path(
+        "v1/switchboard/contributors/email/(?P<email>[^/]+)/$",
+        contributor_by_email,
+        name="switchboard-contributor-by-email",
+    ),
     path("v1/", include(switchboard_urlpatterns)),
     path("v1/healthcheck", include("health_check.urls")),
     path("v1/public/", include(public_urlpatterns)),
@@ -40,6 +49,7 @@ urlpatterns = [
     path("v1/contrib-email/", RequestContributorTokenEmailView.as_view(), name="contributor-token-request"),
     path("v1/contrib-verify/", csrf_exempt(VerifyContributorTokenView.as_view()), name="contributor-verify-token"),
 ]
+
 
 if settings.ENABLE_API_BROWSER:  # pragma: no cover It is covered but the reimport confuses coverage.py
     from csp.decorators import csp_exempt

@@ -20,7 +20,8 @@ from apps.users.tests.factories import UserFactory
 
 
 @pytest.mark.django_db
-class TestSwitchboardContributorsViewSet:
+class TestSwitchboardContributorsViews:
+    """Tests for switchboard contributors views, for SwitchboardContributorsViewSet and related function-based views."""
 
     @pytest.fixture
     def token(self, switchboard_user):
@@ -56,12 +57,27 @@ class TestSwitchboardContributorsViewSet:
         return ContributorFactory()
 
     @pytest.mark.parametrize("exists", [True, False])
-    def test_retrieve(self, api_client, token, contributor, exists):
+    def test_retrieve_by_id(self, api_client, token, contributor, exists):
+        pk = contributor.id
+        if not exists:
+            contributor.delete()
+        response = api_client.get(
+            reverse("switchboard-contributor-detail", args=(pk,)),
+            headers={"Authorization": f"Token {token}"},
+        )
+        if exists:
+            assert response.status_code == status.HTTP_200_OK
+            assert response.json() == {"email": contributor.email, "id": pk}
+        else:
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize("exists", [True, False])
+    def test_retrieve_by_email(self, api_client, token, contributor, exists):
         email = contributor.email
         if not exists:
             contributor.delete()
         response = api_client.get(
-            reverse("switchboard-contributor-detail", args=(email,)),
+            reverse("switchboard-contributor-by-email", args=(email,)),
             headers={"Authorization": f"Token {token}"},
         )
         if exists:
@@ -71,10 +87,18 @@ class TestSwitchboardContributorsViewSet:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.fixture
-    def retrieve_config(self, contributor):
+    def retrieve_by_email_config(self, contributor):
         return {
             "method": "get",
-            "url": reverse("switchboard-contributor-detail", args=(contributor.email,)),
+            "url": reverse("switchboard-contributor-by-email", args=(contributor.email,)),
+            "data": None,
+        }
+
+    @pytest.fixture
+    def retrieve_by_id_config(self, contributor):
+        return {
+            "method": "get",
+            "url": reverse("switchboard-contributor-detail", args=(contributor.id,)),
             "data": None,
         }
 
@@ -82,7 +106,7 @@ class TestSwitchboardContributorsViewSet:
     def create_config(self, faker):
         return {"method": "post", "url": reverse("switchboard-contributor-list"), "data": {"email": faker.email()}}
 
-    @pytest.mark.parametrize("case_config", ["retrieve_config", "create_config"])
+    @pytest.mark.parametrize("case_config", ["retrieve_by_id_config", "create_config", "retrieve_by_email_config"])
     @pytest.mark.parametrize(("token_fixture", "expect_success"), [("token", True), ("expired_token", False)])
     def test_only_works_with_valid_token(self, case_config, token_fixture, expect_success, api_client, request):
         token = request.getfixturevalue(token_fixture)

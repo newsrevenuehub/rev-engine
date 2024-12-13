@@ -3,9 +3,12 @@
 import logging
 
 from django.conf import settings
+from django.http import HttpRequest
+from django.shortcuts import get_object_or_404
 
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
@@ -30,23 +33,15 @@ class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericV
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Viewset for switchboard to create and retrieve contributors.
-
-    Note that for this viewset, the lookup_field is email and the lookup_url_kwarg is email.
-    We need to add lookup_value_regex to ensure that the email can contain special characters. Note that
-    we don't guarantee that the email is valid, but that valid emails can pass through.
-    """
+    """Viewset for switchboard to create and retrieve contributors."""
 
     permission_classes = [IsSwitchboardAccount]
     http_method_names = ["get", "post"]
     queryset = Contributor.objects.all()
     serializer_class = serializers.SwitchboardContributorSerializer
     authentication_classes = [TokenAuthentication]
-    lookup_field = "email"
-    lookup_url_kwarg = "email"
-    lookup_value_regex = "[^/]+"
 
-    def create(self, request):
+    def create(self, request: HttpRequest) -> Response:
         """Create a new contributor but return error response if contributor with email already exists.
 
         NB: At time of implementation, there is a tension between this create method which checks for case insensitive
@@ -65,3 +60,13 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().create(request)
+
+
+@api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsSwitchboardAccount])
+def contributor_by_email(request: HttpRequest, email: str) -> Response:
+    """Retrieve a contributor by email."""
+    contributor = get_object_or_404(Contributor.objects.all(), email=email)
+    serializer = serializers.SwitchboardContributorSerializer(contributor)
+    return Response(serializer.data)

@@ -219,7 +219,7 @@ def upsert_payment_for_transaction(
 def parse_slug_from_url(url: str) -> str | None:
     """Parse RP slug, if any, from a given URL."""
     extracted = tldextract.extract(url)
-    parts = [_ for _ in [extracted.subdomain, extracted.domain] if _]
+    parts = filter(None, [extracted.subdomain, extracted.domain])
     if (query := f"{'.'.join(parts)}.{extracted.suffix}") not in (
         allowed := [*settings.HOST_MAP.keys(), settings.DOMAIN_APEX]
     ):

@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Table from './Table';
 import TableBody from './TableBody';
 import TableCell from './TableCell';
@@ -7,9 +7,9 @@ import TableRow from './TableRow';
 export default {
   component: Table,
   title: 'Base/Table'
-} as ComponentMeta<typeof Table>;
+} as Meta<typeof Table>;
 
-const Template: ComponentStory<typeof Table> = (props) => (
+const Template: StoryFn<typeof Table> = (props) => (
   <Table {...props}>
     <TableHead>
       <TableRow>

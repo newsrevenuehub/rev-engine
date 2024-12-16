@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import StyleButton from './StyleButton';
 
 export default {
   component: StyleButton,
   title: 'Common/Button/StyleButton'
-} as ComponentMeta<typeof StyleButton>;
+} as Meta<typeof StyleButton>;
 
-const Template: ComponentStory<typeof StyleButton> = (props) => <StyleButton {...props} />;
+const Template: StoryFn<typeof StyleButton> = (props) => <StyleButton {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

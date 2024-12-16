@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import CopyInputButton from '../Button/CopyInputButton';
 
 import SettingsSection from './SettingsSection';
@@ -6,9 +6,9 @@ import SettingsSection from './SettingsSection';
 export default {
   title: 'Common/SettingsSection',
   component: SettingsSection
-} as ComponentMeta<typeof SettingsSection>;
+} as Meta<typeof SettingsSection>;
 
-export const Default: ComponentStory<typeof SettingsSection> = (args) => (
+export const Default: StoryFn<typeof SettingsSection> = (args) => (
   <SettingsSection {...args}>
     <div style={{ gap: '10px', display: 'flex', flexDirection: 'column' }}>
       <CopyInputButton title="Mock input" link="mock-link" copied="mock-copied" setCopied={() => {}} />
@@ -24,7 +24,7 @@ Default.args = {
     'The status is used to calculate fees associated with contributions. For non-profits, tax ID (EIN) will be included on contributor receipts.'
 };
 
-export const NoBottomDivider: ComponentStory<typeof SettingsSection> = (args) => (
+export const NoBottomDivider: StoryFn<typeof SettingsSection> = (args) => (
   <SettingsSection {...args}>
     <div style={{ gap: '10px', display: 'flex', flexDirection: 'column' }}>
       <CopyInputButton title="Mock input" link="mock-link" copied="mock-copied" setCopied={() => {}} />
@@ -39,7 +39,7 @@ NoBottomDivider.args = {
   hideBottomDivider: true
 };
 
-export const HeaderOnly: ComponentStory<typeof SettingsSection> = (args) => <SettingsSection {...args} />;
+export const HeaderOnly: StoryFn<typeof SettingsSection> = (args) => <SettingsSection {...args} />;
 
 HeaderOnly.args = {
   orientation: 'horizontal',

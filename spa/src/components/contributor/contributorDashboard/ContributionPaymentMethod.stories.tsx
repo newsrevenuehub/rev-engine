@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { ContributorContribution } from 'hooks/useContributorContributionList';
 import ContributionPaymentMethod from './ContributionPaymentMethod';
 
 export default {
   component: ContributionPaymentMethod,
   title: 'Contributor/ContributionPaymentMethod'
-} as ComponentMeta<typeof ContributionPaymentMethod>;
+} as Meta<typeof ContributionPaymentMethod>;
 
 const testContribution: ContributorContribution = {
   amount: 123,
@@ -25,7 +25,7 @@ const testContribution: ContributorContribution = {
   status: 'paid'
 };
 
-const Template: ComponentStory<typeof ContributionPaymentMethod> = (props) => <ContributionPaymentMethod {...props} />;
+const Template: StoryFn<typeof ContributionPaymentMethod> = (props) => <ContributionPaymentMethod {...props} />;
 
 export const OneTime = Template.bind({});
 

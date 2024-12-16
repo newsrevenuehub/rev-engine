@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import DonationPageFooter from './DonationPageFooter';
 
 export default {
   component: DonationPageFooter,
   title: 'Donation Page/DonationPageFooter'
-} as ComponentMeta<typeof DonationPageFooter>;
+} as Meta<typeof DonationPageFooter>;
 
-const Template: ComponentStory<typeof DonationPageFooter> = (props) => <DonationPageFooter {...props} />;
+const Template: StoryFn<typeof DonationPageFooter> = (props) => <DonationPageFooter {...props} />;
 
 export const Default = Template.bind({});
 

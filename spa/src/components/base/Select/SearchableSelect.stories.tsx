@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import SearchableSelect from './SearchableSelect';
 
 export default {
   title: 'Base/Select/SearchableSelect',
   component: SearchableSelect
-} as ComponentMeta<typeof SearchableSelect>;
+} as Meta<typeof SearchableSelect>;
 
-const Template: ComponentStory<typeof SearchableSelect> = (args: any) => (
+const Template: StoryFn<typeof SearchableSelect> = (args: any) => (
   <SearchableSelect
     label="Color"
     getOptionLabel={({ label }: { label: string }) => label}

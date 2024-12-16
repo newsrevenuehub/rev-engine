@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 import BackButton from './BackButton';
 
 export default {
   title: 'Common/Button/BackButton',
   component: BackButton
-} as ComponentMeta<typeof BackButton>;
+} as Meta<typeof BackButton>;
 
-export const Default: ComponentStory<typeof BackButton> = (args) => <BackButton {...args} />;
+export const Default: StoryFn<typeof BackButton> = (args) => <BackButton {...args} />;
 Default.args = {};

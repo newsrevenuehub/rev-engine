@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import TokenError from './TokenError';
 
 export default {
   component: TokenError,
   title: 'Contributor/TokenError'
-} as ComponentMeta<typeof TokenError>;
+} as Meta<typeof TokenError>;
 
-const Template: ComponentStory<typeof TokenError> = () => <TokenError />;
+const Template: StoryFn<typeof TokenError> = () => <TokenError />;
 
 export const Default = Template.bind({});

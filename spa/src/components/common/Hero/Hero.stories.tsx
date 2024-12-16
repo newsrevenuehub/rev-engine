@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Hero from './Hero';
 
 const args = {
@@ -11,15 +11,15 @@ const args = {
 export default {
   title: 'Common/Hero',
   component: Hero
-} as ComponentMeta<typeof Hero>;
+} as Meta<typeof Hero>;
 
-export const Default: ComponentStory<typeof Hero> = Hero.bind({});
+export const Default: StoryFn<typeof Hero> = Hero.bind({});
 
 Default.args = {
   ...args
 };
 
-export const ShowExport: ComponentStory<typeof Hero> = Hero.bind({});
+export const ShowExport: StoryFn<typeof Hero> = Hero.bind({});
 
 ShowExport.args = {
   ...args,
@@ -29,7 +29,7 @@ ShowExport.args = {
   }
 };
 
-export const ShowExportWithZeroTransactions: ComponentStory<typeof Hero> = Hero.bind({});
+export const ShowExportWithZeroTransactions: StoryFn<typeof Hero> = Hero.bind({});
 
 ShowExportWithZeroTransactions.args = {
   ...args,
@@ -39,7 +39,7 @@ ShowExportWithZeroTransactions.args = {
   }
 };
 
-export const NoSearch: ComponentStory<typeof Hero> = Hero.bind({});
+export const NoSearch: StoryFn<typeof Hero> = Hero.bind({});
 
 NoSearch.args = {
   ...args,

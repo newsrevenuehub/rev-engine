@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import PreviewButton from './PreviewButton';
 
 export default {
   component: PreviewButton,
   title: 'Common/Button/PreviewButton'
-} as ComponentMeta<typeof PreviewButton>;
+} as Meta<typeof PreviewButton>;
 
-const Template: ComponentStory<typeof PreviewButton> = (props) => <PreviewButton {...props} />;
+const Template: StoryFn<typeof PreviewButton> = (props) => <PreviewButton {...props} />;
 
 export const Default = Template.bind({});
 

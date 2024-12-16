@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { Button } from 'components/base';
 import { useState } from 'react';
 import PublishedPopover from './PublishedPopover';
@@ -6,9 +6,9 @@ import PublishedPopover from './PublishedPopover';
 export default {
   component: PublishedPopover,
   title: 'Common/Modal/PublishedPopover'
-} as ComponentMeta<typeof PublishedPopover>;
+} as Meta<typeof PublishedPopover>;
 
-const Template: ComponentStory<typeof PublishedPopover> = (props) => {
+const Template: StoryFn<typeof PublishedPopover> = (props) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   return (

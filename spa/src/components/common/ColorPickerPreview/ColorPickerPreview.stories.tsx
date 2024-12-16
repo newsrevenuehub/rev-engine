@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 import ColorPickerPreview from './ColorPickerPreview';
 
 export default {
   title: 'Common/ColorPickerPreview',
   component: ColorPickerPreview
-} as ComponentMeta<typeof ColorPickerPreview>;
+} as Meta<typeof ColorPickerPreview>;
 
-export const Default: ComponentStory<typeof ColorPickerPreview> = (args) => <ColorPickerPreview {...args} />;
+export const Default: StoryFn<typeof ColorPickerPreview> = (args) => <ColorPickerPreview {...args} />;
 
 Default.args = {
   headerColor: '#000000',

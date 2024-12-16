@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ReasonEditor from './ReasonEditor';
 
 export default {
   component: ReasonEditor,
   title: 'ElementEditors/ReasonEditor'
-} as ComponentMeta<typeof ReasonEditor>;
+} as Meta<typeof ReasonEditor>;
 
-const Template: ComponentStory<typeof ReasonEditor> = (props) => <ReasonEditor {...props} />;
+const Template: StoryFn<typeof ReasonEditor> = (props) => <ReasonEditor {...props} />;
 
 export const Empty = Template.bind({});
 Empty.args = {

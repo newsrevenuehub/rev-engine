@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import EnginePlanBadge from './EnginePlanBadge';
 
 export default {
@@ -13,8 +13,8 @@ export default {
       options: ['FREE', 'CORE', 'PLUS']
     }
   }
-} as ComponentMeta<typeof EnginePlanBadge>;
+} as Meta<typeof EnginePlanBadge>;
 
-const Template: ComponentStory<typeof EnginePlanBadge> = (props) => <EnginePlanBadge {...props} />;
+const Template: StoryFn<typeof EnginePlanBadge> = (props) => <EnginePlanBadge {...props} />;
 
 export const Default = Template.bind({});

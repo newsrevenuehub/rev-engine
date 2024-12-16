@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import AmountItem from './AmountItem';
 
 export default {
   component: AmountItem,
   title: 'ElementEditors/AmountItem'
-} as ComponentMeta<typeof AmountItem>;
+} as Meta<typeof AmountItem>;
 
-const Template: ComponentStory<typeof AmountItem> = (props) => <AmountItem {...props} />;
+const Template: StoryFn<typeof AmountItem> = (props) => <AmountItem {...props} />;
 
 export const Normal = Template.bind({});
 Normal.args = {

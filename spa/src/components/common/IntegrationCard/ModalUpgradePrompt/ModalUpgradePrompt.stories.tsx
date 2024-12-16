@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ModalUpgradePrompt from './ModalUpgradePrompt';
 
 export default {
   component: ModalUpgradePrompt,
   title: 'Common/IntegrationCard/ModalUpgradePrompt'
-} as ComponentMeta<typeof ModalUpgradePrompt>;
+} as Meta<typeof ModalUpgradePrompt>;
 
-const Template: ComponentStory<typeof ModalUpgradePrompt> = (props) => <ModalUpgradePrompt {...props} />;
+const Template: StoryFn<typeof ModalUpgradePrompt> = (props) => <ModalUpgradePrompt {...props} />;
 
 export const Default = Template.bind({});
 

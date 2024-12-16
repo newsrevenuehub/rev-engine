@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { useState } from 'react';
 import Tab from './Tab';
 import TabPanel from './TabPanel';
@@ -14,9 +14,9 @@ export default {
       }
     }
   }
-} as ComponentMeta<typeof Tabs>;
+} as Meta<typeof Tabs>;
 
-const Template: ComponentStory<typeof Tabs> = () => {
+const Template: StoryFn<typeof Tabs> = () => {
   const tabNames = ['Red', 'Green', 'Blue'];
   const [tab, setTab] = useState(0);
 

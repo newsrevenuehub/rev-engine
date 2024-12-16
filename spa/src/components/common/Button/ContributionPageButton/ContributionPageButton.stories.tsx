@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ContributionPageButton from './ContributionPageButton';
 
 const sampleImage = `data:image/svg+xml;base64,${window.btoa(`
@@ -23,9 +23,9 @@ const samplePage: any = {
 export default {
   component: ContributionPageButton,
   title: 'Common/Button/ContributionPageButton'
-} as ComponentMeta<typeof ContributionPageButton>;
+} as Meta<typeof ContributionPageButton>;
 
-const Template: ComponentStory<typeof ContributionPageButton> = (props) => <ContributionPageButton {...props} />;
+const Template: StoryFn<typeof ContributionPageButton> = (props) => <ContributionPageButton {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

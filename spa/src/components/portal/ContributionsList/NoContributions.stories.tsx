@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import NoContributions from './NoContributions';
 
 export default {
   component: NoContributions,
   title: 'Contributor/NoContributions'
-} as ComponentMeta<typeof NoContributions>;
+} as Meta<typeof NoContributions>;
 
-const Template: ComponentStory<typeof NoContributions> = () => <NoContributions />;
+const Template: StoryFn<typeof NoContributions> = () => <NoContributions />;
 
 export const Default = Template.bind({});

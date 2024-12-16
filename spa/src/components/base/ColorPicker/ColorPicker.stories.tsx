@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { useState } from 'react';
 import ColorPicker from './ColorPicker';
 
 export default {
   component: ColorPicker,
   title: 'Base/ColorPicker'
-} as ComponentMeta<typeof ColorPicker>;
+} as Meta<typeof ColorPicker>;
 
-const Template: ComponentStory<typeof ColorPicker> = (props) => <ColorPicker {...props} />;
+const Template: StoryFn<typeof ColorPicker> = (props) => <ColorPicker {...props} />;
 
 export const Blue = Template.bind({});
 
@@ -33,7 +33,7 @@ White.args = {
   value: '#ffffff'
 };
 
-const ControlledTemplate: ComponentStory<typeof ColorPicker> = (props) => {
+const ControlledTemplate: StoryFn<typeof ColorPicker> = (props) => {
   const [value, setValue] = useState('');
 
   return <ColorPicker {...props} onChange={setValue} value={value} />;

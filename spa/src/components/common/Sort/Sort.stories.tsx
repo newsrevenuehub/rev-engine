@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Sort from './Sort';
 
 export default {
   title: 'Common/Sort',
   component: Sort
-} as ComponentMeta<typeof Sort>;
+} as Meta<typeof Sort>;
 
-export const Default: ComponentStory<typeof Sort> = Sort.bind({});
+export const Default: StoryFn<typeof Sort> = Sort.bind({});
 
 Default.args = {
   options: [

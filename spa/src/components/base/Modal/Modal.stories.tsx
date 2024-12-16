@@ -1,5 +1,5 @@
 import { Face } from '@material-ui/icons';
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Button from '../Button/Button';
 import { Modal } from './Modal';
 import { ModalContent } from './ModalContent';
@@ -17,9 +17,9 @@ export default {
   },
   component: Modal,
   title: 'Base/Modal'
-} as ComponentMeta<typeof Modal>;
+} as Meta<typeof Modal>;
 
-const CloseableTemplate: ComponentStory<typeof Modal> = (args) => (
+const CloseableTemplate: StoryFn<typeof Modal> = (args) => (
   <Modal width={400} {...args}>
     <ModalHeader icon={<Face />} onClose={() => {}}>
       <strong>Modal Header</strong>
@@ -37,7 +37,7 @@ const CloseableTemplate: ComponentStory<typeof Modal> = (args) => (
 
 export const Closeable = CloseableTemplate.bind({});
 
-const UncloseableTemplate: ComponentStory<typeof Modal> = (args) => (
+const UncloseableTemplate: StoryFn<typeof Modal> = (args) => (
   <Modal width={400} {...args}>
     <ModalHeader icon={<Face />}>
       <strong>Modal Header</strong>
@@ -55,7 +55,7 @@ const UncloseableTemplate: ComponentStory<typeof Modal> = (args) => (
 
 export const Uncloseable = UncloseableTemplate.bind({});
 
-const CloseableTallTitleTemplate: ComponentStory<typeof Modal> = (args) => (
+const CloseableTallTitleTemplate: StoryFn<typeof Modal> = (args) => (
   <Modal width={400} {...args}>
     <ModalHeader icon={<Face />} onClose={() => {}}>
       <strong>Modal Header</strong>

@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Link from './Link';
 
 export default {
   component: Link,
   title: 'Base/Link'
-} as ComponentMeta<typeof Link>;
+} as Meta<typeof Link>;
 
-const Template: ComponentStory<typeof Link> = (props) => (
+const Template: StoryFn<typeof Link> = (props) => (
   <p>
     A paragraph with <Link {...props}>a link</Link> inside it.
   </p>

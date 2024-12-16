@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 import StripeLogo from 'assets/images/stripe.png';
 import IntegrationCard from './IntegrationCard';
@@ -6,9 +6,9 @@ import IntegrationCard from './IntegrationCard';
 export default {
   title: 'Common/IntegrationCard',
   component: IntegrationCard
-} as ComponentMeta<typeof IntegrationCard>;
+} as Meta<typeof IntegrationCard>;
 
-export const StripeInactive: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
+export const StripeInactive: StoryFn<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
 
 StripeInactive.args = {
   image: StripeLogo,

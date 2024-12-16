@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import AmountInterval from './AmountInterval';
 
 export default {
@@ -7,9 +7,9 @@ export default {
   argTypes: {
     interval: { control: 'select', options: ['one_time', 'month', 'year'] }
   }
-} as ComponentMeta<typeof AmountInterval>;
+} as Meta<typeof AmountInterval>;
 
-const Template: ComponentStory<typeof AmountInterval> = (props) => <AmountInterval {...props} />;
+const Template: StoryFn<typeof AmountInterval> = (props) => <AmountInterval {...props} />;
 
 export const WithDefault = Template.bind({});
 WithDefault.args = {

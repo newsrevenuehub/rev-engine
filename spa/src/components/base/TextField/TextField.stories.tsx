@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import MenuItem from '../MenuItem/MenuItem';
 import TextField from './TextField';
 
@@ -12,9 +12,9 @@ export default {
       }
     }
   }
-} as ComponentMeta<typeof TextField>;
+} as Meta<typeof TextField>;
 
-const Template: ComponentStory<typeof TextField> = (props) => <TextField {...props} />;
+const Template: StoryFn<typeof TextField> = (props) => <TextField {...props} />;
 
 export const Default = Template.bind({});
 Default.args = { label: 'First Name', name: 'first-name' };

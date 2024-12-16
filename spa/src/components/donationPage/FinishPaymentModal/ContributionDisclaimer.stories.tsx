@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ContributionDisclaimer from './ContributionDisclaimer';
 
 export default {
   component: ContributionDisclaimer,
   title: 'Donation Page/ContributionDisclaimer'
-} as ComponentMeta<typeof ContributionDisclaimer>;
+} as Meta<typeof ContributionDisclaimer>;
 
-const Template: ComponentStory<typeof ContributionDisclaimer> = (props) => <ContributionDisclaimer {...props} />;
+const Template: StoryFn<typeof ContributionDisclaimer> = (props) => <ContributionDisclaimer {...props} />;
 
 export const OneTime = Template.bind({});
 OneTime.args = {

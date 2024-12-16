@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ColorsEditor from './ColorsEditor';
 
 export default {
@@ -8,9 +8,9 @@ export default {
     chromatic: { viewports: [1280] }
   },
   title: 'StylesEditor/ColorsEditor'
-} as ComponentMeta<typeof ColorsEditor>;
+} as Meta<typeof ColorsEditor>;
 
-const Template: ComponentStory<typeof ColorsEditor> = (props) => <ColorsEditor {...props} />;
+const Template: StoryFn<typeof ColorsEditor> = (props) => <ColorsEditor {...props} />;
 
 export const Default = Template.bind({});
 

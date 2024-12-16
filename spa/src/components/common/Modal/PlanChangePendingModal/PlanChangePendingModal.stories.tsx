@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import PlanChangePendingModal from './PlanChangePendingModal';
 
 export default {
   component: PlanChangePendingModal,
   title: 'Common/Modal/PlanChangePendingModal'
-} as ComponentMeta<typeof PlanChangePendingModal>;
+} as Meta<typeof PlanChangePendingModal>;
 
-const Template: ComponentStory<typeof PlanChangePendingModal> = (props) => <PlanChangePendingModal {...props} />;
+const Template: StoryFn<typeof PlanChangePendingModal> = (props) => <PlanChangePendingModal {...props} />;
 
 export const FreeToCore = Template.bind({});
 FreeToCore.args = {

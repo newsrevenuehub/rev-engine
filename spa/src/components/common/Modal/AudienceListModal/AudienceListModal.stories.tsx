@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import AudienceListModal from './AudienceListModal';
 
 export default {
@@ -9,8 +9,8 @@ export default {
       type: 'string'
     }
   }
-} as ComponentMeta<typeof AudienceListModal>;
+} as Meta<typeof AudienceListModal>;
 
-export const Default: ComponentStory<typeof AudienceListModal> = (args) => <AudienceListModal {...args} />;
+export const Default: StoryFn<typeof AudienceListModal> = (args) => <AudienceListModal {...args} />;
 
 Default.args = { open: true };

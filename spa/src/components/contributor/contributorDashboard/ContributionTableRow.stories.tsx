@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { ContributorContribution } from 'hooks/useContributorContributionList';
 import ContributionTableRow from './ContributionTableRow';
 
 export default {
   component: ContributionTableRow,
   title: 'Contributor/ContributionTableRow'
-} as ComponentMeta<typeof ContributionTableRow>;
+} as Meta<typeof ContributionTableRow>;
 
 const testContribution: ContributorContribution = {
   id: 'mock-id',
@@ -25,7 +25,7 @@ const testContribution: ContributorContribution = {
   stripe_account_id: 'mock-account-id'
 };
 
-const Template: ComponentStory<typeof ContributionTableRow> = (props) => <ContributionTableRow {...props} />;
+const Template: StoryFn<typeof ContributionTableRow> = (props) => <ContributionTableRow {...props} />;
 
 export const OneTime = Template.bind({});
 

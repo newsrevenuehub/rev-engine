@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { MemoryRouter } from 'react-router-dom';
 import BackButton from './BackButton';
 
 export default {
   component: BackButton,
   title: 'Page Editor/BackButton'
-} as ComponentMeta<typeof BackButton>;
+} as Meta<typeof BackButton>;
 
-const Template: ComponentStory<typeof BackButton> = (props) => (
+const Template: StoryFn<typeof BackButton> = (props) => (
   <MemoryRouter>
     <div style={{ background: 'blue' }}>
       <BackButton {...props} />

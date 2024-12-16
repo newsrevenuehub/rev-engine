@@ -1,4 +1,4 @@
-import { ComponentMeta, Story } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { FormControlLabel } from '../FormControlLabel';
 import { Checkbox } from './Checkbox';
 
@@ -26,7 +26,7 @@ export default {
     }
   },
   title: 'Base/Checkbox'
-} as ComponentMeta<typeof Checkbox>;
+} as Meta<typeof Checkbox>;
 
 interface TemplateProps {
   checked?: boolean;
@@ -34,7 +34,7 @@ interface TemplateProps {
   indeterminate?: boolean;
 }
 
-const Template: Story<TemplateProps> = (props: TemplateProps) => (
+const Template: StoryFn<TemplateProps> = (props: TemplateProps) => (
   <FormControlLabel
     control={<Checkbox checked={props.checked} indeterminate={props.indeterminate} />}
     disabled={props.disabled}
@@ -44,7 +44,7 @@ const Template: Story<TemplateProps> = (props: TemplateProps) => (
 
 export const Default = Template.bind({});
 
-const LineWrapTemplate: Story<TemplateProps> = (props: TemplateProps) => (
+const LineWrapTemplate: StoryFn<TemplateProps> = (props: TemplateProps) => (
   <div style={{ width: '150px' }}>
     <FormControlLabel
       control={<Checkbox checked={props.checked} indeterminate={props.indeterminate} />}

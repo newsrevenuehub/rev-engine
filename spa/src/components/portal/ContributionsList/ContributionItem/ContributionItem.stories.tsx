@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ContributionItem from './ContributionItem';
 
 const ContributionItemDemo = (contribution: any) => <ContributionItem contribution={contribution} />;
@@ -36,8 +36,8 @@ export default {
   },
   component: ContributionItem,
   title: 'Contributor/ContributionItem'
-} as ComponentMeta<typeof ContributionItemDemo>;
+} as Meta<typeof ContributionItemDemo>;
 
-const Template: ComponentStory<typeof ContributionItemDemo> = (props) => <ContributionItemDemo {...props} />;
+const Template: StoryFn<typeof ContributionItemDemo> = (props) => <ContributionItemDemo {...props} />;
 
 export const Default = Template.bind({});

@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { DonationPageContext } from '../DonationPage';
 import DSwag from './DSwag';
 
 export default {
   component: DSwag,
   title: 'Donation Page/DSwag'
-} as ComponentMeta<typeof DSwag>;
+} as Meta<typeof DSwag>;
 
-const Template: ComponentStory<typeof DSwag> = (props) => (
+const Template: StoryFn<typeof DSwag> = (props) => (
   <DonationPageContext.Provider
     value={
       {

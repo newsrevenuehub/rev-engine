@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import EditTabHeader from './EditTabHeader';
 
 export default {
   component: EditTabHeader,
   title: 'Page Editor/EditTabHeader'
-} as ComponentMeta<typeof EditTabHeader>;
+} as Meta<typeof EditTabHeader>;
 
-const Template: ComponentStory<typeof EditTabHeader> = (props) => <EditTabHeader {...props} />;
+const Template: StoryFn<typeof EditTabHeader> = (props) => <EditTabHeader {...props} />;
 
 export const Default = Template.bind({});
 

@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import MailchimpLogo from 'assets/images/mailchimp.png';
 
 import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
@@ -6,9 +6,9 @@ import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
 export default {
   component: MailchimpModal,
   title: 'Common/IntegrationCard/MailchimpModal'
-} as ComponentMeta<typeof MailchimpModal>;
+} as Meta<typeof MailchimpModal>;
 
-const Template: ComponentStory<typeof MailchimpModal> = (props: MailchimpModalProps) => <MailchimpModal {...props} />;
+const Template: StoryFn<typeof MailchimpModal> = (props: MailchimpModalProps) => <MailchimpModal {...props} />;
 
 export const FreePlan = Template.bind({});
 

@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { FormControlLabel } from '../FormControlLabel';
 import Switch from './Switch';
 
@@ -12,9 +12,9 @@ export default {
       }
     }
   }
-} as ComponentMeta<typeof Switch>;
+} as Meta<typeof Switch>;
 
-const Template: ComponentStory<typeof Switch> = () => {
+const Template: StoryFn<typeof Switch> = () => {
   return (
     <div style={{ display: 'flex', gap: 20, flexDirection: 'column' }}>
       <FormControlLabel

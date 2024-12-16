@@ -1,5 +1,5 @@
 import AddPageModal from './AddPageModal';
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 export default {
   title: 'Common/Modal/AddPageModal',
@@ -9,9 +9,9 @@ export default {
       type: 'string'
     }
   }
-} as ComponentMeta<typeof AddPageModal>;
+} as Meta<typeof AddPageModal>;
 
-export const Default: ComponentStory<typeof AddPageModal> = (args) => <AddPageModal {...args} />;
+export const Default: StoryFn<typeof AddPageModal> = (args) => <AddPageModal {...args} />;
 
 Default.args = {
   open: true,

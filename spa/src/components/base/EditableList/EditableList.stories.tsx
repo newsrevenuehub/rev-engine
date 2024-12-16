@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import EditableList from './EditableList';
 
 export default {
   component: EditableList,
   title: 'Base/EditableList'
-} as ComponentMeta<typeof EditableList>;
+} as Meta<typeof EditableList>;
 
-const Template: ComponentStory<typeof EditableList> = (props) => <EditableList {...props} />;
+const Template: StoryFn<typeof EditableList> = (props) => <EditableList {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ValueOrPlaceholder from './ValueOrPlaceholder';
 
 export default {
   component: ValueOrPlaceholder,
   title: 'Common/ValueOrPlaceholder'
-} as ComponentMeta<typeof ValueOrPlaceholder>;
+} as Meta<typeof ValueOrPlaceholder>;
 
-const Template: ComponentStory<typeof ValueOrPlaceholder> = (props) => (
+const Template: StoryFn<typeof ValueOrPlaceholder> = (props) => (
   <>
     <p>
       Change the <strong>value</strong> prop to see the result below.

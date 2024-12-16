@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Searchbar from './Searchbar';
 
 export default {
   title: 'Common/Searchbar',
   component: Searchbar
-} as ComponentMeta<typeof Searchbar>;
+} as Meta<typeof Searchbar>;
 
-export const Default: ComponentStory<typeof Searchbar> = Searchbar.bind({});
+export const Default: StoryFn<typeof Searchbar> = Searchbar.bind({});
 
 Default.args = {
   placeholder: 'Pages'

@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import FeatureBadge from './FeatureBadge';
 
 export default {
@@ -13,9 +13,9 @@ export default {
       options: ['CORE', 'CUSTOM']
     }
   }
-} as ComponentMeta<typeof FeatureBadge>;
+} as Meta<typeof FeatureBadge>;
 
-const Template: ComponentStory<typeof FeatureBadge> = (props) => (
+const Template: StoryFn<typeof FeatureBadge> = (props) => (
   <div style={{ display: 'flex', gap: '16px' }}>
     <FeatureBadge {...props} />
     <FeatureBadge type="CUSTOM" />

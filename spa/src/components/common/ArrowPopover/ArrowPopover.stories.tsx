@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { MouseEvent, useState } from 'react';
 import ArrowPopover from './ArrowPopover';
 
 export default {
   component: ArrowPopover,
   title: 'Common/ArrowPopover'
-} as ComponentMeta<typeof ArrowPopover>;
+} as Meta<typeof ArrowPopover>;
 
-const Template: ComponentStory<typeof ArrowPopover> = (props) => {
+const Template: StoryFn<typeof ArrowPopover> = (props) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   function handleClick(event: MouseEvent) {

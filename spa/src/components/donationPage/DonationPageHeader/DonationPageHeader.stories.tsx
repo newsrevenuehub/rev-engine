@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import DonationPageHeader from './DonationPageHeader';
 import { revEngineTheme } from 'styles/themes';
 import { ThemeProvider } from 'styled-components';
@@ -17,15 +17,15 @@ const sampleImageFile = new File([sampleImageSrc], 'image.svg', { type: 'image/s
 export default {
   component: DonationPageHeader,
   title: 'Donation Page/DonationPageHeader'
-} as ComponentMeta<typeof DonationPageHeader>;
+} as Meta<typeof DonationPageHeader>;
 
-const Template: ComponentStory<typeof DonationPageHeader> = (props) => (
+const Template: StoryFn<typeof DonationPageHeader> = (props) => (
   <ThemeProvider theme={{ ...revEngineTheme, colors: { ...revEngineTheme.colors, cstm_mainHeader: 'yellow' } }}>
     <DonationPageHeader {...props} />
   </ThemeProvider>
 );
 
-const UnstyledTemplate: ComponentStory<typeof DonationPageHeader> = (props) => <DonationPageHeader {...props} />;
+const UnstyledTemplate: StoryFn<typeof DonationPageHeader> = (props) => <DonationPageHeader {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

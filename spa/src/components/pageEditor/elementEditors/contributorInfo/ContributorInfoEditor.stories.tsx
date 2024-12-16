@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ContributorInfoEditor from './ContributorInfoEditor';
 
 export default {
   component: ContributorInfoEditor,
   title: 'ElementEditors/ContributorInfoEditor'
-} as ComponentMeta<typeof ContributorInfoEditor>;
+} as Meta<typeof ContributorInfoEditor>;
 
-const Template: ComponentStory<typeof ContributorInfoEditor> = (props) => <ContributorInfoEditor {...props} />;
+const Template: StoryFn<typeof ContributorInfoEditor> = (props) => <ContributorInfoEditor {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

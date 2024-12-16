@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 import Mail from '@material-design-icons/svg/filled/mail.svg?react';
 import GroupAdd from '@material-design-icons/svg/filled/group_add.svg?react';
@@ -9,9 +9,9 @@ import IconList, { IconListProps } from './IconList';
 export default {
   component: IconList,
   title: 'Common/IconList'
-} as ComponentMeta<typeof IconList>;
+} as Meta<typeof IconList>;
 
-const Template: ComponentStory<typeof IconList> = (props: IconListProps) => <IconList {...props} />;
+const Template: StoryFn<typeof IconList> = (props: IconListProps) => <IconList {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
 
 export default {
   component: MailchimpIntegrationCard,
   title: 'Common/IntegrationCard'
-} as ComponentMeta<typeof MailchimpIntegrationCard>;
+} as Meta<typeof MailchimpIntegrationCard>;
 
-const Template: ComponentStory<typeof MailchimpIntegrationCard> = () => <MailchimpIntegrationCard />;
+const Template: StoryFn<typeof MailchimpIntegrationCard> = () => <MailchimpIntegrationCard />;
 
 export const Mailchimp = Template.bind({});

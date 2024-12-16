@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import LinkButton, { LinkButtonProps } from './LinkButton';
 
 export default {
@@ -11,9 +11,9 @@ export default {
       }
     }
   }
-} as ComponentMeta<typeof LinkButton>;
+} as Meta<typeof LinkButton>;
 
-const Template: ComponentStory<typeof LinkButton> = (args) => {
+const Template: StoryFn<typeof LinkButton> = (args) => {
   const colors = ['error', 'information', 'primaryDark', 'primaryLight', 'secondary', 'text'];
 
   return (

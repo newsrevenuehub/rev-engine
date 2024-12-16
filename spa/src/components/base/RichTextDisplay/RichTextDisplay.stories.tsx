@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import RichTextDisplay from './RichTextDisplay';
 
 export default {
   component: RichTextDisplay,
   title: 'Base/RichTextDisplay'
-} as ComponentMeta<typeof RichTextDisplay>;
+} as Meta<typeof RichTextDisplay>;
 
-const Template: ComponentStory<typeof RichTextDisplay> = (props) => <RichTextDisplay {...props} />;
+const Template: StoryFn<typeof RichTextDisplay> = (props) => <RichTextDisplay {...props} />;
 
 // Generated this from the RichTextEditor story.
 

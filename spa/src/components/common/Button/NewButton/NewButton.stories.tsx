@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import NewButton from './NewButton';
 
 export default {
   component: NewButton,
   title: 'Common/Button/NewButton'
-} as ComponentMeta<typeof NewButton>;
+} as Meta<typeof NewButton>;
 
-const Template: ComponentStory<typeof NewButton> = (props) => <NewButton {...props} />;
+const Template: StoryFn<typeof NewButton> = (props) => <NewButton {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

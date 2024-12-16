@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Icon from '@material-design-icons/svg/filled/block.svg?react';
 import Button, { ButtonProps } from './Button';
 
@@ -14,9 +14,9 @@ If you are using the outlined variant of this component, you should also add the
       }
     }
   }
-} as ComponentMeta<typeof Button>;
+} as Meta<typeof Button>;
 
-const Template: ComponentStory<typeof Button> = (args) => {
+const Template: StoryFn<typeof Button> = (args) => {
   const colors = ['error', 'information', 'primaryDark', 'primaryLight', 'secondary', 'text'];
 
   return (

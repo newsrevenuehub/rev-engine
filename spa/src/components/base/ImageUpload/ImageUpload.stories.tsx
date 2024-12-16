@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ImageUpload from './ImageUpload';
 import OffscreenText from '../OffscreenText/OffscreenText';
 
 export default {
   component: ImageUpload,
   title: 'Base/ImageUpload'
-} as ComponentMeta<typeof ImageUpload>;
+} as Meta<typeof ImageUpload>;
 
 const sampleImageSrc = `
   <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
@@ -20,7 +20,7 @@ const sampleImageUri = `data:image/svg+xml;base64,${window.btoa(sampleImageSrc)}
 const sampleImageBlob = new Blob([sampleImageSrc], { type: 'image/svg+xml' });
 const sampleImage = new File([sampleImageBlob], 'uploaded-file.svg', { type: 'image/svg+xml' });
 
-const Template: ComponentStory<typeof ImageUpload> = (props) => <ImageUpload {...props} />;
+const Template: StoryFn<typeof ImageUpload> = (props) => <ImageUpload {...props} />;
 
 export const Empty = Template.bind({});
 Empty.args = {

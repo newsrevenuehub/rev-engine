@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import FrequencyEditor from './FrequencyEditor';
 
 export default {
   component: FrequencyEditor,
   title: 'ElementEditors/FrequencyEditor'
-} as ComponentMeta<typeof FrequencyEditor>;
+} as Meta<typeof FrequencyEditor>;
 
-const Template: ComponentStory<typeof FrequencyEditor> = (props) => <FrequencyEditor {...props} />;
+const Template: StoryFn<typeof FrequencyEditor> = (props) => <FrequencyEditor {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

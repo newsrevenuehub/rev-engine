@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import PublishedPageLocaleChangeModal from './PublishedPageLocaleChangeModal';
 
 export default {
   component: PublishedPageLocaleChangeModal,
   title: 'Common/Modal/PublishedPageLocaleChangeModal'
-} as ComponentMeta<typeof PublishedPageLocaleChangeModal>;
+} as Meta<typeof PublishedPageLocaleChangeModal>;
 
-const Template: ComponentStory<typeof PublishedPageLocaleChangeModal> = (props) => (
+const Template: StoryFn<typeof PublishedPageLocaleChangeModal> = (props) => (
   <PublishedPageLocaleChangeModal {...props} />
 );
 

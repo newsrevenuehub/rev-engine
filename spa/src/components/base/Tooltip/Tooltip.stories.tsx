@@ -1,6 +1,6 @@
 import { ButtonBase, ClickAwayListener } from '@material-ui/core';
 import { InfoOutlined } from '@material-ui/icons';
-import { ComponentStory } from '@storybook/react';
+import { StoryFn } from '@storybook/react';
 import { useState } from 'react';
 import Tooltip from './Tooltip';
 
@@ -35,13 +35,13 @@ export default {
   }
 };
 
-const TooltipTemplate: ComponentStory<typeof Tooltip> = (props) => (
+const TooltipTemplate: StoryFn<typeof Tooltip> = (props) => (
   <Tooltip {...props}>
     <span style={{ background: 'lightgray', position: 'relative', top: 100, left: 100 }}>Tooltip Anchor</span>
   </Tooltip>
 );
 
-const ClickTooltipTemplate: ComponentStory<typeof Tooltip> = (props) => {
+const ClickTooltipTemplate: StoryFn<typeof Tooltip> = (props) => {
   const [open, setOpen] = useState(false);
 
   return (

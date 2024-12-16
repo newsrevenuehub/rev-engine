@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Pagination from './Pagination';
 export default {
   args: {
@@ -11,8 +11,8 @@ export default {
   },
   component: Pagination,
   title: 'Base/Pagination'
-} as ComponentMeta<typeof Pagination>;
+} as Meta<typeof Pagination>;
 
-const Template: ComponentStory<typeof Pagination> = (props) => <Pagination {...props} />;
+const Template: StoryFn<typeof Pagination> = (props) => <Pagination {...props} />;
 
 export const Default = Template.bind({});

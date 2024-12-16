@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import GenericThankYou from './GenericThankYou';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { AnalyticsContextProvider } from 'components/analytics/AnalyticsContext';
@@ -95,8 +95,8 @@ export default {
       type: 'string'
     }
   }
-} as ComponentMeta<typeof GenericThankYouDemo>;
+} as Meta<typeof GenericThankYouDemo>;
 
-const Template: ComponentStory<typeof GenericThankYouDemo> = (props) => <GenericThankYouDemo {...props} />;
+const Template: StoryFn<typeof GenericThankYouDemo> = (props) => <GenericThankYouDemo {...props} />;
 
 export const Default = Template.bind({});

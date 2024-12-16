@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import RouterLinkButton, { RouterLinkButtonProps } from './RouterLinkButton';
 
 export default {
@@ -11,9 +11,9 @@ export default {
       }
     }
   }
-} as ComponentMeta<typeof RouterLinkButton>;
+} as Meta<typeof RouterLinkButton>;
 
-const Template: ComponentStory<typeof RouterLinkButton> = (args) => {
+const Template: StoryFn<typeof RouterLinkButton> = (args) => {
   const colors = ['error', 'information', 'primaryDark', 'primaryLight', 'secondary', 'text'];
 
   return (

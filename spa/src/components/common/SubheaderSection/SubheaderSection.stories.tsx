@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 import SubheaderSection from './SubheaderSection';
 
@@ -10,15 +10,15 @@ const args = {
 export default {
   title: 'Common/SubheaderSection',
   component: SubheaderSection
-} as ComponentMeta<typeof SubheaderSection>;
+} as Meta<typeof SubheaderSection>;
 
-export const Default: ComponentStory<typeof SubheaderSection> = SubheaderSection.bind({});
+export const Default: StoryFn<typeof SubheaderSection> = SubheaderSection.bind({});
 
 Default.args = {
   ...args
 };
 
-export const HideBottomDivider: ComponentStory<typeof SubheaderSection> = SubheaderSection.bind({});
+export const HideBottomDivider: StoryFn<typeof SubheaderSection> = SubheaderSection.bind({});
 
 HideBottomDivider.args = {
   ...args,

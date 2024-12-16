@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import PublishModal from './PublishModal';
 
 // @ts-expect-error Unclear why Storybook has problems with this specific
@@ -6,9 +6,9 @@ import PublishModal from './PublishModal';
 export default {
   component: PublishModal,
   title: 'Common/Button/PublishButton/PublishModal'
-} as ComponentMeta<typeof PublishModal>;
+} as Meta<typeof PublishModal>;
 
-const Template: ComponentStory<typeof PublishModal> = (props) => <PublishModal {...props} />;
+const Template: StoryFn<typeof PublishModal> = (props) => <PublishModal {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

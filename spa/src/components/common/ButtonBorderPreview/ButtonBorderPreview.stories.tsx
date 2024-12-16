@@ -1,13 +1,13 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 
 import ButtonBorderPreview from './ButtonBorderPreview';
 
 export default {
   title: 'Common/ButtonBorderPreview',
   component: ButtonBorderPreview
-} as ComponentMeta<typeof ButtonBorderPreview>;
+} as Meta<typeof ButtonBorderPreview>;
 
-export const Default: ComponentStory<typeof ButtonBorderPreview> = (args) => <ButtonBorderPreview {...args} />;
+export const Default: StoryFn<typeof ButtonBorderPreview> = (args) => <ButtonBorderPreview {...args} />;
 
 Default.args = {
   borderRadius: 12

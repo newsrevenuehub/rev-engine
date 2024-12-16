@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import SwagOptions from './SwagOptions';
 
 export default {
   component: SwagOptions,
   title: 'ElementEditors/SwagOptions'
-} as ComponentMeta<typeof SwagOptions>;
+} as Meta<typeof SwagOptions>;
 
-const Template: ComponentStory<typeof SwagOptions> = (props) => <SwagOptions {...props} />;
+const Template: StoryFn<typeof SwagOptions> = (props) => <SwagOptions {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import SystemNotification from './SystemNotification';
 
 export default {
   component: SystemNotification,
   title: 'common/SystemNotification'
-} as ComponentMeta<typeof SystemNotification>;
+} as Meta<typeof SystemNotification>;
 
-const Template: ComponentStory<typeof SystemNotification> = (props) => <SystemNotification {...props} />;
+const Template: StoryFn<typeof SystemNotification> = (props) => <SystemNotification {...props} />;
 
 export const Success = Template.bind({});
 Success.args = {

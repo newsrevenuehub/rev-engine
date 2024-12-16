@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import OffscreenText from './OffscreenText';
 
 export default {
   component: OffscreenText,
   title: 'Base/OffscreenText'
-} as ComponentMeta<typeof OffscreenText>;
+} as Meta<typeof OffscreenText>;
 
-const Template: ComponentStory<typeof OffscreenText> = (props) => <OffscreenText {...props} />;
+const Template: StoryFn<typeof OffscreenText> = (props) => <OffscreenText {...props} />;
 
 export const Default = Template.bind({});
 

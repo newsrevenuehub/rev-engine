@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import ExportButton from './ExportButton';
 
 export default {
@@ -9,9 +9,9 @@ export default {
       type: 'string'
     }
   }
-} as ComponentMeta<typeof ExportButton>;
+} as Meta<typeof ExportButton>;
 
-export const Default: ComponentStory<typeof ExportButton> = (args) => <ExportButton {...args} />;
+export const Default: StoryFn<typeof ExportButton> = (args) => <ExportButton {...args} />;
 
 Default.args = {
   transactions: 1234,

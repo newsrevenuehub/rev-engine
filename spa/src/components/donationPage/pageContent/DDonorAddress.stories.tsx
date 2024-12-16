@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { useState } from 'react';
 import { DonationPageContext } from '../DonationPage';
 import DDonorAddress from './DDonorAddress';
@@ -6,7 +6,7 @@ import DDonorAddress from './DDonorAddress';
 export default {
   component: DDonorAddress,
   title: 'Donation Page/DDonorAddress'
-} as ComponentMeta<typeof DDonorAddress>;
+} as Meta<typeof DDonorAddress>;
 
 function ComponentDemo(errors: Record<string, string> = {}) {
   const [mailingCountry, setMailingCountry] = useState('');
@@ -29,7 +29,7 @@ function ComponentDemo(errors: Record<string, string> = {}) {
   );
 }
 
-const Template: ComponentStory<typeof ComponentDemo> = (args) => <ComponentDemo {...args} />;
+const Template: StoryFn<typeof ComponentDemo> = (args) => <ComponentDemo {...args} />;
 
 export const Default = Template.bind({});
 export const WithErrors = Template.bind({});

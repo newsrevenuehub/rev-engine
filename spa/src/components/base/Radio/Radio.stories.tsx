@@ -1,4 +1,4 @@
-import { ComponentMeta, Story } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { FormControlLabel } from '../FormControlLabel';
 import { Radio } from './Radio';
 
@@ -24,14 +24,14 @@ export default {
     }
   },
   title: 'Base/Radio'
-} as ComponentMeta<typeof Radio>;
+} as Meta<typeof Radio>;
 
 interface TemplateProps {
   checked?: boolean;
   disabled?: boolean;
 }
 
-const Template: Story<TemplateProps> = (props: TemplateProps) => (
+const Template: StoryFn<TemplateProps> = (props: TemplateProps) => (
   <>
     <FormControlLabel control={<Radio checked={props.checked} />} disabled={props.disabled} label="Radio Label" />
     <FormControlLabel control={<Radio checked={props.checked} />} disabled label="Disabled Radio Label" />
@@ -40,7 +40,7 @@ const Template: Story<TemplateProps> = (props: TemplateProps) => (
 
 export const Default = Template.bind({});
 
-const LineWrapTemplate: Story<TemplateProps> = (props: TemplateProps) => (
+const LineWrapTemplate: StoryFn<TemplateProps> = (props: TemplateProps) => (
   <div style={{ width: '150px' }}>
     <FormControlLabel
       control={<Radio checked={props.checked} />}

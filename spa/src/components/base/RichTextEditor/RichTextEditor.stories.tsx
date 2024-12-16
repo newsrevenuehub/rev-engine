@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import { useMemo, useState } from 'react';
 import { editorStateToHtml, htmlToEditorState } from 'utilities/draftJs';
 import RichTextEditor from './RichTextEditor';
@@ -6,15 +6,15 @@ import RichTextEditor from './RichTextEditor';
 export default {
   component: RichTextEditor,
   title: 'Base/RichTextEditor'
-} as ComponentMeta<typeof RichTextEditor>;
+} as Meta<typeof RichTextEditor>;
 
-const Template: ComponentStory<typeof RichTextEditor> = (props) => {
+const Template: StoryFn<typeof RichTextEditor> = (props) => {
   return <RichTextEditor {...props} />;
 };
 
 export const Default = Template.bind({});
 
-const TemplateWithHtml: ComponentStory<typeof RichTextEditor> = (props) => {
+const TemplateWithHtml: StoryFn<typeof RichTextEditor> = (props) => {
   const [html, setHtml] = useState('');
 
   return (
@@ -27,7 +27,7 @@ const TemplateWithHtml: ComponentStory<typeof RichTextEditor> = (props) => {
 
 export const WithCodePreview = TemplateWithHtml.bind({});
 
-const RoundtripTemplate: ComponentStory<typeof RichTextEditor> = (props) => {
+const RoundtripTemplate: StoryFn<typeof RichTextEditor> = (props) => {
   const [html, setHtml] = useState('');
   const roundtrippedState = useMemo(() => htmlToEditorState(html), [html]);
 

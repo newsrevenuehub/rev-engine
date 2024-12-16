@@ -1,11 +1,11 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import DonationCoreUpgradePrompt from './DonationCoreUpgradePrompt';
 
 export default {
   component: DonationCoreUpgradePrompt,
   title: 'Donations/DonationCoreUpgradePrompt'
-} as ComponentMeta<typeof DonationCoreUpgradePrompt>;
+} as Meta<typeof DonationCoreUpgradePrompt>;
 
-const Template: ComponentStory<typeof DonationCoreUpgradePrompt> = (props) => <DonationCoreUpgradePrompt {...props} />;
+const Template: StoryFn<typeof DonationCoreUpgradePrompt> = (props) => <DonationCoreUpgradePrompt {...props} />;
 
 export const Default = Template.bind({});

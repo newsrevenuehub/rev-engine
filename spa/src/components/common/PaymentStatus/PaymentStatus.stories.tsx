@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import PaymentStatus from './PaymentStatus';
 
 export default {
@@ -13,9 +13,9 @@ export default {
   },
   component: PaymentStatus,
   title: 'Common/PaymentStatus'
-} as ComponentMeta<typeof PaymentStatus>;
+} as Meta<typeof PaymentStatus>;
 
-const Template: ComponentStory<typeof PaymentStatus> = (props) => <PaymentStatus {...props} />;
+const Template: StoryFn<typeof PaymentStatus> = (props) => <PaymentStatus {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

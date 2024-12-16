@@ -1,4 +1,4 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import IconButton, { IconButtonProps } from './IconButton';
 import { EditOutlined } from '@material-ui/icons';
 
@@ -12,9 +12,9 @@ export default {
       }
     }
   }
-} as ComponentMeta<typeof IconButton>;
+} as Meta<typeof IconButton>;
 
-const Template: ComponentStory<typeof IconButton> = (args) => {
+const Template: StoryFn<typeof IconButton> = (args) => {
   const colors = ['error', 'information', 'primaryDark', 'primaryLight', 'secondary', 'text'];
 
   return (

@@ -1,12 +1,12 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import CancelRecurringButton from './CancelRecurringButton';
 
 export default {
   component: CancelRecurringButton,
   title: 'Contributor/CancelRecurringButton'
-} as ComponentMeta<typeof CancelRecurringButton>;
+} as Meta<typeof CancelRecurringButton>;
 
-const Template: ComponentStory<typeof CancelRecurringButton> = (props) => <CancelRecurringButton {...props} />;
+const Template: StoryFn<typeof CancelRecurringButton> = (props) => <CancelRecurringButton {...props} />;
 
 export const Default = Template.bind({});
 Default.args = {

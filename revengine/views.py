@@ -70,7 +70,7 @@ class ReactAppView(TemplateView):
             try:
                 RevenueProgram.objects.get(slug=subdomain)
             except RevenueProgram.DoesNotExist:
-                logger.warning(
+                logger.info(
                     'ReactAppView failed to retrieve RevenueProgram by subdomain "%s". Returning Page Not Found (404) Status',
                     subdomain,
                 )

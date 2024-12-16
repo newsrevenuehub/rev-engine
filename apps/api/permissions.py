@@ -11,6 +11,7 @@ from apps.common.constants import (
 )
 from apps.contributions.models import Contributor
 from apps.users.choices import Roles
+from apps.users.models import User
 
 from .exceptions import ApiConfigurationError
 
@@ -146,8 +147,12 @@ class IsSwitchboardAccount(permissions.BasePermission):
 
     def has_permission(self, request, view) -> bool:
         logger.debug("Checking if user is switchboard account")
+        return self.user_has_permission(request.user)
+
+    @classmethod
+    def user_has_permission(cls, user: User) -> bool:
         return bool(
-            request.user.is_authenticated
-            and request.user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL
+            user.is_authenticated
+            and user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL
             and settings.SWITCHBOARD_ACCOUNT_EMAIL
         )

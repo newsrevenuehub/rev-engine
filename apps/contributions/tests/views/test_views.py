@@ -1,3 +1,5 @@
+# TODO @BW: submodularize this file to align with views module structure
+# DEV-5536
 import datetime
 import json
 from unittest import mock
@@ -21,7 +23,6 @@ from waffle import get_waffle_flag_model
 
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions import views as contributions_views
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -47,7 +48,6 @@ from apps.organizations.tests.factories import (
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
-from apps.users.tests.factories import UserFactory
 
 
 class MockOAuthResponse(StripeObject):
@@ -79,7 +79,7 @@ class StripeOAuthTest(AbstractTestCase):
             body["scope"] = scope
         return self.client.post(complete_url, body)
 
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
+    @mock.patch("apps.contributions.views.orgs.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
     def test_response_when_missing_params(self, stripe_oauth_token, task_verify_apple_domain):
         # Missing code
@@ -107,7 +107,7 @@ class StripeOAuthTest(AbstractTestCase):
         stripe_oauth_token.assert_not_called()
         assert not task_verify_apple_domain.delay.called
 
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
+    @mock.patch("apps.contributions.views.orgs.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
     def test_response_when_scope_param_mismatch(self, stripe_oauth_token, task_verify_apple_domain):
         """We verify that the "scope" parameter provided by the frontend matches the scope we expect."""
@@ -117,7 +117,7 @@ class StripeOAuthTest(AbstractTestCase):
         stripe_oauth_token.assert_not_called()
         assert not task_verify_apple_domain.delay.called
 
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
+    @mock.patch("apps.contributions.views.orgs.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
     def test_response_when_invalid_code(self, stripe_oauth_token, task_verify_apple_domain):
         stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
@@ -127,7 +127,7 @@ class StripeOAuthTest(AbstractTestCase):
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
         assert not task_verify_apple_domain.delay.called
 
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
+    @mock.patch("apps.contributions.views.orgs.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
     def test_response_success(self, stripe_oauth_token, task_verify_apple_domain):
         expected_stripe_account_id = "my_test_account_id"
@@ -147,7 +147,7 @@ class StripeOAuthTest(AbstractTestCase):
         assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
         task_verify_apple_domain.delay.assert_called_with(revenue_program_slug=self.org1_rp1.slug)
 
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
+    @mock.patch("apps.contributions.views.orgs.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
     def test_create_payment_provider_if_not_exists(self, stripe_oauth_token, task_verify_apple_domain):
         expected_stripe_account_id = "new_stripe_account_id"
@@ -568,16 +568,16 @@ class TestProcessStripeWebhook:
 
     def test_happy_path(self, api_client, mocker):
         mocker.patch("stripe.Webhook.construct_event", return_value=(event := mocker.Mock()))
-        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        mock_process_task = mocker.patch("apps.contributions.views.webhooks.process_stripe_webhook_task.delay")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = api_client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_process_task.assert_called_once_with(raw_event_data=event)
 
     def test_when_value_error_on_construct_event(self, api_client, mocker):
-        logger_spy = mocker.patch("apps.contributions.views.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.views.webhooks.logger.warning")
         mocker.patch("stripe.Webhook.construct_event", side_effect=ValueError("ruh roh"))
-        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        mock_process_task = mocker.patch("apps.contributions.views.webhooks.process_stripe_webhook_task.delay")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = api_client.post(reverse("stripe-webhooks-contributions"), data={"foo": "bar"}, **header)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -585,11 +585,11 @@ class TestProcessStripeWebhook:
         logger_spy.assert_called_once_with("Invalid payload from Stripe webhook request")
 
     def test_when_signature_verification_error(self, api_client, mocker):
-        logger_spy = mocker.patch("apps.contributions.views.logger.exception")
+        logger_spy = mocker.patch("apps.contributions.views.webhooks.logger.exception")
         mocker.patch(
             "stripe.Webhook.construct_event", side_effect=stripe.error.SignatureVerificationError("ruh roh", "sig")
         )
-        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        mock_process_task = mocker.patch("apps.contributions.views.webhooks.process_stripe_webhook_task.delay")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = api_client.post(reverse("stripe-webhooks-contributions"), data={"foo": "bar"}, **header)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -1544,121 +1544,3 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
-
-    def test_get_contributor_contributions_queryset(self, mocker):
-        canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")
-        related_contributor = ContributorFactory(email=canonical_contributor.email.upper())
-        for contributor in [canonical_contributor, related_contributor]:
-            ContributionFactory(contributor=contributor, status=ContributionStatus.FAILED, one_time=True)
-        exclude_hidden_spy = mocker.spy(ContributionQuerySet, "exclude_hidden_statuses")
-        exclude_paymentless_spy = mocker.spy(ContributionQuerySet, "exclude_paymentless_canceled")
-        exclude_missing_stripe_sub_id = mocker.spy(
-            ContributionQuerySet, "exclude_recurring_missing_provider_subscription_id"
-        )
-        exclude_dummy_payment_method_id = mocker.spy(ContributionQuerySet, "exclude_dummy_payment_method_id")
-        contributions = contributions_views.PortalContributorsViewSet().get_contributor_contributions_queryset(
-            contributor=canonical_contributor
-        )
-        assert contributions.count() == 2
-        assert set(contributions.values_list("contributor_id", flat=True)) == {
-            canonical_contributor.id,
-            related_contributor.id,
-        }
-        exclude_hidden_spy.assert_called_once()
-        exclude_paymentless_spy.assert_called_once()
-        exclude_missing_stripe_sub_id.assert_called_once()
-        exclude_dummy_payment_method_id.assert_called_once()
-
-
-@pytest.mark.django_db
-class TestSwitchboardContributionsViewSet:
-
-    @pytest.fixture
-    def switchboard_user(self, settings):
-        settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
-        return UserFactory(email=email)
-
-    @pytest.fixture
-    def other_user(self):
-        return UserFactory(is_superuser=True)
-
-    @pytest.fixture
-    def organization(self):
-        return OrganizationFactory()
-
-    @pytest.fixture
-    def rp_1(self, organization):
-        return RevenueProgramFactory(organization=organization)
-
-    @pytest.fixture
-    def rp_2(self, organization):
-        return RevenueProgramFactory(organization=organization)
-
-    @pytest.fixture
-    def other_orgs_rp(self):
-        return RevenueProgramFactory()
-
-    @pytest.fixture
-    def contribution_with_donation_page(self, rp_1):
-        return ContributionFactory(donation_page__revenue_program=rp_1)
-
-    @pytest.fixture
-    def contribution_without_donation_page(self, rp_1):
-        return ContributionFactory(donation_page=None, _revenue_program=rp_1)
-
-    @pytest.fixture(params=["contribution_with_donation_page", "contribution_without_donation_page"])
-    def contribution(self, request):
-        return request.getfixturevalue(request.param)
-
-    @pytest.mark.parametrize(
-        "request_has_revenue_program",
-        [
-            True,
-            False,
-        ],
-    )
-    @pytest.mark.parametrize(
-        "instance_has_donation_page",
-        [
-            True,
-            False,
-        ],
-    )
-    def test_update_revenue_program_happy_path(
-        self,
-        request_has_revenue_program,
-        instance_has_donation_page,
-        api_client,
-        rp_2,
-        rp_1,
-        contribution,
-        switchboard_user,
-    ):
-        body = {"revenue_program": rp_2.id} if request_has_revenue_program else {}
-        if not instance_has_donation_page:
-            contribution.donation_page = None
-            contribution._revenue_program = rp_1
-            contribution.save()
-        api_client.force_authenticate(switchboard_user)
-        response = api_client.patch(reverse("switchboard-contribution-detail", args=(contribution.id,)), data=body)
-        assert response.status_code == status.HTTP_200_OK
-        contribution.refresh_from_db()
-        if request_has_revenue_program:
-            assert contribution._revenue_program == rp_2
-
-    def test_update_when_not_switchboard_user(self, api_client, other_user, contribution):
-        api_client.force_authenticate(other_user)
-        response = api_client.patch(reverse("switchboard-contribution-detail", args=(contribution.id,)))
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    def test_update_when_patching_rp_for_different_org(self, api_client, switchboard_user, contribution, other_orgs_rp):
-        api_client.force_authenticate(switchboard_user)
-        assert contribution.revenue_program.organization != other_orgs_rp.organization
-        response = api_client.patch(
-            reverse("switchboard-contribution-detail", args=(contribution.id,)),
-            data={"revenue_program": other_orgs_rp.id},
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {
-            "revenue_program": ["Cannot assign contribution to a revenue program from a different organization"]
-        }

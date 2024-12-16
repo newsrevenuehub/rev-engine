@@ -190,7 +190,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "donation_page__name",
         "modified",
         "created",
-        "first_payment_date_display",
+        "first_payment_date",
     )
 
     readonly_fields = (

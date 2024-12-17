@@ -22,4 +22,9 @@ urlpatterns = [
         name="handle-stripe-account-link",
     ),
     path("mailchimp-oauth-success/", views.handle_mailchimp_oauth_success, name="handle-mailchimp-oauth-success"),
+    path(
+        "switchboard/revenue-programs/<int:pk>/activecampaign/",
+        views.switchboard_rp_activecampaign_detail,
+        name="switchboard-revenue-program-activecampaign-detail",
+    ),
 ]

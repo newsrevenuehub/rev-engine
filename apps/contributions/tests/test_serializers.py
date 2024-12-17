@@ -1,18 +1,14 @@
-import datetime
 from datetime import timedelta
 from unittest.mock import Mock
 
 from django.conf import settings
-from django.test import TestCase
 from django.utils import timezone
 
 import pydantic
-import pydantic_core
 import pytest
 import stripe
 from addict import Dict as AttrDict
-from rest_framework.exceptions import APIException, PermissionDenied
-from rest_framework.serializers import ValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 from rest_framework.test import APIRequestFactory
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
@@ -997,7 +993,7 @@ class TestBaseCreatePaymentSerializer:
         metadata = serializer.generate_stripe_metadata(contribution)
         assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
-        assert metadata.referer == pydantic_core.Url(referer)
+        assert str(metadata.referer) == str(pydantic.HttpUrl(referer))
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == "1.4"
         assert metadata.source == "rev-engine"
@@ -1238,7 +1234,9 @@ class TestCreateOneTimePaymentSerializer:
 
         save_spy = mocker.spy(Contributor, "save")
 
-        mocker.patch("apps.contributions.models.Contribution.create_stripe_customer", mock_stripe_call_with_error)
+        mocker.patch(
+            "apps.contributions.models.Contribution.create_stripe_customer", side_effect=stripe.error.StripeError
+        )
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1467,7 +1465,7 @@ class TestCreateRecurringPaymentSerializer:
         mock_create_stripe_customer = Mock()
         mock_create_stripe_customer.return_value = AttrDict({"id": "some id"})
         mocker.patch("stripe.Customer.create", mock_create_stripe_customer)
-        mocker.patch("apps.contributions.models.stripe.Subscription.create", mock_stripe_call_with_error)
+        mocker.patch("apps.contributions.models.stripe.Subscription.create", side_effect=stripe.error.StripeError)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
         serializer = self.serializer_class(data=data, context={"request": request})
@@ -1503,7 +1501,7 @@ class TestCreateRecurringPaymentSerializer:
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
-        mocker.patch("stripe.Customer.create", mock_stripe_call_with_error)
+        mocker.patch("stripe.Customer.create", side_effect=stripe.error.StripeError)
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1621,130 +1619,6 @@ class TestCreateRecurringPaymentSerializer:
             serializer.create(serializer.validated_data)
 
 
-class SubscriptionsSerializer(TestCase):
-    expected_fields = [
-        "id",
-        "is_modifiable",
-        "is_cancelable",
-        "status",
-        "card_brand",
-        "last4",
-        "payment_type",
-        "next_payment_date",
-        "interval",
-        "revenue_program_slug",
-        "amount",
-        "customer_id",
-        "credit_card_expiration_date",
-        "created",
-        "last_payment_date",
-    ]
-
-    def setUp(self):
-        self.serializer = serializers.SubscriptionsSerializer
-        self.subscription = AttrDict(
-            {
-                "id": "sub_1234",
-                "status": "incomplete",
-                "card_brand": "Visa",
-                "last4": "4242",
-                "plan": {
-                    "interval": "month",
-                    "interval_count": 1,
-                    "amount": 1234,
-                },
-                "metadata": {
-                    "revenue_program_slug": "foo",
-                },
-                "amount": "100",
-                "customer": "cus_1234",
-                "current_period_end": 1654892502,
-                "current_period_start": 1686428502,
-                "created": 1654892502,
-                "default_payment_method": {
-                    "id": "pm_1234",
-                    "type": "card",
-                    "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
-                },
-            }
-        )
-
-    def test_returned_fields(self):
-        data = self.serializer(self.subscription).data
-        for field in self.expected_fields:
-            assert field in data
-
-    def test_card_brand(self):
-        data = self.serializer(self.subscription).data
-        assert data["card_brand"] == "discover"
-
-    def test_next_payment_date(self):
-        data = self.serializer(self.subscription).data
-        assert data["next_payment_date"] == datetime.datetime(2022, 6, 10, 20, 21, 42, tzinfo=datetime.timezone.utc)
-
-    def test_last_payment_date(self):
-        data = self.serializer(self.subscription).data
-        assert data["last_payment_date"] == datetime.datetime(2023, 6, 10, 20, 21, 42, tzinfo=datetime.timezone.utc)
-
-    def test_created(self):
-        data = self.serializer(self.subscription).data
-        assert data["created"] == datetime.datetime(2022, 6, 10, 20, 21, 42, tzinfo=datetime.timezone.utc)
-
-    def test_last4(self):
-        data = self.serializer(self.subscription).data
-        assert data["last4"] == "7834"
-
-    def test_card_expiration_date(self):
-        data = self.serializer(self.subscription).data
-        assert data["credit_card_expiration_date"] == "12/2022"
-
-    def test_is_modifiable(self):
-        data = self.serializer(self.subscription).data
-        assert data["is_modifiable"] is True
-        self.subscription.status = "unpaid"
-        data = self.serializer(self.subscription).data
-        assert data["is_modifiable"] is False
-
-    def test_is_cancelable(self):
-        data = self.serializer(self.subscription).data
-        assert data["is_cancelable"] is False
-        self.subscription.status = "active"
-        data = self.serializer(self.subscription).data
-        assert data["is_cancelable"] is True
-
-    def test_interval(self):
-        data = self.serializer(self.subscription).data
-        assert data["interval"] == ContributionInterval.MONTHLY
-        self.subscription.plan.interval = "year"
-        self.subscription.plan.interval_count = 1
-        data = self.serializer(self.subscription).data
-        assert data["interval"] == ContributionInterval.YEARLY
-        self.subscription.plan.interval_count = 2
-        with pytest.raises(ValidationError):
-            self.serializer(self.subscription).data  # noqa: B018 doesn't understand this is
-            # a property and accessing it has side effects we are testing.
-
-    def test_revenue_program_slug(self):
-        data = self.serializer(self.subscription).data
-        assert data["revenue_program_slug"] == "foo"
-        del self.subscription.metadata
-        with pytest.raises(ValidationError):
-            self.serializer(self.subscription).data  # noqa: B018 doesn't understand this is
-            # a property and accessing it has side effects we are testing.
-
-    def test_amount(self):
-        data = self.serializer(self.subscription).data
-        assert data["amount"] == 1234
-
-    def test_customer_id(self):
-        data = self.serializer(self.subscription).data
-        assert data["customer_id"] == "cus_1234"
-
-    def test_payment_type(self):
-        data = self.serializer(self.subscription).data
-        assert data["payment_type"] == "card"
-
-
 class TestStripeMetadataSchemaBase:
     @pytest.mark.parametrize(
         ("value", "expected"),
@@ -1822,33 +1696,42 @@ class TestPortalContributionDetailSerializer:
         )
         mocker.patch("stripe.Subscription.modify")
         serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
-        updated_contribution = serializer.update(monthly_contribution, {"amount": 123})
-
-        assert updated_contribution.amount == 123
-
-    def test_update_amount_one_time_contribution(self, mocker, one_time_contribution):
-        one_time_contribution.stripe_subscription = MockSubscription("active")
-        mocker.patch(
-            "stripe.SubscriptionItem.list",
-            return_value={
-                "data": [
-                    {
-                        "id": "si_123",
-                        "price": {
-                            "currency": "usd",
-                            "product": "prod_123",
-                            "recurring": {
-                                "interval": "month",
-                            },
-                        },
-                    }
-                ]
-            },
+        updated_contribution = serializer.update(
+            monthly_contribution, {"amount": 12345, "donor_selected_amount": 123.45}
         )
-        mocker.patch("stripe.Subscription.modify")
+        assert updated_contribution.amount == 12345
+        assert updated_contribution.contribution_metadata["donor_selected_amount"] == 123.45
+
+    def test_update_amount_one_time_contribution(self, one_time_contribution):
+        one_time_contribution.stripe_subscription = MockSubscription("active")
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
         with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
-            serializer.update(one_time_contribution, {"amount": 123})
+            serializer.update(one_time_contribution, {"amount": 12345, "donor_selected_amount": 123.45})
+
+    def test_update_raises_if_donor_selected_amount_omitted(self, mocker, monthly_contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        with pytest.raises(ValidationError, match="If amount is updated, donor_selected_amount must be set as well."):
+            serializer.update(monthly_contribution, {"amount": 12345})
+
+    def test_amount_donor_selected_amount_validation(self, monthly_contribution):
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        with pytest.raises(
+            ValidationError, match="If this field is updated, donor_selected_amount must be provided as well."
+        ):
+            serializer.validate({"amount": 12345})
+        with pytest.raises(ValidationError, match="If this field is updated, amount must be provided as well."):
+            serializer.validate({"donor_selected_amount": 123.45})
+
+    def test_amount_donor_selected_amount_too_small(self):
+        serializer = PortalContributionDetailSerializer(data={"amount": 0, "donor_selected_amount": 0})
+        with pytest.raises(ValidationError, match="We can only accept contributions greater than or equal to 1.00"):
+            serializer.is_valid(raise_exception=True)
+
+    def test_amount_donor_selected_amount_too_big(self):
+        serializer = PortalContributionDetailSerializer(data={"amount": 100000000, "donor_selected_amount": 1000000})
+        with pytest.raises(ValidationError, match="We can only accept contributions less than or equal to 999,999.99"):
+            serializer.is_valid(raise_exception=True)
 
 
 @pytest.mark.django_db

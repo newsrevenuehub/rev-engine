@@ -14,6 +14,7 @@ from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
+    CONTRIBUTOR_DEFAULT_VALUE,
     EmailTaskException,
     SendContributionEmailData,
     generate_email_data,
@@ -62,13 +63,27 @@ class TestGenerateEmailData:
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize("show_billing_history", [False, True])
-    @pytest.mark.parametrize("contributor_name", ["customer_name", None])
+    @pytest.mark.parametrize(
+        ("customer", "expected_name"),
+        [
+            (AttrDict(name="customer_name"), "customer_name"),
+            (AttrDict(name=None), CONTRIBUTOR_DEFAULT_VALUE),
+            (AttrDict(), CONTRIBUTOR_DEFAULT_VALUE),
+        ],
+    )
     @pytest.mark.parametrize("custom_timestamp", ["custom_timestamp", None])
     @pytest.mark.parametrize("has_donation_page", [True, False])
     def test_happy_path(
-        self, contribution, show_billing_history, contributor_name, custom_timestamp, has_donation_page, mocker
+        self,
+        contribution,
+        show_billing_history,
+        customer,
+        expected_name,
+        custom_timestamp,
+        has_donation_page,
+        mocker,
     ):
-        mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
+        mocker.patch("stripe.Customer.retrieve", return_value=customer)
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
@@ -84,7 +99,7 @@ class TestGenerateEmailData:
             ),
             contribution_interval=contribution.interval,
             contributor_email=contribution.contributor.email,
-            contributor_name=mock_fetch_customer.return_value.name or "contributor",
+            contributor_name=expected_name,
             copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
@@ -378,3 +393,27 @@ class TestTaskStripeContributions:
 
         for x in expect_present:
             assert x in render_to_string("nrh-contribution-csv-email-body.html", data)
+
+
+def test_send_templated_email_with_attachment(mocker):
+    email_message = mocker.patch("apps.emails.tasks.EmailMultiAlternatives")
+    send_templated_email_with_attachment(
+        (to_email := "to@to.com"),
+        (subject := "This is a subject"),
+        (msg_as_text := "text"),
+        (msg_as_html := "html"),
+        (attachment := "data"),
+        (mimetype := "text/csv"),
+        (file_name := "contributions.csv"),
+    )
+    email_message.assert_called_once_with(
+        to=(to_email,),
+        subject=subject,
+        body=msg_as_text,
+        from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+    )
+    email_message.return_value.attach.assert_called_once_with(
+        filename=file_name, content=attachment.encode(), mimetype=mimetype
+    )
+    email_message.return_value.attach_alternative.assert_called_once_with(msg_as_html, "text/html")
+    email_message.return_value.send.assert_called_once()

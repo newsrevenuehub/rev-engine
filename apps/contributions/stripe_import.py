@@ -218,9 +218,18 @@ def upsert_payment_for_transaction(
 
 def parse_slug_from_url(url: str) -> str | None:
     """Parse RP slug, if any, from a given URL."""
-    if tldextract.extract(url).domain not in settings.DOMAIN_APEX:
-        logger.warning("URL %s has a TLD that is not allowed for import", url)
-        raise InvalidStripeTransactionDataError(f"URL {url} has a TLD that is not allowed for import")
+    extracted = tldextract.extract(url)
+    parts = filter(None, [extracted.subdomain, extracted.domain])
+    if (query := f"{'.'.join(parts)}.{extracted.suffix}") not in (
+        allowed := [*settings.HOST_MAP.keys(), settings.DOMAIN_APEX]
+    ):
+        logger.warning(
+            "URL %s has a host that is not allowed for import: (%s).  Acceptable values are %s",
+            url,
+            query,
+            ", ".join(allowed),
+        )
+        raise InvalidStripeTransactionDataError(f"URL {url} has a host that is not allowed for import")
     parsed = urlparse(url)
     path_segments = [segment for segment in parsed.path.split("/") if segment]
     return path_segments[0] if len(path_segments) else None
@@ -309,14 +318,6 @@ class StripeTransactionsImporter:
     def created_query(self) -> dict:
         """Generates a query that can supplied for "created" param when listing stripe resources."""
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
-
-    def get_or_create_contributor(self, email: str) -> tuple[Contributor, str]:
-        """Get or create a contributor."""
-        logger.debug("Retrieving or creating a contributor for email %s", email)
-        contributor, created = Contributor.objects.get_or_create(email=email)
-        if created:
-            logger.info("Created new contributor %s for %s", contributor.id, email)
-        return contributor, common_utils.CREATED if created else common_utils.LEFT_UNCHANGED
 
     @staticmethod
     def get_interval_from_plan(plan: dict) -> ContributionInterval:
@@ -715,7 +716,7 @@ class StripeTransactionsImporter:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
         if not (email := customer.get("email")):
             raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
-        return self.get_or_create_contributor(email=email)
+        return Contributor.get_or_create_contributor_by_email(email)
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:

@@ -47,10 +47,6 @@ def _get_status(bad_actor_score):
     )
 
 
-def _get_last_payment_date(created_date):
-    return created_date + datetime.timedelta(hours=1)
-
-
 NOW = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 THEN = NOW - datetime.timedelta(weeks=52)
 
@@ -144,19 +140,6 @@ class ContributionFactory(DjangoModelFactory):
                 lambda: random.choice(models.ContributionStatus.FLAGGED, models.ContributionStatus.PROCESSING)[0]
             ),
         )
-
-
-class StripeCustomerFactory:
-    id = fake.uuid4()
-    email = factory.Sequence(lambda n: f"{fake.user_name()}-{n}@{fake.domain_name()}")
-
-
-class StripeSubscriptionFactory:
-    id = fake.uuid4()
-    customer = StripeCustomerFactory()
-
-    def delete(*args, **kwargs):
-        pass
 
 
 class PaymentFactory(DjangoModelFactory):

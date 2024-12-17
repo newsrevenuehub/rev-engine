@@ -4,12 +4,16 @@ from dataclasses import asdict
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
+from django.contrib.auth import login
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
-from rest_framework import status
+from knox.views import LoginView
+from rest_framework import permissions, status
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
@@ -17,12 +21,12 @@ from rest_framework_simplejwt import views as simplejwt_views
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.api.authentication import ShortLivedTokenAuthentication
+from apps.api.permissions import IsSwitchboardAccount
 from apps.api.serializers import ContributorObtainTokenSerializer
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contributor
 from apps.contributions.serializers import ContributorSerializer
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import RevenueProgram
 from apps.users.serializers import AuthedUserSerializer
@@ -172,12 +176,6 @@ class RequestContributorTokenEmailView(APIView):
         logger.info("Trying to retrieve revenue program by slug: %s", serializer.validated_data.get("subdomain"))
 
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
-        # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
-        # data by the time the user opens contributor portal.
-        task_pull_serialized_stripe_contributions_to_cache.delay(
-            serializer.validated_data["email"], revenue_program.stripe_account_id
-        )
-
         magic_link = self.get_magic_link(
             domain, serializer.validated_data["access"], serializer.validated_data["email"]
         )
@@ -245,3 +243,19 @@ class VerifyContributorTokenView(APIView):
         }
 
         return response
+
+
+class SwitchboardLoginView(LoginView):
+    """Subclass of Knox's LoginView to check if user is switchboard account before login."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = [BasicAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        serializer = AuthTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        if not IsSwitchboardAccount.user_has_permission(user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        login(request, user)
+        return super().post(request, format=None)

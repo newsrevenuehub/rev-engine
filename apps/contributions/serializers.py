@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Literal
 
 from django.conf import settings
@@ -14,7 +14,7 @@ from stripe.error import StripeError
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorOverallScore
-from apps.contributions.choices import BadActorAction, CardBrand, PaymentType
+from apps.contributions.choices import BadActorAction
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -516,7 +516,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
         """
         logger.info("`CreateOneTimePaymentSerializer.create` called with validated data: %s", validated_data)
-        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        contributor, _ = Contributor.get_or_create_contributor_by_email(validated_data["email"])
         contribution = self.build_contribution(
             contributor,
             validated_data,
@@ -621,7 +621,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         that the PaymentElement should not be loaded.
         """
         logger.info("`CreateRecurringPaymentSerializer.create` called with validated data: %s", validated_data)
-        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        contributor, _ = Contributor.get_or_create_contributor_by_email(validated_data["email"])
         logger.info("`CreateRecurringPaymentSerializer.create` is building a contribution")
         contribution = self.build_contribution(
             contributor,
@@ -751,120 +751,6 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     payment_method_id = serializers.CharField(max_length=255)
 
 
-class PaymentProviderContributionSerializer(serializers.Serializer):
-    """Payments provider serializer, payment provider Eg: Stripe."""
-
-    # id will be payment intent object id in our case, which will start with ch_ and doesn't exceed 255 chars
-    # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
-    id = serializers.CharField(max_length=255)
-    subscription_id = serializers.CharField(
-        max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
-    )
-    # TODO @DC: remove these two booleans after the frontend is fully using the Subscriptions API
-    # DEV-2320
-    is_modifiable = serializers.BooleanField(
-        required=True, help_text="if recurring then can the payment method be modified"
-    )
-    is_cancelable = serializers.BooleanField(
-        required=True, help_text="if recurring then can the payment method be canceled"
-    )
-    status = serializers.ChoiceField(choices=ContributionStatus.choices)
-    card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
-    last4 = serializers.IntegerField()
-    payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False, allow_null=True)
-    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
-    revenue_program = serializers.CharField(max_length=63)
-    amount = serializers.IntegerField()
-    provider_customer_id = serializers.CharField(max_length=255)
-    credit_card_expiration_date = serializers.CharField(max_length=7)
-    created = serializers.DateTimeField()
-    # we allow_null and set default to None because apps.contributions.stripe_contributions_provider.StripePaymentIntent
-    # is used for both Stripe payment intents (main use case) and for wrapping Stripe subscriptions
-    # that don't have invoices (that is, subscriptions with a future first charge date)
-    last_payment_date = serializers.DateTimeField(allow_null=True, default=None)
-    stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-
-class SubscriptionsSerializer(serializers.Serializer):
-    """Serializer for Stripe Subscriptions."""
-
-    id = serializers.SerializerMethodField()
-    is_modifiable = serializers.SerializerMethodField()
-    is_cancelable = serializers.SerializerMethodField()
-    status = serializers.ChoiceField(choices=ContributionStatus.choices)
-    card_brand = serializers.SerializerMethodField()
-    last4 = serializers.SerializerMethodField()
-    payment_type = serializers.SerializerMethodField()
-    next_payment_date = serializers.SerializerMethodField()
-    interval = serializers.SerializerMethodField()
-    revenue_program_slug = serializers.SerializerMethodField()
-    amount = serializers.SerializerMethodField()
-    customer_id = serializers.SerializerMethodField()
-    credit_card_expiration_date = serializers.SerializerMethodField()
-    created = serializers.SerializerMethodField()
-    last_payment_date = serializers.SerializerMethodField()
-    stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-    def _card(self, instance):
-        return instance.default_payment_method.card
-
-    def get_id(self, instance):
-        return instance.id
-
-    def get_card_brand(self, instance):
-        return self._card(instance).brand
-
-    def get_next_payment_date(self, instance):
-        return datetime.fromtimestamp(int(instance.current_period_end), tz=timezone.utc)
-
-    def get_last_payment_date(self, instance):
-        return datetime.fromtimestamp(int(instance.current_period_start), tz=timezone.utc)
-
-    def get_created(self, instance):
-        return datetime.fromtimestamp(int(instance.created), tz=timezone.utc)
-
-    def get_last4(self, instance):
-        return instance.default_payment_method.card.last4
-
-    def get_credit_card_expiration_date(self, instance):
-        return (
-            f"{self._card(instance).exp_month}/{self._card(instance).exp_year}"
-            if self._card(instance).exp_month
-            else None
-        )
-
-    def get_is_modifiable(self, instance):
-        return instance.status not in ["incomplete_expired", "canceled", "unpaid"]
-
-    def get_is_cancelable(self, instance):
-        return instance.status not in ["incomplete", "incomplete_expired", "canceled", "unpaid"]
-
-    def get_interval(self, instance):
-        plan = instance.get("plan")
-        interval = plan.get("interval")
-        interval_count = plan.get("interval_count")
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise serializers.ValidationError(f"Invalid interval: {plan.id}{interval}/{interval_count}")
-
-    def get_revenue_program_slug(self, instance):
-        metadata = instance.get("metadata")
-        if not metadata or "revenue_program_slug" not in metadata:
-            raise serializers.ValidationError(f"Metadata is invalid for subscription: {instance.id}")
-        return metadata["revenue_program_slug"]
-
-    def get_amount(self, instance):
-        return instance.plan.amount
-
-    def get_customer_id(self, instance):
-        return instance.get("customer")
-
-    def get_payment_type(self, instance):
-        return instance.default_payment_method.type
-
-
 PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "id",
     "amount",
@@ -953,6 +839,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
     provider_payment_method_id = serializers.CharField(write_only=True, required=False)
+    # Note that amount is int cents, not float dollars.
     amount = serializers.IntegerField(
         required=False,
         min_value=REVENGINE_MIN_AMOUNT,
@@ -962,10 +849,26 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
     )
+    # Note that donor_selected_amount is float dollars, not int cents. This
+    # value is persisted in Stripe as a string.
+    donor_selected_amount = serializers.FloatField(
+        required=False,
+        min_value=REVENGINE_MIN_AMOUNT / 100,
+        max_value=STRIPE_MAX_AMOUNT / 100,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+        write_only=True,
+    )
 
     class Meta:
         model = Contribution
-        fields = [*PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS, "provider_payment_method_id"]
+        fields = [
+            *PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS,
+            "donor_selected_amount",
+            "provider_payment_method_id",
+        ]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
     def update(self, instance: Contribution, validated_data) -> Contribution:
@@ -974,16 +877,38 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                 instance.update_payment_method_for_subscription(
                     provider_payment_method_id=provider_payment_method_id,
                 )
+            # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
+            donor_selected_amount = validated_data.pop("donor_selected_amount", None)
+
             if amount := validated_data.get("amount", None):
-                instance.update_subscription_amount(
-                    amount=amount,
-                )
+                if not donor_selected_amount:
+                    # amount and donor_selected_amount should always be set in tandem in real life thanks to validate(),
+                    # but we want to be certain.
+                    raise serializers.ValidationError(
+                        "If amount is updated, donor_selected_amount must be set as well."
+                    )
+                instance.update_subscription_amount(amount=amount, donor_selected_amount=donor_selected_amount)
             for key, value in validated_data.items():
                 setattr(instance, key, value)
             with reversion.create_revision():
                 instance.save(update_fields={*validated_data.keys(), "modified"})
                 reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
         return instance
+
+    def validate(self, data):
+        data = super().validate(data)
+        self.validate_amount_and_donor_selected_amount(data)
+        return data
+
+    def validate_amount_and_donor_selected_amount(self, data):
+        if "amount" in data and "donor_selected_amount" not in data:
+            raise serializers.ValidationError(
+                {"amount": "If this field is updated, donor_selected_amount must be provided as well."}
+            )
+        if "donor_selected_amount" in data and "amount" not in data:
+            raise serializers.ValidationError(
+                {"donor_selected_amount": "If this field is updated, amount must be provided as well."}
+            )
 
 
 class PortalContributionListSerializer(PortalContributionBaseSerializer):
@@ -1036,3 +961,10 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
                 code=status.HTTP_400_BAD_REQUEST,
             )
         return value
+
+
+class SwitchboardContributorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contributor
+        fields = ["id", "email"]
+        read_only_fields = ["id"]

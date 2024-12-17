@@ -91,8 +91,8 @@ describe('Donations list', () => {
     it('should display the right columns and row values', () => {
       const columnExpectations = [
         {
-          renderedName: 'Date',
-          rawName: 'created',
+          renderedName: 'Date received',
+          rawName: 'first_payment_date',
           transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : NO_VALUE)
         },
         {
@@ -106,7 +106,7 @@ describe('Donations list', () => {
           transform: (rawVal) => (rawVal ? getFrequencyAdjective(rawVal) : NO_VALUE)
         },
         {
-          renderedName: 'Payment received',
+          renderedName: 'Recent payment',
           rawName: 'last_payment_date',
           transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : NO_VALUE)
         },
@@ -432,7 +432,7 @@ describe('Table sorting for revenue program name', () => {
     cy.interceptPaginatedDonations(donationsDataOneRp);
     cy.visit(DONATIONS_SLUG);
     cy.wait('@getDonations');
-    ['Date', 'Amount', 'Frequency', 'Payment received', 'Contributor', 'Payment status'].forEach((name) => {
+    ['Date received', 'Amount', 'Frequency', 'Recent payment', 'Contributor', 'Payment status'].forEach((name) => {
       cy.findByRole('columnheader', { name: `Sort by ${name}` }).should('be.visible');
     });
     cy.findByRole('columnheader', { name: 'Sort by revenue program' }).should('not.exist');
@@ -445,11 +445,17 @@ describe('Table sorting for revenue program name', () => {
     cy.interceptPaginatedDonations(donationsDataTwoRps);
     cy.visit(DONATIONS_SLUG);
     cy.wait('@getDonations');
-    ['Date', 'Amount', 'Frequency', 'Payment received', 'Revenue program', 'Contributor', 'Payment status'].forEach(
-      (name) => {
-        cy.findByRole('columnheader', { name: `Sort by ${name}` }).should('be.visible');
-      }
-    );
+    [
+      'Date received',
+      'Amount',
+      'Frequency',
+      'Recent payment',
+      'Revenue program',
+      'Contributor',
+      'Payment status'
+    ].forEach((name) => {
+      cy.findByRole('columnheader', { name: `Sort by ${name}` }).should('be.visible');
+    });
     // it's sortable
     cy.findByRole('columnheader', { name: 'Sort by Revenue program' }).click();
     cy.wait('@getDonations');

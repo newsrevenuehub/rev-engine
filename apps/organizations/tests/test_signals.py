@@ -8,6 +8,7 @@ from apps.organizations.signals import (
     create_default_social_meta,
     get_page_to_be_set_as_default,
     handle_delete_rp_mailchimp_access_token_secret,
+    handle_rp_activecampaign_setup,
     handle_rp_mailchimp_entity_setup,
     handle_set_default_donation_page_on_select_core_plan,
     logger,
@@ -190,3 +191,39 @@ class TestGetPageToBeSetAsDefault:
         # created second
         DonationPageFactory(published=False, revenue_program=revenue_program)
         assert get_page_to_be_set_as_default(revenue_program) == created_first
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    (
+        "is_connected",
+        "created",
+        "update_fields",
+        "expect_published",
+    ),
+    [
+        (True, True, {}, True),
+        (True, False, {}, False),
+        (True, False, {"activecampaign_server_url": "some-url"}, True),
+        (True, False, {"activecampaign_access_token": "some-token"}, True),
+        (True, False, {"activecampaign_server_url": "some-url", "activecampaign_access_token": "some-token"}, True),
+    ],
+)
+def test_handle_rp_activecampaign_setup(
+    is_connected: bool, created: bool, update_fields: dict, expect_published: bool, mocker
+):
+    publisher = mocker.patch("apps.organizations.models.Publisher")
+    publisher.get_instance.return_value = mocker.MagicMock()
+    mocker.patch(
+        "apps.organizations.models.RevenueProgram.activecampaign_integration_connected",
+        return_value=is_connected,
+        new_callable=mocker.PropertyMock,
+    )
+    with mocker.patch("apps.google_cloud.pubsub.Publisher"):
+        rp = RevenueProgramFactory()
+        mock_publish = mocker.patch.object(rp, "publish_revenue_program_activecampaign_configuration_complete")
+        handle_rp_activecampaign_setup(sender=mocker.Mock(), instance=rp, created=created, update_fields=update_fields)
+        if expect_published:
+            mock_publish.assert_called_once()
+        else:
+            mock_publish.assert_not_called()

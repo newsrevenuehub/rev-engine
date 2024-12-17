@@ -24,6 +24,7 @@ class ContributionFilter(django_filters.FilterSet):
             ("id", "id"),
             ("amount", "amount"),
             ("created", "created"),
+            ("first_payment_date", "first_payment_date"),
             ("modified", "modified"),
             ("last_payment_date", "last_payment_date"),
             ("flagged_date", "flagged_date"),

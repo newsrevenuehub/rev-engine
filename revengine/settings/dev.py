@@ -31,10 +31,12 @@ if os.getenv("DEBUG_TOOLBAR", "True") == "True":
 
 # To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
 if os.getenv("TEST_EMAIL", "False") == "True":
-    EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-    ANYMAIL = {
-        "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
-    }
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.getenv("EMAIL_HOST")
+    EMAIL_PORT = os.getenv("EMAIL_PORT")
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+    EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
     DEFAULT_FROM_EMAIL = "noreply@fundjournalism.org"
 
 

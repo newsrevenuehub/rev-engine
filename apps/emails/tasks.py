@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 from dataclasses import asdict
 from enum import Enum
+from smtplib import SMTPException
 from typing import TYPE_CHECKING, Literal, TypedDict
 from urllib.parse import quote_plus
 
@@ -14,7 +15,6 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 import stripe
-from anymail.exceptions import AnymailAPIError
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from sentry_sdk import configure_scope
@@ -42,7 +42,7 @@ class EmailTaskException(Exception):
     max_retries=5,
     retry_backoff=True,
     retry_jitter=False,
-    autoretry_for=(AnymailAPIError,),
+    autoretry_for=(SMTPException,),
 )
 def send_templated_email(
     to, subject, message_as_text, message_as_html, from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER
@@ -240,7 +240,7 @@ def get_test_magic_link(user, revenue_program) -> str:
     max_retries=5,
     retry_backoff=True,
     retry_jitter=False,
-    autoretry_for=(AnymailAPIError,),
+    autoretry_for=(SMTPException,),
 )
 def send_thank_you_email(data: SendContributionEmailData) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution."""
@@ -261,7 +261,7 @@ def send_thank_you_email(data: SendContributionEmailData) -> None:
     max_retries=5,
     retry_backoff=True,
     retry_jitter=False,
-    autoretry_for=(AnymailAPIError,),
+    autoretry_for=(SMTPException,),
 )
 def send_templated_email_with_attachment(
     to: str | list[str],

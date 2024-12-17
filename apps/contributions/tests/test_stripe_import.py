@@ -176,33 +176,101 @@ class TestRedisCachePipeline:
         mock_execute.assert_called_once()
 
 
+@pytest.mark.django_db
 class Test_parse_slug_from_url:
-    @pytest.fixture(
-        params=[
-            ("https://{}/slug/", "slug"),
-            ("https://{}/slug", "slug"),
-            ("https://{}/", None),
-            ("https://{}", None),
-            ("https://{}/slug/other", "slug"),
-            ("https://{}/slug/other/", "slug"),
-            ("https://{}/slug/?foo=bar", "slug"),
-            ("https://{}/slug?foo=bar", "slug"),
-        ]
+
+    @pytest.fixture
+    def custom_host(self):
+        return "bizz.bang.com"
+
+    @pytest.fixture
+    def referer_url_with_unsupported_host(self):
+        def _build_url(trailing_slash):
+            return f"https://something.random.com/donate{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
+    def referer_url_with_custom_host(self, custom_host, revenue_program):
+        def _build_url(trailing_slash):
+            return f"https://{custom_host}/{revenue_program.slug}{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
+    def referer_url_with_domain_apex_value(self, domain_apex, revenue_program):
+        def _build_url(trailing_slash):
+            return f"https://{domain_apex}/{revenue_program.slug}{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
+    def referer_url_with_no_slug(self, domain_apex):
+        def _build_url(trailing_slash):
+            return f"https://{domain_apex}{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
+    def referer_url_with_slug_and_other_path(self, domain_apex, revenue_program):
+        def _build_url(trailing_slash):
+            return f"https://{domain_apex}/{revenue_program.slug}/other{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
+    def referer_url_with_slug_and_query_params(self, domain_apex, revenue_program):
+        def _build_url(trailing_slash):
+            return f"https://{domain_apex}/{revenue_program.slug}?foo=bar{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
+    def _settings_empty_host_map(self, settings):
+        settings.HOST_MAP = {}
+
+    @pytest.fixture
+    def _settings_rp_in_host_map(self, revenue_program, custom_host, settings):
+        settings.HOST_MAP = {custom_host: revenue_program.slug}
+
+    @pytest.mark.parametrize(
+        ("referer_url_fixture", "host_map_fixture", "get_expected_slug_fn", "expect_error"),
+        [
+            ("referer_url_with_unsupported_host", "_settings_empty_host_map", None, True),
+            ("referer_url_with_unsupported_host", "_settings_rp_in_host_map", None, True),
+            ("referer_url_with_custom_host", "_settings_empty_host_map", None, True),
+            ("referer_url_with_custom_host", "_settings_rp_in_host_map", lambda rp: rp.slug, False),
+            ("referer_url_with_domain_apex_value", "_settings_empty_host_map", lambda rp: rp.slug, False),
+            ("referer_url_with_no_slug", "_settings_empty_host_map", lambda rp: None, False),
+            ("referer_url_with_slug_and_other_path", "_settings_empty_host_map", lambda rp: rp.slug, False),
+            ("referer_url_with_slug_and_query_params", "_settings_empty_host_map", lambda rp: rp.slug, False),
+        ],
     )
-    def url_case(self, request, domain_apex):
-        return request.param[0].format(domain_apex), request.param[1]
+    @pytest.mark.parametrize("trailing_slash", [True, False])
+    def test_parse_slug_from_url(
+        self,
+        referer_url_fixture,
+        host_map_fixture,
+        get_expected_slug_fn,
+        expect_error,
+        revenue_program,
+        request,
+        trailing_slash,
+    ):
+        # Dynamically resolve the referer_url fixture and use the trailing_slash parameter
+        referer_url_builder = request.getfixturevalue(referer_url_fixture)
+        referer_url = referer_url_builder(trailing_slash)
 
-    def test_parse_slug_from_url_when_allowed_domain(self, url_case):
-        url, expect = url_case
-        if expect:
-            assert parse_slug_from_url(url) == expect
+        # Resolve and activate the host_map_fixture
+        request.getfixturevalue(host_map_fixture)
+
+        # Perform the test assertions
+        if expect_error:
+            with pytest.raises(InvalidStripeTransactionDataError) as exc:
+                parse_slug_from_url(referer_url)
+            assert str(exc.value) == f"URL {referer_url} has a host that is not allowed for import"
         else:
-            assert parse_slug_from_url(url) is None
-
-    def test_parse_slug_from_url_when_not_allowed_domain(self):
-        with pytest.raises(InvalidStripeTransactionDataError) as exc:
-            parse_slug_from_url(url := "https://random-and-malicious.com/slug/")
-        assert str(exc.value) == f"URL {url} has a TLD that is not allowed for import"
+            assert parse_slug_from_url(referer_url) == get_expected_slug_fn(revenue_program)
 
 
 @pytest.mark.django_db

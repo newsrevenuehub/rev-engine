@@ -3,7 +3,6 @@
 import logging
 
 from django.conf import settings
-from django.db.models import QuerySet
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
@@ -28,7 +27,6 @@ from apps.contributions.tasks import (
 )
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.models import User
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -119,27 +117,15 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend]
     serializer_class = serializers.ContributionSerializer
 
-    def filter_queryset_for_user(self, user: User) -> QuerySet[Contribution]:
-        """Return the right results to the right user."""
-        ra = getattr(user, "get_role_assignment", lambda: None)()
-        if user.is_anonymous:
-            return self.model.objects.none()
-        if user.is_superuser:
-            return self.model.objects.all()
-        if ra:
-            return self.model.objects.filtered_by_role_assignment(ra)
-        logger.warning("Encountered unexpected user %s", user.id)
-        raise ApiConfigurationError
-
     def get_queryset(self):
         """Return the right results to the right user."""
         ra = getattr((user := self.request.user), "get_role_assignment", lambda: None)()
         if user.is_anonymous:
-            return self.model.objects.none()
+            return self.model.objects.none().with_first_payment_date()
         if user.is_superuser:
-            return self.model.objects.all()
+            return self.model.objects.all().with_first_payment_date()
         if ra:
-            return self.model.objects.filtered_by_role_assignment(ra)
+            return self.model.objects.filtered_by_role_assignment(ra).with_first_payment_date()
         logger.warning("Encountered unexpected user %s", user.id)
         raise ApiConfigurationError
 

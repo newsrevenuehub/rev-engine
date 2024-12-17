@@ -34,9 +34,8 @@ export interface PortalContribution {
   created: string;
   /**
    * Timestamp of when the first related payment occurred.
-   * TODO in DEV-5139: Make this string only
    */
-  first_payment_date: string | null;
+  first_payment_date: string;
   /**
    * Internal ID of the contribution.
    */

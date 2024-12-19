@@ -1,13 +1,4 @@
-import {
-  CONTRIBUTOR_ENTRY,
-  CONTRIBUTOR_VERIFY,
-  CONTRIBUTOR_DASHBOARD,
-  DONATIONS_SLUG,
-  EDITOR_ROUTE,
-  SIGN_IN,
-  CONTENT_SLUG,
-  PORTAL
-} from 'routes';
+import { DONATIONS_SLUG, EDITOR_ROUTE, SIGN_IN, CONTENT_SLUG, PORTAL } from 'routes';
 
 import { VERIFY_TOKEN } from 'ajax/endpoints';
 
@@ -72,34 +63,6 @@ describe('Pages that are only tracked by Hub', () => {
       });
     });
   }
-});
-
-// This test sometimes passes and sometimes fails. It seems to stem from fact that need to
-// go to contributor-dashboard via contributor-verify at the moment, otherwise get sent to login
-// even if do cy.login(). Possibly some oddity having to do with only being on contributor-verify for a moment
-// before going to contributor dashboard. We can see in console that the expected analytics event fire.
-describe.skip('Special case: page tracking for contributor dashboard', () => {
-  it('tracks a page view for the contributor dashboard', () => {
-    const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
-    cy.intercept(
-      {
-        url: 'https://www.google-analytics.com/j/collect*',
-        query: {
-          t: 'pageview',
-          tid: HUB_GA_V3_ID,
-          dl: `**${CONTRIBUTOR_DASHBOARD}`
-        }
-      },
-      { statusCode: 201, body: { this: { is: { a: 'stub' } } } }
-    ).as('trackPageViewOnHubGaV3');
-    cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' }).as(
-      'verifyToken'
-    );
-    cy.visit(CONTRIBUTOR_VERIFY); // not on this page long enough for GA to fire some of the time????
-    cy.wait('@verifyToken');
-    cy.url().should('include', CONTRIBUTOR_DASHBOARD);
-    cy.wait('@trackPageViewOnHubGaV3');
-  });
 });
 
 describe('Pages that are tracked by both the hub and the org', () => {

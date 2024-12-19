@@ -1,8 +1,7 @@
 import { render, screen, within } from 'test-utils';
 import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
-import isContributorAppPath from 'utilities/isContributorAppPath';
-import isPortalAppPath from 'utilities/isPortalAppPath';
 import MainLayout from './MainLayout';
+import isPortalAppPath from 'utilities/isPortalAppPath';
 
 jest.mock('./analytics/AnalyticsContext', () => ({
   AnalyticsContextProvider: ({ children }: { children: React.ReactNode }) => (
@@ -17,7 +16,6 @@ jest.mock('elements/modal/GlobalConfirmationModal', () => ({ children }: { child
   <div data-testid="mock-global-confirmation-modal">{children}</div>
 ));
 jest.mock('utilities/getRevenueProgramSlug');
-jest.mock('utilities/isContributorAppPath');
 jest.mock('utilities/isPortalAppPath');
 jest.mock('components/authentication/ReauthModal', () => (props: any) => (
   <div data-testid="mock-reauth-modal" data-props={JSON.stringify(props)} />
@@ -34,12 +32,10 @@ function tree() {
 }
 
 describe('MainLayout', () => {
-  const isContributorAppPathMock = jest.mocked(isContributorAppPath);
   const isPortalAppPathMock = jest.mocked(isPortalAppPath);
   const getRevenueProgramSlugMock = jest.mocked(getRevenueProgramSlug);
 
   beforeEach(() => {
-    isContributorAppPathMock.mockReturnValue(false);
     isPortalAppPathMock.mockReturnValue(false);
     getRevenueProgramSlugMock.mockReturnValue('');
   });
@@ -61,14 +57,6 @@ describe('MainLayout', () => {
       tree();
 
       expect(screen.getByTestId('mock-dashboard-router')).toBeInTheDocument();
-    });
-
-    it('should not render DashboardRouter when isContributorAppPath is true', () => {
-      isContributorAppPathMock.mockReturnValue(true);
-
-      tree();
-
-      expect(screen.queryByTestId('mock-dashboard-router')).not.toBeInTheDocument();
     });
 
     it('should not render DashboardRouter when isPortalAppPath is true', () => {
@@ -100,14 +88,6 @@ describe('MainLayout', () => {
       }
     );
 
-    it('should not render DonationPageRouter when isContributorAppPath is true', () => {
-      isContributorAppPathMock.mockReturnValue(true);
-
-      tree();
-
-      expect(screen.queryByTestId('mock-donation-page-router')).not.toBeInTheDocument();
-    });
-
     it('should not render DonationPageRouter when isPortalAppPath is true', () => {
       isPortalAppPathMock.mockReturnValue(true);
 
@@ -120,14 +100,6 @@ describe('MainLayout', () => {
   describe('PortalRouter', () => {
     it('should render PortalRouter', () => {
       isPortalAppPathMock.mockReturnValue(true);
-
-      tree();
-
-      expect(screen.getByTestId('mock-portal-router')).toBeInTheDocument();
-    });
-
-    it('should render PortalRouter when isContributorAppPath is true', () => {
-      isContributorAppPathMock.mockReturnValue(true);
 
       tree();
 

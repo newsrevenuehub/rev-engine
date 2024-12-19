@@ -24,6 +24,14 @@ describe('isPortalAppPath', () => {
 
   describe('should return true if path is:', () => {
     it.each([
+      '/contributor',
+      '/contributor/',
+      '/contributor-verify',
+      '/contributor-verify/',
+      '/contributor/contributions',
+      '/contributor/contributions/',
+      '/portal/my-contributions/',
+      '/portal/my-contributions/abcd/',
       '/portal',
       '/portal/',
       '/portal/verification/',

@@ -17,22 +17,22 @@ MOCK_CF_ZONE_NAME = "some-domain.org"
 class TestBootstrapReviewApp:
     """Test that bootstrap review app calls different functions as expected."""
 
-    def test_happy_path(self, mocker):
+    def test_happy_path(self, mocker, settings):
+        settings.HEROKU_BRANCH = MOCK_TICKET_ID
+        settings.CF_ZONE_NAME = MOCK_CF_ZONE_NAME
         mocker.patch("heroku3.from_key", return_value=mocker.MagicMock())
         mocker.patch("apps.common.utils.upsert_cloudflare_cnames", return_value=mocker.Mock())
+        mock_hookdeck_bootstrap = mocker.patch("apps.common.hookdeck.bootstrap", return_value=None)
         RevenueProgramFactory.create_batch(size=3)
-        with mocker.patch("apps.common.hookdeck.bootstrap", return_value=None) as mock_bootstrap_hookdeck:
-            call_command("bootstrap-review-app")
-            mock_bootstrap_hookdeck.assert_called_once_with(
-                MOCK_TICKET_ID.lower(),
-                urljoin(
-                    f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}", reverse("stripe-webhooks-contributions")
-                ),
-                urljoin(
-                    f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}",
-                    reverse("organization-handle-stripe-webhook"),
-                ),
-            )
+        call_command("bootstrap-review-app")
+        mock_hookdeck_bootstrap.assert_called_once_with(
+            MOCK_TICKET_ID.lower(),
+            urljoin(f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}", reverse("stripe-webhooks-contributions")),
+            urljoin(
+                f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}",
+                reverse("organization-handle-stripe-webhook"),
+            ),
+        )
 
 
 class TestTearDownReviewAppCommand:

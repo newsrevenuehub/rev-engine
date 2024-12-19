@@ -18,7 +18,7 @@ from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.secrets import GoogleCloudSecretProvider
-from apps.common.utils import normalize_slug
+from apps.common.utils import google_cloud_pub_sub_is_configured, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.validators import (
@@ -278,6 +278,8 @@ class Organization(IndexedTimeStampedModel):
         self.stripe_subscription_id = None
         self.plan_name = FreePlan.name
         for rp in self.revenueprogram_set.all():
+            # TODO @bw: Disable active campaign integration on downgrade
+            # DEV-5505
             rp.disable_mailchimp_integration()
         with reversion.create_revision():
             self.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
@@ -787,15 +789,27 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
-    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request. Also include
+    # activecampaign_access_token below
     # DEV-3581
     # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
+
+    # API key used for ActiveCampaign integration.
+    activecampaign_access_token = GoogleCloudSecretProvider(model_attr="activecampaign_access_token_secret_name")
+    # Server used for ActiveCampaign integration. This should be a URL that includes the protocol, like
+    # https://newsrevenuehub12345.api-us1.com.
+    activecampaign_server_url = models.URLField(blank=True, null=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @property
+    def activecampaign_integration_connected(self):
+        """Determine ActiveCampaign connection state for the revenue program."""
+        return all([self.activecampaign_access_token, self.activecampaign_server_url])
 
     @cached_property
     def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -1011,6 +1025,18 @@ class RevenueProgram(IndexedTimeStampedModel):
             },
         )
 
+    def publish_revenue_program_activecampaign_configuration_complete(self):
+        """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""
+        logger.info(
+            "Publishing RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC (%s) for rp_id=[%s]",
+            settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC,
+            self.id,
+        )
+        if google_cloud_pub_sub_is_configured():
+            Publisher.get_instance().publish(
+                settings.RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))
+            )
+
     def publish_revenue_program_mailchimp_list_configuration_complete(self):
         """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic."""
         logger.info("Publishing RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC for rp_id=[%s]", self.id)
@@ -1046,6 +1072,11 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @property
+    def activecampaign_access_token_secret_name(self) -> str:
+        """Value used as the name of the secret in Google Cloud Secrets Manager."""
+        return f"ACTIVECAMPAIGN_ACCESS_TOKEN_FOR_RP_{self.id}_{settings.ENVIRONMENT}"
 
     @property
     def mailchimp_access_token_secret_name(self) -> str:

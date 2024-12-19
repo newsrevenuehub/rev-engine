@@ -51,8 +51,7 @@ export function BillingDetails({
   const [editedAmount, setEditedAmount] = useState(originalAmountInDollars.toString());
 
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
-    // TODO in DEV-5138: use only first_payment_date
-    new Date(contribution.first_payment_date ?? contribution.created)
+    new Date(contribution.first_payment_date)
   );
 
   const disableSave = useMemo(() => {

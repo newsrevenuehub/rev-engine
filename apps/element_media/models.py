@@ -48,7 +48,7 @@ class MediaImage(IndexedTimeStampedModel):
         }
 
     @classmethod
-    def create_from_request(cls, data: QueryDict, files: {}, donation_page, image_key="DImage") -> [dict]:
+    def create_from_request(cls, data: QueryDict, files: dict, donation_page_id: int, image_key="DImage") -> [dict]:
         """Build MediaImage instance from the json blob data found in the files dict of request.data.
 
         Expected Schemas:
@@ -56,7 +56,7 @@ class MediaImage(IndexedTimeStampedModel):
             files = {"str(<UUID>)": Blob}
         :param data: A copy of the request POST data.
         :param files: A list of dicts. Key=UUID in the request.data for the image element
-        :param donation_page: the page that these images are referenced on.
+        :param donation_page_id: the pk of the page that these images are referenced on.
         :param image_key: The key that identifies an Image element.
         :return: The data["sidebar_elements"] updated with the storage locations for the image and the thumbnail.
         """
@@ -71,7 +71,7 @@ class MediaImage(IndexedTimeStampedModel):
                         spa_key=element.get("uuid"),
                         image=img,
                         thumbnail=thumb,
-                        page_id=DonationPage.objects.get(pk=donation_page),
+                        page_id=DonationPage.objects.get(pk=donation_page_id),
                         image_attrs={},
                     )
                     media_image.save()

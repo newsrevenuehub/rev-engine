@@ -1,6 +1,5 @@
 import datetime
 from dataclasses import asdict
-from unittest.mock import Mock
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -190,10 +189,10 @@ class TestSendThankYouEmail:
         [False, True],
     )
     def test_contribution_confirmation_email_style(
-        self, revenue_program: RevenueProgramFactory, default_style: bool, monkeypatch
+        self, revenue_program: RevenueProgramFactory, default_style: bool, monkeypatch, mocker
     ):
         customer = AttrDict({"name": "Foo Bar"})
-        mock_customer_retrieve = Mock()
+        mock_customer_retrieve = mocker.Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         contribution = ContributionFactory(provider_customer_id="something", interval=ContributionInterval.ONE_TIME)
@@ -256,7 +255,7 @@ class TestSendThankYouEmail:
         self, fiscal_status, has_tax_id, monkeypatch, mocker
     ):
         customer = AttrDict({"name": "Foo Bar"})
-        mock_customer_retrieve = Mock()
+        mock_customer_retrieve = mocker.Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         contribution = ContributionFactory(

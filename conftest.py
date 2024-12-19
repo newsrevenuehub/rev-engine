@@ -16,19 +16,25 @@ import base64
 import datetime
 import json
 from dataclasses import asdict
+from io import BytesIO
 from pathlib import Path
 from random import choice, randint, uniform
 from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
+from django.core.files.images import ImageFile
 
+import PIL.Image
 import pytest
 import stripe
 from faker import Faker
 from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
-from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
+from apps.common.constants import (
+    CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME,
+    MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME,
+)
 from apps.contributions.bad_actor import BadActorOverallScore
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
@@ -45,6 +51,22 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 from revengine.utils import __ensure_gs_credentials
+
+
+DEFAULT_FLAGS_CONFIG_MAPPING = {
+    CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME: {
+        "name": CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME,
+        "superusers": True,
+        "everyone": True,  # this is so adding flag won't block users by default in existing tests.
+        # Tests focused on feature flagging can alter the flag's properties as required
+    },
+    MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME: {
+        "name": MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME,
+        "superusers": True,
+        "everyone": True,  # this is so adding flag won't block users by default in existing tests.
+        # Tests focused on feature flagging can alter the flag's properties as required
+    },
+}
 
 
 fake = Faker()
@@ -1054,6 +1076,15 @@ def bad_actor_bad_score(settings):
 @pytest.fixture
 def bad_actor_super_bad_score(settings):
     return BadActorOverallScore(overall_judgment=settings.BAD_ACTOR_REJECT_SCORE, items=[])
+
+
+@pytest.fixture
+def test_jpeg_file(faker):
+    f = BytesIO()
+    image = PIL.Image.new("RGB", (640, 480), "white")
+    image.save(f, "JPEG")
+    faker.seed_instance(randint(1, 10000000))
+    return ImageFile(f, name=f"{faker.word()}.jpg")
 
 
 @pytest.fixture

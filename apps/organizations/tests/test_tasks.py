@@ -1,5 +1,3 @@
-from unittest.mock import Mock, PropertyMock
-
 import pytest
 from google.api_core.exceptions import NotFound
 from rest_framework import status
@@ -245,8 +243,8 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
 def mock_rp_mailchimp_store_truthy(mocker):
     return mocker.patch(
         "apps.organizations.tasks.RevenueProgram.mailchimp_store",
-        new_callable=PropertyMock,
-        return_value=Mock(id="something"),
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.Mock(id="something"),
     )
 
 

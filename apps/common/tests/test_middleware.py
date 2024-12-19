@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.conf import settings
 
 import pytest
@@ -16,10 +14,10 @@ class TestLogFourHundredsMiddleware:
             (True, settings.MIDDLEWARE_LOGGING_CODES[0], {"foo": "bar"}),
         ],
     )
-    def test_logging(self, logged, status_code, data):
-        response = mock.Mock(get=mock.Mock(return_value=data))
+    def test_logging(self, logged, status_code, data, mocker):
+        response = mocker.Mock(get=mocker.Mock(return_value=data))
         response.status_code = status_code
-        with mock.patch("apps.common.middleware.logger") as logger:
-            t = LogFourHundredsMiddleware(lambda request: response)
-            assert response == t(mock.Mock())
+        logger = mocker.patch("apps.common.middleware.logger")
+        t = LogFourHundredsMiddleware(lambda request: response)
+        assert response == t(mocker.Mock())
         assert logged == logger.debug.called

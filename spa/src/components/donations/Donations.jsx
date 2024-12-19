@@ -111,8 +111,8 @@ const Donations = () => {
   const columns = useMemo(() => {
     const defaultColumns = [
       {
-        Header: 'Date received',
-        accessor: 'first_payment_date',
+        Header: 'Date',
+        accessor: 'created',
         Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },
       {
@@ -126,7 +126,7 @@ const Donations = () => {
         Cell: (props) => (props.value ? getFrequencyAdjective(props.value) : NO_VALUE)
       },
       {
-        Header: 'Recent payment',
+        Header: 'Payment received',
         accessor: 'last_payment_date',
         Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },

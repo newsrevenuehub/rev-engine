@@ -2,7 +2,6 @@
 # DEV-5536
 import datetime
 import json
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -820,12 +819,6 @@ class TestPaymentViewset:
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == {"detail": "Something went wrong"}
-
-
-@pytest.fixture
-def payment_method_attached_request_data():
-    with Path("apps/contributions/tests/fixtures/payment-method-attached-webhook.json").open() as f:
-        return json.load(f)
 
 
 class TestProcessStripeWebhook:

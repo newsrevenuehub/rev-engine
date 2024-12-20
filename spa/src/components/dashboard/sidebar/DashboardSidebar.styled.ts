@@ -1,9 +1,7 @@
-import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import logo from 'assets/images/nre-logo-blue.svg';
 import mobileLogo from 'assets/images/nre-logo-blue-mobile.svg';
-import SvgIcon from 'assets/icons/SvgIcon';
 import ManageIcon from '@material-design-icons/svg/outlined/manage_accounts.svg?react';
 
 export const Root = styled.aside`
@@ -78,37 +76,6 @@ export const NavList = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     padding: 0 0;
-  }
-`;
-
-export const NavItemLabel = styled.div`
-  text-decoration: none;
-  color: ${(props) => props.theme.colors.white};
-
-  line-height: 1.25rem;
-  padding: 7px 18px 0px;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 21px;
-  font-family: ${(props) => props.theme.systemFont};
-
-  vertical-align: middle;
-  display: inline-block;
-
-  svg {
-    display: inline-flex;
-    align-self: center;
-    top: 0.15em;
-    width: 16px;
-    height: 16px;
-    position: relative;
-    filter: brightness(0) saturate(100%) invert(100%) sepia(3%) saturate(520%) hue-rotate(264deg) brightness(115%)
-      contrast(100%);
-    transform: rotate(0deg);
-  }
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    padding: 10px 3px;
   }
 `;
 
@@ -188,39 +155,6 @@ export const NavItem = styled(NavLink)`
   }
 `;
 
-export const OtherContent = styled.div`
-  margin: 1rem 0;
-  padding: 1rem 2rem;
-`;
-
-export const Logout = styled(motion.div)`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  white-space: nowrap;
-  cursor: pointer;
-`;
-
-export const LogoutIcon = styled(SvgIcon)`
-  width: 10px;
-  height: 10px;
-  margin-right: 0.75rem;
-  transform: rotate(180deg);
-`;
-
-export const NavItemIcon = styled(SvgIcon)`
-  width: 12px;
-  height: 12px;
-  margin-right: 0.5rem;
-  transform: rotate(180deg);
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    width: 20px;
-    height: 20px;
-    margin-left: 22px;
-  }
-`;
-
 export const ManageAccountIcon = styled(ManageIcon)`
   margin-right: 7px;
 
@@ -229,11 +163,23 @@ export const ManageAccountIcon = styled(ManageIcon)`
   }
 `;
 
+export const NavItemIcon = styled.span`
+  width: 12px;
+  height: 12px;
+  margin-right: 0.5rem;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    width: 20px;
+    height: 20px;
+    margin-left: 22px;
+  }
+`;
+
 // Material icons have padding in their SVG that makes them look smaller in navs
-// compared to icons from <SvgIcon>. This transforms their inner SVG to make
+// compared to our bespoke SVG icons. This transforms their inner SVG to make
 // them line up properly.
 
-export const NavItemMaterialIcon = styled('span')`
+export const NavItemMaterialIcon = styled.span`
   display: inline-flex;
   margin-right: 0.5em;
 

@@ -241,7 +241,7 @@ class Command(BaseCommand):
             "recurring": self.get_metadata_queries(recurrings),
         }
         updated_ids = []
-        for q_type in queries:
+        for q_type in queries.items():
             for i, _query in enumerate(queries[q_type]):
                 acct_id, query = _query
                 self.stdout.write(

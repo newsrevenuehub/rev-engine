@@ -95,10 +95,8 @@ class TestUser:
     @pytest.mark.usefixtures("_permitted_organizations_setup")
     def test_permitted_organizations(self, expected_user):
         orgs = expected_user.permitted_organizations
-        if (
-            expected_user.is_superuser
-            or expected_user.roleassignment
-            and expected_user.roleassignment.role_type == Roles.HUB_ADMIN
+        if expected_user.is_superuser or (
+            expected_user.roleassignment and expected_user.roleassignment.role_type == Roles.HUB_ADMIN
         ):
             assert orgs.count() == Organization.objects.count()
             assert set(orgs.values_list("id", flat=True)) == set(Organization.objects.values_list("id", flat=True))
@@ -109,10 +107,8 @@ class TestUser:
     @pytest.mark.usefixtures("_permitted_revenue_programs_setup")
     def test_permitted_revenue_programs(self, expected_user):
         rps = expected_user.permitted_revenue_programs
-        if (
-            expected_user.is_superuser
-            or expected_user.roleassignment
-            and expected_user.roleassignment.role_type == Roles.HUB_ADMIN
+        if expected_user.is_superuser or (
+            expected_user.roleassignment and expected_user.roleassignment.role_type == Roles.HUB_ADMIN
         ):
             assert rps.count() == RevenueProgram.objects.count()
             assert set(rps.values_list("id", flat=True)) == set(RevenueProgram.objects.values_list("id", flat=True))

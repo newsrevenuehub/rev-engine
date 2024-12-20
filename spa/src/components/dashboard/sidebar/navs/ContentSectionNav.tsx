@@ -1,12 +1,14 @@
-import { ICONS } from 'assets/icons/SvgIcon';
+import Pages from 'assets/icons/pages.svg?react';
+import Customize from 'assets/icons/customize.svg?react';
 import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, CUSTOMIZE_SLUG } from 'routes';
 import {
   NavItem,
-  NavItemIcon,
   NavSection,
   SectionLabel,
   SideBarText,
-  ManageAccountIcon
+  ManageAccountIcon,
+  NavItemMaterialIcon,
+  NavItemIcon
 } from '../DashboardSidebar.styled';
 import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';
@@ -19,7 +21,9 @@ function ContentSectionNav() {
     <NavSection aria-labelledby="content-section-id">
       <SectionLabel id="content-section-id">Content</SectionLabel>
       <NavItem aria-labelledby="pages-nav-item-id" role="listitem" data-testid="nav-pages-item" to={CONTENT_SLUG}>
-        <NavItemIcon icon={ICONS.PAGES} />
+        <NavItemMaterialIcon>
+          <Pages />
+        </NavItemMaterialIcon>
         <SideBarText id="pages-nav-item-id">Pages</SideBarText>
       </NavItem>
       {(isOrgAdmin || isRPAdmin) && (
@@ -29,7 +33,9 @@ function ContentSectionNav() {
           data-testid="nav-styles-item"
           to={CUSTOMIZE_SLUG}
         >
-          <NavItemIcon icon={ICONS.CUSTOMIZE} />
+          <NavItemIcon>
+            <Customize />
+          </NavItemIcon>
           <SideBarText id="customize-nav-item-id">Customize</SideBarText>
         </NavItem>
       )}

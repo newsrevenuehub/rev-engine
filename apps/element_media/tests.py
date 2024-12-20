@@ -36,10 +36,13 @@ class TestMediaImage:
         assert str(image_instance) == image_instance.image.name
 
     def test_create_from_request_when_no_sidebar_elements(self, image_instance, donation_page):
+        count = MediaImage.objects.count()
         donation_page = image_instance.page_id
         MediaImage.create_from_request({}, {}, donation_page.id)
+        assert MediaImage.objects.count() == count
 
     def test_create_from_request_when_sidebar_elements(self, image_instance, donation_page):
+        count = MediaImage.objects.count()
         donation_page = image_instance.page_id
         data = {
             "sidebar_elements": json.dumps(
@@ -51,3 +54,16 @@ class TestMediaImage:
         }
         files = {img_id: image_instance.image}
         MediaImage.create_from_request(data, files, donation_page.id)
+        assert MediaImage.objects.count() == count + 1
+
+    def test_create_from_request_when_no_image_files(self, donation_page):
+        data = {
+            "sidebar_elements": json.dumps(
+                [
+                    {"uuid": f"{uuid4()}", "type": "DReason", "content": ""},
+                    {"uuid": f"{uuid4()}", "type": "DImage", "content": ""},
+                ]
+            )
+        }
+        MediaImage.create_from_request(data, {}, donation_page.id)
+        assert not MediaImage.objects.all()

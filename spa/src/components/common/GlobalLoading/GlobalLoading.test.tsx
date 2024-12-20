@@ -28,14 +28,18 @@ describe('GlobalLoading', () => {
   it('displays a circular progress indicator after a delay', async () => {
     tree({ wait: 1000 });
     expect(screen.queryByTestId('mock-circular-progress')).not.toBeInTheDocument();
-    act(() => jest.advanceTimersByTime(1000));
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
     expect(screen.getByTestId('mock-circular-progress')).toBeInTheDocument();
   });
 
   it('is accessible', async () => {
     const { container } = tree({ wait: 0 });
 
-    act(() => jest.advanceTimersByTime(1));
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
     jest.useRealTimers();
     expect(await axe(container)).toHaveNoViolations();
   });

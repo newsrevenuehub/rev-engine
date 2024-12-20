@@ -1,14 +1,7 @@
 import * as S from './DBenefits.styled';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-
-// Assets
-import { ICONS } from 'assets/icons/SvgIcon';
-
-// Context
 import { usePage } from 'components/donationPage/DonationPage';
-
-// Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import ElementError from 'components/donationPage/pageContent/ElementError';
 
@@ -51,7 +44,7 @@ function DBenefits({ live }) {
                     return (
                       <S.Benefit key={benefit.name + i} data-testid="level-benefit">
                         <S.BenefitCheck>
-                          <S.BenefitIcon icon={ICONS.CHECK_MARK} />
+                          <S.BenefitIcon />
                         </S.BenefitCheck>
                         <S.BenefitDetails>
                           <S.BenefitName>{benefit.name}</S.BenefitName>

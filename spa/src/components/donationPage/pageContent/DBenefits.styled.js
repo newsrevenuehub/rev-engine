@@ -1,6 +1,5 @@
+import { Check } from '@material-ui/icons';
 import styled from 'styled-components';
-
-import SvgIcon from 'assets/icons/SvgIcon';
 
 export const DBenefits = styled.aside``;
 
@@ -64,14 +63,14 @@ export const BenefitCheck = styled.i`
   height: 36px;
 `;
 
-export const BenefitIcon = styled(SvgIcon)`
+export const BenefitIcon = styled(Check)`
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 17px;
   height: 23px;
-  fill: ${(props) => props.theme.colors.white};
+  color: ${(props) => props.theme.colors.white};
 `;
 
 export const BenefitDetails = styled.div`

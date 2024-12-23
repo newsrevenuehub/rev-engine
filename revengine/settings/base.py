@@ -683,3 +683,6 @@ SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)
 # DEV-4967
 # See DEV-5249 and related for more details.
 DUMMY_PAYMENT_METHOD_ID = os.getenv("DUMMY_PAYMENT_METHOD_ID", "pm_this_is_temp_for_2445")
+
+# 1 minute. We're doing this so we can test theory about CSRF error we're seeing
+CSRF_COOKIE_AGE = 60

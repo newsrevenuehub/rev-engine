@@ -191,6 +191,13 @@ class Test_parse_slug_from_url:
         return _build_url
 
     @pytest.fixture
+    def referer_url_with_subdomain_on_domain_apex(self, domain_apex):
+        def _build_url(trailing_slash):
+            return f"https://sub.{domain_apex}/donate{'/' if trailing_slash else ''}"
+
+        return _build_url
+
+    @pytest.fixture
     def referer_url_with_custom_host(self, custom_host, revenue_program):
         def _build_url(trailing_slash):
             return f"https://{custom_host}/{revenue_program.slug}{'/' if trailing_slash else ''}"
@@ -244,6 +251,7 @@ class Test_parse_slug_from_url:
             ("referer_url_with_no_slug", "_settings_empty_host_map", lambda rp: None, False),
             ("referer_url_with_slug_and_other_path", "_settings_empty_host_map", lambda rp: rp.slug, False),
             ("referer_url_with_slug_and_query_params", "_settings_empty_host_map", lambda rp: rp.slug, False),
+            ("referer_url_with_subdomain_on_domain_apex", "_settings_empty_host_map", lambda rp: rp.slug, False),
         ],
     )
     @pytest.mark.parametrize("trailing_slash", [True, False])

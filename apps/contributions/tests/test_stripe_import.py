@@ -191,9 +191,9 @@ class Test_parse_slug_from_url:
         return _build_url
 
     @pytest.fixture
-    def referer_url_with_subdomain_on_domain_apex(self, domain_apex):
+    def referer_url_with_subdomain_on_domain_apex(self, domain_apex, revenue_program):
         def _build_url(trailing_slash):
-            return f"https://sub.{domain_apex}/donate{'/' if trailing_slash else ''}"
+            return f"https://sub.{domain_apex}/{revenue_program.slug}{'/' if trailing_slash else ''}"
 
         return _build_url
 

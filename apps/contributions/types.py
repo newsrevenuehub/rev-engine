@@ -214,6 +214,32 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
         extra = "forbid"
 
 
+class StripePaymentMetadataSchemaV1_6(StripeMetadataSchemaBase):
+    schema_version: Literal["1.6"]
+    source: Literal["digest-builder"]
+    agreed_to_pay_fees: bool
+    amount: float
+    donor_selected_amount: float
+    reason_for_giving: str | None = None
+    referer: pydantic.HttpUrl | None = None
+    revenue_program_id: int
+    revenue_program_slug: str
+    sf_campaign_id: str | None = None
+    marketing_consent: bool | None = None
+    frequency: Literal["one_time", "monthly", "yearly"]
+
+    METADATA_TEXT_MAX_LENGTH: ClassVar[int] = 255
+
+    @pydantic.field_validator("agreed_to_pay_fees", "marketing_consent")
+    @classmethod
+    def validate_booleans(cls, v: Any) -> bool | None:
+        """Validate booleans.
+
+        This validator is responsible for ensuring that the agreed_to_pay_fees and swag_opt_out fields are valid.
+        """
+        return cls.normalize_boolean(v)
+
+
 STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS: dict[str, StripeMetadataSchemaBase] = {
     "1.0": StripePaymentMetadataSchemaV1_0,
     "1.1": StripePaymentMetadataSchemaV1_1,
@@ -221,6 +247,7 @@ STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS: dict[str, StripeMetadataSchemaBase] = {
     "1.3": StripePaymentMetadataSchemaV1_3,
     "1.4": StripePaymentMetadataSchemaV1_4,
     "1.5": StripePaymentMetadataSchemaV1_5,
+    "1.6": StripePaymentMetadataSchemaV1_6,
 }
 
 
@@ -232,6 +259,7 @@ def cast_metadata_to_stripe_payment_metadata_schema(
     | StripePaymentMetadataSchemaV1_3
     | StripePaymentMetadataSchemaV1_4
     | StripePaymentMetadataSchemaV1_5
+    | StripePaymentMetadataSchemaV1_6
 ):
     """Cast metadata to the appropriate schema based on the schema_version field."""
     if not metadata:

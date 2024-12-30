@@ -218,7 +218,7 @@ class StripePaymentMetadataSchemaV1_6(StripeMetadataSchemaBase):
     schema_version: Literal["1.6"]
     source: Literal["digest-builder"]
     agreed_to_pay_fees: bool
-    amount: float
+    amount: int
     donor_selected_amount: float
     reason_for_giving: str | None = None
     referer: pydantic.HttpUrl | None = None
@@ -226,9 +226,7 @@ class StripePaymentMetadataSchemaV1_6(StripeMetadataSchemaBase):
     revenue_program_slug: str
     sf_campaign_id: str | None = None
     marketing_consent: bool | None = None
-    frequency: Literal["one_time", "monthly", "yearly"]
-
-    METADATA_TEXT_MAX_LENGTH: ClassVar[int] = 255
+    frequency: Literal["one-time", "monthly", "yearly"]
 
     @pydantic.field_validator("agreed_to_pay_fees", "marketing_consent")
     @classmethod

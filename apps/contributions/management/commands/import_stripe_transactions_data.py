@@ -28,7 +28,7 @@ class Command(BaseCommand):
             parser.add_argument(  # pragma: no cover
                 "--gte",
                 type=lambda s: dateparser.parse(s),
-                help=("Optional start date(time) for the import (inclusive). Tries to parse whatever it's given.",),
+                help="Optional start date(time) for the import (inclusive). Tries to parse whatever it's given.",
             ),
         )
         (

@@ -225,8 +225,6 @@ class StripePaymentMetadataSchemaV1_6(StripeMetadataSchemaBase):
     revenue_program_id: int
     revenue_program_slug: str
     sf_campaign_id: str | None = None
-    marketing_consent: bool | None = None
-    frequency: Literal["one-time", "monthly", "yearly"]
 
     @pydantic.field_validator("agreed_to_pay_fees", "marketing_consent")
     @classmethod

@@ -139,8 +139,6 @@ class TestStripePaymentMetadataSchemas:
             "revenue_program_id": 1,
             "revenue_program_slug": "foo",
             "sf_campaign_id": "2",
-            "marketing_consent": True,
-            "frequency": "monthly",
         }
 
     @pytest.fixture(

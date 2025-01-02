@@ -20,7 +20,7 @@ from apps.contributions.models import Contribution, Contributor
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class SwitchboardContributionsViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """Viewset for switchboard to update contributions."""
 
     permission_classes = [IsSwitchboardAccount]

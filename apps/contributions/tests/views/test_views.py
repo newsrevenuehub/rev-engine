@@ -41,6 +41,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.contributions.views.portal import PortalContributorsViewSet
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
@@ -1029,6 +1030,28 @@ class TestPortalContributorsViewSet:
         assert response.json()["results"][0]["id"] == yearly_contribution.id
         assert response.json()["results"][1]["id"] == monthly_contribution.id
 
+    def test_contributions_list_case_insensitivity(self, api_client, portal_contributor_with_multiple_contributions):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contributor.email = contributor.email.upper()
+        contributor.save()
+        alt_contributor = ContributorFactory(email=contributor.email.lower())
+        alt_contribution = ContributionFactory(
+            monthly_subscription=True,
+            contributor=alt_contributor,
+            status=ContributionStatus.PAID,
+            donation_page=contributor.contribution_set.first().donation_page,
+        )
+        api_client.force_authenticate(contributor)
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,)) + "?status=paid"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 4
+        assert {x["id"] for x in response.json()["results"]} == {
+            alt_contribution.id,
+            *contributor.contribution_set.values_list("id", flat=True),
+        }
+
     def test_contribution_detail_get_happy_path(
         self,
         api_client,
@@ -1552,3 +1575,27 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
+
+    def test_get_contributor_contributions_queryset(self, mocker):
+        canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")
+        related_contributor = ContributorFactory(email=canonical_contributor.email.upper())
+        for contributor in [canonical_contributor, related_contributor]:
+            ContributionFactory(contributor=contributor, status=ContributionStatus.FAILED, one_time=True)
+        exclude_hidden_spy = mocker.spy(ContributionQuerySet, "exclude_hidden_statuses")
+        exclude_paymentless_spy = mocker.spy(ContributionQuerySet, "exclude_paymentless_canceled")
+        exclude_missing_stripe_sub_id = mocker.spy(
+            ContributionQuerySet, "exclude_recurring_missing_provider_subscription_id"
+        )
+        exclude_dummy_payment_method_id = mocker.spy(ContributionQuerySet, "exclude_dummy_payment_method_id")
+        contributions = PortalContributorsViewSet().get_contributor_contributions_queryset(
+            contributor=canonical_contributor
+        )
+        assert contributions.count() == 2
+        assert set(contributions.values_list("contributor_id", flat=True)) == {
+            canonical_contributor.id,
+            related_contributor.id,
+        }
+        exclude_hidden_spy.assert_called_once()
+        exclude_paymentless_spy.assert_called_once()
+        exclude_missing_stripe_sub_id.assert_called_once()
+        exclude_dummy_payment_method_id.assert_called_once()

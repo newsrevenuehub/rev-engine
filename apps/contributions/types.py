@@ -226,13 +226,10 @@ class StripePaymentMetadataSchemaV1_6(StripeMetadataSchemaBase):
     revenue_program_slug: str
     sf_campaign_id: str | None = None
 
-    @pydantic.field_validator("agreed_to_pay_fees", "marketing_consent")
+    @pydantic.field_validator("agreed_to_pay_fees")
     @classmethod
     def validate_booleans(cls, v: Any) -> bool | None:
-        """Validate booleans.
-
-        This validator is responsible for ensuring that the agreed_to_pay_fees and swag_opt_out fields are valid.
-        """
+        """Validate booleans."""
         return cls.normalize_boolean(v)
 
 

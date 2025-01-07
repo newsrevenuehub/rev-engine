@@ -3,7 +3,6 @@ import json
 import re
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import Mock
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
@@ -545,14 +544,14 @@ class TestContributionModel:
         else:
             send_thank_you_email_spy.assert_not_called()
 
-    def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker, monkeypatch):
+    def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
         # there are other paths through that call save where different stripe return values would need to
         # be provided. We're only testing processing case, and assume that it also means that save calls right update
         # fields for all non-error paths through cancel function.
         one_time_contribution.status = ContributionStatus.PROCESSING
         one_time_contribution.save()
-        mock_cancel = Mock()
-        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
+        mock_cancel = mocker.Mock()
+        mocker.patch("stripe.PaymentIntent.cancel", mock_cancel)
         save_spy = mocker.spy(Contribution, "save")
         one_time_contribution.cancel()
         save_spy.assert_called_once_with(one_time_contribution, update_fields={"status", "modified"})
@@ -563,7 +562,7 @@ class TestContributionModel:
         one_time_contribution.save()
         mock_create_revision = mocker.patch("reversion.create_revision")
         mock_create_revision.__enter__.return_value = None
-        mock_cancel = Mock()
+        mock_cancel = mocker.Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         one_time_contribution.cancel()
@@ -579,9 +578,9 @@ class TestContributionModel:
             ContributionStatus.FLAGGED,
         ],
     )
-    def test_cancel_when_one_time(self, status, monkeypatch):
+    def test_cancel_when_one_time(self, status, monkeypatch, mocker):
         contribution = ContributionFactory(one_time=True, status=status)
-        mock_cancel = Mock()
+        mock_cancel = mocker.Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
         contribution.cancel()
         contribution.refresh_from_db()
@@ -604,7 +603,7 @@ class TestContributionModel:
             (ContributionStatus.FLAGGED, "annual_subscription", False),
         ],
     )
-    def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch):
+    def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch, mocker):
         contribution = ContributionFactory(
             **{
                 contribution_type: True,
@@ -612,15 +611,15 @@ class TestContributionModel:
                 "provider_payment_method_id": "some-id" if has_payment_method_id else None,
             }
         )
-        mock_delete_sub = Mock()
+        mock_delete_sub = mocker.Mock()
         monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
-        mock_pm_detach = Mock()
+        mock_pm_detach = mocker.Mock()
 
         class MockPaymentMethod:
             def __init__(self, *args, **kwargs):
                 self.detach = mock_pm_detach
 
-        mock_retrieve_pm = Mock(return_value=MockPaymentMethod())
+        mock_retrieve_pm = mocker.Mock(return_value=MockPaymentMethod())
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_retrieve_pm)
 
         contribution.cancel()
@@ -641,12 +640,12 @@ class TestContributionModel:
         else:
             mock_pm_detach.assert_not_called()
 
-    def test_cancel_when_unpermitted_interval(self, monkeypatch):
+    def test_cancel_when_unpermitted_interval(self, monkeypatch, mocker):
         contribution = ContributionFactory(
             annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
         )
         last_modified = contribution.modified
-        mock_stripe_method = Mock()
+        mock_stripe_method = mocker.Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
         monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
@@ -674,10 +673,10 @@ class TestContributionModel:
             "unexpected",
         ],
     )
-    def test_cancel_when_unpermitted_status(self, status, monkeypatch):
+    def test_cancel_when_unpermitted_status(self, status, monkeypatch, mocker):
         contribution = ContributionFactory(annual_subscription=True, status=status)
         last_modified = contribution.modified
-        mock_stripe_method = Mock()
+        mock_stripe_method = mocker.Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
         monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)

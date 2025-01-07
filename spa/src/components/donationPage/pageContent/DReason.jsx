@@ -86,11 +86,12 @@ function DReason({ element, ...props }) {
                   <motion.div {...S.inputAnimations}>
                     <S.ReasonOtherInput
                       placeholder={t('donationPage.dReason.tellUsWhy')}
+                      required={element?.requiredFields?.includes('reason_for_giving')}
                       value={reasonOther}
                       name="reason_other"
                       onChange={(e) => setReasonOther(e.target.value)}
                       maxLength={REASON_OPTION_MAX_LENGTH}
-                      errors={errors.reason_other}
+                      errors={errors.reason_for_giving}
                     />
                   </motion.div>
                 )}

@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -12,15 +10,16 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 from revengine.views import ReactAppView
 
 
-@mock.patch("revengine.views.logger.info")
-def test_spa_revenue_program_does_not_exist(logger_info, client, mocker):
-    mocker.patch("revengine.views.get_subdomain_from_request", return_value="nogood_subdomain")
-    mocker.patch("revengine.views.RevenueProgram.objects.get", side_effect=RevenueProgram.DoesNotExist)
-    response = client.get(reverse("index"))
-    # ReactAppView._get_revenue_program_from_subdomain() logs and
-    # ReactAppView._is_valid_rp_subdomain is False, so 404 status code.
-    assert logger_info.was_called
-    assert response.status_code == 404
+def test_spa_revenue_program_does_not_exist(client, mocker):
+    logger_info = mocker.patch("revengine.views.logger.info")
+    with (
+        mocker.patch("revengine.views.get_subdomain_from_request", return_value="nogood_subdomain"),
+        mocker.patch("revengine.views.RevenueProgram.objects.get", side_effect=RevenueProgram.DoesNotExist),
+    ):
+        response = client.get(reverse("index"))
+        # ReactAppView._get_revenue_program_from_subdomain() just logs.
+        assert logger_info.was_called
+        assert response.status_code == 404
 
 
 @pytest.mark.django_db
@@ -39,14 +38,14 @@ def test_no_subdomains(client, mocker):
     assert response.status_code == 200
 
 
-def test_read_apple_developer_merchant_id(client):
+def test_read_apple_developer_merchant_id(client, mocker):
     # File is not in the location this function expects, at least in DEV environment.
     #  actual   ./revengine/static/apple-developer-merchantid-domain-association
     #  expected ./public/static/apple-developer-merchantid-domain-association
     # mocking open hides this issue. TODO @njh: not sure if on purpose.
-    with mock.patch("pathlib.Path.open", mock.mock_open(read_data="squeeeee!")):
-        response = client.get(reverse("apple_dev_merchantid_domain"))
-        assert response.status_code == 200
+    mocker.patch("pathlib.Path.open", mocker.mock_open(read_data="squeeeee!"))
+    response = client.get(reverse("apple_dev_merchantid_domain"))
+    assert response.status_code == 200
 
 
 def _assert_500_page(soup):

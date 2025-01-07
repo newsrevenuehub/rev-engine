@@ -24,8 +24,9 @@ from rest_framework_simplejwt.utils import datetime_to_epoch
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
-from apps.contributions.models import Contributor
+from apps.contributions.models import Contribution, Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.views.switchboard import SwitchboardContributionsViewSet
 from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -533,6 +534,12 @@ class VerifyContributorTokenViewTest(APITestCase):
 @pytest.mark.django_db
 @pytest.mark.usefixtures("default_feature_flags")
 class TestAuthorizedContributor:
+
+    @pytest.fixture(autouse=True)
+    def _config(self, mocker):
+        # We do this because we don't care about the results returned and we don't want to hit the database
+        # or Stripe if any contributions exist for the user.
+        mocker.patch.object(SwitchboardContributionsViewSet, "queryset", return_value=Contribution.objects.none())
 
     @pytest.fixture
     def contribution(self, contributor_user):

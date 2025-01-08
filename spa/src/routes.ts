@@ -21,11 +21,6 @@ export const SETTINGS = {
   SUBSCRIPTION: '/settings/subscription'
 } as const;
 
-// Contributor
-export const CONTRIBUTOR_ENTRY = '/contributor/';
-export const CONTRIBUTOR_VERIFY = '/contributor-verify/';
-export const CONTRIBUTOR_DASHBOARD = join([CONTRIBUTOR_ENTRY, 'contributions/']);
-
 // New Portal
 export const PORTAL = {
   ENTRY: '/portal/',

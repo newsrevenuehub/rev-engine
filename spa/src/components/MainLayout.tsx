@@ -3,7 +3,6 @@ import { MainLayoutWrapper } from './MainLayout.styled';
 
 // Hooks
 import useSentry from 'hooks/useSentry';
-import isContributorAppPath from 'utilities/isContributorAppPath';
 import isPortalAppPath from 'utilities/isPortalAppPath';
 
 // Constants
@@ -25,15 +24,14 @@ function MainLayout() {
   useSentry();
 
   const rpSlug = getRevenueProgramSlug();
-  const isContributorApp = isContributorAppPath();
   const isPortalApp = isPortalAppPath();
   let Router = DashboardRouter;
 
-  if (!DASHBOARD_SUBDOMAINS.includes(rpSlug) && !isContributorApp && !isPortalApp) {
+  if (!DASHBOARD_SUBDOMAINS.includes(rpSlug) && !isPortalApp) {
     Router = DonationPageRouter;
   }
 
-  if (isPortalApp || isContributorApp) {
+  if (isPortalApp) {
     Router = PortalRouter;
   }
 

@@ -8,6 +8,7 @@ from apps.contributions.types import (
     StripePaymentMetadataSchemaV1_3,
     StripePaymentMetadataSchemaV1_4,
     StripePaymentMetadataSchemaV1_5,
+    StripePaymentMetadataSchemaV1_6,
     cast_metadata_to_stripe_payment_metadata_schema,
 )
 
@@ -125,6 +126,21 @@ class TestStripePaymentMetadataSchemas:
         del data["contributor_id"]
         return data
 
+    @pytest.fixture
+    def v1_6_data(self):
+        return {
+            "schema_version": "1.6",
+            "source": "digest-builder",
+            "agreed_to_pay_fees": True,
+            "amount": 110.0,
+            "donor_selected_amount": 100.0,
+            "reason_for_giving": "because",
+            "referer": "https://example.com",
+            "revenue_program_id": 1,
+            "revenue_program_slug": "foo",
+            "sf_campaign_id": "2",
+        }
+
     @pytest.fixture(
         params=[
             ("v1_0_data", StripePaymentMetadataSchemaV1_0),
@@ -132,6 +148,7 @@ class TestStripePaymentMetadataSchemas:
             ("v1_3_data", StripePaymentMetadataSchemaV1_3),
             ("v1_4_data", StripePaymentMetadataSchemaV1_4),
             ("v1_5_data", StripePaymentMetadataSchemaV1_5),
+            ("v1_6_data", StripePaymentMetadataSchemaV1_6),
         ],
     )
     def metadata_test_case(self, request):

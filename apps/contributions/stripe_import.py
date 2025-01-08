@@ -387,12 +387,11 @@ class StripeTransactionsImporter:
         match subscription_status:
             # TODO @BW: Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
             # DEV-4506
-            # In revengine terms, we conflate active and past due because we don't have an internal status
-            # for past due, and paid is closest given current statuses
-            case "active" | "past_due":
+            case "active":
                 return ContributionStatus.PAID
             # happens after time period for incomplete, when expired no longer can be charged
-            case "incomplete_expired":
+            # past_due should map to FAILED, check DEV-5538 for context
+            case "incomplete_expired" | "past_due":
                 return ContributionStatus.FAILED
             case "canceled":
                 return ContributionStatus.CANCELED

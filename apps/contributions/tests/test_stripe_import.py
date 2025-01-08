@@ -488,7 +488,7 @@ class TestStripeTransactionsImporter:
         ("status", "expected"),
         [
             ("active", ContributionStatus.PAID),
-            ("past_due", ContributionStatus.PAID),
+            ("past_due", ContributionStatus.FAILED),
             ("incomplete_expired", ContributionStatus.FAILED),
             ("canceled", ContributionStatus.CANCELED),
             ("anything_else_that_arrives", ContributionStatus.PROCESSING),

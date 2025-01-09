@@ -91,7 +91,7 @@ function DReason({ element, ...props }) {
                       name="reason_other"
                       onChange={(e) => setReasonOther(e.target.value)}
                       maxLength={REASON_OPTION_MAX_LENGTH}
-                      errors={errors.reason_for_giving}
+                      errors={errors.reason_other}
                     />
                   </motion.div>
                 )}

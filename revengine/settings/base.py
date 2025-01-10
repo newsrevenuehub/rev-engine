@@ -85,7 +85,7 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_ROOT = BASE_DIR / "public" / "media"
-MEDIA_URL = "/media/"
+MEDIA_URL = "https://dev-5642-poc.fundjournalism.org/"
 
 # django-storages Settings
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")

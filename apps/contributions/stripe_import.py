@@ -220,14 +220,16 @@ def parse_slug_from_url(url: str) -> str | None:
     """Parse RP slug, if any, from a given URL."""
     extracted = tldextract.extract(url)
     parts = filter(None, [extracted.subdomain, extracted.domain])
-    if (query := f"{'.'.join(parts)}.{extracted.suffix}") not in (
-        allowed := [*settings.HOST_MAP.keys(), settings.DOMAIN_APEX]
+    if (
+        f"{extracted.domain}.{extracted.suffix}" != settings.DOMAIN_APEX
+        and (query := f"{'.'.join(parts)}.{extracted.suffix}") not in settings.HOST_MAP
     ):
         logger.warning(
-            "URL %s has a host that is not allowed for import: (%s).  Acceptable values are %s",
+            "URL %s is not allowed for import: (%s).  Acceptable values are *.%s and %s for custom domains",
             url,
             query,
-            ", ".join(allowed),
+            settings.DOMAIN_APEX,
+            ", ".join(settings.HOST_MAP.keys()),
         )
         raise InvalidStripeTransactionDataError(f"URL {url} has a host that is not allowed for import")
     parsed = urlparse(url)

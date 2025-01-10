@@ -3,6 +3,7 @@
 import logging
 
 from django.conf import settings
+from django.db.models import QuerySet
 
 import stripe
 from rest_framework import status, viewsets
@@ -86,14 +87,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         return Response(impact, status=status.HTTP_200_OK)
 
-    def get_contributor_contributions_queryset(self, contributor):
-        """Get all relevant contributions for a given contributor.
-
-        NB: We return contributions that can be connected by case insensitive email on contributor.
-        See DEV-5494 for more context.
-        """
+    def get_contributor_contributions(self, contributor: Contributor) -> QuerySet[Contribution]:
         return (
-            Contribution.objects.filter(contributor__email__iexact=contributor.email)
+            contributor.get_contributor_contributions_queryset()
             .exclude_hidden_statuses()
             .exclude_paymentless_canceled()
             .exclude_recurring_missing_provider_subscription_id()
@@ -112,7 +108,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
-        qs = self.get_contributor_contributions_queryset(contributor)
+        qs = self.get_contributor_contributions(contributor)
         filtered_qs = PortalContributionFilter().filter_queryset(request, qs)
         ordered_qs = self.handle_ordering(filtered_qs, request)
         return self.paginate_results(ordered_qs, request)
@@ -129,9 +125,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         logger.info("send receipt with contribution_id %s", contribution_id)
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution: Contribution = self.get_contributor_contributions_queryset(contributor).get(
-                pk=contribution_id
-            )
+            contribution: Contribution = self.get_contributor_contributions(contributor).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
         contribution.handle_thank_you_email(
@@ -150,7 +144,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint to get or update a contribution for a given contributor."""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = self.get_contributor_contributions_queryset(contributor).get(pk=contribution_id)
+            contribution = self.get_contributor_contributions(contributor).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 

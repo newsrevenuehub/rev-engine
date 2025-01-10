@@ -1834,7 +1834,7 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
-    def test_get_contributor_contributions_queryset(self, mocker):
+    def test_get_contributor_contributions(self, mocker):
         canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")
         related_contributor = ContributorFactory(email=canonical_contributor.email.upper())
         for contributor in [canonical_contributor, related_contributor]:
@@ -1845,9 +1845,7 @@ class TestPortalContributorsViewSet:
             ContributionQuerySet, "exclude_recurring_missing_provider_subscription_id"
         )
         exclude_dummy_payment_method_id = mocker.spy(ContributionQuerySet, "exclude_dummy_payment_method_id")
-        contributions = PortalContributorsViewSet().get_contributor_contributions_queryset(
-            contributor=canonical_contributor
-        )
+        contributions = PortalContributorsViewSet().get_contributor_contributions(contributor=canonical_contributor)
         assert contributions.count() == 2
         assert set(contributions.values_list("contributor_id", flat=True)) == {
             canonical_contributor.id,

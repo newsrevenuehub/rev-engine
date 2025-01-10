@@ -26,7 +26,7 @@ function DReason({ element, ...props }) {
   const [selectedReason, setSelectedReason] = useState('');
   const [reasonOther, setReasonOther] = useState('');
   const [tributeState, setTributeState] = useState(defaultTributeState);
-  const [tributeInput, setTributeInput] = useState('');
+  const [tributeInput, setTributeInput] = useState(null);
 
   // Form control
   const handleTributeSelection = (selectedOption, value) => {

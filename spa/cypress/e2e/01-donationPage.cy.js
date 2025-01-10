@@ -214,6 +214,69 @@ describe('Reason for Giving element', () => {
     cy.getByTestId('tribute-type_in_memory_of').click();
     cy.getByTestId('tribute-input').should('exist');
   });
+
+  it('requires a selection if the element is required', () => {
+    const validationError = 'This field is required';
+    const pageWithRequiredReason = {
+      ...livePageOne,
+      elements: livePageOne.elements.map((el) => {
+        if (el.type === 'DReason') {
+          return { ...el, requiredFields: 'reason_for_giving' };
+        }
+
+        return el;
+      })
+    };
+
+    // Load page with updated fixture.
+
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { reason_for_giving: validationError },
+        statusCode: 400
+      }
+    );
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { body: pageWithRequiredReason, statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl('my-page/'));
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', 'my-page');
+    cy.wait('@getPageDetail');
+
+    // Assert that we don't go to the payment modal if we don't pick a reason.
+
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
+    cy.get('#dreason-select-helper-text').contains(validationError);
+    cy.get('form #stripe-payment-element').should('not.exist');
+  });
+
+  it("doesn't require a selection if the element isn't required", () => {
+    // The default page fixture doesn't require a reason for giving.
+
+    cy.interceptStripeApi();
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
+        statusCode: 201
+      }
+    );
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
+
+    // Assert that the payment modal appears.
+    cy.get('form #stripe-payment-element');
+  });
 });
 
 // SHOULD BE JEST TEST
@@ -746,7 +809,7 @@ describe('User flow: canceling contribution', () => {
     });
   });
 
-  specify.only('double-clicking the cancel button', () => {
+  specify('double-clicking the cancel button', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {

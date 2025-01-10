@@ -21,10 +21,12 @@ function InnerPortalRouter() {
   const { search } = useLocation();
   usePortalPendo();
 
+  // Redirects from the old contributor portal.
+
   const redirects = [
-    { from: ROUTES.CONTRIBUTOR_DASHBOARD, to: ROUTES.PORTAL.CONTRIBUTIONS },
-    { from: ROUTES.CONTRIBUTOR_ENTRY, to: ROUTES.PORTAL.ENTRY },
-    { from: ROUTES.CONTRIBUTOR_VERIFY, to: { pathname: ROUTES.PORTAL.VERIFY, search } }
+    { from: '/contributor/contributions/', to: ROUTES.PORTAL.CONTRIBUTIONS },
+    { from: '/contributor/', to: ROUTES.PORTAL.ENTRY },
+    { from: '/contributor-verify/', to: { pathname: ROUTES.PORTAL.VERIFY, search } }
   ];
 
   return (

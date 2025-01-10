@@ -1,7 +1,6 @@
 import json
 import re
 import time
-from unittest.mock import patch
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -296,16 +295,16 @@ class TestAccountVerificationClass:
             ),
         ],
     )
-    @patch("apps.users.views.logger.info")
-    def test_failed_validation(self, info, expected, encoded_email, encoded_token):
+    def test_failed_validation(self, expected, encoded_email, encoded_token, mocker):
+        info = mocker.patch("apps.users.views.logger.info")
         t = AccountVerification()
         t.max_age = None
         assert not t.validate(encoded_email, encoded_token)
         assert t.fail_reason == "failed"
         assert expected in info.call_args.args[0]
 
-    @patch("apps.users.views.logger.warning")
-    def test_expired_link(self, warning):
+    def test_expired_link(self, mocker):
+        warning = mocker.patch("apps.users.views.logger.warning")
         t = AccountVerification()
         t.max_age = 0.1  # Gotta be quick!
         encoded_email, token = t.generate_token("bobjohnny@example.com")
@@ -314,15 +313,15 @@ class TestAccountVerificationClass:
         assert t.fail_reason == "expired"
         assert "Expired" in warning.call_args.args[0]
 
-    @patch("apps.users.views.logger.info")
-    def test_signature_fail(self, warning):
+    def test_signature_fail(self, mocker):
+        info = mocker.patch("apps.users.views.logger.info")
         t = AccountVerification()
         t.max_age = 100
         encoded_email, _ = t.generate_token("bobjohnny@example.com")
         token = t.encode("garbage")
         assert not t.validate(encoded_email, token)
         assert t.fail_reason == "failed"
-        assert "Bad Signature" in warning.call_args.args[0]
+        assert "Bad Signature" in info.call_args.args[0]
 
     @pytest.mark.parametrize(
         "plaintext",

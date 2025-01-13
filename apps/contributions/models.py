@@ -134,6 +134,14 @@ class Contributor(IndexedTimeStampedModel):
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
 
+    def get_contributor_contributions_queryset(self) -> models.QuerySet[Contribution]:
+        """Get all relevant contributions for contributor.
+
+        NB: We return contributions that can be connected by case insensitive email on contributor.
+        See DEV-5494 for more context.
+        """
+        return Contribution.objects.filter(contributor__email__iexact=self.email)
+
 
 class ContributionQuerySet(models.QuerySet):
     CONTRIBUTOR_HIDDEN_STATUSES = [

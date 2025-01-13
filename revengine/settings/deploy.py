@@ -51,7 +51,7 @@ STORAGES = {
         # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
-            "custom_endpoint": "https://dev-5642-gs-custom-endpoint.revengine-review.org",
+            "custom_endpoint": "https://dev-5642-image-worker.fundjournalism.workers.dev",
             "location": GS_LOCATION,
             "project_id": GS_PROJECT_ID,
             "querystring_auth": GS_QUERYSTRING_AUTH,

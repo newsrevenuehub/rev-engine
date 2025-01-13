@@ -244,6 +244,16 @@ class TestContributorModel:
         assert contributor.email.lower() == email.lower()
         assert Contributor.objects.filter(email__iexact=email).count() == 1
 
+    def test_get_contributor_contributions_queryset(self, mocker):
+        canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")
+        related_contributor = ContributorFactory(email=canonical_contributor.email.upper())
+        for contributor in [canonical_contributor, related_contributor]:
+            ContributionFactory(contributor=contributor, status=ContributionStatus.FAILED, one_time=True)
+        assert set(contributions := canonical_contributor.get_contributor_contributions_queryset()) == set(
+            related_contributor.get_contributor_contributions_queryset()
+        )
+        assert contributions.count() == 2
+
 
 test_key = "test_key"
 

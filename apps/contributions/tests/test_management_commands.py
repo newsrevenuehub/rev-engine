@@ -747,18 +747,24 @@ class Test_fix_missing_provider_payment_method_id:
 
     @pytest.fixture
     def one_time_contribution_with_pi_with_non_conforming_contribution_metadata(
-        self, payment_intent_for_one_time_contribution, payment_method
+        self,
+        payment_intent_for_one_time_contribution,
+        payment_method,
+        faker,
     ):
         """One-time with no metadata so we expect to be retrieved not searched for."""
+        pi_id = faker.uuid4()
         contribution = ContributionFactory(
             provider_payment_method_id=None,
-            provider_payment_id=payment_intent_for_one_time_contribution.id,
+            provider_payment_id=pi_id,
             provider_subscription_id=None,
             interval=ContributionInterval.ONE_TIME,
             contribution_metadata={},
         )
-        payment_intent_for_one_time_contribution["payment_method"] = payment_method
-        return contribution, payment_intent_for_one_time_contribution
+        pi = deepcopy(payment_intent_for_one_time_contribution)
+        pi.id = pi_id
+        pi["payment_method"] = payment_method
+        return contribution, pi
 
     @pytest.fixture
     def mock_stripe(

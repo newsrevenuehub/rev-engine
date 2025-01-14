@@ -19,6 +19,8 @@ from apps.contributions.tests.factories import ContributorFactory
 user_model = get_user_model()
 
 
+# TODO @BW: Port this to pytest instead of APITestCase which inherits form unittest.TestCase
+# DEV-5604
 class JWTCookieAuthenticationTest(APITestCase):
     """JWTCookieAuthenticationTest authenticate method returns None if request is invalid."""
 

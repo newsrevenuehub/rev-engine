@@ -15,8 +15,8 @@ class DonationPageFactory(DjangoModelFactory):
         django_get_or_create = ("slug", "revenue_program")
 
     name = factory.Sequence(lambda n: f"Test page {n} name")
-    heading = factory.Sequence(lambda n: "Test Page %d heading" % n)
-    slug = factory.Sequence(lambda n: "test-page-%d" % n)
+    heading = factory.Sequence(lambda n: f"Test Page {n} heading")
+    slug = factory.Sequence(lambda n: f"test-page-{n}")
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
     class Params:
@@ -28,7 +28,7 @@ class StyleFactory(DjangoModelFactory):
         model = models.Style
         django_get_or_create = ("name", "revenue_program")
 
-    name = factory.Sequence(lambda n: "Test Style %d" % n)
+    name = factory.Sequence(lambda n: f"Test Style {n}")
     revenue_program = factory.SubFactory(RevenueProgramFactory)
     styles = factory.LazyFunction(
         lambda: {
@@ -43,6 +43,6 @@ class FontFactory(DjangoModelFactory):
     class Meta:
         model = models.Font
 
-    name = factory.Sequence(lambda n: "Test Font %d" % n)
+    name = factory.Sequence(lambda n: f"Test Font {n}")
     source = models.Font.FontSourceChoices.GOOGLE_FONTS[0]
-    font_name = factory.Sequence(lambda n: "Test Font Name %d" % n)
+    font_name = factory.Sequence(lambda n: f"Test Font Name {n}")

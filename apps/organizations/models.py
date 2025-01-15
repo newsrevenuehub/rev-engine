@@ -930,8 +930,23 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_integration_connected(self):
-        """Determine mailchimp connection state for the revenue program."""
+        """Whether the Mailchimp integration has an API token and server prefix (e.g. is ready to be configured by a user).
+
+        Referencing this doesn't cause any API requests to Mailchimp.
+        """
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
+
+    @property
+    def mailchimp_integration_ready(self):
+        """Whether the Mailchimp integration is fully configured. Referencing this causes API requests to Mailchimp to occur."""
+        return all(
+            [
+                self.mailchimp_integration_connected,
+                self.mailchimp_store,
+                self.mailchimp_one_time_contribution_product,
+                self.mailchimp_recurring_contribution_product,
+            ]
+        )
 
     def ensure_mailchimp_store(self) -> None:
         if self.mailchimp_store:

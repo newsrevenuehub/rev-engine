@@ -383,11 +383,11 @@ class TestPageViewSet:
     def create_page_case(self, request):
         return request.getfixturevalue(request.param)
 
-    @pytest.fixture(params=["json", "multipart"])
     @pytest.mark.parametrize("data_format", ["json", "multipart"])
-    def test_create_page_when_valid_data_no_page_name_provided(  # noqa: PT004 @njh unsure why fixture and not parametrize
+    def test_create_page_when_valid_data_no_page_name_provided(
         self, create_page_case, data_format, api_client, hub_admin_user
     ):
+        """noqa: PT004 @njh unsure why fixture and not parametrize."""
         """Show behavior of page creation with falsy page name.
 
         We expect the page to be named after the rp.

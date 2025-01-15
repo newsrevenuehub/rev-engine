@@ -1241,7 +1241,9 @@ class TestCreateOneTimePaymentSerializer:
 
         save_spy = mocker.spy(Contributor, "save")
 
-        mocker.patch("apps.contributions.models.Contribution.create_stripe_customer", mock_stripe_call_with_error)
+        mocker.patch(
+            "apps.contributions.models.Contribution.create_stripe_customer", side_effect=stripe.error.StripeError
+        )
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1470,7 +1472,7 @@ class TestCreateRecurringPaymentSerializer:
         mock_create_stripe_customer = Mock()
         mock_create_stripe_customer.return_value = AttrDict({"id": "some id"})
         mocker.patch("stripe.Customer.create", mock_create_stripe_customer)
-        mocker.patch("apps.contributions.models.stripe.Subscription.create", mock_stripe_call_with_error)
+        mocker.patch("apps.contributions.models.stripe.Subscription.create", side_effect=stripe.error.StripeError)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
         serializer = self.serializer_class(data=data, context={"request": request})
@@ -1506,7 +1508,7 @@ class TestCreateRecurringPaymentSerializer:
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
-        mocker.patch("stripe.Customer.create", mock_stripe_call_with_error)
+        mocker.patch("stripe.Customer.create", side_effect=stripe.error.StripeError)
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 

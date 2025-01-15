@@ -220,14 +220,16 @@ def parse_slug_from_url(url: str) -> str | None:
     """Parse RP slug, if any, from a given URL."""
     extracted = tldextract.extract(url)
     parts = filter(None, [extracted.subdomain, extracted.domain])
-    if (query := f"{'.'.join(parts)}.{extracted.suffix}") not in (
-        allowed := [*settings.HOST_MAP.keys(), settings.DOMAIN_APEX]
+    if (
+        f"{extracted.domain}.{extracted.suffix}" != settings.DOMAIN_APEX
+        and (query := f"{'.'.join(parts)}.{extracted.suffix}") not in settings.HOST_MAP
     ):
         logger.warning(
-            "URL %s has a host that is not allowed for import: (%s).  Acceptable values are %s",
+            "URL %s is not allowed for import: (%s).  Acceptable values are *.%s and %s for custom domains",
             url,
             query,
-            ", ".join(allowed),
+            settings.DOMAIN_APEX,
+            ", ".join(settings.HOST_MAP.keys()),
         )
         raise InvalidStripeTransactionDataError(f"URL {url} has a host that is not allowed for import")
     parsed = urlparse(url)
@@ -387,12 +389,11 @@ class StripeTransactionsImporter:
         match subscription_status:
             # TODO @BW: Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
             # DEV-4506
-            # In revengine terms, we conflate active and past due because we don't have an internal status
-            # for past due, and paid is closest given current statuses
-            case "active" | "past_due":
+            case "active":
                 return ContributionStatus.PAID
             # happens after time period for incomplete, when expired no longer can be charged
-            case "incomplete_expired":
+            # past_due should map to FAILED, check DEV-5538 for context
+            case "incomplete_expired" | "past_due":
                 return ContributionStatus.FAILED
             case "canceled":
                 return ContributionStatus.CANCELED

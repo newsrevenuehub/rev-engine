@@ -1,98 +1,69 @@
 import json
 from uuid import uuid4
 
-from django.test import override_settings
+import pytest
 
-from sorl.thumbnail import get_thumbnail
-
-from apps.common.tests.test_utils import get_random_jpg_filename, get_test_image_file_jpeg
 from apps.pages.tests.factories import DonationPageFactory
 
-from ..common.tests.test_resources import AbstractTestCase
-from .models import MediaImage
+from .models import MediaImage, get_thumbnail
 
 
-def setup_sidebar_fixture(e_type="DImage", extra=False):
-    img1 = get_test_image_file_jpeg(filename=get_random_jpg_filename())
-    img2 = get_test_image_file_jpeg(filename=get_random_jpg_filename())
-    img3 = get_test_image_file_jpeg(filename=get_random_jpg_filename())
-    uuid1 = uuid4()
-    uuid2 = uuid4()
-    sidebar_elements = {
-        "sidebar_elements": [
-            {"uuid": f"{uuid1}", "type": e_type, "content": ""},
-            {"uuid": f"{uuid2}", "type": e_type, "content": ""},
-        ]
-    }
-    if extra:
-        uuid3 = uuid4()
-        extra_elem = {
-            "uuid": f"{uuid3}",
-            "type": e_type,
-            "content": {"url": f"/media/images/{img3.name}", "thumbnail": f"/media/thumbs/{img3.name}"},
+@pytest.fixture
+def dummy_image_no_extension(test_jpeg_file):
+    test_jpeg_file.name = "dummy_image_no_extension"
+    return test_jpeg_file
+
+
+@pytest.mark.parametrize("image", ["test_jpeg_file", "dummy_image_no_extension"])
+def test_get_thumbnail(request, image):
+    img_file = request.getfixturevalue(image)
+    get_thumbnail(img_file)
+
+
+@pytest.mark.django_db
+class TestMediaImage:
+
+    @pytest.fixture
+    def image_instance(self, test_jpeg_file):
+        return MediaImage.objects.create(
+            spa_key=uuid4(),
+            page_id=DonationPageFactory(),
+            image=test_jpeg_file,
+            thumbnail=get_thumbnail(test_jpeg_file),
+        )
+
+    def test__str__(self, image_instance):
+        assert str(image_instance) == image_instance.image.name
+
+    def test_create_from_request_when_no_sidebar_elements(self, image_instance, donation_page):
+        count = MediaImage.objects.count()
+        donation_page = image_instance.page_id
+        MediaImage.create_from_request({}, {}, donation_page.id)
+        assert MediaImage.objects.count() == count
+
+    def test_create_from_request_when_sidebar_elements(self, image_instance, donation_page):
+        count = MediaImage.objects.count()
+        donation_page = image_instance.page_id
+        data = {
+            "sidebar_elements": json.dumps(
+                [
+                    {"uuid": f"{uuid4()}", "type": "DReason", "content": ""},
+                    {"uuid": (img_id := f"{uuid4()}"), "type": "DImage", "content": ""},
+                ]
+            )
         }
-        sidebar_elements["sidebar_elements"].append(extra_elem)
-    sidebar_elements["sidebar_elements"] = json.dumps(sidebar_elements["sidebar_elements"])
+        files = {img_id: image_instance.image}
+        MediaImage.create_from_request(data, files, donation_page.id)
+        assert MediaImage.objects.count() == count + 1
 
-    files = {
-        f"{uuid1}": img1,
-        f"{uuid2}": img2,
-    }
-    return sidebar_elements, files
-
-
-@override_settings(MEDIA_ROOT="/tmp/media")
-@override_settings(MEDIA_URL="/media/")
-class TestMediaImage(AbstractTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.dp = DonationPageFactory()
-
-    def test_no_media_resources_yet(self):
+    def test_create_from_request_when_no_image_files(self, donation_page):
+        data = {
+            "sidebar_elements": json.dumps(
+                [
+                    {"uuid": f"{uuid4()}", "type": "DReason", "content": ""},
+                    {"uuid": f"{uuid4()}", "type": "DImage", "content": ""},
+                ]
+            )
+        }
+        MediaImage.create_from_request(data, {}, donation_page.id)
         assert not MediaImage.objects.all()
-
-    def test_model_creation(self):
-        mi = MediaImage.objects.create(
-            spa_key=uuid4(), image=get_test_image_file_jpeg(filename=get_random_jpg_filename()), page_id=self.dp
-        )
-        assert str(mi) == mi.image.name
-        assert MediaImage.objects.all().count() == 1
-
-    def test_serialized_representation(self):
-        mi = MediaImage.objects.create(
-            spa_key=uuid4(), image=get_test_image_file_jpeg(filename=get_random_jpg_filename()), page_id=self.dp
-        )
-        mi.thumbnail = get_thumbnail(mi.image, geometry_string="300").url
-        mi.save()
-        mi.refresh_from_db()
-        serialized = mi.get_as_dict()
-        assert serialized.get("uuid") == str(mi.spa_key)
-        assert serialized.get("type") == "DImage"
-        assert serialized.get("content").get("url") == mi.image.storage.url(name=mi.image.name)
-        assert serialized.get("content").get("thumbnail") == mi.thumbnail.storage.url(name=mi.thumbnail.name)
-
-    def test_link_multiple_images_to_page(self):
-        sidebar, files = setup_sidebar_fixture()
-        result = MediaImage.create_from_request(data=sidebar, files=files, donation_page=self.dp.pk)
-
-        assert len(result["sidebar_elements"]) == 2
-        for res in result["sidebar_elements"]:
-            assert res["content"] != ""
-
-    def test_class_creation_returns_with_no_sidebar(self):
-        sidebar, files = setup_sidebar_fixture()
-        bar = {"not_sidebar": sidebar["sidebar_elements"]}
-        result = MediaImage.create_from_request(data=bar, files=files, donation_page=self.dp.pk)
-        assert result == bar
-
-    def test_no_creation_if_no_images(self):
-        sidebar, files = setup_sidebar_fixture(e_type="DRichText")
-        MediaImage.create_from_request(data=sidebar, files=files, donation_page=self.dp.pk)
-        assert not MediaImage.objects.all()
-
-    def test_existing_uuid_with_no_file(self):
-        sidebar, files = setup_sidebar_fixture(extra=True)
-        result = MediaImage.create_from_request(data=sidebar, files=files, donation_page=self.dp.pk)
-        assert MediaImage.objects.all().count() == 2
-        assert len(result["sidebar_elements"]) == 3

@@ -1652,6 +1652,7 @@ class TestContributionModel:
         [None, datetime.datetime.now(datetime.timezone.utc).timestamp()],
     )
     def test_canceled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
+        contribution.interval = ContributionInterval.MONTHLY
         contribution.provider_subscription_id = "something"
         contribution.status = ContributionStatus.CANCELED
         contribution.save()

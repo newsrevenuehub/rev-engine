@@ -1651,7 +1651,7 @@ class TestContributionModel:
         "canceled_at",
         [None, datetime.datetime.now(datetime.timezone.utc).timestamp()],
     )
-    def test_cancelled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
+    def test_canceled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
         contribution.provider_subscription_id = "something"
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
@@ -1667,6 +1667,9 @@ class TestContributionModel:
             datetime.datetime.fromtimestamp(sub.canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
         )
         assert contribution.canceled_at == canceled_at_result
+
+    def test_canceled_at_when_one_time(self, one_time_contribution):
+        assert one_time_contribution.canceled_at is None
 
     def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
         contribution = ContributionFactory(provider_payment_method_details=None)

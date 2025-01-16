@@ -186,6 +186,8 @@ class MailchimpRevenueProgramForSpaConfiguration(UpdateFieldsBaseSerializer, ser
 class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     """Primary consumer is switchboard API. This is a read-only serializer."""
 
+    # TODO @nrh-cklimas: Remove this field
+    # DEV-5688
     mailchimp_integration_connected = serializers.ReadOnlyField()
     mailchimp_integration_ready = serializers.ReadOnlyField()
     mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)

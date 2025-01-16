@@ -932,13 +932,16 @@ class RevenueProgram(IndexedTimeStampedModel):
     def mailchimp_integration_connected(self):
         """Whether the Mailchimp integration has an API token and server prefix (e.g. is ready to be configured by a user).
 
-        Referencing this doesn't cause any API requests to Mailchimp.
+        Referencing this doesn't cause any API requests to Mailchimp, but it does hit Google Secrets Manager.
         """
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     @cached_property
     def mailchimp_integration_ready(self):
-        """Whether the Mailchimp integration is fully configured. Referencing this causes API requests to Mailchimp to occur."""
+        """Whether the Mailchimp integration is fully configured.
+
+        Referencing this causes API requests to Mailchimp and Google Secrets manager to occur.
+        """
         return all(
             [
                 self.mailchimp_integration_connected,

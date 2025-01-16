@@ -902,12 +902,12 @@ class TestRevenueProgram:
     # possible combinations of values.
 
     @pytest.mark.parametrize(
-        ("mailchimp_integration_connected"),
-        [(True), (False)],
+        "mailchimp_integration_connected",
+        [True, False],
     )
-    @pytest.mark.parametrize(("mailchimp_store"), [("truthy"), (None)])
-    @pytest.mark.parametrize(("mailchimp_one_time_contribution_product"), [("truthy"), (None)])
-    @pytest.mark.parametrize(("mailchimp_recurring_contribution_product"), [("truthy"), (None)])
+    @pytest.mark.parametrize("mailchimp_store", ["truthy", None])
+    @pytest.mark.parametrize("mailchimp_one_time_contribution_product", ["truthy", None])
+    @pytest.mark.parametrize("mailchimp_recurring_contribution_product", ["truthy", None])
     def test_mailchimp_integration_ready_property(
         self,
         mailchimp_integration_connected: bool,

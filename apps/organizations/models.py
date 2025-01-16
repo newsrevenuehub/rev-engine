@@ -936,7 +936,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         """
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
-    @property
+    @cached_property
     def mailchimp_integration_ready(self):
         """Whether the Mailchimp integration is fully configured. Referencing this causes API requests to Mailchimp to occur."""
         return all(

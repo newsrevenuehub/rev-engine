@@ -17,7 +17,7 @@ from addict import Dict as AttrDict
 from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.secrets import GoogleCloudSecretProvider
+from apps.common.secrets_manager import GoogleCloudSecretProvider
 from apps.common.utils import google_cloud_pub_sub_is_configured, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.google_cloud.pubsub import Message, Publisher

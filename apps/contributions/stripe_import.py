@@ -333,7 +333,8 @@ class StripeTransactionsImporter:
             return ContributionInterval.MONTHLY
         raise InvalidIntervalError(f"Invalid interval {interval}")
 
-    def validate_metadata(self, metadata: dict) -> None:
+    @staticmethod
+    def validate_metadata(metadata: dict) -> None:
         """Validate the metadata associated with the stripe entity."""
         if (schema_version := metadata.get("schema_version")) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
             raise InvalidMetadataError(f"Invalid schema version {schema_version}")

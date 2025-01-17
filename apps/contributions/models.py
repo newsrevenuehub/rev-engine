@@ -417,6 +417,10 @@ class Contribution(IndexedTimeStampedModel):
             return self.donation_page.revenue_program
         return self._revenue_program
 
+    @revenue_program.setter
+    def revenue_program(self, value: RevenueProgram):
+        self._revenue_program = value
+
     @property
     def stripe_account_id(self) -> str | None:
         if self.revenue_program and self.revenue_program.payment_provider:

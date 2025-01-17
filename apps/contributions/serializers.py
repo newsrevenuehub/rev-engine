@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Literal
+from typing import Final, Literal
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -15,6 +15,7 @@ from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorOverallScore
 from apps.contributions.choices import BadActorAction
+from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -22,6 +23,7 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
+from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.models import PaymentProvider, RevenueProgram
@@ -920,38 +922,87 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
 
 
+class SwitchboardContributionRevenueProgramField(serializers.PrimaryKeyRelatedField):
+    def __init__(self, write_target: str, *args, **kwargs):
+        self.write_target = write_target
+        super().__init__(*args, **kwargs)
+
+    def get_attribute(self, instance):
+        return getattr(instance, self.write_target, None)
+
+    def set_value(self, instance, value):
+        setattr(instance, self.write_target, value)
+
+
+class SwitchboardContributionRevenueProgramSourceValues:
+    VIA_PAGE: Final = "via_page"
+    DIRECT: Final = "direct"
+
+    ValidValues = Literal["via_page", "direct"]
+
+
 class SwitchboardContributionSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(
-        queryset=RevenueProgram.objects.all(), source="_revenue_program"
+    revenue_program = SwitchboardContributionRevenueProgramField(
+        queryset=RevenueProgram.objects.all(),
+        required=False,
+        allow_null=True,
+        write_target="_revenue_program",
     )
+
+    revenue_program_source = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Contribution
-        fields = ["revenue_program", "id"]
-        read_only_fields = ["id"]
+        fields = [
+            "amount",
+            "contribution_metadata",
+            "contributor",
+            "currency",
+            "donation_page",
+            "id",
+            "interval",
+            "last_payment_date",
+            "payment_provider_used",
+            "provider_customer_id",
+            "provider_payment_id",
+            "provider_payment_method_details",
+            "provider_payment_method_id",
+            "provider_setup_intent_id",
+            "provider_subscription_id",
+            "reason",
+            "revenue_program",
+            "revenue_program_source",
+            "status",
+            # TODO @BW: Add "quarantine_status" after it is added to the model
+            # https://news-revenue-hub.atlassian.net/browse/DEV-5696
+        ]
+        read_only_fields = [
+            "id",
+            "last_payment_date",
+        ]
 
-    def update(self, instance, validated_data):
-        """Update the revenue program of a contribution.
+    def to_representation(self, instance):
+        represented = super().to_representation(instance)
+        represented["revenue_program"] = instance.revenue_program.id if instance.revenue_program else None
+        return represented
 
-        Here, if _revenue_program is being set and instance currently has donation_page set,
-        we also set donation_page to None because of our constraint on the model.
+    def get_revenue_program_source(
+        self, instance: Contribution
+    ) -> SwitchboardContributionRevenueProgramSourceValues.ValidValues:
+        if not instance._revenue_program and not instance.donation_page:
+            logger.warning("Method called on instance with no revenue program or donation page: %s", instance)
+        if instance._revenue_program:
+            return SwitchboardContributionRevenueProgramSourceValues.DIRECT
+        return SwitchboardContributionRevenueProgramSourceValues.VIA_PAGE
 
-        Note that at present we only allow updpating the ._revenue_program field of a contribution. If this changes in future
-        this update override will need to be modified accordingly.
-        """
-        logger.debug("Updating contribution %s with validated data %s", instance, validated_data)
-        if (rp := validated_data.pop("_revenue_program", None)) and instance._revenue_program != rp:
-            update_fields = {"modified", "_revenue_program"}
-            instance._revenue_program = rp
-            if instance.donation_page:
-                instance.donation_page = None
-                update_fields.add("donation_page")
-            with reversion.create_revision():
-                instance.save(update_fields=update_fields)
-                reversion.set_comment("Updated by SwitchboardContributionSerializer.update")
-        return instance
+    def validate_contribution_metadata(self, value: dict) -> dict:
+        """Ensure that the contribution metadata is a valid JSON object."""
+        try:
+            StripeTransactionsImporter.validate_contribution_metadata(value)
+        except InvalidMetadataError as exc:
+            raise serializers.ValidationError(exc, code=status.HTTP_400_BAD_REQUEST) from exc
 
-    def validate_revenue_program(self, value: RevenueProgram) -> None:
+    def validate_revenue_program(self, value: RevenueProgram) -> RevenueProgram:
         """Ensure that the revenue program being set is from the same organization as the current revenue program.
 
         Note that the actual model attribute here is `._revenue_program`.
@@ -963,6 +1014,11 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
                 code=status.HTTP_400_BAD_REQUEST,
             )
         return value
+
+    def update(self, instance, validated_data):
+        if "revenue_program" in validated_data:
+            instance._revenue_program = validated_data.pop("revenue_program")
+        return super().update(instance, validated_data)
 
 
 class SwitchboardContributorSerializer(serializers.ModelSerializer):

@@ -23,9 +23,7 @@ class TestHasFlaggedAccessToContributionsApiResource(AbstractTestCase):
 @pytest.mark.django_db
 class TestHasFlaggedAccessToMailchimp:
     @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
-    def test_when_flag_set_to_everyone(  # noqa: PT004 njh unsure why fixture and not parametrize
-        self, user, default_feature_flags
-    ):
+    def test_when_flag_set_to_everyone(self, user, default_feature_flags):
         factory = APIRequestFactory()
         request = factory.get("/")
         request.user = user

@@ -23,7 +23,7 @@ from apps.contributions.serializers import (
     SubscriptionsSerializer,
 )
 from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT, StripeTransactionsImporter
-from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
+from apps.contributions.typings import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 

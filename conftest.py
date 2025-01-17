@@ -34,7 +34,7 @@ from apps.contributions.choices import CardBrand, ContributionInterval, Contribu
 from apps.contributions.models import Contribution
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
-from apps.contributions.types import StripePaymentMetadataSchemaV1_4
+from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,

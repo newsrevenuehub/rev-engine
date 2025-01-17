@@ -1,7 +1,7 @@
 import pytest
 
 from apps.contributions.exceptions import InvalidMetadataError
-from apps.contributions.types import (
+from apps.contributions.typings import (
     StripeMetadataSchemaBase,
     StripePaymentMetadataSchemaV1_0,
     StripePaymentMetadataSchemaV1_1,

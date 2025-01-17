@@ -20,7 +20,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tests.factories import ContributionFactory
-from apps.contributions.types import StripeEventData
+from apps.contributions.typings import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
 

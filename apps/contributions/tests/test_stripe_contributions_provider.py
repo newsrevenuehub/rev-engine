@@ -24,7 +24,7 @@ from apps.contributions.stripe_contributions_provider import (
     logger,
 )
 from apps.contributions.tests import RedisMock
-from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
+from apps.contributions.typings import StripePiAsPortalContribution, StripePiSearchResponse
 
 
 @pytest.fixture

@@ -28,7 +28,7 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
-from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
+from apps.contributions.typings import StripeEventData, StripePiAsPortalContribution
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,

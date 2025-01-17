@@ -23,7 +23,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.stripe_import import StripeTransactionsImporter
-from apps.contributions.types import StripeEventData
+from apps.contributions.typings import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email_with_attachment

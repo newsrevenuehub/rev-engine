@@ -7,7 +7,6 @@ import {
   SectionLabel,
   SideBarText,
   ManageAccountIcon,
-  NavItemMaterialIcon,
   NavItemIcon
 } from '../DashboardSidebar.styled';
 import useUser from 'hooks/useUser';
@@ -21,9 +20,9 @@ function ContentSectionNav() {
     <NavSection aria-labelledby="content-section-id">
       <SectionLabel id="content-section-id">Content</SectionLabel>
       <NavItem aria-labelledby="pages-nav-item-id" role="listitem" data-testid="nav-pages-item" to={CONTENT_SLUG}>
-        <NavItemMaterialIcon>
+        <NavItemIcon>
           <Pages />
-        </NavItemMaterialIcon>
+        </NavItemIcon>
         <SideBarText id="pages-nav-item-id">Pages</SideBarText>
       </NavItem>
       {(isOrgAdmin || isRPAdmin) && (

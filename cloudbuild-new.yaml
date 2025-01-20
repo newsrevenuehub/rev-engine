@@ -18,7 +18,7 @@ steps:
     pip3 install PyJWT cryptography
 
     # Generate JWT token
-    JWT=$(echo -n "$$GITHUB_APP_KEY" | python3 -c '
+    export JWT=$(echo -n "$$GITHUB_APP_KEY" | python3 -c '
     import sys, time, jwt
     key = sys.stdin.read()
     now = int(time.time())
@@ -31,14 +31,14 @@ steps:
     ')
 
     # Get installation token
-    TOKEN=$(curl -s -X POST \
-      -H "Authorization: Bearer $JWT" \
+    export TOKEN=$(curl -s -X POST \
+      -H "Authorization: Bearer $$JWT" \
       -H "Accept: application/vnd.github.v3+json" \
       "https://api.github.com/app/installations/59760355/access_tokens" \
       | jq -r .token)
 
     # Clone the config repo and checkout the environment branch
-    git clone https://x-access-token:$TOKEN@github.com/newsrevenuehub/nre-config.git
+    git clone https://x-access-token:$$TOKEN@github.com/newsrevenuehub/nre-config.git
     cd nre-config
     git checkout ${_ENVIRONMENT}
     git config user.email "nre-gitops[bot]@users.noreply.github.com"

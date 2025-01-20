@@ -10,10 +10,6 @@ steps:
   id: Update environment configuration
   entrypoint: /bin/sh
   secretEnv: ['GITHUB_APP_KEY']
-  env:
-  - 'GITHUB_APP_ID=1116319'
-  - 'GITHUB_INSTALLATION_ID=59760355'
-  - 'TARGET_ENVIRONMENT=${_ENVIRONMENT}'
   args:
   - '-c'
   - |
@@ -29,7 +25,7 @@ steps:
     payload = {
         "iat": now,
         "exp": now + 300,
-        "iss": "'$GITHUB_APP_ID'"
+        "iss": "1116319"
     }
     print(jwt.encode(payload, key, algorithm="RS256"))
     ')
@@ -38,23 +34,23 @@ steps:
     TOKEN=$(curl -s -X POST \
       -H "Authorization: Bearer $JWT" \
       -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens" \
+      "https://api.github.com/app/installations/59760355/access_tokens" \
       | jq -r .token)
 
-    # Clone and update the config repo
+    # Clone the config repo and checkout the environment branch
     git clone https://x-access-token:$TOKEN@github.com/newsrevenuehub/nre-config.git
     cd nre-config
-    git checkout $TARGET_ENVIRONMENT
+    git checkout ${_ENVIRONMENT}
     git config user.email "nre-gitops[bot]@users.noreply.github.com"
     git config user.name "NRE GitOps[bot]"
 
-    # Update image tag in the appropriate kustomization.yaml
-    sed -i "s|newTag: .*|newTag: ${SHORT_SHA}|" "kustomize/overlays/${TARGET_ENVIRONMENT}/kustomization.yaml"
+    # Update the image tag in the kustomization file
+    sed -i "s|newTag: .*|newTag: ${SHORT_SHA}|" "kustomize/overlays/${_ENVIRONMENT}/kustomization.yaml"
 
     # Commit and push changes
-    git add kustomize/overlays/${TARGET_ENVIRONMENT}/kustomization.yaml
-    git commit -m "Update ${TARGET_ENVIRONMENT} image to ${SHORT_SHA}"
-    git push origin $TARGET_ENVIRONMENT
+    git add kustomize/overlays/${_ENVIRONMENT}/kustomization.yaml
+    git commit -m "Update ${_ENVIRONMENT} image to ${SHORT_SHA}"
+    git push origin ${_ENVIRONMENT}
 
 availableSecrets:
   secretManager:

@@ -17,7 +17,7 @@ from waffle import get_waffle_flag_model
 
 from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
-from apps.common.secrets_manager import GoogleCloudSecretProvider
+from apps.common.secret_manager import GoogleCloudSecretProvider
 from apps.emails.tasks import (
     make_send_test_contribution_email_data,
     make_send_test_magic_link_email_data,

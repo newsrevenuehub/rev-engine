@@ -582,13 +582,13 @@ class TestRevenueProgram:
     @pytest.mark.parametrize("enabled", [True, False])
     def test_mailchimp_access_token(self, enabled, revenue_program, settings, mocker):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = enabled
-        mock_get_client = mocker.patch("apps.common.secrets_manager.get_secret_manager_client")
+        mock_get_client = mocker.patch("apps.common.secret_manager.get_secret_manager_client")
         mock_get_client.return_value.access_secret_version.return_value.payload.data = (val := b"something")
         assert revenue_program.mailchimp_access_token == (val.decode("utf-8") if enabled else None)
 
     def test_mailchimp_email_lists_property_happy_path(self, mailchimp_email_list_from_api, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        mock_get_client = mocker.patch("apps.common.secrets_manager.get_secret_manager_client")
+        mock_get_client = mocker.patch("apps.common.secret_manager.get_secret_manager_client")
         mock_get_client.return_value.access_secret_version.return_value.payload.data = b"something"
         revenue_program = RevenueProgramFactory(mailchimp_server_prefix="something")
         mock_mc_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
@@ -633,7 +633,7 @@ class TestRevenueProgram:
     @pytest.mark.parametrize("enabled", [True, False])
     def test_activecampaign_access_token(self, enabled, revenue_program, settings, mocker):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = enabled
-        mock_get_client = mocker.patch("apps.common.secrets_manager.get_secret_manager_client")
+        mock_get_client = mocker.patch("apps.common.secret_manager.get_secret_manager_client")
         mock_get_client.return_value.access_secret_version.return_value.payload.data = (val := b"something")
         assert revenue_program.activecampaign_access_token == (val.decode("utf-8") if enabled else None)
 
@@ -1012,7 +1012,7 @@ class TestRevenueProgram:
         revenue_program.mailchimp_server_prefix = "something"
         revenue_program.mailchimp_list_id = "something"
         revenue_program.save()
-        mock_delete_secret = mocker.patch("apps.common.secrets_manager.GoogleCloudSecretProvider.__delete__")
+        mock_delete_secret = mocker.patch("apps.common.secret_manager.GoogleCloudSecretProvider.__delete__")
         save_spy = mocker.spy(RevenueProgram, "save")
         mock_reversion_set_comment = mocker.patch("reversion.set_comment")
         revenue_program.disable_mailchimp_integration()

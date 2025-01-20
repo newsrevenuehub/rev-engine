@@ -132,7 +132,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
     def test_happy_path_when_not_have_either_mc_property(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
         settings.GOOGLE_CLOUD_PROJECT_ID = "some-project-id"
-        mock_get_client = mocker.patch("apps.common.secrets_manager.get_secret_manager_client")
+        mock_get_client = mocker.patch("apps.common.secret_manager.get_secret_manager_client")
         mock_get_client.return_value.access_secret_version.side_effect = NotFound("Not found")
         mock_get_client.return_value.get_secret.side_effect = NotFound("Not found")
         mock_get_client.return_value.create_secret.return_value = mocker.Mock(name="secret")
@@ -141,11 +141,11 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         )
         mocker.patch("apps.organizations.tasks.get_mailchimp_server_prefix", return_value=(prefix := "some-prefix"))
         mocker.patch(
-            "apps.common.secrets_manager.GoogleCloudSecretProvider.get_secret_path",
+            "apps.common.secret_manager.GoogleCloudSecretProvider.get_secret_path",
             return_value=(get_secret_path_val := "this-is-the-secret-path"),
         )
         mocker.patch(
-            "apps.common.secrets_manager.GoogleCloudSecretProvider.get_secret_name",
+            "apps.common.secret_manager.GoogleCloudSecretProvider.get_secret_name",
             return_value=(secret_name := "secret-name"),
         )
         mock_create_revision = mocker.patch("reversion.create_revision")
@@ -191,7 +191,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         assert rp.mailchimp_server_prefix == prefix
 
     def test_happy_path_when_not_have_token_but_have_prefix(self, mocker):
-        mock_get_client = mocker.patch("apps.common.secrets_manager.get_secret_manager_client")
+        mock_get_client = mocker.patch("apps.common.secret_manager.get_secret_manager_client")
         mock_get_client.return_value.access_secret_version.side_effect = NotFound("Not found")
         mock_get_prefix = mocker.patch("apps.organizations.tasks.get_mailchimp_server_prefix")
         mock_get_token = mocker.patch(

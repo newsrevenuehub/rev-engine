@@ -37,6 +37,16 @@ export const TextField = styled(BaseTextField)`
       background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
       border-width: 1px;
+
+      &:focus {
+        border-color: ${({ theme }) => theme.colors.cstm_CTAs};
+        /* Imitate the outline border on text fields in the name section. */
+        box-shadow: inset 0 0 0 1px ${({ theme }) => theme.colors.cstm_CTAs};
+      }
+    }
+
+    .NreTextFieldInputLabelFormControl {
+      margin-top: 0;
     }
 
     .NreTextFieldInputLabelAsterisk {

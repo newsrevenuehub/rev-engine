@@ -17,6 +17,10 @@ export const Select = styled(BaseSelect)`
       color: #ff476c;
     }
 
+    .NreSelectFocused .NreSelectNotchedOutline {
+      border: none;
+    }
+
     .NreSelectMenu {
       background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border: 1px solid #080708;
@@ -26,6 +30,7 @@ export const Select = styled(BaseSelect)`
 
       &:focus {
         border-color: ${({ theme }) => theme.colors.cstm_CTAs};
+        box-shadow: inset 0 0 0 1px ${({ theme }) => theme.colors.cstm_CTAs};
       }
     }
   }
@@ -37,6 +42,11 @@ export const TextField = styled(BaseTextField)`
       background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
       border-width: 1px;
+
+      &:focus {
+        border-color: ${({ theme }) => theme.colors.cstm_CTAs};
+        box-shadow: inset 0 0 0 1px ${({ theme }) => theme.colors.cstm_CTAs};
+      }
     }
 
     .NreTextFieldInputLabelAsterisk {

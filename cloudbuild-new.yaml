@@ -1,0 +1,66 @@
+steps:
+# Build step using Kaniko
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args:
+  - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA
+  - --cache=true
+
+# Update image tag in nre-config
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Update environment configuration
+  entrypoint: /bin/sh
+  secretEnv: ['GITHUB_APP_KEY']
+  env:
+  - 'GITHUB_APP_ID=1116319'
+  - 'GITHUB_INSTALLATION_ID=59760355'
+  - 'TARGET_ENVIRONMENT=${_ENVIRONMENT}'
+  args:
+  - '-c'
+  - |
+    # Install dependencies
+    apt-get update && apt-get install -y curl jq python3-pip git
+    pip3 install PyJWT cryptography
+
+    # Generate JWT token
+    JWT=$(echo -n "$$GITHUB_APP_KEY" | python3 -c '
+    import sys, time, jwt
+    key = sys.stdin.read()
+    now = int(time.time())
+    payload = {
+        "iat": now,
+        "exp": now + 300,
+        "iss": "'$GITHUB_APP_ID'"
+    }
+    print(jwt.encode(payload, key, algorithm="RS256"))
+    ')
+
+    # Get installation token
+    TOKEN=$(curl -s -X POST \
+      -H "Authorization: Bearer $JWT" \
+      -H "Accept: application/vnd.github.v3+json" \
+      "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens" \
+      | jq -r .token)
+
+    # Clone and update the config repo
+    git clone https://x-access-token:$TOKEN@github.com/newsrevenuehub/nre-config.git
+    cd nre-config
+    git checkout $TARGET_ENVIRONMENT
+    git config user.email "nre-gitops[bot]@users.noreply.github.com"
+    git config user.name "NRE GitOps[bot]"
+
+    # Update image tag in the appropriate kustomization.yaml
+    sed -i "s|newTag: .*|newTag: ${SHORT_SHA}|" "kustomize/overlays/${TARGET_ENVIRONMENT}/kustomization.yaml"
+
+    # Commit and push changes
+    git add kustomize/overlays/${TARGET_ENVIRONMENT}/kustomization.yaml
+    git commit -m "Update ${TARGET_ENVIRONMENT} image to ${SHORT_SHA}"
+    git push origin $TARGET_ENVIRONMENT
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/revenue-engine/secrets/github-app-private-key/versions/latest
+    env: 'GITHUB_APP_KEY'
+
+timeout: 1200s
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -985,6 +985,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "does not conform to a known schema", code=status.HTTP_400_BAD_REQUEST
             ) from exc
+        return value
 
     def validate_revenue_program(self, value: RevenueProgram) -> RevenueProgram:
         """Ensure that the revenue program being set is from the same organization as the current revenue program.

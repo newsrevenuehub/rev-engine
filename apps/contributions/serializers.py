@@ -999,12 +999,6 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def update(self, instance, validated_data):
-        data = validated_data.copy()
-        if rp := validated_data.pop("revenue_program", None):
-            data["_revenue_program"] = rp
-        return super().update(instance, data)
-
 
 class SwitchboardContributorSerializer(serializers.ModelSerializer):
     class Meta:

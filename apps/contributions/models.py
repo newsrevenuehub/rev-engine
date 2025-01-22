@@ -401,6 +401,8 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def canceled_at(self) -> datetime.datetime | None:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return None
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None

@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Final, Literal
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.db.models import TextChoices
 from django.utils import timezone
 
@@ -923,15 +924,7 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
 
 
 class SwitchboardContributionRevenueProgramField(serializers.PrimaryKeyRelatedField):
-    def __init__(self, write_target: str, *args, **kwargs):
-        self.write_target = write_target
-        super().__init__(*args, **kwargs)
-
-    def get_attribute(self, instance):
-        return getattr(instance, self.write_target, None)
-
-    def set_value(self, instance, value):
-        setattr(instance, self.write_target, value)
+    pass
 
 
 class SwitchboardContributionRevenueProgramSourceValues:
@@ -946,7 +939,6 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         queryset=RevenueProgram.objects.all(),
         required=False,
         allow_null=True,
-        write_target="_revenue_program",
     )
 
     revenue_program_source = serializers.SerializerMethodField(read_only=True)
@@ -981,11 +973,6 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             "last_payment_date",
         ]
 
-    def to_representation(self, instance):
-        represented = super().to_representation(instance)
-        represented["revenue_program"] = instance.revenue_program.id if instance.revenue_program else None
-        return represented
-
     def get_revenue_program_source(
         self, instance: Contribution
     ) -> SwitchboardContributionRevenueProgramSourceValues.ValidValues:
@@ -1016,9 +1003,13 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        if "revenue_program" in validated_data:
-            instance._revenue_program = validated_data.pop("revenue_program")
-        return super().update(instance, validated_data)
+        data = validated_data.copy()
+        if rp := validated_data.pop("revenue_program", None):
+            data["_revenue_program"] = rp
+        try:
+            return super().update(instance, data)
+        except IntegrityError as exc:
+            breakpoint()
 
 
 class SwitchboardContributorSerializer(serializers.ModelSerializer):

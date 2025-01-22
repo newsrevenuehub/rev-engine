@@ -3,6 +3,7 @@
 import logging
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
@@ -10,6 +11,7 @@ from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
@@ -17,19 +19,52 @@ from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor
 
 
+EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT = "exclusive_donation_page_or__revenue"
+EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_ERROR_MESSAGE = "A contribution can only set one of revenue_program or page"
+
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class SwitchboardContributionsViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class SwitchboardContributionsViewSet(
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.UpdateModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
     """Viewset for switchboard to update contributions."""
 
     permission_classes = [IsSwitchboardAccount]
-    http_method_names = ["patch"]
+    http_method_names = ["patch", "post", "get"]
     queryset = Contribution.objects.all()
     serializer_class = serializers.SwitchboardContributionSerializer
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
+
+    def handle_exception(self, exc):
+        """Ensure select errors get a 409.
+
+        Explanation:
+        """
+        if isinstance(exc, IntegrityError) and EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT in (
+            exc.args[0] if exc.args else ""
+        ):
+            return Response(
+                {"detail": EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_ERROR_MESSAGE}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if isinstance(exc, ValidationError):
+            details = exc.detail
+            unique_error_found = False
+            for errors in details.values():
+                for error in errors:
+                    if error.code == "unique":
+                        unique_error_found = True
+                        break
+                if unique_error_found:
+                    break
+            if unique_error_found:
+                exc.status_code = status.HTTP_409_CONFLICT
+        return super().handle_exception(exc)
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):

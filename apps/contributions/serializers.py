@@ -3,7 +3,6 @@ from datetime import timedelta
 from typing import Final, Literal
 
 from django.conf import settings
-from django.db import IntegrityError
 from django.db.models import TextChoices
 from django.utils import timezone
 
@@ -923,10 +922,6 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
 
 
-class SwitchboardContributionRevenueProgramField(serializers.PrimaryKeyRelatedField):
-    pass
-
-
 class SwitchboardContributionRevenueProgramSourceValues:
     VIA_PAGE: Final = "via_page"
     DIRECT: Final = "direct"
@@ -935,7 +930,7 @@ class SwitchboardContributionRevenueProgramSourceValues:
 
 
 class SwitchboardContributionSerializer(serializers.ModelSerializer):
-    revenue_program = SwitchboardContributionRevenueProgramField(
+    revenue_program = serializers.PrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
         required=False,
         allow_null=True,
@@ -961,7 +956,6 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             "provider_payment_method_id",
             "provider_setup_intent_id",
             "provider_subscription_id",
-            "reason",
             "revenue_program",
             "revenue_program_source",
             "status",
@@ -975,9 +969,10 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
 
     def get_revenue_program_source(
         self, instance: Contribution
-    ) -> SwitchboardContributionRevenueProgramSourceValues.ValidValues:
+    ) -> SwitchboardContributionRevenueProgramSourceValues.ValidValues | None:
         if not instance._revenue_program and not instance.donation_page:
             logger.warning("Method called on instance with no revenue program or donation page: %s", instance)
+            return None
         if instance._revenue_program:
             return SwitchboardContributionRevenueProgramSourceValues.DIRECT
         return SwitchboardContributionRevenueProgramSourceValues.VIA_PAGE
@@ -985,9 +980,11 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
     def validate_contribution_metadata(self, value: dict) -> dict:
         """Ensure that the contribution metadata is a valid JSON object."""
         try:
-            StripeTransactionsImporter.validate_contribution_metadata(value)
+            StripeTransactionsImporter.validate_metadata(value)
         except InvalidMetadataError as exc:
-            raise serializers.ValidationError(exc, code=status.HTTP_400_BAD_REQUEST) from exc
+            raise serializers.ValidationError(
+                "does not conform to a known schema", code=status.HTTP_400_BAD_REQUEST
+            ) from exc
 
     def validate_revenue_program(self, value: RevenueProgram) -> RevenueProgram:
         """Ensure that the revenue program being set is from the same organization as the current revenue program.
@@ -995,7 +992,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         Note that the actual model attribute here is `._revenue_program`.
         """
         logger.debug("Validating revenue program %s", value)
-        if (rp := self.instance.revenue_program) and rp.organization != value.organization:
+        if self.instance and (rp := self.instance.revenue_program) and rp.organization != value.organization:
             raise serializers.ValidationError(
                 "Cannot assign contribution to a revenue program from a different organization",
                 code=status.HTTP_400_BAD_REQUEST,
@@ -1006,10 +1003,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         data = validated_data.copy()
         if rp := validated_data.pop("revenue_program", None):
             data["_revenue_program"] = rp
-        try:
-            return super().update(instance, data)
-        except IntegrityError as exc:
-            breakpoint()
+        return super().update(instance, data)
 
 
 class SwitchboardContributorSerializer(serializers.ModelSerializer):

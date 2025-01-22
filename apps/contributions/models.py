@@ -53,6 +53,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 CONTRIBUTION_ABANDONED_THRESHOLD = datetime.timedelta(minutes=60 * 8)
+CONTRIBUTION_RP_PAGE_CONSTRAINT_NAME_SUFFIX = "exclusive_donation_page_or__revenue_program"
 
 
 class ContributionIntervalError(Exception):
@@ -377,7 +378,7 @@ class Contribution(IndexedTimeStampedModel):
             # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
             # .revenue_program property that will return the revenue program regardless of its source.
             models.CheckConstraint(
-                name="%(app_label)s_%(class)s_exclusive_donation_page_or__revenue_program",
+                name="%(app_label)s_%(class)s_" + CONTRIBUTION_RP_PAGE_CONSTRAINT_NAME_SUFFIX,
                 check=(
                     models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
                     | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)

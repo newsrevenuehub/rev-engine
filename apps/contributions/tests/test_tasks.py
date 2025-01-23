@@ -13,7 +13,7 @@ from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory
-from apps.contributions.types import StripeEventData
+from apps.contributions.typings import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
 

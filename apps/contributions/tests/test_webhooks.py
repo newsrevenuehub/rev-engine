@@ -12,7 +12,7 @@ import pytest
 
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
-from apps.contributions.types import (
+from apps.contributions.typings import (
     InvalidMetadataError,
     StripeEventData,
     cast_metadata_to_stripe_payment_metadata_schema,

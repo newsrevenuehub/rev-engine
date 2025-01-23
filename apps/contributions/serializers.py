@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from enum import Enum, auto
+from enum import Enum
 from typing import Literal
 
 from django.conf import settings
@@ -924,8 +924,8 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
 
 
 class SwitchboardContributionRevenueProgramSourceValues(str, Enum):
-    VIA_PAGE = auto()
-    DIRECT = auto()
+    VIA_PAGE = "via_page"
+    DIRECT = "direct"
 
 
 class SwitchboardContributionSerializer(serializers.ModelSerializer):

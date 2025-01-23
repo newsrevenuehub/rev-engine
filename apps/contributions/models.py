@@ -32,7 +32,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
-from apps.contributions.types import (
+from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     StripeEventData,
 )

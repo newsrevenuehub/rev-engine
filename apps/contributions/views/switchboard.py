@@ -62,16 +62,10 @@ class SwitchboardContributionsViewSet(
             )
         if isinstance(exc, ValidationError):
             details = exc.detail
-            unique_error_found = False
             for errors in details.values():
-                for error in errors:
-                    if error.code == "unique":
-                        unique_error_found = True
-                        break
-                if unique_error_found:
+                if any(x.code == "unique" for x in errors):
+                    exc.status_code = status.HTTP_409_CONFLICT
                     break
-            if unique_error_found:
-                exc.status_code = status.HTTP_409_CONFLICT
         return super().handle_exception(exc)
 
 

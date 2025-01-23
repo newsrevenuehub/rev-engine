@@ -421,6 +421,11 @@ class Contribution(IndexedTimeStampedModel):
 
     @revenue_program.setter
     def revenue_program(self, value: RevenueProgram):
+        """Set the _revenue_program for this contribution.
+
+        NB: This model has a constraint that requires that either donation page or _revenue_program but not both be set.
+        If you set both and then try to save to the db, the constraint will be violated and an error will be raised.
+        """
         self._revenue_program = value
 
     @property

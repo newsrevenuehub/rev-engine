@@ -24,7 +24,7 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
-from apps.contributions.types import StripePaymentMetadataSchemaV1_4
+from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.serializers import RevenueProgramSerializer

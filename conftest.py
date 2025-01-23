@@ -40,7 +40,7 @@ from apps.contributions.bad_actor import BadActorOverallScore
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
-from apps.contributions.types import StripePaymentMetadataSchemaV1_4
+from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,

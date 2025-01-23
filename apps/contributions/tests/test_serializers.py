@@ -33,7 +33,7 @@ from apps.contributions.serializers import (
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.tests.test_models import MockSubscription
-from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
+from apps.contributions.typings import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import generate_email_data
 from apps.pages.tests.factories import DonationPageFactory

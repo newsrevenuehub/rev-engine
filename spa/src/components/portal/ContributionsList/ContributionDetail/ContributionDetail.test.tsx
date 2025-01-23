@@ -427,7 +427,7 @@ describe('ContributionDetail', () => {
           expect(updateContribution).not.toBeCalled();
           fireEvent.click(screen.getByRole('button', { name: 'onUpdateAmount' }));
           expect(updateContribution.mock.calls).toEqual([
-            [{ amount: 12345, donor_selected_amount: 123.45 }, 'billingDetails']
+            [{ amount: 12345, donor_selected_amount: 123.45, interval: 'year' }, 'billingDetails']
           ]);
         });
       });

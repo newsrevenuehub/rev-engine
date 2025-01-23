@@ -7,7 +7,7 @@ import ContributionFetchError from '../ContributionFetchError';
 import { useDetailAnchor } from './useDetailAnchor';
 import { Actions } from './Actions';
 import { Banner } from './Banner';
-import { BillingDetails } from './BillingDetails';
+import { AmountChange, BillingDetails } from './BillingDetails';
 import { BillingHistory } from './BillingHistory';
 import { PaymentMethod } from './PaymentMethod';
 import { MobileBackButton } from './MobileBackButton';
@@ -44,8 +44,8 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
     updateContribution({ provider_payment_method_id: method.id }, 'paymentMethod');
   }
 
-  function handleAmountUpdate(amount: number, donorSelectedAmount: number) {
-    updateContribution({ amount, donor_selected_amount: donorSelectedAmount }, 'billingDetails');
+  function handleAmountUpdate(change: AmountChange) {
+    updateContribution(change, 'billingDetails');
   }
 
   if (isError) {

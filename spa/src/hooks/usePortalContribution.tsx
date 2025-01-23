@@ -6,6 +6,7 @@ import SystemNotification from 'components/common/SystemNotification';
 import { useSnackbar } from 'notistack';
 import { useCallback } from 'react';
 import { PortalContribution } from './usePortalContributionList';
+import { ContributionInterval } from 'constants/contributionIntervals';
 
 export interface PortalContributionPayment {
   /**
@@ -77,6 +78,7 @@ export interface PortalContributionUpdate {
    * because this is a metadata field we've defined that is in Stripe.
    */
   donor_selected_amount?: number;
+  interval?: ContributionInterval;
 }
 
 // This interface can be altered to include other errors that may be returned from the API.

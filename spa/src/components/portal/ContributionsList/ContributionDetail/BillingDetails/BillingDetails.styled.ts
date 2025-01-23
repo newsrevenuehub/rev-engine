@@ -1,4 +1,4 @@
-import { TextField } from 'components/base';
+import { Select, TextField } from 'components/base';
 import styled from 'styled-components';
 
 export const CheckboxLabel = styled.span`
@@ -14,6 +14,18 @@ export const AmountField = styled(TextField)`
 
     .NreTextFieldInputLabelFormControl:first-of-type {
       margin-top: 0;
+    }
+  }
+`;
+
+export const IntervalSelect = styled(Select)`
+  && {
+    .NreTextFieldInputLabelFormControl {
+      margin-bottom: 6px;
+    }
+
+    .NreSelectMenu {
+      background: ${({ theme }) => theme.basePalette.greyscale.white};
     }
   }
 `;

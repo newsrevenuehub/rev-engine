@@ -533,7 +533,6 @@ class VerifyContributorTokenViewTest(APITestCase):
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("default_feature_flags")
-@pytest.mark.usefixtures("mock_stripe")
 class TestAuthorizedContributor:
 
     @pytest.fixture(autouse=True)

@@ -15,7 +15,6 @@
 import base64
 import datetime
 import json
-import sys
 from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
@@ -1097,12 +1096,3 @@ def default_password():
 def switchboard_user(settings, default_password):
     settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
     return UserFactory(email=email, password=default_password)
-
-
-@pytest.fixture
-def mock_stripe(mocker):
-    """Suppress all calls to the `stripe` module in the test suite."""
-    mock_stripe = mocker.MagicMock(name="stripe")
-    sys.modules["stripe"] = mock_stripe
-    yield mock_stripe
-    del sys.modules["stripe"]

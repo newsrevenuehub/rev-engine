@@ -10,7 +10,7 @@ from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import ContributionInterval
 from apps.contributions.models import Contribution
 from apps.contributions.stripe_import import StripeTransactionsImporter
-from apps.contributions.types import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
+from apps.contributions.typings import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
 
 
 # otherwise we get spammed by stripe info logs when running this command

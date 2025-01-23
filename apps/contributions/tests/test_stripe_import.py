@@ -36,7 +36,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.contributions.types import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
+from apps.contributions.typings import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage

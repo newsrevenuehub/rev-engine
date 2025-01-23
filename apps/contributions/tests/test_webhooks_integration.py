@@ -30,7 +30,7 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
-from apps.contributions.types import StripeEventData
+from apps.contributions.typings import StripeEventData
 
 
 @pytest.fixture(autouse=True)

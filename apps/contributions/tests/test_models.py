@@ -39,7 +39,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.contributions.types import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
+from apps.contributions.typings import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan

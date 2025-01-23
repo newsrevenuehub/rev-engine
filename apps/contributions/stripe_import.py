@@ -36,7 +36,7 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
-from apps.contributions.types import (
+from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     cast_metadata_to_stripe_payment_metadata_schema,
 )

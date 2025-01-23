@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
-from typing import Final, Literal
+from enum import Enum, auto
+from typing import Literal
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -922,11 +923,9 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
 
 
-class SwitchboardContributionRevenueProgramSourceValues:
-    VIA_PAGE: Final = "via_page"
-    DIRECT: Final = "direct"
-
-    ValidValues = Literal["via_page", "direct"]
+class SwitchboardContributionRevenueProgramSourceValues(str, Enum):
+    VIA_PAGE = auto()
+    DIRECT = auto()
 
 
 class SwitchboardContributionSerializer(serializers.ModelSerializer):
@@ -969,7 +968,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
 
     def get_revenue_program_source(
         self, instance: Contribution
-    ) -> SwitchboardContributionRevenueProgramSourceValues.ValidValues | None:
+    ) -> SwitchboardContributionRevenueProgramSourceValues | None:
         if not instance._revenue_program and not instance.donation_page:
             logger.warning("Method called on instance with no revenue program or donation page: %s", instance)
             return None

@@ -10,6 +10,7 @@ const Template: ComponentStory<typeof Select> = (args: any) => <Select {...args}
 
 export const Default = Template.bind({});
 Default.args = {
+  label: 'Select',
   value: 'date',
   options: [
     {

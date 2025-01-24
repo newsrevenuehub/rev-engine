@@ -1344,10 +1344,6 @@ class Contribution(IndexedTimeStampedModel):
             )
             raise
 
-        # Send amount updated email to contributor
-        if amount:
-            self.send_recurring_contribution_amount_updated_email()
-
         # TODO @nrh-cklimas: send interval updated email to contributor
         # DEV-5691
 

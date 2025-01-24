@@ -788,10 +788,6 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("customer_has_email", [True, False])
     def test_get_or_create_contributor_from_customer(self, mocker, customer_has_email):
         instance = StripeTransactionsImporter(stripe_account_id="test")
-        mocker.patch(
-            "apps.contributions.models.Contributor.get_or_create_contributor_by_email",
-            return_value=mocker.Mock(),
-        )
         mocker.patch.object(
             instance,
             "get_resource_from_cache",

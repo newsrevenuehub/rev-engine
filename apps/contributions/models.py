@@ -29,7 +29,7 @@ from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
+from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.typings import (
@@ -71,16 +71,7 @@ class BillingHistoryItem(TypedDict):
 
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
-    email = models.EmailField(unique=True)
-
-    @staticmethod
-    def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
-        """Get existing contributor for email (case insensitive) or create a new one."""
-        if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
-            return existing, LEFT_UNCHANGED
-
-        logger.info("Creating new contributor for email %s", email)
-        return Contributor.objects.create(email=email), CREATED
+    email = models.EmailField(unique=True, db_collation="case_insensitive")
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""
@@ -133,14 +124,6 @@ class Contributor(IndexedTimeStampedModel):
             f"https://{construct_rp_domain(contribution.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
-
-    def get_contributor_contributions_queryset(self) -> models.QuerySet[Contribution]:
-        """Get all relevant contributions for contributor.
-
-        NB: We return contributions that can be connected by case insensitive email on contributor.
-        See DEV-5494 for more context.
-        """
-        return Contribution.objects.filter(contributor__email__iexact=self.email)
 
 
 class ContributionQuerySet(models.QuerySet):

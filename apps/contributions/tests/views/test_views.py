@@ -696,7 +696,6 @@ class TestPaymentViewset:
         contributor_count = Contributor.objects.count()
         data = minimally_valid_contribution_form_data | {"interval": interval}
         url = reverse("payment-list")
-
         save_spy = mocker.spy(Contribution, "save")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED

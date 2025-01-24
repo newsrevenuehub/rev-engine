@@ -17,7 +17,6 @@ import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
-from apps.common.utils import CREATED, LEFT_UNCHANGED
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
     BillingHistoryItem,
@@ -228,31 +227,6 @@ class TestContributorModel:
     def test_create_magic_link_with_invalid_values(self, value):
         with pytest.raises(ValueError, match="Invalid value provided for `contribution`"):
             Contributor.create_magic_link(value)
-
-    @pytest.mark.parametrize("pre_exists", [True, False])
-    def test_get_or_create_contributor_by_email_case_insensitivity(self, pre_exists):
-        email = "test_get_or_create@fundjournalism.org"
-        if pre_exists:
-            pre_existing = ContributorFactory(email=email.upper())
-        contributor, action = Contributor.get_or_create_contributor_by_email(email)
-        if pre_exists:
-            assert contributor == pre_existing
-            assert action == LEFT_UNCHANGED
-        else:
-            assert action == CREATED
-        assert isinstance(contributor, Contributor)
-        assert contributor.email.lower() == email.lower()
-        assert Contributor.objects.filter(email__iexact=email).count() == 1
-
-    def test_get_contributor_contributions_queryset(self, mocker):
-        canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")
-        related_contributor = ContributorFactory(email=canonical_contributor.email.upper())
-        for contributor in [canonical_contributor, related_contributor]:
-            ContributionFactory(contributor=contributor, status=ContributionStatus.FAILED, one_time=True)
-        assert set(contributions := canonical_contributor.get_contributor_contributions_queryset()) == set(
-            related_contributor.get_contributor_contributions_queryset()
-        )
-        assert contributions.count() == 2
 
 
 test_key = "test_key"

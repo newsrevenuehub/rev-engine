@@ -1381,6 +1381,8 @@ class Contribution(IndexedTimeStampedModel):
                 raise ValueError("Amount value must be greater than $0.99")
             if amount > STRIPE_MAX_AMOUNT:
                 raise ValueError("Amount value must be smaller than $999,999.99")
+        if donor_selected_amount is not None and amount is None:
+            raise ValueError("If donor_selected_amount is updated, amount must also be updated")
         if interval is not None and interval not in (
             ContributionInterval.MONTHLY.value,
             ContributionInterval.YEARLY.value,

@@ -1796,6 +1796,11 @@ class TestContributionModel:
         with pytest.raises(ValueError, match=r"If amount is updated, donor_selected_amount must also be updated"):
             monthly_contribution.update_subscription_price(amount=123)
 
+    def test_update_subscription_price_when_amount_omitted(self, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        with pytest.raises(ValueError, match=r"If donor_selected_amount is updated, amount must also be updated"):
+            monthly_contribution.update_subscription_price(donor_selected_amount=1.23)
+
     @pytest.mark.parametrize(
         "interval",
         ["invalid", ContributionInterval.ONE_TIME],

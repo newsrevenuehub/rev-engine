@@ -1302,7 +1302,7 @@ class Contribution(IndexedTimeStampedModel):
         item = items["data"][0]
 
         logger.info(
-            "Updating Stripe Subscription's %s (item %s) amount to %s, interval to %s",
+            "Updating Stripe Subscription ID %s, item %s: amount will be %s, interval will be %s",
             self.provider_subscription_id,
             item["id"],
             amount or self.amount,

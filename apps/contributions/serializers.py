@@ -892,7 +892,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                     instance.set_metadata_field("donor_selected_amount", donor_selected_amount)
                     update_fields.add("contribution_metadata")
 
-            # Now that we've popped donor_selected_amount, we can now safely add
+            # Now that we've popped donor_selected_amount, we can safely add
             # the rest of the update fields.
             update_fields.update(validated_data.keys())
 

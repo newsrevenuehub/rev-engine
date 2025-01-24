@@ -23,24 +23,33 @@ export function DReason({ element }: DReasonProps) {
   const [tributeName, setTributeName] = useState('');
   const { t } = useTranslation();
   const required = useMemo(() => element.requiredFields.includes('reason_for_giving'), [element.requiredFields]);
+  const tributeError = useMemo(() => {
+    switch (tributeType) {
+      case 'honoree':
+        return errors.honoree;
+      case 'inMemoryOf':
+        return errors.in_memory_of;
+    }
+  }, [errors.honoree, errors.in_memory_of, tributeType]);
 
   return (
     <DElement label={t('donationPage.dReason.reasonForGiving')} data-testid="d-reason">
-      <ReasonFields
-        onChangeOption={setSelectedReason}
-        onChangeText={setReasonText}
-        optionError={errors.reason_for_giving}
-        options={element.content.reasons}
-        required={required}
-        selectedOption={selectedReason}
-        text={reasonText}
-        textError={errors.reason_other}
-      />
+      {element.content.askReason && (
+        <ReasonFields
+          error={errors.reason_for_giving}
+          onChangeOption={setSelectedReason}
+          onChangeText={setReasonText}
+          options={element.content.reasons}
+          required={required}
+          selectedOption={selectedReason}
+          text={reasonText}
+        />
+      )}
       {(element.content.askHonoree || element.content.askInMemoryOf) && (
         <TributeFields
           askHonoree={element.content.askHonoree}
           askInMemoryOf={element.content.askInMemoryOf}
-          error={errors.reason_for_giving}
+          error={tributeError}
           onChangeTributeName={setTributeName}
           onChangeTributeType={setTributeType}
           tributeName={tributeName}

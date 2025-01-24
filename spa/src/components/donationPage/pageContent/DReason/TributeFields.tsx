@@ -126,8 +126,8 @@ export function TributeFields({
     return null;
   }
 
-  // Names on inputs below must be set exactly in order for the form to be
-  // submitted properly.
+  // Names and values on inputs below must be set exactly in order for the form
+  // to be submitted properly.
   //
   // We also need to ensure the text field unmounts when transitioned out so
   // it's not present in the DOM at form submission time, so its value doesn't
@@ -145,6 +145,7 @@ export function TributeFields({
           error={!!error}
           fullWidth
           helperText={error}
+          id={`dreason-tribute-fields-${tributeType}`}
           label={fieldLabel}
           name={tributeType === 'inMemoryOf' ? 'in_memory_of' : 'honoree'}
           onChange={(event) => onChangeTributeName(event.target.value)}

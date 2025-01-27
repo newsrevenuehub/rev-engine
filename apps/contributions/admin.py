@@ -24,7 +24,7 @@ class ContributorAdmin(RevEngineBaseAdmin):
     list_display = ("email",)
     list_filter = ("email",)
     ordering = ("email",)
-    search_fields = ("email",)
+    search_fields = ("email__iexact",)
     readonly_fields = ("email",)
 
 
@@ -186,7 +186,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     search_fields = (
         "donation_page__revenue_program__name",
-        "contributor__email",
+        "contributor__email__iexact",
         "donation_page__name",
         "modified",
         "created",

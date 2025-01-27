@@ -9,6 +9,7 @@ from django.utils import timezone
 
 import faker
 import pytest
+import pytest_mock
 import stripe
 from mailchimp_marketing.api_client import ApiClientError
 from stripe import ApplePayDomain
@@ -896,6 +897,66 @@ class TestRevenueProgram:
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
         revenue_program = RevenueProgramFactory(mailchimp_server_prefix=mailchimp_server_prefix)
         assert revenue_program.mailchimp_integration_connected is expect_connected
+
+    # These disparate parametrize annotations are to exhaustively test all
+    # possible combinations of values.
+
+    @pytest.mark.parametrize(
+        "mailchimp_integration_connected",
+        [True, False],
+    )
+    @pytest.mark.parametrize("mailchimp_store", ["truthy", None])
+    @pytest.mark.parametrize("mailchimp_one_time_contribution_product", ["truthy", None])
+    @pytest.mark.parametrize("mailchimp_recurring_contribution_product", ["truthy", None])
+    def test_mailchimp_integration_ready_property(
+        self,
+        mailchimp_integration_connected: bool,
+        mailchimp_store: str | None,
+        mailchimp_one_time_contribution_product: str | None,
+        mailchimp_recurring_contribution_product: str | None,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
+            new_callable=mocker.PropertyMock,
+            return_value=mailchimp_integration_connected,
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_store",
+            new_callable=mocker.PropertyMock,
+            return_value=mailchimp_store,
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product",
+            new_callable=mocker.PropertyMock,
+            return_value=mailchimp_one_time_contribution_product,
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product",
+            new_callable=mocker.PropertyMock,
+            return_value=mailchimp_recurring_contribution_product,
+        )
+        rp = RevenueProgramFactory()
+        assert rp.mailchimp_integration_ready == all(
+            [
+                mailchimp_integration_connected,
+                mailchimp_store,
+                mailchimp_one_time_contribution_product,
+                mailchimp_recurring_contribution_product,
+            ]
+        )
+
+    def test_mailchimp_integration_ready_property_all_present(self, mocker: pytest_mock.MockerFixture):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_integration_connected", return_value=True)
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", return_value="truthy")
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product", return_value="truthy"
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product", return_value="truthy"
+        )
+        revenue_program = RevenueProgramFactory()
+        assert revenue_program.mailchimp_integration_ready is True
 
     def test_mailchimp_store_when_not_connected(self, revenue_program):
         assert revenue_program.mailchimp_integration_connected is False

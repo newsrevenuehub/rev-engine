@@ -238,6 +238,7 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "slug",
             "mailchimp_server_prefix",
             "mailchimp_integration_connected",
+            "mailchimp_integration_ready",
             "stripe_account_id",
             "mailchimp_store",
             "mailchimp_recurring_contribution_product",
@@ -250,6 +251,7 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "slug",
             "mailchimp_server_prefix",
             "mailchimp_integration_connected",
+            "mailchimp_integration_ready",
             "stripe_account_id",
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)

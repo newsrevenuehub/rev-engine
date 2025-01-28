@@ -35,6 +35,7 @@ const config = defineConfig({
   ],
   server: {
     // Accept connections on any hostname.
+    allowedHosts: true,
     host: true,
     // Need this because Django dev server doesn't proxy web sockets.
     hmr: { port: 3001 },

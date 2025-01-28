@@ -24,8 +24,7 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
-from apps.contributions.stripe_import import StripeTransactionsImporter
-from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
+from apps.contributions.typings import StripePaymentMetadataSchemaV1_4, validate_stripe_metadata
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.serializers import RevenueProgramSerializer
@@ -979,7 +978,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
     def validate_contribution_metadata(self, value: dict) -> dict:
         """Ensure that the contribution metadata is a valid JSON object."""
         try:
-            StripeTransactionsImporter.validate_metadata(value)
+            validate_stripe_metadata(value)
         except InvalidMetadataError as exc:
             raise serializers.ValidationError(
                 "does not conform to a known schema", code=status.HTTP_400_BAD_REQUEST

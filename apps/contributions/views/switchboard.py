@@ -43,9 +43,6 @@ class SwitchboardContributionsViewSet(
         For uniqueness constraints around provider_subscription_id, provider_payment_id, and provider_setup_intent_id, we
         want to return a 409 Conflict status code. On creation in particular, this will signal to Switchboard that it needs
         to update an existing contribution rather than create a new one.
-
-        We also look for violation of our exclusive constraint that requires only one of _revenue_program or donation_page to be set.
-        We need a custom handler here to ensure we get a 400 status code for this error, along with an appropriate message.
         """
         if isinstance(exc, ValidationError):
             details = exc.detail

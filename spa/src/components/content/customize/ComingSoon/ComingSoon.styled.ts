@@ -1,4 +1,4 @@
-import LightIcon from 'assets/icons/recycle_light.svg?react';
+import LightIcon from 'assets/icons/recycle-light.svg?react';
 import { LinkButton } from 'components/base';
 import styled from 'styled-components';
 

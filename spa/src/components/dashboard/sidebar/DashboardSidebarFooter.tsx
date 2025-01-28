@@ -1,5 +1,5 @@
 import HelpOutlined from '@material-ui/icons/HelpOutline';
-import { ICONS } from 'assets/icons/SvgIcon';
+import RingBuoy from 'assets/icons/ring-buoy.svg?react';
 import { FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';
@@ -84,7 +84,9 @@ const DashboardSidebarFooter = () => {
           data-testid="nav-help-item"
           target="_blank"
         >
-          <NavItemIcon icon={ICONS.RING_BUOY} />
+          <NavItemIcon>
+            <RingBuoy />
+          </NavItemIcon>
           <SideBarText id="help-nav-item-id">Help</SideBarText>
         </NavItem>
         <NavItem

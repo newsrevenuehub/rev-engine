@@ -39,7 +39,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.contributions.types import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
+from apps.contributions.typings import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
@@ -1651,7 +1651,8 @@ class TestContributionModel:
         "canceled_at",
         [None, datetime.datetime.now(datetime.timezone.utc).timestamp()],
     )
-    def test_cancelled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
+    def test_canceled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
+        contribution.interval = ContributionInterval.MONTHLY
         contribution.provider_subscription_id = "something"
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
@@ -1667,6 +1668,9 @@ class TestContributionModel:
             datetime.datetime.fromtimestamp(sub.canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
         )
         assert contribution.canceled_at == canceled_at_result
+
+    def test_canceled_at_when_one_time(self, one_time_contribution):
+        assert one_time_contribution.canceled_at is None
 
     def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
         contribution = ContributionFactory(provider_payment_method_details=None)

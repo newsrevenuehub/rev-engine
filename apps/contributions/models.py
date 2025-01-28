@@ -32,7 +32,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
-from apps.contributions.types import (
+from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     StripeEventData,
 )
@@ -313,10 +313,8 @@ class Contribution(IndexedTimeStampedModel):
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
-    # TODO @BW: Make provider_payment_id, provider_setup_intent_id, provider_subscription_id unique
-    # DEV-4915
-    provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
-    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_payment_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
@@ -402,6 +400,8 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def canceled_at(self) -> datetime.datetime | None:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return None
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None

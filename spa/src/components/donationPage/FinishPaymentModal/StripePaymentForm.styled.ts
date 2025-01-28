@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import SvgIcon from 'assets/icons/SvgIcon';
+import PoweredByStripe from 'assets/images/powered-by-stripe.svg?react';
 import Button from 'elements/buttons/Button';
 
 export const Form = styled.form`
@@ -14,7 +14,7 @@ export const IconWrapper = styled.div`
   justify-content: center;
 `;
 
-export const Icon = styled(SvgIcon)`
+export const PoweredByStripeIcon = styled(PoweredByStripe)`
   height: 100%;
   width: auto;
 `;

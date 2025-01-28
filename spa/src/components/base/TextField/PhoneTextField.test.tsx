@@ -15,7 +15,7 @@ describe('PhoneTextField', () => {
 
   it.each([
     ['US number', '+16195357597', '+1 (619) 535-7597'],
-    ['Brazil number', '+5548988009988', '+55 (48) 988009988']
+    ['Brazil number', '+5548988009988', '+55 (48) 98800-9988']
   ])('%s: renders existing formatted phone number', async (_, number, formatted) => {
     const onChange = jest.fn();
     tree({ value: number, onChange });

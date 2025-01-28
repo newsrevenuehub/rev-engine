@@ -1226,3 +1226,7 @@ class Test_audit_recurring_contributions:
     def test_call_command(self, command, mocker):
         mocker.patch.object(command, "do_audit")
         call_command("audit_recurring_contributions", for_stripe_accounts="acct_1")
+
+
+class Test_fix_contributor_email_dupes_dev_5503:
+    pass

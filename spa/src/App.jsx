@@ -9,7 +9,6 @@ import { AppWrapper } from './App.styled';
 import { ThemeProvider } from 'styled-components';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
-import SvgIcons from 'assets/icons/SvgIcons';
 
 // Deps
 import Helmet from 'react-helmet';
@@ -35,7 +34,6 @@ function App() {
                     <title>RevEngine</title>
                   </Helmet>
                   <AdminGlobalStyles />
-                  <SvgIcons />
                   <AppWrapper>
                     <MainLayout />
                   </AppWrapper>

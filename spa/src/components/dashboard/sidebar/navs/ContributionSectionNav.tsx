@@ -1,6 +1,13 @@
-import { ICONS } from 'assets/icons/SvgIcon';
+import { ListOutlined } from '@material-ui/icons';
 import { DONATIONS_SLUG } from 'routes';
-import { Divider, NavItem, NavItemIcon, NavSection, SectionLabel, SideBarText } from '../DashboardSidebar.styled';
+import {
+  Divider,
+  NavItem,
+  NavItemMaterialIcon,
+  NavSection,
+  SectionLabel,
+  SideBarText
+} from '../DashboardSidebar.styled';
 
 function ContributionSectionNav() {
   return (
@@ -13,7 +20,9 @@ function ContributionSectionNav() {
         data-testid="nav-contributions-item"
         to={DONATIONS_SLUG}
       >
-        <NavItemIcon icon={ICONS.CONTRIBUTIONS} />
+        <NavItemMaterialIcon>
+          <ListOutlined />
+        </NavItemMaterialIcon>
         <SideBarText id="contributions-nav-item-id">Contributions</SideBarText>
       </NavItem>
     </NavSection>

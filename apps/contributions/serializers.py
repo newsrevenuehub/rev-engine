@@ -999,6 +999,28 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, data):
+        """Ensure that either a revenue program or a donation page is set on the contribution, but not both."""
+        data = super().validate(data)
+        resulting_state = data
+        if self.instance:
+            resulting_state = {
+                "donation_page": self.instance.donation_page,
+                "revenue_program": self.instance._revenue_program,
+                **data,
+            }
+        if resulting_state.get("revenue_program") and resulting_state.get("donation_page"):
+            raise serializers.ValidationError(
+                "Cannot set both revenue_program and donation_page on a contribution",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        if not (resulting_state.get("revenue_program") or resulting_state.get("donation_page")):
+            raise serializers.ValidationError(
+                "Must set either revenue_program or donation_page on a contribution",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        return data
+
 
 class SwitchboardContributorSerializer(serializers.ModelSerializer):
     class Meta:

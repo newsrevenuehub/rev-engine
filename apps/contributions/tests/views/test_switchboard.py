@@ -14,7 +14,6 @@ from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
 )
-from apps.contributions.views.switchboard import EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_ERROR_MESSAGE
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -212,6 +211,12 @@ class TestSwitchboardContributionsViewSet:
         }
 
     @pytest.fixture
+    def invalid_creation_data_neither_rp_nor_page(self, creation_data_one_time_with_page):
+        return {
+            k: v for k, v in creation_data_one_time_with_page.items() if k not in ("revenue_program", "donation_page")
+        }
+
+    @pytest.fixture
     def invalid_creation_data_duplicate_payment_id(self, creation_data_one_time_with_page):
         ContributionFactory(provider_payment_id=creation_data_one_time_with_page["provider_payment_id"])
         return creation_data_one_time_with_page
@@ -257,6 +262,7 @@ class TestSwitchboardContributionsViewSet:
         "data_fixture",
         [
             "invalid_creation_data_both_rp_and_page",
+            "invalid_creation_data_neither_rp_nor_page",
             "invalid_creation_data_duplicate_payment_id",
             "invalid_creation_data_duplicate_subscription_id",
             "invalid_creation_data_duplicate_setup_intent_id",
@@ -269,7 +275,14 @@ class TestSwitchboardContributionsViewSet:
         )
         if data_fixture == "invalid_creation_data_both_rp_and_page":
             assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert response.json() == {"detail": EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_ERROR_MESSAGE}
+            assert response.json() == {
+                "non_field_errors": ["Cannot set both revenue_program and donation_page on a contribution"]
+            }
+        elif data_fixture == "invalid_creation_data_neither_rp_nor_page":
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.json() == {
+                "non_field_errors": ["Must set either revenue_program or donation_page on a contribution"]
+            }
         else:
             assert response.status_code == status.HTTP_409_CONFLICT
             match data_fixture:
@@ -398,6 +411,12 @@ class TestSwitchboardContributionsViewSet:
         return data, contribution
 
     @pytest.fixture
+    def invalid_update_data_would_yield_no_rp_or_dp(self, update_data_recurring_with_page):
+        data, contribution = update_data_recurring_with_page
+        data["donation_page"] = None
+        return data, contribution
+
+    @pytest.fixture
     def invalid_update_data_duplicate_payment_id(self, update_data_recurring_with_page):
         data, contribution = update_data_recurring_with_page
         ContributionFactory(provider_payment_id=data["provider_payment_id"])
@@ -419,6 +438,7 @@ class TestSwitchboardContributionsViewSet:
         "data_fixture",
         [
             "invalid_update_data_both_rp_and_page",
+            "invalid_update_data_would_yield_no_rp_or_dp",
             "invalid_update_data_duplicate_payment_id",
             "invalid_update_data_duplicate_subscription_id",
             "invalid_update_data_duplicate_setup_intent_id",
@@ -434,7 +454,14 @@ class TestSwitchboardContributionsViewSet:
         )
         if data_fixture == "invalid_update_data_both_rp_and_page":
             assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert response.json() == {"detail": EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_ERROR_MESSAGE}
+            assert response.json() == {
+                "non_field_errors": ["Cannot set both revenue_program and donation_page on a contribution"]
+            }
+        elif data_fixture == "invalid_update_data_would_yield_no_rp_or_dp":
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.json() == {
+                "non_field_errors": ["Must set either revenue_program or donation_page on a contribution"]
+            }
         else:
             assert response.status_code == status.HTTP_409_CONFLICT
             match data_fixture:

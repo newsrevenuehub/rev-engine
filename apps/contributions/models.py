@@ -31,7 +31,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
-from apps.contributions.types import (
+from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     StripeEventData,
 )
@@ -312,10 +312,8 @@ class Contribution(IndexedTimeStampedModel):
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
-    # TODO @BW: Make provider_payment_id, provider_setup_intent_id, provider_subscription_id unique
-    # DEV-4915
-    provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
-    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_payment_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
@@ -401,6 +399,8 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def canceled_at(self) -> datetime.datetime | None:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return None
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
@@ -1302,7 +1302,7 @@ class Contribution(IndexedTimeStampedModel):
         item = items["data"][0]
 
         logger.info(
-            "Updating Stripe Subscription's %s (item %s) amount to %s, interval to %s",
+            "Updating Stripe Subscription ID %s, item %s: amount will be %s, interval will be %s",
             self.provider_subscription_id,
             item["id"],
             amount or self.amount,
@@ -1344,10 +1344,6 @@ class Contribution(IndexedTimeStampedModel):
             )
             raise
 
-        # Send amount updated email to contributor
-        if amount:
-            self.send_recurring_contribution_amount_updated_email()
-
         # TODO @nrh-cklimas: send interval updated email to contributor
         # DEV-5691
 
@@ -1381,6 +1377,8 @@ class Contribution(IndexedTimeStampedModel):
                 raise ValueError("Amount value must be greater than $0.99")
             if amount > STRIPE_MAX_AMOUNT:
                 raise ValueError("Amount value must be smaller than $999,999.99")
+        if donor_selected_amount is not None and amount is None:
+            raise ValueError("If donor_selected_amount is updated, amount must also be updated")
         if interval is not None and interval not in (
             ContributionInterval.MONTHLY.value,
             ContributionInterval.YEARLY.value,

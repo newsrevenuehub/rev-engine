@@ -20,7 +20,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Payment,
 )
-from apps.contributions.types import (
+from apps.contributions.typings import (
     InvalidMetadataError,
     StripeEventData,
     cast_metadata_to_stripe_payment_metadata_schema,
@@ -211,8 +211,7 @@ class StripeWebhookProcessor:
         logger.info("Updating contributions matching query %s with payment method data for id %s", query, pm_id)
         updated = 0
         # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
-        # DEV-4915
-        # 5. May need to put optionality around get vs. filter for initial query at top of this method
+        # DEV-5661
         details = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.event.account)
         for x in Contribution.objects.filter(**query):
             x.provider_payment_method_id = pm_id

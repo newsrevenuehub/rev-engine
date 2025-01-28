@@ -1,6 +1,6 @@
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import PropTypes, { InferProps } from 'prop-types';
-import StripeLogo from 'assets/icons/stripeLogo.svg';
+import StripeLogo from 'assets/icons/stripe-logo.svg';
 import { Button, Modal, OffscreenText, StepperDots } from 'components/base';
 import ConnectStripeNeedHelpCta from './ConnectStripeNeedHelpCTA';
 import { Description, Heading, LaterButton, Root } from './ConnectStripeModal.styled';

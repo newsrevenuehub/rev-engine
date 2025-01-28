@@ -1,9 +1,8 @@
+import { AccountBalanceOutlined, AddShoppingCartOutlined, CodeOutlined } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
-
-import SvgIcon from 'assets/icons/SvgIcon';
+import Newsroom from 'assets/icons/newsroom.svg?react';
 import logo from 'assets/images/nre-logo-blue.svg';
 import logo2 from 'assets/images/nre-logo-yellow.svg';
-import { ICONS } from 'assets/icons/SvgIcon';
 import {
   LeftbarWrapper,
   Logo,
@@ -20,8 +19,8 @@ const content = {
   heading: 'We’ve helped raise millions for our clients',
   advantages: [
     {
-      svg: ICONS.ACCOUNT_ACC_BALANCE,
       heading: 'Save time, money, and democracy',
+      icon: AccountBalanceOutlined,
       subheading: (
         <>
           Sustain your newsroom through <i>voluntary</i> contributions
@@ -29,8 +28,8 @@ const content = {
       )
     },
     {
-      svg: ICONS.ACCOUNT_NEWSROOM,
       heading: 'For newsrooms, by newsrooms',
+      icon: Newsroom,
       subheading: (
         <>
           An <i>affordable</i>, DIY contributions management software
@@ -38,8 +37,8 @@ const content = {
       )
     },
     {
-      svg: ICONS.ACCOUNT_CART,
       heading: 'No CRM required',
+      icon: AddShoppingCartOutlined,
       subheading: (
         <>
           Create a checkout page in <i>minutes</i>
@@ -47,8 +46,8 @@ const content = {
       )
     },
     {
-      svg: ICONS.ACCOUNT_UNFOLD_MORE,
       heading: 'Strategic integrations',
+      icon: CodeOutlined,
       subheading: (
         <>
           <i>Real-time</i> payment notifications & payment processing
@@ -72,10 +71,12 @@ function Leftbar({ isCreateAccountPage }: LeftbarProps) {
       <Divider isCreateAccountPage={isCreateAccountPage} />
       <AdvantagesWrapper data-testid="advantages">
         {content.advantages.map((advantage) => {
+          const Icon = advantage.icon;
+
           return (
             <Advantage key={advantage.heading}>
               <span>
-                <SvgIcon icon={advantage.svg} />
+                <Icon />
               </span>
               <AdvContent>
                 <AdvHeading>{advantage.heading}</AdvHeading>

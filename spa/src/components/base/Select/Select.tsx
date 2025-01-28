@@ -20,13 +20,18 @@ const StyledSelect = styled(TextField)`
       #menu-label {
         display: none;
       }
+
       #selected-label {
         display: block;
       }
     }
 
-    .NreSelectFocused .NreSelectNotchedOutline {
-      border-color: #00bfdf;
+    .NreSelectNotchedOutline {
+      display: none;
+    }
+
+    .NreTextFieldInputLabelFormControl {
+      margin-bottom: 0.5em;
     }
   }
 `;

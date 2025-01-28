@@ -8,7 +8,8 @@ import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 import { Columns, Detail, SectionControlButton, Subheading } from '../common.styled';
 import { DetailSection } from '../DetailSection';
 import DetailSectionEditControls from '../DetailSection/DetailSectionEditControls';
-import { CheckboxLabel, StartInputAdornment, AmountField } from './BillingDetails.styled';
+import { CheckboxLabel, StartInputAdornment, AmountField, IntervalSelect } from './BillingDetails.styled';
+import ConfirmIntervalChangeModal from './ConfirmIntervalChangeModal';
 
 const BillingDetailsPropTypes = {
   contribution: PropTypes.object.isRequired,
@@ -20,13 +21,24 @@ const BillingDetailsPropTypes = {
   onUpdateAmount: PropTypes.func.isRequired
 };
 
+type AmountOnlyChange = {
+  /**
+   * New amount in integer cents, not dollars.
+   */
+  amount: number;
+  /**
+   * Donor-selected amount in dollars, not integer cents. This is snake-cased to
+   * match the field in the backend.
+   */
+  donor_selected_amount: number;
+};
+type IntervalOnlyChange = { interval: ContributionInterval };
+type AmountAndIntervalChange = AmountOnlyChange & IntervalOnlyChange;
+export type AmountChange = AmountOnlyChange | IntervalOnlyChange | AmountAndIntervalChange;
+
 export interface BillingDetailsProps extends InferProps<typeof BillingDetailsPropTypes> {
   contribution: PortalContributionDetail;
-  /**
-   * @param amount New amount in integer cents, not dollars.
-   * @param donorSelectedAmount Donor-selected amount in dollars, not integer cents.
-   */
-  onUpdateAmount: (amount: number, donorSelectedAmount: number) => void;
+  onUpdateAmount: (change: AmountChange) => void;
 }
 
 /**
@@ -38,6 +50,11 @@ export const INTERVAL_NAMES: Record<ContributionInterval, string> = {
   year: 'Yearly'
 };
 
+/**
+ * Intervals the user can pick between when editing (e.g. not one-time).
+ */
+const INTERVAL_OPTIONS = ['month', 'year'];
+
 export function BillingDetails({
   contribution,
   disabled,
@@ -45,11 +62,12 @@ export function BillingDetails({
   editable,
   onEdit,
   onEditComplete,
-  onUpdateAmount: onUpdateBillingDetails
+  onUpdateAmount
 }: BillingDetailsProps) {
   const originalAmountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
   const [editedAmount, setEditedAmount] = useState(originalAmountInDollars.toString());
-
+  const [editedInterval, setEditedInterval] = useState(contribution.interval);
+  const [confirmIntervalModalOpen, setConfirmIntervalModalOpen] = useState(false);
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
     new Date(contribution.first_payment_date)
   );
@@ -57,10 +75,17 @@ export function BillingDetails({
   const disableSave = useMemo(() => {
     const parsedValue = parseFloatStrictly(editedAmount);
 
-    return isNaN(parsedValue) || parsedValue <= 0 || parsedValue === originalAmountInDollars;
-  }, [editedAmount, originalAmountInDollars]);
+    return (
+      isNaN(parsedValue) ||
+      parsedValue <= 0 ||
+      (parsedValue === originalAmountInDollars && editedInterval === contribution.interval)
+    );
+  }, [editedAmount, editedInterval, originalAmountInDollars]);
 
-  const handleSave = () => {
+  function saveChanges() {
+    // disableSave above ensures we are only called if the user has actually
+    // made a change.
+
     const parsedAmount = parseFloatStrictly(editedAmount);
 
     if (isNaN(parsedAmount)) {
@@ -68,20 +93,48 @@ export function BillingDetails({
       throw new Error('Amount is not a number');
     }
 
-    // Need "Math.round" because "parseFloatStrictly" * 100 can result in numbers like:
-    // amount = 9.45 -> formattedAmount * 100 = 944.9999999999999
-    // amount = 9.46 -> formattedAmount * 100 = 946.0000000000001
-    onUpdateBillingDetails(Math.round(parsedAmount * 100), parsedAmount);
-    onEditComplete();
-  };
+    if (parsedAmount !== originalAmountInDollars) {
+      // We are changing at least amount, but maybe also interval as well.
 
-  const handleCancel = () => {
-    setEditedAmount(originalAmountInDollars?.toString());
+      // Need "Math.round" because "parseFloatStrictly" * 100 can result in numbers like:
+      // amount = 9.45 -> formattedAmount * 100 = 944.9999999999999
+      // amount = 9.46 -> formattedAmount * 100 = 946.0000000000001
+      const amountInCents = Math.round(parsedAmount * 100);
+
+      if (editedInterval === contribution.interval) {
+        onUpdateAmount({ amount: amountInCents, donor_selected_amount: parsedAmount });
+      } else {
+        onUpdateAmount({ amount: amountInCents, donor_selected_amount: parsedAmount, interval: editedInterval });
+      }
+    } else {
+      // We are changing interval only.
+      onUpdateAmount({ interval: editedInterval });
+    }
+
     onEditComplete();
-  };
+  }
+
+  function checkChanges() {
+    if (editedInterval === contribution.interval) {
+      saveChanges();
+    } else {
+      setConfirmIntervalModalOpen(true);
+    }
+  }
+
+  function handleConfirmInterval() {
+    setConfirmIntervalModalOpen(false);
+    saveChanges();
+  }
+
+  function handleCancel() {
+    setEditedAmount(originalAmountInDollars?.toString());
+    setEditedInterval(contribution.interval);
+    onEditComplete();
+  }
 
   const controls = editable ? (
-    <DetailSectionEditControls saveDisabled={disableSave} onCancel={handleCancel} onSave={handleSave} />
+    <DetailSectionEditControls saveDisabled={disableSave} onCancel={handleCancel} onSave={checkChanges} />
   ) : (
     <SectionControlButton disabled={!!disabled} onClick={onEdit}>
       Change billing details
@@ -137,10 +190,29 @@ export function BillingDetails({
           <Detail data-testid="first-billing-date">{formattedDate}</Detail>
         </div>
         <div>
-          <Subheading>Frequency</Subheading>
-          <Detail data-testid="frequency">{INTERVAL_NAMES[contribution.interval]}</Detail>
+          {editable ? (
+            <IntervalSelect
+              label="Frequency"
+              onChange={(event) => setEditedInterval(event.target.value as ContributionInterval)}
+              options={INTERVAL_OPTIONS.map((value) => ({
+                value,
+                label: INTERVAL_NAMES[value as ContributionInterval]
+              }))}
+              value={editedInterval}
+            />
+          ) : (
+            <>
+              <Subheading>Frequency</Subheading>
+              <Detail data-testid="frequency">{INTERVAL_NAMES[contribution.interval]}</Detail>
+            </>
+          )}
         </div>
       </Columns>
+      <ConfirmIntervalChangeModal
+        onCancel={() => setConfirmIntervalModalOpen(false)}
+        onConfirm={handleConfirmInterval}
+        open={confirmIntervalModalOpen}
+      />
     </DetailSection>
   );
 }

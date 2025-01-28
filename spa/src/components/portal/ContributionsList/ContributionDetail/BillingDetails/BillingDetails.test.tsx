@@ -2,6 +2,7 @@ import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import BillingDetails, { BillingDetailsProps, INTERVAL_NAMES } from './BillingDetails';
+import userEvent from '@testing-library/user-event';
 
 jest.mock('../DetailSection/DetailSection');
 
@@ -97,10 +98,14 @@ describe('BillingDetails', () => {
       expect(screen.getByTestId('frequency')).toHaveTextContent(intervalLabel);
     });
 
-    describe('enableEditMode = true', () => {
-      it('shows "Change billing details"', () => {
-        tree({ enableEditMode: true });
-        expect(screen.getByRole('button', { name: 'Change billing details' })).toBeInTheDocument();
+    describe('In editable mode', () => {
+      it('shows a button which calls onEdit when clicked', () => {
+        const onEdit = jest.fn();
+
+        tree({ onEdit, enableEditMode: true });
+        expect(onEdit).not.toBeCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Change billing details' }));
+        expect(onEdit).toBeCalledTimes(1);
       });
     });
 
@@ -126,7 +131,19 @@ describe('BillingDetails', () => {
 
     it('initially sets the contribution amount as the value of the amount input', () => {
       tree({ editable: true, enableEditMode: true });
-      expect(screen.getByRole('textbox', { name: /amount/i })).toHaveValue('123.45');
+      expect(screen.getByRole('textbox', { name: 'Amount' })).toHaveValue('123.45');
+    });
+
+    it("initially sets the interval field to the contribution's interval", () => {
+      tree({ editable: true, enableEditMode: true });
+      expect(
+        screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] })
+      ).toBeInTheDocument();
+    });
+
+    it("doesn't show a confirmation modal", () => {
+      tree({ editable: true, enableEditMode: true });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     describe('The Save button', () => {
@@ -137,7 +154,7 @@ describe('BillingDetails', () => {
 
       it('is enabled when the amount input is changed', () => {
         tree({ editable: true, enableEditMode: true });
-        const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        const amountInput = screen.getByRole('textbox', { name: 'Amount' });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         fireEvent.change(amountInput, { target: { value: '99.99' } });
@@ -146,7 +163,7 @@ describe('BillingDetails', () => {
 
       it('disables if previously enabled, but amount is set to initial value', () => {
         tree({ editable: true, enableEditMode: true });
-        const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        const amountInput = screen.getByRole('textbox', { name: 'Amount' });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         fireEvent.change(amountInput, { target: { value: '99.99' } });
@@ -157,7 +174,7 @@ describe('BillingDetails', () => {
 
       it('is disabled if the amount is empty', () => {
         tree({ editable: true, enableEditMode: true });
-        const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        const amountInput = screen.getByRole('textbox', { name: 'Amount' });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         fireEvent.change(amountInput, { target: { value: '' } });
@@ -166,7 +183,7 @@ describe('BillingDetails', () => {
 
       it('is disabled if the amount is zero', () => {
         tree({ editable: true, enableEditMode: true });
-        const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        const amountInput = screen.getByRole('textbox', { name: 'Amount' });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         fireEvent.change(amountInput, { target: { value: '0' } });
@@ -175,10 +192,29 @@ describe('BillingDetails', () => {
 
       it('is disabled if the amount is not a valid number', () => {
         tree({ editable: true, enableEditMode: true });
-        const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        const amountInput = screen.getByRole('textbox', { name: 'Amount' });
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         fireEvent.change(amountInput, { target: { value: 'abc' } });
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+      });
+
+      it('is enabled when the interval select is changed', () => {
+        tree({ editable: true, enableEditMode: true });
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+        userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+      });
+
+      it('disables if previously enabled, but interval is set to initial value', () => {
+        tree({ editable: true, enableEditMode: true });
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+        userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+        userEvent.click(screen.getByRole('button', { name: 'Yearly' }));
+        userEvent.click(screen.getByRole('option', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
       });
 
@@ -189,23 +225,126 @@ describe('BillingDetails', () => {
       });
 
       describe('When clicked', () => {
-        it('calls onUpdateAmount with the amount in cents, and user-entered amount in dollars', () => {
-          tree({ editable: true, enableEditMode: true });
-          const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        describe('When only the amount is changed', () => {
+          it('calls onUpdateAmount with the amount in cents, and user-entered amount in dollars', () => {
+            tree({ editable: true, enableEditMode: true });
+            const amountInput = screen.getByRole('textbox', { name: 'Amount' });
 
-          fireEvent.change(amountInput, { target: { value: '99.45' } });
-          screen.getByRole('button', { name: 'Save' }).click();
+            fireEvent.change(amountInput, { target: { value: '99.45' } });
+            screen.getByRole('button', { name: 'Save' }).click();
 
-          expect(defaultProps.onUpdateAmount).toHaveBeenCalledWith(9945, 99.45);
+            expect(defaultProps.onUpdateAmount).toHaveBeenCalledWith({ amount: 9945, donor_selected_amount: 99.45 });
+          });
+
+          it('calls onEditComplete', () => {
+            tree({ editable: true, enableEditMode: true });
+            const amountInput = screen.getByRole('textbox', { name: 'Amount' });
+
+            fireEvent.change(amountInput, { target: { value: '99.99' } });
+            screen.getByRole('button', { name: 'Save' }).click();
+            expect(defaultProps.onEditComplete).toHaveBeenCalledTimes(1);
+          });
         });
 
-        it('calls onEditComplete', () => {
-          tree({ editable: true, enableEditMode: true });
-          const amountInput = screen.getByRole('textbox', { name: /amount/i });
+        describe('When only the interval is changed', () => {
+          it("shows a confirmation modal and doesn't call onUpdateAmount", () => {
+            const onUpdateAmount = jest.fn();
 
-          fireEvent.change(amountInput, { target: { value: '99.99' } });
-          screen.getByRole('button', { name: 'Save' }).click();
-          expect(defaultProps.onEditComplete).toHaveBeenCalledTimes(1);
+            tree({ onUpdateAmount, editable: true, enableEditMode: true });
+            userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+            userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+            userEvent.click(screen.getByRole('button', { name: 'Save' }));
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+            expect(onUpdateAmount).not.toBeCalled();
+          });
+
+          it('hides the confirmation modal if the user cancels', () => {
+            tree({ editable: true, enableEditMode: true });
+            userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+            userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+            screen.getByRole('button', { name: 'Save' }).click();
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+            userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+          });
+
+          describe('When the user confirms the change', () => {
+            it('calls onUpdateAmount with the new interval', () => {
+              const onUpdateAmount = jest.fn();
+
+              tree({ onUpdateAmount, editable: true, enableEditMode: true });
+              userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+              userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+              userEvent.click(screen.getByRole('button', { name: 'Save' }));
+              expect(onUpdateAmount).not.toBeCalled();
+              userEvent.click(screen.getByRole('button', { name: 'Confirm & Save' }));
+              expect(onUpdateAmount).toBeCalledWith({ interval: 'year' });
+            });
+
+            it('calls onEditComplete', () => {
+              const onEditComplete = jest.fn();
+
+              tree({ onEditComplete, editable: true, enableEditMode: true });
+              userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+              userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+              userEvent.click(screen.getByRole('button', { name: 'Save' }));
+              expect(onEditComplete).not.toBeCalled();
+              userEvent.click(screen.getByRole('button', { name: 'Confirm & Save' }));
+              expect(onEditComplete).toBeCalledTimes(1);
+            });
+          });
+        });
+
+        describe('When both amount and interval are changed', () => {
+          it("shows a confirmation modal and doesn't call onUpdateAmount", () => {
+            const onUpdateAmount = jest.fn();
+
+            tree({ onUpdateAmount, editable: true, enableEditMode: true });
+            fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value: '99.99' } });
+            userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+            userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+            userEvent.click(screen.getByRole('button', { name: 'Save' }));
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+            expect(onUpdateAmount).not.toBeCalled();
+          });
+
+          it('hides the confirmation modal if the user cancels', () => {
+            tree({ editable: true, enableEditMode: true });
+            fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value: '99.99' } });
+            userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+            userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+            screen.getByRole('button', { name: 'Save' }).click();
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+            userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+          });
+
+          describe('When the user confirms the change', () => {
+            it('calls onUpdateAmount with the new amount interval', () => {
+              const onUpdateAmount = jest.fn();
+
+              tree({ onUpdateAmount, editable: true, enableEditMode: true });
+              fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value: '99.99' } });
+              userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+              userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+              userEvent.click(screen.getByRole('button', { name: 'Save' }));
+              userEvent.click(screen.getByRole('button', { name: 'Confirm & Save' }));
+              expect(onUpdateAmount).toBeCalledWith({ amount: 9999, donor_selected_amount: 99.99, interval: 'year' });
+            });
+
+            it('calls onEditComplete', () => {
+              const onEditComplete = jest.fn();
+
+              tree({ onEditComplete, editable: true, enableEditMode: true });
+              fireEvent.change(screen.getByRole('textbox', { name: 'Amount' }), { target: { value: '99.99' } });
+              userEvent.click(screen.getByRole('button', { name: INTERVAL_NAMES[defaultProps.contribution.interval] }));
+              userEvent.click(screen.getByRole('option', { name: 'Yearly' }));
+              userEvent.click(screen.getByRole('button', { name: 'Save' }));
+              expect(onEditComplete).not.toBeCalled();
+              userEvent.click(screen.getByRole('button', { name: 'Confirm & Save' }));
+              expect(onEditComplete).toBeCalledTimes(1);
+            });
+          });
         });
       });
     });

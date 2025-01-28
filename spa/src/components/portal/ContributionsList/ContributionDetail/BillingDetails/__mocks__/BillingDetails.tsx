@@ -18,7 +18,9 @@ export const BillingDetails = ({
   >
     <button onClick={onEdit}>onEditBillingDetails</button>
     <button onClick={onEditComplete}>onEditCompleteBillingDetails</button>
-    <button onClick={() => onUpdateAmount(12345, 123.45)}>onUpdateAmount</button>
+    <button onClick={() => onUpdateAmount({ amount: 12345, donor_selected_amount: 123.45, interval: 'year' })}>
+      onUpdateAmount
+    </button>
   </div>
 );
 export default BillingDetails;

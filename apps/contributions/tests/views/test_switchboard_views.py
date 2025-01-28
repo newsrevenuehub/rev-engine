@@ -38,7 +38,7 @@ class TestSwitchboardContributorsViews:
     def test_create(self, api_client, faker, already_exists, token):
         email = faker.email()
         if already_exists:
-            existing = ContributorFactory(email=email)
+            ContributorFactory(email=email)
         response = api_client.post(
             reverse("switchboard-contributor-list"),
             data={"email": email},
@@ -46,7 +46,7 @@ class TestSwitchboardContributorsViews:
         )
         if already_exists:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert response.json() == {"error": f"A contributor (ID: {existing.id}) with email {email} already exists"}
+            assert response.json() == {"email": ["contributor with this email already exists."]}
         else:
             assert response.status_code == status.HTTP_201_CREATED
             contributor = Contributor.objects.get(email=email)

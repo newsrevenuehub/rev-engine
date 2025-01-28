@@ -4,10 +4,9 @@ import PropTypes, { InferProps } from 'prop-types';
 import { FormEvent, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { useLocation } from 'react-router-dom';
-import { ICONS } from 'assets/icons/SvgIcon';
 import { getPaymentElementButtonText, getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { Payment } from 'hooks/usePayment';
-import { Icon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
+import { PoweredByStripeIcon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
 import { useTranslation } from 'react-i18next';
 
 const StripePaymentFormPropTypes = {
@@ -152,7 +151,7 @@ export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
         {paymentSubmitButtonText}
       </SubmitButton>
       <IconWrapper>
-        <Icon icon={ICONS.STRIPE_POWERED} />
+        <PoweredByStripeIcon />
       </IconWrapper>
     </Form>
   );

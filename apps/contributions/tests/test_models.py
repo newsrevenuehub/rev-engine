@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 from apps.common.utils import CREATED, LEFT_UNCHANGED
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
+    EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT,
     BillingHistoryItem,
     Contribution,
     ContributionInterval,
@@ -2066,8 +2067,14 @@ class TestContributionModel:
         page = DonationPageFactory() if has_page else None
         rp = RevenueProgramFactory() if has_rp else None
         if expect_error:
-            with pytest.raises(IntegrityError):
+            with pytest.raises(IntegrityError) as exc:
                 ContributionFactory(donation_page=page, _revenue_program=rp)
+            # We assert about this because we have view layer code in apps/contributions/views/switchboard.py
+            # that specifically looks for this error message, and we want a guarantee that it's there in case
+            # postgres or psycopg2 changes and this scenario no longer causes our DB constraint to bubble up with
+            # message we expect to see. Also note that in object code context, this message is looked for at exc.args[0],
+            # but in this test context, it's at exc.value.args[0] (presumably this stems from how pytest handles exceptions).
+            assert EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT in exc.value.args[0]
         else:
             ContributionFactory(donation_page=page, _revenue_program=rp)
 

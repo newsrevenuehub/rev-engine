@@ -54,6 +54,11 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 CONTRIBUTION_ABANDONED_THRESHOLD = datetime.timedelta(minutes=60 * 8)
 
+# This is a fragment of the error message that is raised when contribution constraint that requries only one of _revenue_program
+# or donation_page to be set is violated. We have a custom exception handler that needs to catch this error. The full constraint
+# name gets truncated in the error message so we use this fragment to identify the error.
+EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT = "exclusive_donation_page_or__revenue"
+
 
 class ContributionIntervalError(Exception):
     pass

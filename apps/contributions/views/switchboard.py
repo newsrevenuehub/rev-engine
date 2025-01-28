@@ -16,13 +16,9 @@ from rest_framework.serializers import ValidationError
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions import serializers
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT, Contribution, Contributor
 
 
-# This is a fragment of the error message that is raised when contribution constraint that requries only one of _revenue_program
-# or donation_page to be set is violated. We have a custom exception handler that needs to catch this error. The full constraint
-# name gets truncated in the error message so we use this fragment to identify the error.
-EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT = "exclusive_donation_page_or__revenue"
 EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_ERROR_MESSAGE = "A contribution can only set one of revenue_program or page"
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -54,6 +50,8 @@ class SwitchboardContributionsViewSet(
         We also look for violation of our exclusive constraint that requires only one of _revenue_program or donation_page to be set.
         We need a custom handler here to ensure we get a 400 status code for this error, along with an appropriate message.
         """
+        # NB: This code is admittedly brittle, but we do have a guarantee that the IntegrityError will have such a message in this case
+        # via test at apps.contributions.tests.test_models.TestContributionModel.test_exclusive_donation_page_or__rp_constraint.
         if isinstance(exc, IntegrityError) and EXCLUSIVE_RP_OR_PAGE_CONSTRAINT_LABEL_FRAGMENT in (
             exc.args[0] if exc.args else ""
         ):

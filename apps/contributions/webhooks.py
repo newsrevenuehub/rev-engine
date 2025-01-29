@@ -315,6 +315,8 @@ class StripeWebhookProcessor:
     def handle_subscription_updated(self):
         update_data = self._add_pm_id_and_payment_method_details(
             pm_id=self.obj_data["default_payment_method"],
+            # TODO @BW: Send empty dict for update_data in StripeWebhookProcessor.handle_subscription_updated
+            # DEV-5744
             update_data={"provider_subscription_id": self.id},
         )
         self._handle_contribution_update(
@@ -380,7 +382,7 @@ class StripeWebhookProcessor:
             )
             self._handle_contribution_update(
                 update_data,
-                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+                "`StripeWebhookProcessor.handle_invoice_payment_succeeded` updated contribution",
             )
         if payment.contribution.payment_set.count() == 1:
             self.contribution.handle_thank_you_email()

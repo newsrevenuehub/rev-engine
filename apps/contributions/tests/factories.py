@@ -83,11 +83,11 @@ class ContributionFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def contribution_metadata(self):
         return StripePaymentMetadataSchemaV1_4(
-            contributor_id=self.contributor.id if self.contributor else None,
+            contributor_id=str(self.contributor.id) if self.contributor else None,
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,
             referer=f"https://www.{settings.DOMAIN_APEX}.com/",
-            revenue_program_id=self.donation_page.revenue_program_id if self.donation_page else "3737",
+            revenue_program_id=str(self.donation_page.revenue_program_id) if self.donation_page else "3737",
             revenue_program_slug=self.donation_page.revenue_program.slug if self.donation_page else "slug",
             source="rev-engine",
             schema_version="1.4",

@@ -7,7 +7,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from stripe.error import StripeError
@@ -90,23 +89,3 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(["PATCH"])
-@permission_classes([])
-def payment_success(request, uuid=None):
-    """SPA sends after a Stripe payment has been submitted to Stripe from front end.
-
-    We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
-    and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
-    accordingly.
-    """
-    logger.info("called with uuid %s", uuid)
-    logger.debug("called with request data: %s, uuid %s", request.data, uuid)
-    try:
-        contribution = Contribution.objects.get(uuid=uuid)
-    except Contribution.DoesNotExist:
-        logger.warning("payment_success called with invalid uuid %s", uuid)
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    contribution.handle_thank_you_email()
-    return Response(status=status.HTTP_204_NO_CONTENT)

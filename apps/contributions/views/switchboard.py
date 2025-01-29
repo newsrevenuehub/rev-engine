@@ -38,7 +38,7 @@ class SwitchboardContributionsViewSet(
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
 
     def handle_exception(self, exc):
-        """Ensure select db-level errors get a 400 or 409.
+        """Ensure select uniqueness constraint errors receive a 409.
 
         For uniqueness constraints around provider_subscription_id, provider_payment_id, and provider_setup_intent_id, we
         want to return a 409 Conflict status code. On creation in particular, this will signal to Switchboard that it needs

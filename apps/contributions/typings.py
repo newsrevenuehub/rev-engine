@@ -265,3 +265,10 @@ def cast_metadata_to_stripe_payment_metadata_schema(
     except pydantic.ValidationError as exc:
         logger.debug("Metadata failed to validate against schema %s", schema_class)
         raise InvalidMetadataError(str(exc)) from exc
+
+
+def validate_stripe_metadata(metadata: dict):
+    if (schema_version := metadata.get("schema_version")) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
+        raise InvalidMetadataError(f"Invalid schema version {schema_version}")
+    # Calling this will raise a `InvalidMetadataError` if the metadata is invalid
+    cast_metadata_to_stripe_payment_metadata_schema(metadata)

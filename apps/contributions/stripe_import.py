@@ -38,7 +38,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
-    cast_metadata_to_stripe_payment_metadata_schema,
+    validate_stripe_metadata,
 )
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.pages.models import DonationPage
@@ -333,12 +333,10 @@ class StripeTransactionsImporter:
             return ContributionInterval.MONTHLY
         raise InvalidIntervalError(f"Invalid interval {interval}")
 
-    def validate_metadata(self, metadata: dict) -> None:
+    @staticmethod
+    def validate_metadata(metadata: dict) -> None:
         """Validate the metadata associated with the stripe entity."""
-        if (schema_version := metadata.get("schema_version")) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
-            raise InvalidMetadataError(f"Invalid schema version {schema_version}")
-        # Calling this will raise a `InvalidMetadataError` if the metadata is invalid
-        cast_metadata_to_stripe_payment_metadata_schema(metadata)
+        validate_stripe_metadata(metadata)
 
     def get_referer_from_metadata(self, metadata: dict) -> str | None:
         referer = metadata.get("referer")

@@ -804,7 +804,7 @@ describe('User flow: canceling contribution', () => {
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
     getFeesCheckbox().should('be.checked');
     cy.get('@reasonValue').then((reason) => {
-      cy.getByTestId('excited-to-support-picklist').should('have.value', reason);
+      cy.getByTestId('reason-for-giving-reason-select').should('have.value', reason);
     });
   });
 

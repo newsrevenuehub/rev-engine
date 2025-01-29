@@ -30,7 +30,7 @@ from apps.contributions.serializers import (
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.tests.test_models import MockSubscription
-from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
+from apps.contributions.typings import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -1781,3 +1781,12 @@ class TestPortalContributionPaymentSerializer:
         payment = request.getfixturevalue(payment_fixture)
         serialized = serializers.PortalContributionPaymentSerializer(instance=payment)
         assert serialized.data["status"] == expected_status
+
+
+@pytest.mark.django_db
+class TestSwitchboardContributionSerializer:
+    def test_get_revenue_program_source_when_no_source(self, one_time_contribution):
+        one_time_contribution.donation_page = None
+        one_time_contribution._revenue_program = None
+        serializer = serializers.SwitchboardContributionSerializer(data={})
+        assert serializer.get_revenue_program_source(instance=one_time_contribution) is None

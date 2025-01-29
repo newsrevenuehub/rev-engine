@@ -32,7 +32,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
-from apps.contributions.types import (
+from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     StripeEventData,
 )
@@ -313,10 +313,8 @@ class Contribution(IndexedTimeStampedModel):
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
-    # TODO @BW: Make provider_payment_id, provider_setup_intent_id, provider_subscription_id unique
-    # DEV-4915
-    provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
-    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_payment_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
@@ -420,6 +418,15 @@ class Contribution(IndexedTimeStampedModel):
         if self.donation_page:
             return self.donation_page.revenue_program
         return self._revenue_program
+
+    @revenue_program.setter
+    def revenue_program(self, value: RevenueProgram):
+        """Set the _revenue_program for this contribution.
+
+        NB: This model has a constraint that requires that either donation page or _revenue_program but not both be set.
+        If you set both and then try to save to the db, the constraint will be violated and an error will be raised.
+        """
+        self._revenue_program = value
 
     @property
     def stripe_account_id(self) -> str | None:

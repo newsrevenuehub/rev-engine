@@ -20,7 +20,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Payment,
 )
-from apps.contributions.types import (
+from apps.contributions.typings import (
     InvalidMetadataError,
     StripeEventData,
     cast_metadata_to_stripe_payment_metadata_schema,
@@ -211,8 +211,7 @@ class StripeWebhookProcessor:
         logger.info("Updating contributions matching query %s with payment method data for id %s", query, pm_id)
         updated = 0
         # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
-        # DEV-4915
-        # 5. May need to put optionality around get vs. filter for initial query at top of this method
+        # DEV-5661
         details = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.event.account)
         for x in Contribution.objects.filter(**query):
             x.provider_payment_method_id = pm_id
@@ -316,6 +315,8 @@ class StripeWebhookProcessor:
     def handle_subscription_updated(self):
         update_data = self._add_pm_id_and_payment_method_details(
             pm_id=self.obj_data["default_payment_method"],
+            # TODO @BW: Send empty dict for update_data in StripeWebhookProcessor.handle_subscription_updated
+            # DEV-5744
             update_data={"provider_subscription_id": self.id},
         )
         self._handle_contribution_update(
@@ -381,7 +382,7 @@ class StripeWebhookProcessor:
             )
             self._handle_contribution_update(
                 update_data,
-                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+                "`StripeWebhookProcessor.handle_invoice_payment_succeeded` updated contribution",
             )
         if payment.contribution.payment_set.count() == 1:
             self.contribution.handle_thank_you_email()

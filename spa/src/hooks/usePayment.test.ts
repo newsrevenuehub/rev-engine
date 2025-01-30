@@ -1,12 +1,14 @@
 import * as Sentry from '@sentry/react';
 import { act, renderHook } from '@testing-library/react-hooks';
 import MockAdapter from 'axios-mock-adapter';
-import { contributorAxios } from 'ajax/contributor-axios';
+import Axios from 'ajax/axios';
 import { TestQueryClientProvider } from 'test-utils';
 import { ContributionPage } from './useContributionPage';
 import { PaymentData, usePayment } from './usePayment';
+import { useCookies } from 'react-cookie';
 
 jest.mock('@sentry/react');
+jest.mock('react-cookie');
 
 const mockFormData: PaymentData = {
   agreed_to_pay_fees: true,
@@ -50,8 +52,9 @@ function hook() {
 }
 
 describe('usePayment', () => {
-  const axiosMock = new MockAdapter(contributorAxios);
+  const axiosMock = new MockAdapter(Axios);
   const SentryMock = jest.mocked(Sentry);
+  const useCookiesMock = jest.mocked(useCookies);
   let setUserMock: jest.Mock;
 
   beforeEach(() => {
@@ -64,6 +67,9 @@ describe('usePayment', () => {
     axiosMock.onDelete('payments/mock-payment-uuid/').reply(204);
     setUserMock = jest.fn();
     SentryMock.setUser = setUserMock;
+    useCookiesMock.mockImplementation((names?: string[]) =>
+      names?.[0] === 'csrftoken' ? ([{ csrftoken: 'mock-csrf-token' }] as any) : []
+    );
   });
 
   describe('Initially', () => {
@@ -147,6 +153,15 @@ describe('usePayment', () => {
           await result.current.createPayment!({ ...mockFormData, [formKey]: undefined } as any, mockPage);
         });
         expect((result.current.payment?.stripe.billingDetails.address as any)[paymentKey]).toBe('');
+      });
+
+      it('sends the CSRF cookie in the POST request', async () => {
+        const { result } = hook();
+
+        await act(async () => {
+          await result.current.createPayment!(mockFormData, mockPage);
+        });
+        expect(axiosMock.history.post?.[0]?.headers?.['X-CSRFTOKEN']).toBe('mock-csrf-token');
       });
 
       it("rejects and doesn't do a POST if the page has no slug", async () => {
@@ -246,6 +261,18 @@ describe('usePayment', () => {
         });
         expect(axiosMock.history.delete.length).toBe(1);
         expect(axiosMock.history.delete[0].url).toBe('payments/mock-payment-uuid/');
+      });
+
+      it('sends the CSRF cookie in the DELETE request', async () => {
+        const { result } = hook();
+
+        await act(async () => {
+          await result.current.createPayment!(mockFormData, mockPage);
+        });
+        await act(async () => {
+          await result.current.deletePaymentMutation!.mutateAsync();
+        });
+        expect(axiosMock.history.delete?.[0]?.headers?.['X-CSRFTOKEN']).toBe('mock-csrf-token');
       });
 
       it('rejects if the DELETE fails', async () => {

@@ -2,10 +2,8 @@ import * as Sentry from '@sentry/react';
 import { PaymentMethodCreateParams } from '@stripe/stripe-js';
 import { useMutation } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { useCookies } from 'react-cookie';
-import axios from 'ajax/axios';
+import { contributorAxios } from 'ajax/contributor-axios';
 import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
-import { CSRF_HEADER } from 'appSettings';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import { CONTRIBUTION_INTERVALS, ContributionInterval } from 'constants/contributionIntervals';
 import { ContributionPage } from './useContributionPage';
@@ -93,16 +91,9 @@ interface PaymentCreationResponse {
  * Each invocation of this hook uses a separate payment.
  */
 export function usePayment() {
-  const [cookies] = useCookies(['csrftoken']);
   const [payment, setPayment] = useState<Payment>();
-
-  // Because the SPA Axios instance only uses the CSRF token in local storage,
-  // we need to manually insert it into requests.
-
   const createPaymentMutation = useMutation((paymentData: PaymentData) =>
-    axios.post<PaymentCreationResponse>(AUTHORIZE_STRIPE_PAYMENT_ROUTE, paymentData, {
-      headers: { [CSRF_HEADER]: cookies.csrftoken }
-    })
+    contributorAxios.post<PaymentCreationResponse>(AUTHORIZE_STRIPE_PAYMENT_ROUTE, paymentData)
   );
   const createPayment = useCallback(
     async (paymentData: PaymentData, page: ContributionPage) => {
@@ -187,10 +178,7 @@ export function usePayment() {
     [createPaymentMutation]
   );
   const deletePaymentMutation = useMutation(
-    () =>
-      axios.delete(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${payment?.uuid}/`, {
-        headers: { [CSRF_HEADER]: cookies.csrftoken }
-      }),
+    () => contributorAxios.delete(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${payment?.uuid}/`),
     {
       onSuccess: () => setPayment(undefined)
     }

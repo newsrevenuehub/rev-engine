@@ -336,11 +336,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         data contains non blank values.
         """
         errors = {}
-        for element in [x for x in data["page"].elements if len(x.get("requiredFields", []))]:
-            for field in element["requiredFields"]:
-                # if it's blank or none or no key for it in data
-                if data.get(field, None) in (None, ""):
-                    errors[field] = GENERIC_BLANK
+        for element in (x for x in data["page"].elements if x.get("requiredFields")):
+            if required_missing_value := next(
+                (field for field in element["requiredFields"] if data.get(field) in (None, "")), None
+            ):
+                errors[required_missing_value] = GENERIC_BLANK
         if errors:
             raise serializers.ValidationError(errors)
         return data

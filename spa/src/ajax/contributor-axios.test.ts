@@ -12,6 +12,7 @@ describe('contributor Axios instance', () => {
   const contributorAxiosMock = new MockAdapter(contributorAxios);
 
   afterAll(() => {
+    document.cookie = '';
     window.localStorage.clear();
   });
 
@@ -19,6 +20,7 @@ describe('contributor Axios instance', () => {
     window.localStorage.clear();
     contributorAxiosMock.reset();
     contributorAxiosMock.onGet().reply(200);
+    document.cookie = '';
   });
 
   it('prepends URLs with the API path', async () => {
@@ -35,9 +37,10 @@ describe('contributor Axios instance', () => {
     expect(contributorAxiosMock.history.get[0].headers![CSRF_HEADER]).toBeUndefined();
   });
 
-  it('passes through cookies', async () => {
+  it('passes a CSRF token if present as a cookie', async () => {
+    document.cookie = 'csrftoken=test-value';
     await contributorAxios.get('url');
     expect(contributorAxiosMock.history.get).toHaveLength(1);
-    expect(contributorAxiosMock.history.get[0].withCredentials).toBe(true);
+    expect(contributorAxiosMock.history.get[0].headers![CSRF_HEADER]).toBe('test-value');
   });
 });

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
   AMOUNT_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
-  GRECAPTCHA_SITE_KEY,
   SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
   MAILCHIMP_CAMPAIGN_ID_QUERYPARAM
 } from 'appSettings';
@@ -17,7 +16,6 @@ import useClearbit from 'hooks/useClearbit';
 import useErrorFocus from 'hooks/useErrorFocus';
 import { usePayment } from 'hooks/usePayment';
 import useQueryString from 'hooks/useQueryString';
-import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import * as S from './DonationPage.styled';
 import DonationPageFooter from './DonationPageFooter';
@@ -28,6 +26,7 @@ import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
 import { getDefaultAmountForFreq } from './amountUtils';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { useAmountAuditing } from './useAmountAuditing';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 export const DonationPageContext = createContext({});
 
@@ -54,37 +53,21 @@ function DonationPage({ page, live = false }, ref) {
   });
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
   const [mailingCountry, setMailingCountry] = useState();
+  // We do additional work before creating the submission (e.g. POSTing to
+  // create the payment), like verifying reCAPTCHA, that should block form
+  // submission in addition to the payment loading state below. This state
+  // captures that.
+  const [submitting, setSubmitting] = useState(false);
   const { createPayment, deletePaymentMutation, isLoading: paymentIsLoading, payment } = usePayment();
   const { auditAmountChange, auditFrequencyChange, auditPayFeesChange, auditPaymentCreation } = useAmountAuditing();
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  useClearbit(live);
 
   // Whenever amount, frequency, or fees changes, track it.
   useEffect(() => auditAmountChange(amount), [amount, auditAmountChange]);
   useEffect(() => auditFrequencyChange(frequency), [auditFrequencyChange, frequency]);
   useEffect(() => auditPayFeesChange(userAgreesToPayFees), [auditPayFeesChange, userAgreesToPayFees]);
-
-  /*
-  If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
-  listen for readiness and resolve promise with resulting reCAPTCHA token.
-  @returns {Promise} - resolves to token or error
-  */
-  const getReCAPTCHAToken = () =>
-    new Promise((resolve, reject) => {
-      if (window.grecaptcha) {
-        window.grecaptcha.ready(async function () {
-          try {
-            const token = window.grecaptcha.execute(GRECAPTCHA_SITE_KEY, { action: 'submit' });
-            resolve(token);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      } else {
-        // TODO: [DEV-2372] Make Google Recaptcha integration less brittle
-        reject(new Error('window.grecaptcha not defined at getReCAPTCHAToken call time'));
-      }
-    });
-
-  useReCAPTCHAScript();
 
   // overrideAmount causes only the custom amount to show (initially)
   const [overrideAmount, setOverrideAmount] = useState(false);
@@ -92,9 +75,6 @@ function DonationPage({ page, live = false }, ref) {
 
   // Focus the first input on the page that has an error
   useErrorFocus(formRef, errors);
-
-  // initialize clearbit.js
-  useClearbit(live);
 
   useEffect(() => {
     setFrequency(getInitialFrequency(page, freqQs, amountQs));
@@ -119,19 +99,22 @@ function DonationPage({ page, live = false }, ref) {
   }, [amount, frequency, page.revenue_program_is_nonprofit]);
 
   async function handleCheckoutSubmit() {
+    setSubmitting(true);
+
     let reCAPTCHAToken = '';
 
-    // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not
-    // defined when function runs. In tests, and quite possibly in deployed
-    // environments, this causes form submission to fail if grecaptcha hasn't
-    // loaded. We don't want tests to fail or users to be blocked from making a
-    // contribution just because this script hasn't loaded, so if error occurs,
-    // we just go with default empty string value for token, and log.
+    // If we can't get the reCAPTCHA token for whatever reason (like it didn't
+    // load correctly) or retrieving it fails, default to an empty string so we
+    // don't block form submission.
 
-    try {
-      reCAPTCHAToken = await getReCAPTCHAToken();
-    } catch (error) {
-      console.error('No recaptcha token, defaulting to empty string');
+    if (executeRecaptcha) {
+      try {
+        reCAPTCHAToken = await executeRecaptcha();
+      } catch (error) {
+        console.error(`executeRecaptcha failed, falling back to empty string: ${error}`);
+      }
+    } else {
+      console.error('executeRecaptcha was undefined at time of contribution form submission, skipping verification');
     }
 
     try {
@@ -170,6 +153,8 @@ function DonationPage({ page, live = false }, ref) {
         setDisplayErrorFallback(true);
       }
     }
+
+    setSubmitting(false);
   }
 
   async function handleCompleteContributionCancel() {
@@ -232,7 +217,7 @@ function DonationPage({ page, live = false }, ref) {
                   <LiveErrorFallback />
                 ) : (
                   <DonationPageForm
-                    disabled={paymentIsLoading || payment}
+                    disabled={paymentIsLoading || payment || submitting}
                     loading={paymentIsLoading}
                     onSubmit={handleCheckoutSubmit}
                     ref={formRef}

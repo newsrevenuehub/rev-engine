@@ -25,7 +25,7 @@ from apps.organizations.serializers import (
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
-from apps.users.models import RoleAssignment
+from apps.users.models import RoleAssignment, User
 
 from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 from .validators import tax_id_validator
@@ -143,6 +143,24 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
         read_only_fields = [
             x for x in _AUTHED_USER_FIELDS if x not in ("password", "email", "accepted_terms_of_service")
         ]
+
+
+class SwitchboardUserSerializer(serializers.ModelSerializer):
+    """Read-only access to users. Organizations and revenue programs are serialized by ID only."""
+
+    organizations = serializers.SerializerMethodField("get_orgs", default=[])
+    revenue_programs = serializers.SerializerMethodField("get_rps", default=[])
+
+    class Meta:
+        model = get_user_model()
+        fields = ["email", "first_name", "id", "job_title", "last_name", "organizations", "revenue_programs"]
+        read_only_fields = ["email", "first_name", "id", "job_title", "last_name", "organizations", "revenue_programs"]
+
+    def get_orgs(self, obj: User):
+        return [org.id for org in obj.permitted_organizations]
+
+    def get_rps(self, obj: User):
+        return [rp.id for rp in obj.permitted_revenue_programs]
 
 
 class CustomizeAccountSerializerReturnValue(TypedDict):

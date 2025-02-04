@@ -22,7 +22,7 @@ from apps.organizations.serializers import (
 from apps.users import serializers
 from apps.users.choices import Roles
 from apps.users.constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
-from apps.users.models import RoleAssignment
+from apps.users.models import RoleAssignment, User
 
 
 user_model = get_user_model()
@@ -408,3 +408,35 @@ class TestMutableUserSerializer:
         actual_read_only_fields = set(serializers.MutableUserSerializer.Meta.read_only_fields)
         assert actual_writable_fields == expected_writable_fields
         assert actual_read_only_fields == expected_read_only_fields
+
+
+@pytest.mark.django_db
+class TestSwitchboardUserSerializer:
+    @pytest.fixture(
+        params=[
+            "superuser",
+            "hub_admin_user",
+            "org_user_free_plan",
+            "org_user_multiple_rps",
+            "rp_user",
+            "user_with_verified_email_and_tos_accepted",
+        ]
+    )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_has_expected_fields(self, user: User):
+        assert serializers.SwitchboardUserSerializer(user).data == {
+            "email": user.email,
+            "first_name": user.first_name,
+            "id": user.id,
+            "job_title": user.job_title,
+            "last_name": user.last_name,
+            "organizations": [org.id for org in user.permitted_organizations],
+            "revenue_programs": [org.id for org in user.permitted_revenue_programs],
+        }
+
+    def test_all_fields_readonly(self):
+        assert set(serializers.SwitchboardUserSerializer.Meta.read_only_fields) == set(
+            serializers.SwitchboardUserSerializer.Meta.fields
+        )

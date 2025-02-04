@@ -1,13 +1,25 @@
 import { render, screen, within } from '@testing-library/react';
 import { Helmet } from 'react-helmet';
 import { useParams } from 'react-router-dom';
-import { HUB_GA_V3_ID } from 'appSettings';
+import { GRECAPTCHA_SITE_KEY, HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { usePublishedPage } from 'hooks/usePublishedPage';
 import useWebFonts from 'hooks/useWebFonts';
 import PublishedDonationPage from './PublishedDonationPage';
 import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
+jest.mock('react-google-recaptcha-v3', () => ({
+  // This package doesn't seem to publish its props type.
+  GoogleReCaptchaProvider: (props: any) => (
+    <div
+      data-testid="mock-google-recaptcha-provider"
+      data-key={props.reCaptchaKey}
+      data-script-props={JSON.stringify(props.scriptProps)}
+    >
+      {props.children}
+    </div>
+  )
+}));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: jest.fn()
@@ -46,6 +58,7 @@ describe('PublishedDonationPage', () => {
   const useWebFontsMock = jest.mocked(useWebFonts);
 
   beforeEach(() => {
+    (window as any).csp_nonce = 'mock-nonce';
     useAnalyticsContextMock.mockReturnValue({
       setAnalyticsConfig: jest.fn(),
       analyticsInstance: null,
@@ -60,6 +73,10 @@ describe('PublishedDonationPage', () => {
       isFetched: true
     });
     getRevenueProgramSlugMock.mockReturnValue('mock-rp-slug');
+  });
+
+  afterAll(() => {
+    delete (window as any).csp_nonce;
   });
 
   it('loads the contribution page based on subdomain and route params', () => {
@@ -149,6 +166,15 @@ describe('PublishedDonationPage', () => {
           }
         ]
       ]);
+    });
+
+    it('sets up Google ReCAPTCHA for the page with key and CSP nonce', () => {
+      tree();
+
+      const recaptchaProvider = screen.getByTestId('mock-google-recaptcha-provider');
+
+      expect(recaptchaProvider.dataset.key).toBe(GRECAPTCHA_SITE_KEY);
+      expect(recaptchaProvider.dataset.scriptProps).toBe(JSON.stringify({ nonce: 'mock-nonce' }));
     });
 
     describe('But the page has no revenue_program property', () => {

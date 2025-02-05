@@ -351,7 +351,7 @@ class TestOrganizationViewSet:
 
     def test_is_upgrade_from_free_to_core(self, mocker, organization, stripe_checkout_process_completed, settings):
         mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.MagicMock()))
-        mock_sub["items"].data = [(mock_item := mocker.Mock())]
+        mock_sub["items"].data = [mock_item := mocker.Mock()]
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
         assert stripe_checkout_process_completed["data"]["object"]["client_reference_id"] == str(organization.uuid)

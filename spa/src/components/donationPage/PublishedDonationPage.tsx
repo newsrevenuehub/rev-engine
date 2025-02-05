@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
-import { HUB_GA_V3_ID } from 'appSettings';
+import { GRECAPTCHA_SITE_KEY, HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { GlobalLoading } from 'components/common/GlobalLoading';
 import PageError from 'components/common/PageError/PageError';
@@ -13,6 +13,7 @@ import useWebFonts from 'hooks/useWebFonts';
 import ContributionPage18nProvider from './ContributionPageI18nProvider';
 import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 import { FUNDJOURNALISM_404_REDIRECT } from 'constants/helperUrls';
+import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 
 interface RouteParams {
   pageSlug: string;
@@ -73,9 +74,11 @@ function PublishedDonationPage() {
   return (
     <SegregatedStyles page={page}>
       <PageTitle title={t('common.joinRevenueProgram', { name: page.revenue_program.name })} hideRevEngine />
-      <ContributionPage18nProvider page={page}>
-        <DonationPage live page={page} />
-      </ContributionPage18nProvider>
+      <GoogleReCaptchaProvider reCaptchaKey={GRECAPTCHA_SITE_KEY} scriptProps={{ nonce: (window as any).csp_nonce }}>
+        <ContributionPage18nProvider page={page}>
+          <DonationPage live page={page} />
+        </ContributionPage18nProvider>
+      </GoogleReCaptchaProvider>
     </SegregatedStyles>
   );
 }

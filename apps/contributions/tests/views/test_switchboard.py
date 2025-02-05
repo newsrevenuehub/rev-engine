@@ -606,7 +606,7 @@ class TestSwitchboardPaymentsViewSet:
             .replace("+00:00", "Z"),
         }
 
-    @pytest.mark.parametrize("method", ["get", "post"])
+    @pytest.mark.parametrize("method", ["get", "post", "patch", "put"])
     def test_requests_when_not_switchboard_user(self, api_client, super_user, payment, method):
         token = AuthToken.objects.create(super_user)[1]
         url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
@@ -616,7 +616,7 @@ class TestSwitchboardPaymentsViewSet:
         response = getattr(api_client, method)(url, **request_kwargs, headers={"Authorization": f"Token {token}"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    @pytest.mark.parametrize("method", ["get", "post"])
+    @pytest.mark.parametrize("method", ["get", "post", "patch", "put"])
     def test_requests_when_token_expired(self, api_client, expired_token, payment, method):
         url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
         url_kwargs = {"args": (payment.id,)} if method == "get" else {}

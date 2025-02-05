@@ -1209,7 +1209,7 @@ class TestStripeTransactionsImporter:
     def test__clear_cache(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = [(key := "foo")]
+        mock_redis.scan_iter.return_value = [key := "foo"]
         instance._clear_cache(redis=mock_redis, match="test*")
         mock_redis.pipeline.return_value.delete.assert_called_once_with(key)
         mock_redis.pipeline.return_value.execute.assert_called_once()

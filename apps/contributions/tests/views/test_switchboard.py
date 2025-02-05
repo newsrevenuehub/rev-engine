@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.utils import timezone
 from django.utils.timezone import now
 
 import pytest
@@ -8,11 +9,12 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, Contributor, Payment
 from apps.contributions.serializers import SwitchboardContributionRevenueProgramSourceValues
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
+    PaymentFactory,
 )
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import (
@@ -537,3 +539,128 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": "Invalid token."}
+
+
+@pytest.mark.django_db
+class TestSwitchboardPaymentsViewSet:
+
+    @pytest.fixture
+    def super_user(self):
+        return UserFactory(is_superuser=True)
+
+    @pytest.fixture
+    def contribution(self):
+        return ContributionFactory()
+
+    @pytest.fixture
+    def payment(self, contribution):
+        return PaymentFactory(contribution=contribution)
+
+    @pytest.fixture
+    def payment_creation_data(self, contribution):
+        return {
+            "contribution": contribution.id,
+            "net_amount_paid": 2000,
+            "gross_amount_paid": 2000,
+            "amount_refunded": 0,
+            "stripe_balance_transaction_id": "txn_123456",
+            "transaction_time": now().isoformat(),
+        }
+
+    def test_create_happy_path(self, api_client, payment_creation_data, token):
+        response = api_client.post(
+            reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        payment = Payment.objects.get(id=response.json()["id"])
+        for k, v in payment_creation_data.items():
+            match k:
+                case "contribution":
+                    assert payment.contribution.id == v
+                case "transaction_time":
+                    assert payment.transaction_time.isoformat() == v
+                case _:
+                    assert getattr(payment, k) == v
+
+    def test_create_duplicate_balance_transaction(self, api_client, payment_creation_data, token):
+        PaymentFactory(stripe_balance_transaction_id=payment_creation_data["stripe_balance_transaction_id"])
+        response = api_client.post(
+            reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_retrieve(self, api_client, payment, token):
+        response = api_client.get(
+            reverse("switchboard-payment-detail", args=(payment.id,)), headers={"Authorization": f"Token {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {
+            "id": payment.id,
+            "contribution": payment.contribution.id,
+            "net_amount_paid": payment.net_amount_paid,
+            "gross_amount_paid": payment.gross_amount_paid,
+            "amount_refunded": payment.amount_refunded,
+            "stripe_balance_transaction_id": payment.stripe_balance_transaction_id,
+            "transaction_time": payment.transaction_time.replace(tzinfo=timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z"),
+        }
+
+    @pytest.mark.parametrize("method", ["get", "post"])
+    def test_requests_when_not_switchboard_user(self, api_client, super_user, payment, method):
+        token = AuthToken.objects.create(super_user)[1]
+        url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
+        url_kwargs = {"args": (payment.id,)} if method == "get" else {}
+        url = reverse(url_name, **url_kwargs)
+        request_kwargs = {"data": {}} if method == "post" else {}
+        response = getattr(api_client, method)(url, **request_kwargs, headers={"Authorization": f"Token {token}"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.parametrize("method", ["get", "post"])
+    def test_requests_when_token_expired(self, api_client, expired_token, payment, method):
+        url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
+        url_kwargs = {"args": (payment.id,)} if method == "get" else {}
+        url = reverse(url_name, **url_kwargs)
+        request_kwargs = {"data": {}} if method == "post" else {}
+        response = getattr(api_client, method)(
+            url, headers={"Authorization": f"Token {expired_token}", **request_kwargs}
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.json() == {"detail": "Invalid token."}
+
+    def test_patch_payment(self, api_client, token, payment):
+        update_data = {"net_amount_paid": 4000}
+
+        response = api_client.patch(
+            reverse("switchboard-payment-detail", args=(payment.id,)),
+            data=update_data,
+            headers={"Authorization": f"Token {token}"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["net_amount_paid"] == 4000
+        payment.refresh_from_db()
+        assert payment.net_amount_paid == 4000
+
+    def test_put_payment(self, api_client, token, payment, contribution):
+        update_data = {
+            "contribution": contribution.id,
+            "net_amount_paid": 2500,
+            "gross_amount_paid": 2700,
+            "amount_refunded": 500,
+            "stripe_balance_transaction_id": "txn_987654",
+            "transaction_time": "2025-02-01T22:30:45.654321Z",
+        }
+        response = api_client.patch(
+            reverse("switchboard-payment-detail", args=(payment.id,)),
+            data=update_data,
+            headers={"Authorization": f"Token {token}"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["contribution"] == contribution.id
+        assert response.data["net_amount_paid"] == 2500
+        assert response.data["gross_amount_paid"] == 2700
+        assert response.data["amount_refunded"] == 500
+        assert response.data["stripe_balance_transaction_id"] == "txn_987654"
+        assert response.data["transaction_time"] == "2025-02-01T22:30:45.654321Z"

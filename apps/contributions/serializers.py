@@ -1026,3 +1026,18 @@ class SwitchboardContributorSerializer(serializers.ModelSerializer):
         model = Contributor
         fields = ["id", "email"]
         read_only_fields = ["id"]
+
+
+class SwitchboardPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "contribution",
+            "net_amount_paid",
+            "gross_amount_paid",
+            "amount_refunded",
+            "stripe_balance_transaction_id",
+            "transaction_time",
+        ]
+        read_only_fields = ["id"]

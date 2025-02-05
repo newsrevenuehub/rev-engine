@@ -15,7 +15,7 @@ from rest_framework.serializers import ValidationError
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions import serializers
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, Contributor, Payment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -91,3 +91,32 @@ def contributor_by_email(request: HttpRequest, email: str) -> Response:
     contributor = get_object_or_404(Contributor.objects.all(), email=email)
     serializer = serializers.SwitchboardContributorSerializer(contributor)
     return Response(serializer.data)
+
+
+class SwitchboardPaymentsViewSet(
+    mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
+    """ViewSet for switchboard to create and retrieve payments."""
+
+    permission_classes = [IsSwitchboardAccount]
+    http_method_names = ["get", "post", "patch", "put"]
+    queryset = Payment.objects.all()
+    serializer_class = serializers.SwitchboardPaymentSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def create(self, request: HttpRequest, *args, **kwargs) -> Response:
+        stripe_balance_transaction_id = request.data.get("stripe_balance_transaction_id")
+        if (
+            existing := Payment.objects.filter(
+                stripe_balance_transaction_id__iexact=stripe_balance_transaction_id.strip()
+            )
+        ).exists():
+
+            return Response(
+                {
+                    "error": f"A payment (ID: {(_first:=existing.first()).id}) "
+                    f"with stripe_balance_transaction_id {_first.stripe_balance_transaction_id} already exists"
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().create(request)

@@ -27,6 +27,7 @@ from apps.contributions.serializers import (
     ContributionSerializer,
     PortalContributionBaseSerializer,
     PortalContributionDetailSerializer,
+    SwitchboardPaymentSerializer,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.tests.test_models import MockSubscription
@@ -1790,3 +1791,60 @@ class TestSwitchboardContributionSerializer:
         one_time_contribution._revenue_program = None
         serializer = serializers.SwitchboardContributionSerializer(data={})
         assert serializer.get_revenue_program_source(instance=one_time_contribution) is None
+
+
+@pytest.mark.django_db
+class TestSwitchboardPaymentSerializer:
+
+    @pytest.fixture
+    def payment(self):
+        return PaymentFactory(paid=True)
+
+    @pytest.fixture
+    def contribution(self):
+        return ContributionFactory()
+
+    def test_serializer_valid_data(self, contribution):
+        data = {
+            "contribution": contribution.id,
+            "net_amount_paid": 2000,
+            "gross_amount_paid": 2000,
+            "amount_refunded": 0,
+            "stripe_balance_transaction_id": "txn_123456",
+            "transaction_time": timezone.now().isoformat(),
+        }
+        serializer = SwitchboardPaymentSerializer(data=data)
+        assert serializer.is_valid()
+        assert set(serializer.validated_data.keys()) == {
+            "contribution",
+            "net_amount_paid",
+            "gross_amount_paid",
+            "amount_refunded",
+            "stripe_balance_transaction_id",
+            "transaction_time",
+        }
+
+    def test_serializer_missing_required_fields(self):
+        data = {}
+        serializer = SwitchboardPaymentSerializer(data=data)
+        assert not serializer.is_valid()
+        assert set(serializer.errors.keys()) == {
+            "contribution",
+            "net_amount_paid",
+            "gross_amount_paid",
+            "amount_refunded",
+            "stripe_balance_transaction_id",
+        }
+
+    def test_serializer_invalid_contribution(self):
+        data = {
+            "contribution": 99999,
+            "net_amount_paid": 2000,
+            "gross_amount_paid": 2000,
+            "amount_refunded": 0,
+            "stripe_balance_transaction_id": "txn_123456",
+            "transaction_time": timezone.now().isoformat(),
+        }
+        serializer = SwitchboardPaymentSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "contribution" in serializer.errors

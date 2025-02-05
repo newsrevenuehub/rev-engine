@@ -132,6 +132,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_filters",
     "django_json_widget",
+    "django_probes",
     "rest_framework",
     "knox",
     "django_rest_passwordreset",  # NB: this needs to come after rest_framework

@@ -1,4 +1,4 @@
-import logging
+from io import StringIO
 from pathlib import Path
 from typing import TypedDict
 
@@ -6,7 +6,6 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.management.base import BaseCommand, CommandParser
 from django.db.models import Count, QuerySet
 from django.db.models.functions import Lower
-from django.utils import timezone
 
 import pandas as pd
 
@@ -14,11 +13,15 @@ from apps.contributions.models import Contributor
 
 
 class ContributorGrouping(TypedDict):
+    """Summary."""
+
     canonical: Contributor
     duplicates: QuerySet[Contributor]
 
 
 class DuplicateEmailsByContributors(TypedDict):
+    """Summary."""
+
     lower_email: str
     contributor_count: int
     contributors: list[int]
@@ -67,7 +70,6 @@ class Command(BaseCommand):
                 without_contributions.append(grouping)
 
         self.report = pd.DataFrame(
-            # need those with contributions as well as those without
             data=[
                 {
                     "to_delete_contributor_id": contributor.id,
@@ -95,34 +97,26 @@ class Command(BaseCommand):
             ]
         )
 
-    def process_duped_email(self, email: str, contributors: list[Contributor]) -> None:
+    def process_duped_emails(self, mapping: list[DuplicateEmailsByContributors]) -> None:
         """Summary."""
-        self.stdout.write(self.style.HTTP_INFO(f"Processing email: {email}"))
-        for contributor in contributors:
-            self.stdout.write(self.style.WARNING(f"Contributor: {contributor}"))
+        self.stdout.write(self.style.WARNING("process_duped_emails not implemented yet"))
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--dry-run", action="store_true", default=True)
-        parser.add_argument("--suppress-stripe-info-logs", action="store_true", default=False)
         parser.add_argument("--save-dir", type=Path, required=True)
 
-    def configure_stripe_log_level(self, suppress_stripe_info_logs: bool) -> None:
-        """Set Stripe log level to ERROR to suppress INFO logs (which we would otherwise get by default)."""
-        if suppress_stripe_info_logs:
-            stripe_logger = logging.getLogger("stripe")
-            stripe_logger.setLevel(logging.ERROR)
+    def print_report(self) -> None:
+        """Summary."""
+        self.report.to_csv(output := StringIO(), index=False)
+        self.stdout.write(self.style.HTTP_INFO(output.getvalue()))
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
-        self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
         mapping = [
             self.get_canonical_and_duplicate_contributors(x) for x in self.get_duplicate_emails_by_contributors()
         ]
         self.make_initial_report(mapping)
         if mapping and not options["dry_run"]:
-            self.stdout.write(self.style.HTTP_INFO("Processing duplicates"))
-
-        self.report.to_csv(
-            options["save_dir"] / f"{self.name}-{timezone.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv", index=False
-        )
+            self.process_duped_emails(mapping)
+        self.print_report()
         self.stdout.write(self.style.SUCCESS(f"`{self.name}` is done"))

@@ -431,14 +431,14 @@ class TestBaseCreatePaymentSerializer:
                 GENERIC_BLANK,
             ),
             (
-                {"reason_for_giving": "My reason"},
+                {"reason_for_giving": "Not a preset reason"},
                 "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
                 True,
                 None,
             ),
             ({}, "donation_page_with_unrequired_reason_for_giving_element_and_presets", True, None),
             (
-                {"reason_for_giving": "My reason"},
+                {"reason_for_giving": "Not a preset reason"},
                 "donation_page_with_unrequired_reason_for_giving_element_and_presets",
                 True,
                 None,

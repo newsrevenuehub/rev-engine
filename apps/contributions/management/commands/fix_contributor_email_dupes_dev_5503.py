@@ -13,22 +13,25 @@ from apps.contributions.models import Contributor
 
 
 class ContributorGrouping(TypedDict):
-    """Summary."""
-
     canonical: Contributor
     duplicates: QuerySet[Contributor]
 
 
 class DuplicateEmailsByContributors(TypedDict):
-    """Summary."""
-
     lower_email: str
     contributor_count: int
     contributors: list[int]
 
 
 class Command(BaseCommand):
-    """Summary."""
+    """Report on duplicate contributors by email and associated contributions.
+
+    Initially this just produces a CSV report printed to stdout, which will be saved
+    to file (by manually copy/pasting/saving output) when run against prod.
+
+    In a follow up ticket, we'll add additional functionality whereby when not in dry mode,
+    this command will update relevant entities in Stripe and update db to dedupe.
+    """
 
     @property
     def name(self):
@@ -59,7 +62,15 @@ class Command(BaseCommand):
         return result
 
     def make_initial_report(self, dupe_mapping: list[str, ContributorGrouping]) -> pd.DataFrame:
-        """Summary."""
+        """Return a DataFrame of duplicated contributors.
+
+        For each duplicated contributor via email (e.g., foo@bar.com and FOO@bar.com), we end up with
+        one row per dupe. If there are no contributions associated with a given dupe, we'd end up with a single
+        row for the duplicate contributor, with null values for contribution-specific columns.
+
+        If there are contributions for a given dupe, we'd end up with a row for each contribution, with the
+        same duplicate contributor id, but with the contribution-specific columns filled in.
+        """
         with_contributions = []
         without_contributions = []
         for grouping in dupe_mapping:
@@ -98,14 +109,14 @@ class Command(BaseCommand):
         return self.report
 
     def process_duped_emails(self, mapping: list[DuplicateEmailsByContributors]) -> None:
-        """Summary."""
+        """Update relevant entities in Stripe and update db to dedupe (but in short term, no-op)."""
         self.stdout.write(self.style.WARNING("process_duped_emails not implemented yet"))
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--dry-run", action="store_true", default=True)
 
     def print_report(self) -> None:
-        """Summary."""
+        """Output the report to stdout as a CSV."""
         self.report.to_csv(output := StringIO(), index=False)
         self.stdout.write(self.style.HTTP_INFO(output.getvalue()))
 

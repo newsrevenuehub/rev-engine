@@ -745,6 +745,36 @@ describe('User flow: happy path', () => {
       );
     });
   });
+
+  specify.only('Double-clicking submit button', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: {
+          client_secret: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6',
+          email_hash: fakeEmailHash,
+          uuid: fakeContributionUuid
+        },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.interceptStripeApi();
+
+    cy.visitDefaultDonationPage();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .dblclick();
+
+    // Wait on the modal to appear, not the POST request, to try to collect any
+    // extraneous requests.
+
+    cy.get('form #stripe-payment-element');
+    cy.get('@create-subscription-payment.all').should('have.length', 1);
+  });
 });
 
 describe('User flow: canceling contribution', () => {

@@ -38,6 +38,8 @@ class TestCommand:
         duplicate_data = Command.get_duplicate_emails_by_contributors()
         result = Command.get_canonical_and_duplicate_contributors(duplicate_data[0])
         assert result["canonical"].id == duplicate_data[0]["contributors"][0]
+        for dupe in result["duplicates"]:
+            assert dupe.created > result["canonical"].created
         assert set(result["duplicates"].values_list("id", flat=True)) == set(duplicate_data[0]["contributors"][1:])
 
     @pytest.mark.usefixtures("dupes_with_contributions", "dupes_without_contributions")

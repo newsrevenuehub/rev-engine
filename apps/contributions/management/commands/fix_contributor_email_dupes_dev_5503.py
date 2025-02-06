@@ -118,7 +118,9 @@ class Command(BaseCommand):
     def print_report(self) -> None:
         """Output the report to stdout as a CSV."""
         self.report.to_csv(output := StringIO(), index=False)
+        self.stdout.write(self.style.HTTP_INFO(f"\n\n{'#'*40}\nCopy the report below and save to CSV:\n\n\n"))
         self.stdout.write(self.style.HTTP_INFO(output.getvalue()))
+        self.stdout.write(self.style.HTTP_INFO(f"\n\n{'#'*40}\n\n\n"))
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))

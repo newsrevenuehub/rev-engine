@@ -47,9 +47,8 @@ class Command(BaseCommand):
             .filter(contributor_count__gt=1)
         )
 
-    def get_canonical_and_duplicate_contributors(
-        self, duplicate_data: DuplicateEmailsByContributors
-    ) -> ContributorGrouping:
+    @staticmethod
+    def get_canonical_and_duplicate_contributors(duplicate_data: DuplicateEmailsByContributors) -> ContributorGrouping:
         """Return the canonical contributor from a list of contributors."""
         qs = (
             Contributor.objects.filter(id__in=duplicate_data["contributors"])
@@ -59,7 +58,7 @@ class Command(BaseCommand):
         result: ContributorGrouping = {"canonical": qs.first(), "duplicates": qs[1:]}
         return result
 
-    def make_initial_report(self, dupe_mapping: list[str, ContributorGrouping]) -> None:
+    def make_initial_report(self, dupe_mapping: list[str, ContributorGrouping]) -> pd.DataFrame:
         """Summary."""
         with_contributions = []
         without_contributions = []
@@ -68,7 +67,6 @@ class Command(BaseCommand):
                 with_contributions.append(grouping)
             else:
                 without_contributions.append(grouping)
-
         self.report = pd.DataFrame(
             data=[
                 {
@@ -78,6 +76,7 @@ class Command(BaseCommand):
                     "status": "pending",
                     "contribution_id": contribution.id,
                     "contribution_interval": contribution.interval,
+                    "org_slug": contribution.revenue_program.organization.slug,
                 }
                 for grouping in with_contributions
                 for contributor in grouping["duplicates"]
@@ -96,6 +95,7 @@ class Command(BaseCommand):
                 for contributor in grouping["duplicates"]
             ]
         )
+        return self.report
 
     def process_duped_emails(self, mapping: list[DuplicateEmailsByContributors]) -> None:
         """Summary."""
@@ -103,7 +103,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--dry-run", action="store_true", default=True)
-        parser.add_argument("--save-dir", type=Path, required=True)
 
     def print_report(self) -> None:
         """Summary."""

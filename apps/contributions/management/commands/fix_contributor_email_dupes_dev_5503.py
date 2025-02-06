@@ -29,7 +29,7 @@ class Command(BaseCommand):
     Initially this just produces a CSV report printed to stdout, which will be saved
     to file (by manually copy/pasting/saving output) when run against prod.
 
-    In a follow up ticket, we'll add additional functionality whereby when not in dry mode,
+    In a follow up ticket (DEV-5778), we'll add additional functionality whereby when not in dry mode,
     this command will update relevant entities in Stripe and update db to dedupe.
     """
 
@@ -101,6 +101,7 @@ class Command(BaseCommand):
                     "status": "pending",
                     "contribution_id": None,
                     "contribution_interval": None,
+                    "org_slug": None,
                 }
                 for grouping in without_contributions
                 for contributor in grouping["duplicates"]
@@ -109,7 +110,10 @@ class Command(BaseCommand):
         return self.report
 
     def process_duped_emails(self, mapping: list[DuplicateEmailsByContributors]) -> None:
-        """Update relevant entities in Stripe and update db to dedupe (but in short term, no-op)."""
+        """Update relevant entities in Stripe and update db to dedupe (but in short term, no-op).
+
+        This will be implemented in followup ticket DEV-5778.
+        """
         self.stdout.write(self.style.WARNING("process_duped_emails not implemented yet"))
 
     def add_arguments(self, parser: CommandParser) -> None:

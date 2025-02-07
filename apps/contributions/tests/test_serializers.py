@@ -1833,6 +1833,7 @@ class TestSwitchboardPaymentSerializer:
             "gross_amount_paid",
             "amount_refunded",
             "stripe_balance_transaction_id",
+            "transaction_time",
         }
 
     def test_serializer_invalid_contribution(self):

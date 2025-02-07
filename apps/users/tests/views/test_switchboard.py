@@ -75,39 +75,22 @@ class TestSwitchboardUsersViews:
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest.fixture
-    def retrieve_by_email_config(self, org_user_multiple_rps):
-        return {
-            "method": "get",
-            "url": reverse("switchboard-user-get-by-email", args=(org_user_multiple_rps.email,)),
-            "data": None,
-        }
-
-    @pytest.fixture
-    def retrieve_by_id_config(self, org_user_multiple_rps):
-        return {
-            "method": "get",
-            "url": reverse("switchboard-user-detail", args=(org_user_multiple_rps.id,)),
-            "data": None,
-        }
-
-    @pytest.mark.parametrize("case_config", ["retrieve_by_id_config", "retrieve_by_email_config"])
+     @pytest.mark.parametrize("url_name", ["switchboard-user-get-by-email", "switchboard-user-detail"])
     @pytest.mark.parametrize(("token_fixture", "expect_success"), [("token", True), ("expired_token", False)])
-    def test_only_works_with_valid_token(self, case_config, token_fixture, expect_success, api_client, request):
+    def test_only_works_with_valid_token(
+        self, url_name, token_fixture, expect_success, api_client, request, org_user_multiple_rps
+    ):
         token = request.getfixturevalue(token_fixture)
-        config = request.getfixturevalue(case_config)
-
-        def _make_request(method, url, data):
-            kwargs = {"headers": {}}
-            if token:
-                kwargs["headers"]["Authorization"] = f"Token {token}"
-            if data:
-                kwargs["data"] = data
-            return getattr(api_client, method)(url, **kwargs)
-
-        response = _make_request(config["method"], config["url"], config["data"])
+        url_arg = (
+            org_user_multiple_rps.email if url_name == "switchboard-user-get-by-email" else org_user_multiple_rps.id
+        )
+        response = api_client.get(
+            reverse(url_name, args=(url_arg,)),
+            headers={"Authorization": f"Token {token}"},
+        )
 
         if expect_success:
             assert response.status_code == status.HTTP_200_OK
         else:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
+

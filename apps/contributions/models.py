@@ -1405,7 +1405,7 @@ class Payment(IndexedTimeStampedModel):
     # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look
     # to balance transaction since it is common to each of: one-time payment, recurring payment, and refund.
     # Ultimately, this field gives us a way to sort by recency.
-    transaction_time = models.DateTimeField(db_index=True, null=True)
+    transaction_time = models.DateTimeField(db_index=True, blank=False, null=False, default=timezone.now)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"

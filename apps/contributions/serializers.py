@@ -1043,13 +1043,33 @@ class SwitchboardPaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate(self, data):
-        if (stripe_balance_transaction_id := data.get("stripe_balance_transaction_id")) and (
-            existing := Payment.objects.filter(
-                stripe_balance_transaction_id__iexact=stripe_balance_transaction_id.strip()
-            ).exists()
-        ):
+        amount_refunded = data.get("amount_refunded", 0)
+        net_amount_paid = data.get("net_amount_paid", 0)
+        gross_amount_paid = data.get("gross_amount_paid", 0)
+
+        if amount_refunded > 0 and (net_amount_paid > 0 or gross_amount_paid > 0):
+            raise serializers.ValidationError(
+                "Amount refunded cannot be positive when net_amount_paid or gross_amount_paid are positive"
+            )
+        return data
+
+    def validate_stripe_balance_transaction_id(self, value):
+        if existing := Payment.objects.filter(stripe_balance_transaction_id__iexact=value.strip()).exists():
             raise serializers.ValidationError(
                 f"A payment (ID: {(_first := existing.first()).id}) "
                 f"with stripe_balance_transaction_id {_first.stripe_balance_transaction_id} already exists"
             )
-        return data
+        return value
+
+    def validate_net_amount_paid(self, value):
+        self._validate_amount_is_positive(value)
+        return value
+
+    def validate_gross_amount_paid(self, value):
+        self._validate_amount_is_positive(value)
+        return value
+
+    @staticmethod
+    def _validate_amount_is_positive(value):
+        if value < 0:
+            raise serializers.ValidationError("Amount must be positive")

@@ -1800,8 +1800,9 @@ class TestSwitchboardPaymentSerializer:
     def payment(self):
         return PaymentFactory(paid=True)
 
-    def test_serializer_valid_data(self, payment):
-        data = {
+    @pytest.fixture
+    def payment_create_data(self, payment):
+        return {
             "contribution": payment.contribution.id,
             "net_amount_paid": 2000,
             "gross_amount_paid": 2000,
@@ -1809,7 +1810,9 @@ class TestSwitchboardPaymentSerializer:
             "stripe_balance_transaction_id": "txn_123456",
             "transaction_time": timezone.now().isoformat(),
         }
-        serializer = SwitchboardPaymentSerializer(data=data)
+
+    def test_serializer_valid_data(self, payment_create_data):
+        serializer = SwitchboardPaymentSerializer(data=payment_create_data)
         assert serializer.is_valid()
         assert set(serializer.validated_data.keys()) == {
             "contribution",
@@ -1857,3 +1860,24 @@ class TestSwitchboardPaymentSerializer:
         serializer = SwitchboardPaymentSerializer(data=data)
         assert not serializer.is_valid()
         assert "stripe_balance_transaction_id" in serializer.errors
+
+    def test_amounts_must_be_positive(self, payment_create_data):
+        serializer = SwitchboardPaymentSerializer(
+            data={
+                **payment_create_data,
+                "net_amount_paid": -1,
+                "gross_amount_paid": -1,
+            }
+        )
+        assert not serializer.is_valid()
+        assert "net_amount_paid" in serializer.errors
+        assert "gross_amount_paid" in serializer.errors
+
+    def test_validate_refund_and_payment_amounts_mutually_exclusive(self, payment_create_data):
+        data = {**payment_create_data, "amount_refunded": 1000, "net_amount_paid": 2000, "gross_amount_paid": 2000}
+        serializer = SwitchboardPaymentSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "non_field_errors" in serializer.errors
+        assert serializer.errors["non_field_errors"][0] == (
+            "Amount refunded cannot be positive when net_amount_paid or gross_amount_paid are positive"
+        )

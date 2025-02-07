@@ -414,26 +414,30 @@ class TestMutableUserSerializer:
 class TestSwitchboardUserSerializer:
     @pytest.fixture(
         params=[
-            "superuser",
-            "hub_admin_user",
-            "org_user_free_plan",
-            "org_user_multiple_rps",
-            "rp_user",
-            "user_with_verified_email_and_tos_accepted",
+            ("superuser", "superuser"),
+            ("hub_admin_user", "hub_admin"),
+            ("org_user_free_plan", "org_admin"),
+            ("org_user_multiple_rps", "org_admin"),
+            ("rp_user", "rp_admin"),
+            ("user_with_verified_email_and_tos_accepted", None),
         ]
     )
-    def user(self, request):
-        return request.getfixturevalue(request.param)
+    def user_and_expected_role(self, request):
+        return (request.getfixturevalue(request.param[0]), request.param[1])
 
-    def test_has_expected_fields(self, user: User):
+    def test_has_expected_fields(self, user_and_expected_role: tuple[User, str | None]):
+        user, expected_role = user_and_expected_role
         assert serializers.SwitchboardUserSerializer(user).data == {
             "email": user.email,
             "first_name": user.first_name,
             "id": user.id,
             "job_title": user.job_title,
             "last_name": user.last_name,
-            "organizations": [org.id for org in user.permitted_organizations],
-            "revenue_programs": [org.id for org in user.permitted_revenue_programs],
+            "role": {
+                "type": expected_role,
+                "organizations": [org.id for org in user.permitted_organizations],
+                "revenue_programs": [org.id for org in user.permitted_revenue_programs],
+            },
         }
 
     def test_all_fields_readonly(self):

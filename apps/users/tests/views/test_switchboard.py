@@ -40,8 +40,11 @@ class TestSwitchboardUsersViews:
                 "id": pk,
                 "job_title": org_user_multiple_rps.job_title,
                 "last_name": org_user_multiple_rps.last_name,
-                "organizations": [org.id for org in org_user_multiple_rps.permitted_organizations],
-                "revenue_programs": [org.id for org in org_user_multiple_rps.permitted_revenue_programs],
+                "role": {
+                    "type": org_user_multiple_rps.role_type[0],
+                    "organizations": [org.id for org in org_user_multiple_rps.permitted_organizations],
+                    "revenue_programs": [org.id for org in org_user_multiple_rps.permitted_revenue_programs],
+                },
             }
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -63,8 +66,11 @@ class TestSwitchboardUsersViews:
                 "id": org_user_multiple_rps.id,
                 "job_title": org_user_multiple_rps.job_title,
                 "last_name": org_user_multiple_rps.last_name,
-                "organizations": [org.id for org in org_user_multiple_rps.permitted_organizations],
-                "revenue_programs": [org.id for org in org_user_multiple_rps.permitted_revenue_programs],
+                "role": {
+                    "type": org_user_multiple_rps.role_type[0],
+                    "organizations": [org.id for org in org_user_multiple_rps.permitted_organizations],
+                    "revenue_programs": [org.id for org in org_user_multiple_rps.permitted_revenue_programs],
+                },
             }
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND

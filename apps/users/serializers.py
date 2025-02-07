@@ -148,19 +148,19 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
 class SwitchboardUserSerializer(serializers.ModelSerializer):
     """Read-only access to users. Organizations and revenue programs are serialized by ID only."""
 
-    organizations = serializers.SerializerMethodField("get_orgs", default=[])
-    revenue_programs = serializers.SerializerMethodField("get_rps", default=[])
+    role = serializers.SerializerMethodField("get_role")
 
     class Meta:
         model = get_user_model()
-        fields = ["email", "first_name", "id", "job_title", "last_name", "organizations", "revenue_programs"]
-        read_only_fields = ["email", "first_name", "id", "job_title", "last_name", "organizations", "revenue_programs"]
+        fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
+        read_only_fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
 
-    def get_orgs(self, obj: User):
-        return [org.id for org in obj.permitted_organizations]
-
-    def get_rps(self, obj: User):
-        return [rp.id for rp in obj.permitted_revenue_programs]
+    def get_role(self, obj: User):
+        return {
+            "type": obj.role_type[0] if type(obj.role_type) is tuple and len(obj.role_type) == 2 else None,
+            "organizations": [org.id for org in obj.permitted_organizations],
+            "revenue_programs": [rp.id for rp in obj.permitted_revenue_programs],
+        }
 
 
 class CustomizeAccountSerializerReturnValue(TypedDict):

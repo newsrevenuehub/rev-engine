@@ -99,7 +99,7 @@ class SwitchboardPaymentsViewSet(
     """ViewSet for switchboard to create and retrieve payments."""
 
     permission_classes = [IsSwitchboardAccount]
-    http_method_names = ["get", "post", "patch", "put"]
+    http_method_names = ["get", "post", "patch"]
     queryset = Payment.objects.all()
     serializer_class = serializers.SwitchboardPaymentSerializer
     authentication_classes = [TokenAuthentication]

@@ -641,26 +641,3 @@ class TestSwitchboardPaymentsViewSet:
         assert response.data["net_amount_paid"] == 4000
         payment.refresh_from_db()
         assert payment.net_amount_paid == 4000
-
-    def test_put_payment(self, api_client, token, payment, contribution):
-        update_data = {
-            "contribution": contribution.id,
-            "net_amount_paid": 2500,
-            "gross_amount_paid": 2700,
-            "amount_refunded": 500,
-            "stripe_balance_transaction_id": "txn_987654",
-            "transaction_time": "2025-02-01T22:30:45.654321Z",
-        }
-        response = api_client.patch(
-            reverse("switchboard-payment-detail", args=(payment.id,)),
-            data=update_data,
-            headers={"Authorization": f"Token {token}"},
-            format="json",
-        )
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["contribution"] == contribution.id
-        assert response.data["net_amount_paid"] == 2500
-        assert response.data["gross_amount_paid"] == 2700
-        assert response.data["amount_refunded"] == 500
-        assert response.data["stripe_balance_transaction_id"] == "txn_987654"
-        assert response.data["transaction_time"] == "2025-02-01T22:30:45.654321Z"

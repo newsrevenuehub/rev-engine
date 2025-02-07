@@ -157,7 +157,7 @@ class SwitchboardUserSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj: User):
         return {
-            "type": obj.role_type[0] if type(obj.role_type) is tuple and len(obj.role_type) == 2 else None,
+            "type": obj.role_type[0] if isinstance(obj.role_type, tuple) and len(obj.role_type) == 2 else None,
             "organizations": [org.id for org in obj.permitted_organizations],
             "revenue_programs": [rp.id for rp in obj.permitted_revenue_programs],
         }

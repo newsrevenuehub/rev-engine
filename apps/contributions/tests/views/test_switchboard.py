@@ -624,7 +624,7 @@ class TestSwitchboardPaymentsViewSet:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": "Invalid token."}
 
-    def test_patch_payment(self, api_client, token, payment):
+    def test_patch_payment_happy_path(self, api_client, token, payment):
         update_data = {"net_amount_paid": 4000}
 
         response = api_client.patch(
@@ -637,3 +637,17 @@ class TestSwitchboardPaymentsViewSet:
         assert response.data["net_amount_paid"] == 4000
         payment.refresh_from_db()
         assert payment.net_amount_paid == 4000
+
+    def test_patch_payment_update_stripe_balance_transaction_id(self, api_client, token, payment):
+        another_payment = PaymentFactory()
+        update_data = {"stripe_balance_transaction_id": payment.stripe_balance_transaction_id}
+        response = api_client.patch(
+            reverse("switchboard-payment-detail", args=(another_payment.id,)),
+            data=update_data,
+            headers={"Authorization": f"Token {token}"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {
+            "stripe_balance_transaction_id": ["payment with this stripe balance transaction id already exists."]
+        }

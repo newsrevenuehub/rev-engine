@@ -96,7 +96,7 @@ def contributor_by_email(request: HttpRequest, email: str) -> Response:
 class SwitchboardPaymentsViewSet(
     mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
 ):
-    """ViewSet for switchboard to create and retrieve payments."""
+    """ViewSet for switchboard to retrieve, create and update payments."""
 
     permission_classes = [IsSwitchboardAccount]
     http_method_names = ["get", "post", "patch"]

@@ -13,7 +13,6 @@ from apps.users.models import User
 
 class SwitchboardUsersViewSet(RetrieveModelMixin, GenericViewSet):
     permission_classes = [IsSwitchboardAccount]
-    http_method_names = ["get"]
     queryset = User.objects.all()
     serializer_class = serializers.SwitchboardUserSerializer
     authentication_classes = [TokenAuthentication]

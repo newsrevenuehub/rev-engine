@@ -545,10 +545,6 @@ class TestSwitchboardContributionsViewSet:
 class TestSwitchboardPaymentsViewSet:
 
     @pytest.fixture
-    def super_user(self):
-        return UserFactory(is_superuser=True)
-
-    @pytest.fixture
     def contribution(self):
         return ContributionFactory()
 
@@ -607,8 +603,8 @@ class TestSwitchboardPaymentsViewSet:
         }
 
     @pytest.mark.parametrize("method", ["get", "post"])
-    def test_requests_when_not_switchboard_user(self, api_client, super_user, payment, method):
-        token = AuthToken.objects.create(super_user)[1]
+    def test_requests_when_not_switchboard_user(self, api_client, superuser, payment, method):
+        token = AuthToken.objects.create(superuser)[1]
         url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
         url_kwargs = {"args": (payment.id,)} if method == "get" else {}
         url = reverse(url_name, **url_kwargs)

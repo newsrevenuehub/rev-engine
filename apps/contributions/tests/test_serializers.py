@@ -1800,13 +1800,9 @@ class TestSwitchboardPaymentSerializer:
     def payment(self):
         return PaymentFactory(paid=True)
 
-    @pytest.fixture
-    def contribution(self):
-        return ContributionFactory()
-
-    def test_serializer_valid_data(self, contribution):
+    def test_serializer_valid_data(self, payment):
         data = {
-            "contribution": contribution.id,
+            "contribution": payment.contribution.id,
             "net_amount_paid": 2000,
             "gross_amount_paid": 2000,
             "amount_refunded": 0,

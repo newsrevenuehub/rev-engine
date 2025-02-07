@@ -75,7 +75,7 @@ class TestSwitchboardUsersViews:
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
-     @pytest.mark.parametrize("url_name", ["switchboard-user-get-by-email", "switchboard-user-detail"])
+    @pytest.mark.parametrize("url_name", ["switchboard-user-get-by-email", "switchboard-user-detail"])
     @pytest.mark.parametrize(("token_fixture", "expect_success"), [("token", True), ("expired_token", False)])
     def test_only_works_with_valid_token(
         self, url_name, token_fixture, expect_success, api_client, request, org_user_multiple_rps
@@ -93,4 +93,3 @@ class TestSwitchboardUsersViews:
             assert response.status_code == status.HTTP_200_OK
         else:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
-

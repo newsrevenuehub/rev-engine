@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -145,6 +145,15 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
         ]
 
 
+RoleTypeCode = Literal["hub_admin", "org_admin", "rp_admin", "superuser"]
+
+
+class UserRole(TypedDict):
+    type: RoleTypeCode | None
+    organizations: list[int]
+    revenue_programs: list[int]
+
+
 class SwitchboardUserSerializer(serializers.ModelSerializer):
     """Read-only access to users. Organizations and revenue programs are serialized by ID only."""
 
@@ -155,7 +164,7 @@ class SwitchboardUserSerializer(serializers.ModelSerializer):
         fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
         read_only_fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
 
-    def get_role(self, obj: User):
+    def get_role(self, obj: User) -> UserRole:
         return {
             "type": obj.role_type[0] if isinstance(obj.role_type, tuple) and len(obj.role_type) == 2 else None,
             "organizations": [org.id for org in obj.permitted_organizations],

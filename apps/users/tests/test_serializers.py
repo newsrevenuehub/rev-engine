@@ -22,7 +22,7 @@ from apps.organizations.serializers import (
 from apps.users import serializers
 from apps.users.choices import Roles
 from apps.users.constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
-from apps.users.models import RoleAssignment, User
+from apps.users.models import RoleAssignment
 
 
 user_model = get_user_model()
@@ -412,7 +412,7 @@ class TestMutableUserSerializer:
 
 @pytest.mark.django_db
 class TestSwitchboardUserSerializer:
-@pytest.mark.parametrize(
+    @pytest.mark.parametrize(
         ("user_fixture", "expected_role"),
         [
             ("superuser", "superuser"),
@@ -425,19 +425,8 @@ class TestSwitchboardUserSerializer:
     )
     def test_has_expected_fields(self, user_fixture: str, expected_role: str, request):
         user = request.getfixturevalue(user_fixture)
-        assert serializers.SwitchboardUserSerializer(user).data == {
-            "email": user.email,
-            "first_name": user.first_name,
-            "id": user.id,
-            "job_title": user.job_title,
-            "last_name": user.last_name,
-            "role": {
-                "type": expected_role,
-                "organizations": [org.id for org in user.permitted_organizations],
-                "revenue_programs": [org.id for org in user.permitted_revenue_programs],
-            },
-        }
-        assert serializers.SwitchboardUserSerializer(user).data == {
+        data = serializers.SwitchboardUserSerializer(user).data
+        assert data == {
             "email": user.email,
             "first_name": user.first_name,
             "id": user.id,

@@ -1041,3 +1041,15 @@ class SwitchboardPaymentSerializer(serializers.ModelSerializer):
             "transaction_time",
         ]
         read_only_fields = ["id"]
+
+    def validate(self, data):
+        if (stripe_balance_transaction_id := data.get("stripe_balance_transaction_id")) and (
+            existing := Payment.objects.filter(
+                stripe_balance_transaction_id__iexact=stripe_balance_transaction_id.strip()
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                f"A payment (ID: {(_first := existing.first()).id}) "
+                f"with stripe_balance_transaction_id {_first.stripe_balance_transaction_id} already exists"
+            )
+        return data

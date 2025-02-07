@@ -103,20 +103,3 @@ class SwitchboardPaymentsViewSet(
     queryset = Payment.objects.all()
     serializer_class = serializers.SwitchboardPaymentSerializer
     authentication_classes = [TokenAuthentication]
-
-    def create(self, request: HttpRequest, *args, **kwargs) -> Response:
-        stripe_balance_transaction_id = request.data.get("stripe_balance_transaction_id")
-        if (
-            existing := Payment.objects.filter(
-                stripe_balance_transaction_id__iexact=stripe_balance_transaction_id.strip()
-            )
-        ).exists():
-
-            return Response(
-                {
-                    "error": f"A payment (ID: {(_first:=existing.first()).id}) "
-                    f"with stripe_balance_transaction_id {_first.stripe_balance_transaction_id} already exists"
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
-        return super().create(request)

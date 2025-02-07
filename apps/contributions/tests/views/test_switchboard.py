@@ -583,7 +583,7 @@ class TestSwitchboardPaymentsViewSet:
         response = api_client.post(
             reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
         )
-        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_retrieve(self, api_client, payment, token):
         response = api_client.get(

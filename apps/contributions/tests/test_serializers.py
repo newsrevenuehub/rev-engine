@@ -1844,3 +1844,16 @@ class TestSwitchboardPaymentSerializer:
         serializer = SwitchboardPaymentSerializer(data=data)
         assert not serializer.is_valid()
         assert "contribution" in serializer.errors
+
+    def test_serializer_validate_duplicate_balance_transaction_id(self, payment):
+        data = {
+            "contribution": payment.contribution.id,
+            "net_amount_paid": 2000,
+            "gross_amount_paid": 2000,
+            "amount_refunded": 0,
+            "stripe_balance_transaction_id": payment.stripe_balance_transaction_id,
+            "transaction_time": timezone.now().isoformat(),
+        }
+        serializer = SwitchboardPaymentSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "stripe_balance_transaction_id" in serializer.errors

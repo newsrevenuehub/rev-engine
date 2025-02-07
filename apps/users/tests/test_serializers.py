@@ -435,7 +435,7 @@ class TestSwitchboardUserSerializer:
             "role": {
                 "type": expected_role,
                 "organizations": [org.id for org in user.permitted_organizations],
-                "revenue_programs": [org.id for org in user.permitted_revenue_programs],
+                "revenue_programs": [rp.id for rp in user.permitted_revenue_programs],
             },
         }
 
@@ -443,3 +443,19 @@ class TestSwitchboardUserSerializer:
         assert set(serializers.SwitchboardUserSerializer.Meta.read_only_fields) == set(
             serializers.SwitchboardUserSerializer.Meta.fields
         )
+
+    def test_get_role_happy_path(self, hub_admin_user):
+        serializer = serializers.SwitchboardUserSerializer()
+        assert serializer.get_role(hub_admin_user) == {
+            "type": "hub_admin",
+            "organizations": [org.id for org in hub_admin_user.permitted_organizations],
+            "revenue_programs": [rp.id for rp in hub_admin_user.permitted_revenue_programs],
+        }
+
+    def test_get_role_no_role_type(self, user_no_role_assignment):
+        serializer = serializers.SwitchboardUserSerializer()
+        assert serializer.get_role(user_no_role_assignment) == {
+            "type": None,
+            "organizations": [],
+            "revenue_programs": [],
+        }

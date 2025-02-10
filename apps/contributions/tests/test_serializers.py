@@ -1825,7 +1825,7 @@ class TestSwitchboardPaymentSerializer:
 
     def test_serializer_missing_required_fields(self):
         serializer = SwitchboardPaymentSerializer(data={})
-        assert not serializer.is_valid()
+        assert serializer.is_valid() is False
         assert set(serializer.errors.keys()) == {
             "contribution",
             "net_amount_paid",

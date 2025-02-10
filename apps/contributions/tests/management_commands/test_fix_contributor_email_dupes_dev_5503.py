@@ -3,6 +3,7 @@ from django.core.management import call_command
 import pytest
 
 from apps.contributions.management.commands.fix_contributor_email_dupes_dev_5503 import Command
+from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 
 
@@ -10,37 +11,28 @@ from apps.contributions.tests.factories import ContributionFactory, ContributorF
 class TestCommand:
 
     @pytest.fixture
-    def email_lower(self):
-        return "foo@bar.com"
-
-    @pytest.fixture
-    def email_upper(self, email_lower):
-        return email_lower.upper()
-
-    @pytest.fixture
-    def email_strange(self, email_lower):
-        return email_lower.replace("com", "COM")
-
-    @pytest.fixture
-    def dupes_with_contributions(self, email_lower, email_upper):
-        canonical = ContributorFactory(email=email_lower)
-        duplicate = ContributorFactory(email=email_upper)
+    def dupes_with_contributions(self):
+        email = "foo@bar.com"
+        canonical = ContributorFactory(email=email)
+        duplicate = ContributorFactory(email=email.upper())
         ContributionFactory(contributor=canonical)
         ContributionFactory(contributor=duplicate)
         return {"canonical": canonical, "duplicates": [duplicate]}
 
     @pytest.fixture
-    def dupes_without_contributions(self, email_lower, email_upper):
+    def dupes_without_contributions(self):
+        email = "bizz@bang.com"
         return {
-            "canonical": ContributorFactory(email=email_lower),
-            "duplicates": [ContributorFactory(email=email_upper)],
+            "canonical": ContributorFactory(email=email),
+            "duplicates": [ContributorFactory(email=email.upper())],
         }
 
     @pytest.fixture
-    def dupes_with_gt_one_contribution(self, email_lower, email_upper, email_strange):
-        canonical = ContributorFactory(email=email_lower)
-        dupe1 = ContributorFactory(email=email_upper)
-        dupe2 = ContributorFactory(email=email_strange)
+    def dupes_with_gt_one_contribution(self):
+        email = "baz@qux.com"
+        canonical = ContributorFactory(email=email)
+        dupe1 = ContributorFactory(email=email.upper())
+        dupe2 = ContributorFactory(email=email.replace("com", "COM"))
         ContributionFactory.create_batch(size=2, contributor=canonical)
         ContributionFactory.create_batch(size=2, contributor=dupe1)
         ContributionFactory.create_batch(size=2, contributor=dupe2)
@@ -66,8 +58,9 @@ class TestCommand:
             assert dupe.created > result["canonical"].created
         assert set(result["duplicates"].values_list("id", flat=True)) == set(duplicate_data[0]["contributors"][1:])
 
-    @pytest.mark.usefixtures("dupes_with_contributions", "dupes_without_contributions")
-    def test_make_initial_report(self):
+    def test_make_initial_report(
+        self, dupes_with_contributions, dupes_without_contributions, dupes_with_gt_one_contribution
+    ):
         dupe_mapping = [
             Command.get_canonical_and_duplicate_contributors(x) for x in Command.get_duplicate_emails_by_contributors()
         ]
@@ -81,7 +74,12 @@ class TestCommand:
             "contribution_interval",
             "org_slug",
         }
-        assert report.shape[0] == 2
+        expected_row_count = (
+            len(dupes_without_contributions["duplicates"])
+            + Contribution.objects.filter(contributor_id__in=dupes_with_contributions["duplicates"]).count()
+            + Contribution.objects.filter(contributor_id__in=dupes_with_gt_one_contribution["duplicates"]).count()
+        )
+        assert report.shape[0] == expected_row_count
 
     @pytest.mark.usefixtures("dupes_with_contributions", "dupes_without_contributions")
     @pytest.mark.parametrize("dry_run", [True, False])

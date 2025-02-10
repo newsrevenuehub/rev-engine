@@ -1845,7 +1845,7 @@ class TestSwitchboardPaymentSerializer:
             "transaction_time": timezone.now().isoformat(),
         }
         serializer = SwitchboardPaymentSerializer(data=data)
-        assert not serializer.is_valid()
+        assert serializer.is_valid() is False
         assert "contribution" in serializer.errors
 
     def test_serializer_validate_duplicate_balance_transaction_id(self, payment):

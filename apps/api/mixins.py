@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 
-class UniquenessConstraintViolationMixin:
+class UniquenessConstraintViolationViewSetMixin:
     def handle_exception(self, exc):
         """Ensure select uniqueness constraint errors receive a 409.
 

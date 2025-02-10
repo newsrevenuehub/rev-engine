@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
-from apps.api.mixins import UniquenessConstraintViolationMixin
+from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
 from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor, Payment
@@ -25,7 +25,7 @@ class SwitchboardContributionsViewSet(
     viewsets.mixins.CreateModelMixin,
     viewsets.mixins.UpdateModelMixin,
     viewsets.mixins.RetrieveModelMixin,
-    UniquenessConstraintViolationMixin,
+    UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
 ):
     """Viewset for switchboard to update contributions."""
@@ -83,7 +83,7 @@ class SwitchboardPaymentsViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
-    UniquenessConstraintViolationMixin,
+    UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
 ):
     """ViewSet for switchboard to retrieve, create and update payments."""

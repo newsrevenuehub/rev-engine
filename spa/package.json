@@ -58,6 +58,7 @@
     "styled-normalize": "^8.0.7",
     "styled-system": "^5.1.5",
     "tinycolor2": "^1.4.2",
+    "universal-cookie": "^4.0.4",
     "url-join": "^5.0.0",
     "use-debounce": "^8.0.4",
     "uuid": "^8.3.2",

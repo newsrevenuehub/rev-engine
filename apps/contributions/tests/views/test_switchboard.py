@@ -545,17 +545,13 @@ class TestSwitchboardContributionsViewSet:
 class TestSwitchboardPaymentsViewSet:
 
     @pytest.fixture
-    def contribution(self):
-        return ContributionFactory()
+    def payment(self):
+        return PaymentFactory()
 
     @pytest.fixture
-    def payment(self, contribution):
-        return PaymentFactory(contribution=contribution)
-
-    @pytest.fixture
-    def payment_creation_data(self, contribution):
+    def payment_creation_data(self, payment):
         return {
-            "contribution": contribution.id,
+            "contribution": payment.contribution.id,
             "net_amount_paid": 2000,
             "gross_amount_paid": 2000,
             "amount_refunded": 0,

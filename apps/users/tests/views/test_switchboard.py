@@ -6,7 +6,7 @@ from apps.users.models import User
 
 
 @pytest.mark.django_db
-class TestSwitchboardUsersViews:
+class TestSwitchboardUsersViewSet:
     @pytest.mark.parametrize("exists", [True, False])
     def test_retrieve_by_id(self, api_client, switchboard_api_token, org_user_multiple_rps: User, exists):
         pk = org_user_multiple_rps.id

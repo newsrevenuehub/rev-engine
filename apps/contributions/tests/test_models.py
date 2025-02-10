@@ -42,7 +42,6 @@ from apps.contributions.tests.factories import (
 from apps.contributions.typings import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import generate_email_data, send_templated_email
-from apps.google_cloud.pubsub import Message
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -2753,26 +2752,3 @@ class TestPayment:
         Contribution.objects.all().delete()
         with pytest.raises(ValueError, match=re.escape("Could not find a contribution for this event (no match)")):
             Payment.from_stripe_charge_refunded_event(event=StripeEventData(**charge_refunded_one_time_event))
-
-    @pytest.mark.parametrize(
-        ("is_created", "topic_setting", "publish_method"),
-        [
-            (True, "CREATE_PAYMENT_TOPIC", "publish_payment_created"),
-            (False, "UPDATE_PAYMENT_TOPIC", "publish_payment_updated"),
-        ],
-    )
-    @pytest.mark.parametrize("pubsub_enabled", [True, False])
-    def test_message_publishing_payment(
-        self, mocker, pubsub_enabled, payment, is_created, topic_setting, publish_method
-    ):
-        mocker.patch("apps.contributions.models.google_cloud_pub_sub_is_configured", return_value=pubsub_enabled)
-        gcloud_publisher = mocker.patch("apps.contributions.models.Publisher")
-        setattr(settings, topic_setting, (topic := f"{topic_setting.lower()}"))
-        getattr(payment, publish_method)()
-
-        if pubsub_enabled:
-            gcloud_publisher.get_instance.return_value.publish.assert_called_once_with(
-                topic, Message(data=str(payment.id))
-            )
-        else:
-            gcloud_publisher.get_instance.return_value.publish.assert_not_called()

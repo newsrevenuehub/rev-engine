@@ -29,12 +29,7 @@ from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import (
-    CREATED,
-    LEFT_UNCHANGED,
-    get_stripe_accounts_and_their_connection_status,
-    google_cloud_pub_sub_is_configured,
-)
+from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.typings import (
@@ -48,7 +43,6 @@ from apps.emails.tasks import (
     send_templated_email,
     send_thank_you_email,
 )
-from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
@@ -1641,21 +1635,3 @@ class Payment(IndexedTimeStampedModel):
             balance_transaction=balance_transaction,
             event_id=event.id,
         )
-
-    def publish_payment_created(self):
-        logger.info(
-            "Publishing CREATE_PAYMENT_TOPIC (%s) for payment=[%s]",
-            settings.CREATE_PAYMENT_TOPIC,
-            self.id,
-        )
-        if google_cloud_pub_sub_is_configured():
-            Publisher.get_instance().publish(settings.CREATE_PAYMENT_TOPIC, Message(data=str(self.id)))
-
-    def publish_payment_updated(self):
-        logger.info(
-            "Publishing UPDATE_PAYMENT_TOPIC (%s) for payment=[%s]",
-            settings.UPDATE_PAYMENT_TOPIC,
-            self.id,
-        )
-        if google_cloud_pub_sub_is_configured():
-            Publisher.get_instance().publish(settings.UPDATE_PAYMENT_TOPIC, Message(data=str(self.id)))

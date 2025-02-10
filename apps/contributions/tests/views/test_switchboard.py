@@ -543,7 +543,6 @@ class TestSwitchboardContributionsViewSet:
 
 @pytest.mark.django_db
 class TestSwitchboardPaymentsViewSet:
-
     @pytest.fixture
     def payment(self):
         return PaymentFactory()
@@ -573,13 +572,6 @@ class TestSwitchboardPaymentsViewSet:
                     assert payment.transaction_time.isoformat() == v
                 case _:
                     assert getattr(payment, k) == v
-
-    def test_create_duplicate_balance_transaction(self, api_client, payment_creation_data, token):
-        PaymentFactory(stripe_balance_transaction_id=payment_creation_data["stripe_balance_transaction_id"])
-        response = api_client.post(
-            reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
-        )
-        assert response.status_code == status.HTTP_409_CONFLICT
 
     def test_retrieve(self, api_client, payment, token):
         response = api_client.get(
@@ -642,6 +634,16 @@ class TestSwitchboardPaymentsViewSet:
             data=update_data,
             headers={"Authorization": f"Token {token}"},
             format="json",
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.json() == {
+            "stripe_balance_transaction_id": ["payment with this stripe balance transaction id already exists."]
+        }
+
+    def test_create_duplicate_balance_transaction(self, api_client, payment_creation_data, token):
+        PaymentFactory(stripe_balance_transaction_id=payment_creation_data["stripe_balance_transaction_id"])
+        response = api_client.post(
+            reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
         )
         assert response.status_code == status.HTTP_409_CONFLICT
         assert response.json() == {

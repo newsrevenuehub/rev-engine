@@ -1881,3 +1881,16 @@ class TestSwitchboardPaymentSerializer:
         assert serializer.errors["non_field_errors"][0] == (
             "Amount refunded cannot be positive when net_amount_paid or gross_amount_paid are positive"
         )
+
+    def test_validate_stripe_balance_transaction_id(self, payment_create_data):
+        """Test validation of stripe_balance_transaction_id field."""
+        existing_txn_id = "txn_existing"
+        _ = PaymentFactory(stripe_balance_transaction_id=existing_txn_id)
+
+        data = {**payment_create_data, "stripe_balance_transaction_id": existing_txn_id}
+        serializer = SwitchboardPaymentSerializer(data=data)
+        assert serializer.is_valid() is False
+        assert "stripe_balance_transaction_id" in serializer.errors
+        assert "payment with this stripe balance transaction id already exists." in str(
+            serializer.errors["stripe_balance_transaction_id"][0]
+        )

@@ -72,6 +72,9 @@ class BillingHistoryItem(TypedDict):
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
+    # TODO @BW: Rename to `email`, replacing current `email` and make non nullable and blank=False
+    # DEV-5782
+    email_future = models.EmailField(blank=True, null=True, unique=True, db_collation="case_insensitive")
 
     @staticmethod
     def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:

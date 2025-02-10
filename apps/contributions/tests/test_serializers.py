@@ -987,7 +987,7 @@ class TestBaseCreatePaymentSerializer:
         donation_page.save()
         request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
 
     def test_generate_stripe_metadata_when_v1_4(
         self, minimally_valid_contribution_form_data, valid_swag_choices_string
@@ -1166,7 +1166,7 @@ class TestCreateOneTimePaymentSerializer:
         )
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
@@ -1209,7 +1209,7 @@ class TestCreateOneTimePaymentSerializer:
 
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         with pytest.raises(serializers.GenericPaymentError):
             serializer.create(serializer.validated_data)
 
@@ -1250,7 +1250,7 @@ class TestCreateOneTimePaymentSerializer:
 
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
 
         with pytest.raises(serializers.GenericPaymentError):
             serializer.create(serializer.validated_data)
@@ -1299,7 +1299,7 @@ class TestCreateOneTimePaymentSerializer:
         mocker.patch("stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
@@ -1344,7 +1344,7 @@ class TestCreateOneTimePaymentSerializer:
         save_spy = mocker.spy(Contributor, "save")
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         with pytest.raises(PermissionDenied):
             serializer.create(serializer.validated_data)
 
@@ -1440,7 +1440,7 @@ class TestCreateRecurringPaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
 
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -1478,7 +1478,7 @@ class TestCreateRecurringPaymentSerializer:
 
         serializer = self.serializer_class(data=data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         with pytest.raises(serializers.GenericPaymentError):
             serializer.create(serializer.validated_data)
 
@@ -1515,7 +1515,7 @@ class TestCreateRecurringPaymentSerializer:
 
         serializer = self.serializer_class(data=data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
 
         with pytest.raises(serializers.GenericPaymentError):
             serializer.create(serializer.validated_data)
@@ -1563,7 +1563,7 @@ class TestCreateRecurringPaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
@@ -1591,7 +1591,7 @@ class TestCreateRecurringPaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
 
         with pytest.raises(PermissionDenied):
             serializer.create(serializer.validated_data)
@@ -1813,7 +1813,7 @@ class TestSwitchboardPaymentSerializer:
 
     def test_serializer_valid_data(self, payment_create_data):
         serializer = SwitchboardPaymentSerializer(data=payment_create_data)
-        assert serializer.is_valid()
+        assert serializer.is_valid() is True
         assert set(serializer.validated_data.keys()) == {
             "contribution",
             "net_amount_paid",
@@ -1858,7 +1858,7 @@ class TestSwitchboardPaymentSerializer:
             "transaction_time": timezone.now().isoformat(),
         }
         serializer = SwitchboardPaymentSerializer(data=data)
-        assert not serializer.is_valid()
+        assert serializer.is_valid() is False
         assert "stripe_balance_transaction_id" in serializer.errors
 
     def test_amounts_must_be_positive(self, payment_create_data):
@@ -1869,14 +1869,14 @@ class TestSwitchboardPaymentSerializer:
                 "gross_amount_paid": -1,
             }
         )
-        assert not serializer.is_valid()
+        assert serializer.is_valid() is False
         assert "net_amount_paid" in serializer.errors
         assert "gross_amount_paid" in serializer.errors
 
     def test_validate_refund_and_payment_amounts_mutually_exclusive(self, payment_create_data):
         data = {**payment_create_data, "amount_refunded": 1000, "net_amount_paid": 2000, "gross_amount_paid": 2000}
         serializer = SwitchboardPaymentSerializer(data=data)
-        assert not serializer.is_valid()
+        assert serializer.is_valid() is False
         assert "non_field_errors" in serializer.errors
         assert serializer.errors["non_field_errors"][0] == (
             "Amount refunded cannot be positive when net_amount_paid or gross_amount_paid are positive"

@@ -83,7 +83,12 @@ class Contributor(IndexedTimeStampedModel):
             return existing, LEFT_UNCHANGED
 
         logger.info("Creating new contributor for email %s", email)
-        return Contributor.objects.create(email=email), CREATED
+        # TODO @BW: Remove this conditionality when email_future moves to email
+        # DEV-5782
+        kwargs = {"email": email}
+        if not Contributor.objects.filter(email_future=email).exists():
+            kwargs["email_future"] = email
+        return Contributor.objects.create(**kwargs), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""

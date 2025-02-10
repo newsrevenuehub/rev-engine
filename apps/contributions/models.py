@@ -1404,8 +1404,7 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
-    # TODO @BW: Make transaction_time non-nullable once we've run data migration for existing payments
-    # DEV-4379
+
     # NB: this is the time the payment was created in Stripe, not the time it was created in NRE. Additionally, note that we
     # source this from the .created property on the balance transaction associated with the payment. There is also a
     # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look

@@ -5,11 +5,6 @@ from pathlib import Path
 from .base import *  # noqa: F403
 
 
-# DO NOT MERGE DEV-5682 UNTIL THIS CONFIG IS REMOVED
-# it's here to facilitate testing
-CSRF_COOKIE_AGE = 180
-
-
 # For more information about deploy settings, see:
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 

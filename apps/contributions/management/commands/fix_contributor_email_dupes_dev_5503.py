@@ -114,7 +114,7 @@ class Command(BaseCommand):
 
         This will be implemented in followup ticket DEV-5778.
         """
-        self.stdout.write(self.style.WARNING("process_duped_emails not implemented yet"))
+        self.stderr.write(self.style.WARNING("process_duped_emails not implemented yet"))
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--dry-run", action="store_true", default=True)

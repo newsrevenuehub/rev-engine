@@ -14,6 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
+from apps.common.utils import LEFT_UNCHANGED
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor
 
@@ -71,16 +72,15 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
         Nevertheless, this is the behavior we want in short term so that we can create new contributors without
         accidentally creating duplicates (from the perspective of post DEV-5503 world).
         """
-        email = request.data.get("email")
-        if (existing := Contributor.objects.filter(email__iexact=email.strip())).exists():
-
+        email = request.data.get("email").strip()
+        contributor, action = Contributor.get_or_create_contributor_by_email(email)
+        if action == LEFT_UNCHANGED:
             return Response(
-                {
-                    "error": f"A contributor (ID: {(_first:=existing.first()).id}) with email {_first.email} already exists"
-                },
+                {"error": f"A contributor (ID: {contributor.id}) with email {contributor.email} already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return super().create(request)
+        serializer = serializers.SwitchboardContributorSerializer(contributor)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])

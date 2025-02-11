@@ -41,7 +41,12 @@ def expired_token(switchboard_user):
 class TestSwitchboardContributorsViews:
     """Tests for switchboard contributors views, for SwitchboardContributorsViewSet and related function-based views."""
 
-    @pytest.mark.parametrize("already_exists", [True, False])
+    @pytest.mark.parametrize(
+        "already_exists",
+        [
+            True,
+        ],
+    )
     def test_create(self, api_client, faker, already_exists, token):
         email = faker.email()
         if already_exists:

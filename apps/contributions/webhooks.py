@@ -368,6 +368,13 @@ class StripeWebhookProcessor:
             )
 
     def handle_invoice_payment_succeeded(self):
+        """Handle invoice payment succeeded event.
+
+        - Create a payment
+        - Update payment method data
+        - Update contribution
+        - If it's the first payment, and if it's v1.4 metadata, send a receipt email
+        """
         with transaction.atomic():
             payment = Payment.from_stripe_invoice_payment_succeeded_event(event=self.event)
             pi = stripe.PaymentIntent.retrieve(

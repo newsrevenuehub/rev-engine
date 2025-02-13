@@ -1053,14 +1053,6 @@ class SwitchboardPaymentSerializer(serializers.ModelSerializer):
             )
         return data
 
-    def validate_stripe_balance_transaction_id(self, value):
-        if existing := Payment.objects.filter(stripe_balance_transaction_id__iexact=value.strip()).exists():
-            raise serializers.ValidationError(
-                f"A payment (ID: {(_first := existing.first()).id}) "
-                f"with stripe_balance_transaction_id {_first.stripe_balance_transaction_id} already exists"
-            )
-        return value
-
     def validate_net_amount_paid(self, value):
         self._validate_amount_is_positive(value)
         return value

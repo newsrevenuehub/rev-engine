@@ -256,7 +256,7 @@ class TestContributorModel:
             )
         contributor, _ = Contributor.get_or_create_contributor_by_email(email_future)
         assert contributor.email == email_future
-        assert contributor.email_future == (email_future if not email_future_pre_exists else None)
+        assert contributor.email_future == (None if email_future_pre_exists else email_future)
 
     def test_get_contributor_contributions_queryset(self, mocker):
         canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")

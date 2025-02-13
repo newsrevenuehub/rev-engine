@@ -238,8 +238,10 @@ class TestContributorModel:
         if pre_exists:
             assert contributor == pre_existing
             assert action == LEFT_UNCHANGED
+            assert contributor.email_future is None
         else:
             assert action == CREATED
+            assert contributor.email_future == email
         assert isinstance(contributor, Contributor)
         assert contributor.email.lower() == email.lower()
         assert Contributor.objects.filter(email__iexact=email).count() == 1

@@ -162,7 +162,7 @@ class SwitchboardUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
-        read_only_fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
+        read_only_fields = fields
 
     def get_role(self, obj: User) -> UserRole:
         return {

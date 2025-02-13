@@ -496,11 +496,6 @@ class TestInvoicePaymentSucceeded:
             return json.load(f)
 
     @pytest.fixture
-    def invoice_payment_succeeded_for_recurring_payment_event(self):
-        with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-for-recurring-event.json").open() as f:
-            return json.load(f)
-
-    @pytest.fixture
     def payment_intent_for_recurring_charge_expanded(self):
         with Path(
             "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"

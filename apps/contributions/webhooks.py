@@ -288,7 +288,7 @@ class StripeWebhookProcessor:
 
         - Update contribution with payment provider data, also update status
         - Create a payment instance
-        - Send thank you email
+        - Send thank you email (if it's v1.4 metadata schema version)
         """
         if self.obj_data.get("invoice", None):
             logger.info(
@@ -310,7 +310,8 @@ class StripeWebhookProcessor:
                 contribution_update_data,
                 "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
             )
-            self.contribution.handle_thank_you_email()
+            if (self.contribution.contribution_metadata or {}).get("schema_version") == "1.4":
+                self.contribution.handle_thank_you_email()
 
     def handle_subscription_updated(self):
         update_data = self._add_pm_id_and_payment_method_details(
@@ -384,5 +385,10 @@ class StripeWebhookProcessor:
                 update_data,
                 "`StripeWebhookProcessor.handle_invoice_payment_succeeded` updated contribution",
             )
-        if payment.contribution.payment_set.count() == 1:
+        if (
+            payment.contribution.payment_set.count() == 1
+            and (payment.contribution.contribution_metadata or {}).get("schema_version") == "1.4"
+        ):
+            # TODO @BW: Publish event when thank you email is sent
+            # DEV-5841
             self.contribution.handle_thank_you_email()

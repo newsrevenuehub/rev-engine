@@ -310,6 +310,26 @@ class TestSwitchboardContributionsViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
 
+    def test_create_doesnt_send_email_by_default(self, api_client, creation_data_recurring_with_page, token, mocker):
+        mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.post(
+            reverse("switchboard-contribution-list"),
+            data=creation_data_recurring_with_page,
+            headers={"Authorization": f"Token {token}"},
+        )
+        mock_handle_thank_you_email.assert_not_called()
+
+    def test_create_sends_email_if_requested(
+        self, api_client, creation_data_recurring_with_page, request, token, mocker
+    ):
+        mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.post(
+            reverse("switchboard-contribution-list") + "?send_receipt",
+            data=creation_data_recurring_with_page,
+            headers={"Authorization": f"Token {token}"},
+        )
+        mock_handle_thank_you_email.assert_called_once()
+
     def test_retrieve(self, api_client, contribution, token):
         response = api_client.get(
             reverse("switchboard-contribution-detail", args=(contribution.id,)),

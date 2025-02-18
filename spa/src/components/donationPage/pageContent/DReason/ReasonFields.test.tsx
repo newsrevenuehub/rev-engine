@@ -20,12 +20,8 @@ const OTHER_LABEL = 'donationPage.dReason.other';
 
 describe('ReasonFields', () => {
   describe('When there are preselected options', () => {
-    it('shows a select named reason_for_giving with preselected options and an Other option', () => {
+    it('shows a select with preselected options and an Other option', () => {
       tree();
-
-      // The named input is hidden.
-      // eslint-disable-next-line testing-library/no-node-access
-      expect(document.querySelector('input[name="reason_for_giving"]')).toBeInTheDocument();
       userEvent.click(screen.getByRole('button'));
       expect(screen.getAllByRole('option')).toHaveLength(3);
       expect(screen.getByRole('option', { name: 'reason 1' })).toBeInTheDocument();
@@ -41,6 +37,10 @@ describe('ReasonFields', () => {
     it('selects the option indicated by selectedOption', () => {
       tree({ selectedOption: 'reason 2' });
       expect(screen.getByRole('button', { name: 'reason 2' })).toBeInTheDocument();
+    });
+
+    it('renders a hidden input named reason_for_giving with the selected option', () => {
+      tree({ selectedOption: 'reason 2' });
       // eslint-disable-next-line testing-library/no-node-access
       expect(document.querySelector('input[name="reason_for_giving"]')).toHaveValue('reason 2');
     });
@@ -75,25 +75,31 @@ describe('ReasonFields', () => {
       ['the Other option is selected', { selectedOption: OTHER_LABEL }],
       ['there are no preselected options', { options: [] }]
     ])('When %s', (_, props: Partial<ReasonFieldsProps>) => {
-      it('shows a text field named reason_for_giving with the value of the text prop', () => {
+      it('shows a text field with the value of the text prop', () => {
         tree({ ...props, text: 'test-value' });
 
-        const input = screen.getByRole('textbox', { name: 'donationPage.dReason.tellUsWhy' });
-
-        expect(input).toHaveAttribute('name', 'reason_for_giving');
-        expect(input).toHaveValue('test-value');
+        expect(screen.getByRole('textbox', { name: 'donationPage.dReason.tellUsWhy' })).toHaveValue('test-value');
       });
 
-      it('sets no name on the select', () => {
+      it('renders a hidden input named reason_for_giving with the value of the text prop', () => {
         tree({ ...props, text: 'test-value' });
-        expect(screen.getByRole('textbox', { name: 'donationPage.dReason.tellUsWhy' })).toHaveAttribute(
-          'name',
-          'reason_for_giving'
-        );
-        // e.g. if it was set on the select also, there would be two.
         // eslint-disable-next-line testing-library/no-node-access
-        expect(document.querySelectorAll('[name="reason_for_giving"]')).toHaveLength(1);
+        expect(document.querySelector('input[name="reason_for_giving"]')).toHaveValue('test-value');
       });
+
+      if (props.selectedOption) {
+        it('uses "Other" as the value of the hidden input if the text prop has no non-whitespace characters', () => {
+          tree({ ...props, text: ' ' });
+          // eslint-disable-next-line testing-library/no-node-access
+          expect(document.querySelector('input[name="reason_for_giving"]')).toHaveValue(OTHER_LABEL);
+        });
+      } else {
+        it("uses the text prop as-is, even if it's just whitespace", () => {
+          tree({ ...props, text: ' ' });
+          // eslint-disable-next-line testing-library/no-node-access
+          expect(document.querySelector('input[name="reason_for_giving"]')).toHaveValue('');
+        });
+      }
 
       it('makes the text field required if set', () => {
         tree({ ...props, required: true });

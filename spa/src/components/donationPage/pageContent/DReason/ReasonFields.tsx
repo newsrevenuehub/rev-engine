@@ -53,19 +53,16 @@ export function ReasonFields({
     [optionsWithOther.length, selectedOption, otherReasonLabel]
   );
 
-  // Names on inputs below must be set exactly in order for the form to be
-  // submitted properly.
+  // We set a hidden input with the correct name because we want these behaviors
+  // (in order of precedence):
   //
-  // There is some trickery here where if the "other" option is selected from
-  // the set of pre-selected reasons, the select's name changes so that it isn't
-  // sent with the form data, and instead the other text field is.
-  //
-  // We also need to ensure the text field unmounts when transitioned out so
-  // it's not present in the DOM at form submission time, so its value doesn't
-  // appear in the form data.
+  // 1. If a preselected reason is chosen, use that value.
+  // 2. If the user chose Other from the menu and entered a value, use it.
+  // 3. If the user chose Other from the menu but didn't enter a value, use "Other".
 
   return (
     <Root>
+      <input type="hidden" name="reason_for_giving" value={text.trim() === '' ? selectedOption : text} />
       {optionsWithOther.length > 0 && (
         <Select
           data-testid="reason-for-giving-reason-select"
@@ -74,7 +71,6 @@ export function ReasonFields({
           fullWidth
           helperText={!showTextField && error}
           label={t('donationPage.dReason.supportWork')}
-          name={showTextField ? undefined : 'reason_for_giving'}
           onChange={(e) => onChangeOption(e.target.value)}
           options={optionsWithOther}
           required={!!required}
@@ -88,7 +84,6 @@ export function ReasonFields({
           helperText={error}
           id="donation-page-dreason-reason-fields-other"
           label={t('donationPage.dReason.tellUsWhy')}
-          name="reason_for_giving"
           onChange={(event) => onChangeText(event.target.value)}
           required={!!required}
           value={text}

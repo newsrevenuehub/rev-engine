@@ -12,20 +12,23 @@ type Story = StoryObj<typeof ReasonFields>;
 
 export const Default: Story = {};
 Default.args = {
-  options: ['Reason 1', 'Reason 2']
+  options: ['Reason 1', 'Reason 2'],
+  text: ''
 };
 
 export const DefaultError: Story = {};
 DefaultError.args = {
   error: 'Error message',
   options: ['Reason 1', 'Reason 2'],
-  required: true
+  required: true,
+  text: ''
 };
 
 export const DefaultRequired: Story = {};
 DefaultRequired.args = {
   options: ['Reason 1', 'Reason 2'],
-  required: true
+  required: true,
+  text: ''
 };
 
 export const OtherVisible: Story = {};

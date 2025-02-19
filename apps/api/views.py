@@ -184,7 +184,7 @@ class RequestContributorTokenEmailView(APIView):
         )
         data = {
             "magic_link": mark_safe(magic_link),
-            "email": serializer.validated_data["email"],
+            "email": contributor.email,
             "style": asdict(revenue_program.transactional_email_style),
             "rp_name": revenue_program.name,
         }

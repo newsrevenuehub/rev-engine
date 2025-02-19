@@ -377,6 +377,7 @@ def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email,
 @pytest.mark.django_db
 @pytest.mark.parametrize("preexists", [True, False])
 def test_request_contributor_token_not_create_duplicate_contributor(preexists, api_client, free_plan_revenue_program):
+    """Prove that the endpoint does not create a new contributor if one already exists with the same email but different casing."""
     email = "foobar@barfoo.com"
     if preexists:
         ContributorFactory(email=email)

@@ -12,10 +12,9 @@ class UniquenessConstraintViolationViewSetMixin:
         """
         if isinstance(exc, ValidationError):
             details = exc.detail
-            for errors in details.values():
-                if isinstance(details, list):
-                    continue
-                if any(x.code == "unique" for x in errors):
-                    exc.status_code = status.HTTP_409_CONFLICT
-                    break
+            if not isinstance(details, list):
+                for errors in details.values():
+                    if any(x.code == "unique" for x in errors):
+                        exc.status_code = status.HTTP_409_CONFLICT
+                        break
         return super().handle_exception(exc)

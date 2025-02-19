@@ -328,11 +328,6 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
         assert x not in html_body
 
 
-@pytest.mark.parametrize(
-    "email",
-    ["vanilla@email.com", "vanilla+spice@email.com"],
-)
-@pytest.mark.django_db
 @override_settings(CELERY_ALWAYS_EAGER=True)
 def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
     """Test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token.
@@ -377,6 +372,18 @@ def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email,
     assert jwt_data["exp"] > int(time())
     contributor = Contributor.objects.get(email=email)
     assert jwt_data["contrib_id"] == str(contributor.uuid)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("preexists", [True, False])
+def test_request_contributor_token_not_create_duplicate_contributor(preexists, api_client, free_plan_revenue_program):
+    email = "foobar@barfoo.com"
+    if preexists:
+        ContributorFactory(email=email)
+    data = {"email": email.upper(), "subdomain": free_plan_revenue_program.slug}
+    response = api_client.post(reverse("contributor-token-request"), data)
+    assert response.status_code == 200
+    assert Contributor.objects.filter(email__iexact=email).count() == 1
 
 
 class RequestContributorTokenEmailViewTest(APITestCase):

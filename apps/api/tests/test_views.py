@@ -328,6 +328,11 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
         assert x not in html_body
 
 
+@pytest.mark.parametrize(
+    "email",
+    ["vanilla@email.com", "vanilla+spice@email.com"],
+)
+@pytest.mark.django_db
 @override_settings(CELERY_ALWAYS_EAGER=True)
 def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
     """Test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token.

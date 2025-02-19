@@ -193,7 +193,7 @@ class RequestContributorTokenEmailView(APIView):
             data["style"]["logo_url"] = f"{settings.SITE_URL}/static/nre-logo-white.png"
 
         send_templated_email.delay(
-            serializer.validated_data["email"],
+            contributor.email,
             "Manage your contributions",
             render_to_string("nrh-manage-contributions-magic-link.txt", data),
             render_to_string("nrh-manage-contributions-magic-link.html", data),

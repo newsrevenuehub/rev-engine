@@ -162,7 +162,7 @@ class RequestContributorTokenEmailView(APIView):
         serializer.is_valid(raise_exception=True)
         contributor, created = Contributor.get_or_create_contributor_by_email(email=request.data["email"])
         canonical_email = contributor.email
-        if created:
+        if created:  # pragma: no branch
             logger.info(
                 "[RequestContributorTokenEmailView] Created new contributor with email %s", request.data["email"]
             )

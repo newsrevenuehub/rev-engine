@@ -310,25 +310,15 @@ class TestSwitchboardContributionsViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
 
-    def test_create_doesnt_send_email_by_default(self, api_client, creation_data_recurring_with_page, token, mocker):
+    @pytest.mark.parametrize("send_receipt", [True, False])
+    def test_create_receipt_behavior(self, api_client, creation_data_recurring_with_page, token, mocker, send_receipt):
         mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
         api_client.post(
-            reverse("switchboard-contribution-list"),
+            f"{reverse('switchboard-contribution-list')}{'?send_receipt' if send_receipt else ''}",
             data=creation_data_recurring_with_page,
             headers={"Authorization": f"Token {token}"},
         )
-        mock_handle_thank_you_email.assert_not_called()
-
-    def test_create_sends_email_if_requested(
-        self, api_client, creation_data_recurring_with_page, request, token, mocker
-    ):
-        mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
-        api_client.post(
-            reverse("switchboard-contribution-list") + "?send_receipt",
-            data=creation_data_recurring_with_page,
-            headers={"Authorization": f"Token {token}"},
-        )
-        mock_handle_thank_you_email.assert_called_once()
+        assert mock_handle_thank_you_email.called is send_receipt
 
     def test_retrieve(self, api_client, contribution, token):
         response = api_client.get(

@@ -21,6 +21,9 @@ from apps.contributions.models import Contribution, Contributor
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+SEND_RECEIPT_QUERY_PARAM = "send_receipt"
+
+
 class SwitchboardContributionsViewSet(
     viewsets.mixins.CreateModelMixin,
     viewsets.mixins.UpdateModelMixin,
@@ -48,7 +51,7 @@ class SwitchboardContributionsViewSet(
         intent or subscription).
         """
         contribution: Contribution = serializer.save()
-        if self.request.query_params.get("send_receipt") is not None:
+        if self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM) is not None:
             # send_thank_you_email() handles conditionality around whether
             # receipt emails for the revenue program are sent by rev-engine.
             logger.info(

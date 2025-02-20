@@ -14,6 +14,7 @@ from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
 )
+from apps.contributions.views.switchboard import SEND_RECEIPT_QUERY_PARAM
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -314,7 +315,7 @@ class TestSwitchboardContributionsViewSet:
     def test_create_receipt_behavior(self, api_client, creation_data_recurring_with_page, token, mocker, send_receipt):
         mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
         api_client.post(
-            f"{reverse('switchboard-contribution-list')}{'?send_receipt' if send_receipt else ''}",
+            f"{reverse('switchboard-contribution-list')}{'?' + SEND_RECEIPT_QUERY_PARAM if send_receipt else ''}",
             data=creation_data_recurring_with_page,
             headers={"Authorization": f"Token {token}"},
         )

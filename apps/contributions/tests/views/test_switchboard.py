@@ -84,7 +84,7 @@ class TestSwitchboardContributorsViews:
         if not exists:
             contributor.delete()
         response = api_client.get(
-            reverse("switchboard-contributor-by-email", args=(email,)),
+            reverse("switchboard-contributor-get-by-email", args=(email,)),
             headers={"Authorization": f"Token {token}"},
         )
         if exists:
@@ -93,11 +93,21 @@ class TestSwitchboardContributorsViews:
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_retrieve_by_email_is_case_insensitive(self, api_client, token, contributor):
+        contributor.email = contributor.email.upper()
+        contributor.save()
+        response = api_client.get(
+            reverse("switchboard-contributor-get-by-email", args=(contributor.email.lower(),)),
+            headers={"Authorization": f"Token {token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"email": contributor.email, "id": contributor.id}
+
     @pytest.fixture
     def retrieve_by_email_config(self, contributor):
         return {
             "method": "get",
-            "url": reverse("switchboard-contributor-by-email", args=(contributor.email,)),
+            "url": reverse("switchboard-contributor-get-by-email", args=(contributor.email,)),
             "data": None,
         }
 

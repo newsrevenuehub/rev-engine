@@ -597,7 +597,13 @@ class TestAuthorizedContributor:
         return str(access)
 
     @pytest.fixture
-    def request_with_valid_token(self, valid_token, contributions_url, api_client, contribution):
+    def request_with_valid_token(self, valid_token, contributions_url, api_client, contribution, mocker):
+        # we patch this because it's an easy way to prevent leaking stripe api calls and because
+        # we don't care about results returned in this test suite.
+        mocker.patch(
+            "apps.contributions.views.portal.PortalContributorsViewSet.get_contributor_contributions",
+            return_value=Contribution.objects.none().with_first_payment_date(),
+        )
         api_client.cookies["Authorization"] = valid_token
         api_client.cookies["csrftoken"] = csrf._get_new_csrf_string()
         return api_client.get(contributions_url, data={"rp": contribution.revenue_program.slug})

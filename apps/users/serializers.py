@@ -145,6 +145,8 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
         ]
 
 
+# TODO @nrh-cklimas: centralize these definitions across the Django app
+# DEV-5873
 RoleTypeCode = Literal["hub_admin", "org_admin", "rp_admin", "superuser"]
 
 

@@ -383,6 +383,30 @@ def test_request_contributor_token_creates_usable_magic_links(mocker, api_client
     assert jwt_data["contrib_id"] == str(query.first().uuid)
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("request_email", "preexisting_email"),
+    [
+        ("foobar@barfoo.com", None),
+        ("foobar@barfoo.com", "fOoBaR@barFoo.com"),
+    ],
+)
+def test_request_contributor_token_vs_dupe_contrib_bug_5865(
+    request_email, preexisting_email, api_client, free_plan_revenue_program
+):
+    """Prove that the endpoint does not create a new contributor if one already exists with the same email but different casing.
+
+    See DEV-5865 for more details.
+    """
+    expected = preexisting_email or request_email
+    if preexisting_email:
+        ContributorFactory(email=preexisting_email)
+    data = {"email": request_email, "subdomain": free_plan_revenue_program.slug}
+    response = api_client.post(reverse("contributor-token-request"), data)
+    assert response.status_code == 200
+    assert Contributor.objects.filter(email__iexact=expected).count() == 1
+
+
 class RequestContributorTokenEmailViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()

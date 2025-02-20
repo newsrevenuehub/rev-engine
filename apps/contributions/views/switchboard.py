@@ -10,12 +10,12 @@ from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
+from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
 from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions import serializers
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, Contributor, Payment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -25,6 +25,7 @@ class SwitchboardContributionsViewSet(
     viewsets.mixins.CreateModelMixin,
     viewsets.mixins.UpdateModelMixin,
     viewsets.mixins.RetrieveModelMixin,
+    UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
 ):
     """Viewset for switchboard to update contributions."""
@@ -36,21 +37,6 @@ class SwitchboardContributionsViewSet(
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
-
-    def handle_exception(self, exc):
-        """Ensure select uniqueness constraint errors receive a 409.
-
-        For uniqueness constraints around provider_subscription_id, provider_payment_id, and provider_setup_intent_id, we
-        want to return a 409 Conflict status code. On creation in particular, this will signal to Switchboard that it needs
-        to update an existing contribution rather than create a new one.
-        """
-        if isinstance(exc, ValidationError):
-            details = exc.detail
-            for errors in details.values():
-                if any(x.code == "unique" for x in errors):
-                    exc.status_code = status.HTTP_409_CONFLICT
-                    break
-        return super().handle_exception(exc)
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -91,3 +77,19 @@ def contributor_by_email(request: HttpRequest, email: str) -> Response:
     contributor = get_object_or_404(Contributor.objects.all(), email=email)
     serializer = serializers.SwitchboardContributorSerializer(contributor)
     return Response(serializer.data)
+
+
+class SwitchboardPaymentsViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    UniquenessConstraintViolationViewSetMixin,
+    viewsets.GenericViewSet,
+):
+    """ViewSet for switchboard to retrieve, create and update payments."""
+
+    permission_classes = [IsSwitchboardAccount]
+    http_method_names = ["get", "post", "patch"]
+    queryset = Payment.objects.all()
+    serializer_class = serializers.SwitchboardPaymentSerializer
+    authentication_classes = [TokenAuthentication]

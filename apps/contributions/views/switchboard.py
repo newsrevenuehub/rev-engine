@@ -47,9 +47,8 @@ class SwitchboardContributionsViewSet(
         callers have already created an appropriate Stripe object (e.g. payment
         intent or subscription).
         """
-        send_receipt = self.request.query_params.get("send_receipt")
         contribution: Contribution = serializer.save()
-        if send_receipt is not None:
+        if self.request.query_params.get("send_receipt") is not None:
             # send_thank_you_email() handles conditionality around whether
             # receipt emails for the revenue program are sent by rev-engine.
             logger.info(

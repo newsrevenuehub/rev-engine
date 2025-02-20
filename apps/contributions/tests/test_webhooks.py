@@ -334,7 +334,7 @@ class TestStripeWebhookProcessor:
             *[(k, False) for k in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS if k != "1.4"],
         ],
     )
-    def test_handle_handle_invoice_payment_succeeded_receipt_email_conditionality(
+    def test_handle_invoice_payment_succeeded_receipt_email_per_schema(
         self, schema_version, expect_send, invoice_payment_succeeded_for_recurring_payment_event, mocker
     ):
         contribution = ContributionFactory(
@@ -371,7 +371,7 @@ class TestStripeWebhookProcessor:
             *[(k, False) for k in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS if k != "1.4"],
         ],
     )
-    def test_handle_payment_intent_succeeded_receipt_email_conditionality(
+    def test_handle_payment_intent_succeeded_receipt_email_per_schema(
         self, schema_version, expect_send, mocker, payment_intent_succeeded_one_time_event
     ):
         contribution = ContributionFactory(

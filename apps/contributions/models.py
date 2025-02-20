@@ -690,7 +690,7 @@ class Contribution(IndexedTimeStampedModel):
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
     def handle_thank_you_email(self, show_billing_history: bool = False):
-        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email."""
+        """Send a receipt email to contribution's contributor if org is configured to have NRE send receipt email."""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)

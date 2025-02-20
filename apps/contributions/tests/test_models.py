@@ -539,7 +539,7 @@ class TestContributionModel:
     def test_handle_thank_you_email(
         self, contribution: Contribution, send_receipt_email_via_nre, show_billing_history, mocker, settings
     ):
-        """Show that when org configured to have NRE send thank you emails, send_templated_email gets called with expected args."""
+        """Show that when org configured to have NRE send receipt emails, send_templated_email gets called with expected args."""
         settings.CELERY_TASK_ALWAYS_EAGER = True
         (org := contribution.revenue_program.organization).send_receipt_email_via_nre = send_receipt_email_via_nre
         org.save()

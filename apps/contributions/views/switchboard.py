@@ -52,7 +52,11 @@ class SwitchboardContributionsViewSet(
         if send_receipt is not None:
             # send_thank_you_email() handles conditionality around whether
             # receipt emails for the revenue program are sent by rev-engine.
-            logger.debug("Sending receipt email as requested by query param")
+            logger.info(
+                "Sending receipt email for revenue program ID, %s contribution ID %s as requested by query param",
+                contribution.revenue_program.id,
+                contribution.id,
+            )
             contribution.handle_thank_you_email()
 
     def handle_exception(self, exc):

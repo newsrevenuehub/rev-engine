@@ -344,7 +344,7 @@ class TestStripeWebhookProcessor:
         )
         contribution.contribution_metadata["schema_version"] = schema_version
         contribution.save()
-        mock_send_receipt = mocker.patch.object(contribution, "handle_thank_you_email")
+        mock_send_receipt = mocker.patch.object(contribution, "handle_receipt_email")
         payment = PaymentFactory(contribution=contribution)
         mocker.patch(
             "apps.contributions.models.Payment.from_stripe_invoice_payment_succeeded_event",
@@ -379,7 +379,7 @@ class TestStripeWebhookProcessor:
         )
         contribution.contribution_metadata["schema_version"] = schema_version
         contribution.save()
-        mock_send_receipt = mocker.patch.object(contribution, "handle_thank_you_email")
+        mock_send_receipt = mocker.patch.object(contribution, "handle_receipt_email")
         payment = PaymentFactory(contribution=contribution)
         mocker.patch(
             "apps.contributions.models.Payment.from_stripe_payment_intent_succeeded_event", return_value=payment

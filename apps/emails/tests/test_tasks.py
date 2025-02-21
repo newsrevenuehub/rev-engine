@@ -20,8 +20,8 @@ from apps.emails.tasks import (
     generate_email_data,
     get_test_magic_link,
     logger,
+    send_receipt_email,
     send_templated_email_with_attachment,
-    send_thank_you_email,
 )
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -136,7 +136,7 @@ class TestGenerateEmailData:
 
 
 @pytest.mark.django_db
-class TestSendThankYouEmail:
+class TestSendReceiptEmail:
     @pytest.mark.parametrize(
         "make_contribution_fn",
         [
@@ -153,7 +153,7 @@ class TestSendThankYouEmail:
         contribution = make_contribution_fn()
         data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
-        send_thank_you_email(data)
+        send_receipt_email(data)
 
         email_html = render_to_string("nrh-default-contribution-confirmation-email.html", context=data)
 
@@ -217,7 +217,7 @@ class TestSendThankYouEmail:
         contribution.donation_page.revenue_program = revenue_program
         contribution.donation_page.save()
         data = generate_email_data(contribution)
-        send_thank_you_email(data)
+        send_receipt_email(data)
 
         default_logo = f"{settings.SITE_URL}/static/nre-logo-yellow.png"
         default_alt_text = "News Revenue Hub"
@@ -271,7 +271,7 @@ class TestSendThankYouEmail:
             ),
         )
         data = generate_email_data(contribution)
-        send_thank_you_email(data)
+        send_receipt_email(data)
 
         non_profit_expectation = "This receipt may be used for tax purposes."
         for_profit_expectation = f"Contributions to {rp.name} are not deductible as charitable donations."

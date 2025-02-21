@@ -311,7 +311,7 @@ class StripeWebhookProcessor:
                 "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
             )
             if (self.contribution.contribution_metadata or {}).get("schema_version") == "1.4":
-                self.contribution.handle_thank_you_email()
+                self.contribution.handle_receipt_email()
 
     def handle_subscription_updated(self):
         update_data = self._add_pm_id_and_payment_method_details(
@@ -398,4 +398,4 @@ class StripeWebhookProcessor:
         ):
             # TODO @BW: Publish event when receipt email is sent
             # DEV-5841
-            self.contribution.handle_thank_you_email()
+            self.contribution.handle_receipt_email()

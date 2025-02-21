@@ -189,15 +189,14 @@ describe('Reason for Giving element', () => {
     cy.getByTestId('d-reason').should('exist');
   });
 
-  it('should render picklist with options', () => {
-    cy.getByTestId('excited-to-support-picklist').should('exist');
-    cy.getByTestId('excited-to-support-picklist').click();
+  it('should render select with options', () => {
+    cy.getByTestId('reason-for-giving-reason-select').should('exist');
+    cy.getByTestId('reason-for-giving-reason-select').click();
     cy.findByRole('option', { name: 'test1' }).click();
   });
 
   it('should not show "honoree/in_memory_of" input if "No" is selected', () => {
-    // tribute_type "No" has value "", hense `tribute-""`.
-    cy.getByTestId('tribute-')
+    cy.getByTestId('tribute-type-null')
       .get('input')
       .then(($input) => {
         cy.log($input);
@@ -208,10 +207,10 @@ describe('Reason for Giving element', () => {
   });
 
   it('should show tribute input if honoree or in_memory_of is selected', () => {
-    cy.getByTestId('tribute-type_honoree').click();
+    cy.getByTestId('tribute-type-honoree').click();
     cy.getByTestId('tribute-input').should('exist');
 
-    cy.getByTestId('tribute-type_in_memory_of').click();
+    cy.getByTestId('tribute-type-inMemoryOf').click();
     cy.getByTestId('tribute-input').should('exist');
   });
 
@@ -247,13 +246,13 @@ describe('Reason for Giving element', () => {
     cy.wait('@getPageDetail');
 
     // Assert that we don't go to the payment modal if we don't pick a reason.
+    // We should be blocked by browser validation.
 
     fillOutDonorInfoSection();
     fillOutAddressSection();
     cy.get('form')
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
-    cy.get('#dreason-select-helper-text').contains(validationError);
     cy.get('form #stripe-payment-element').should('not.exist');
   });
 
@@ -454,9 +453,9 @@ function fillOutDonorInfoSection() {
 }
 
 function fillOutReasonForGiving() {
-  cy.get('[data-testid="excited-to-support-picklist"]').click();
+  cy.get('[data-testid="reason-for-giving-reason-select"]').click();
   cy.findByRole('option', { name: 'test1' }).click();
-  cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
+  cy.get('[data-testid="reason-for-giving-reason-select"]').invoke('val').as('reasonValue');
 }
 
 const fakeEmailHash = 'b4170aca0fd3e60';
@@ -835,7 +834,7 @@ describe('User flow: canceling contribution', () => {
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
     getFeesCheckbox().should('be.checked');
     cy.get('@reasonValue').then((reason) => {
-      cy.getByTestId('excited-to-support-picklist').should('have.value', reason);
+      cy.getByTestId('reason-for-giving-reason-select').should('have.value', reason);
     });
   });
 

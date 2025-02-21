@@ -303,12 +303,14 @@ class TestSwitchboardContributionsViewSet:
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
 
     @pytest.mark.parametrize("send_receipt", [True, False])
-    def test_create_receipt_behavior(self, api_client, creation_data_recurring_with_page, token, mocker, send_receipt):
+    def test_create_receipt_behavior(
+        self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, send_receipt
+    ):
         mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
         api_client.post(
             f"{reverse('switchboard-contribution-list')}{'?' + SEND_RECEIPT_QUERY_PARAM if send_receipt else ''}",
             data=creation_data_recurring_with_page,
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert mock_handle_thank_you_email.called is send_receipt
 

@@ -39,7 +39,7 @@ from apps.users.permissions import (
 )
 from apps.users.serializers import AuthedUserSerializer
 from apps.users.tests.factories import create_test_user
-from apps.users.views import AccountVerification, UserViewset
+from apps.users.views.revengine import AccountVerification, UserViewset
 
 
 @pytest.fixture
@@ -296,7 +296,7 @@ class TestAccountVerificationClass:
         ],
     )
     def test_failed_validation(self, expected, encoded_email, encoded_token, mocker):
-        info = mocker.patch("apps.users.views.logger.info")
+        info = mocker.patch("apps.users.views.revengine.logger.info")
         t = AccountVerification()
         t.max_age = None
         assert not t.validate(encoded_email, encoded_token)
@@ -304,7 +304,7 @@ class TestAccountVerificationClass:
         assert expected in info.call_args.args[0]
 
     def test_expired_link(self, mocker):
-        warning = mocker.patch("apps.users.views.logger.warning")
+        warning = mocker.patch("apps.users.views.revengine.logger.warning")
         t = AccountVerification()
         t.max_age = 0.1  # Gotta be quick!
         encoded_email, token = t.generate_token("bobjohnny@example.com")
@@ -314,7 +314,7 @@ class TestAccountVerificationClass:
         assert "Expired" in warning.call_args.args[0]
 
     def test_signature_fail(self, mocker):
-        info = mocker.patch("apps.users.views.logger.info")
+        info = mocker.patch("apps.users.views.revengine.logger.info")
         t = AccountVerification()
         t.max_age = 100
         encoded_email, _ = t.generate_token("bobjohnny@example.com")
@@ -351,14 +351,14 @@ def test_account_verification(is_valid, api_client, mocker, valid_email):
 
     apps.users.views.AccountVerification or apps.users.UserViewSet.request_account_verification
     """
-    mocker.patch("apps.users.views.AccountVerification.validate", return_value=is_valid)
+    mocker.patch("apps.users.views.revengine.AccountVerification.validate", return_value=is_valid)
     encoded_email, token = AccountVerification().generate_token("bobjohnny@example.com")
 
     user = create_test_user(email=valid_email, email_verified=False)
     mock_verifier = mocker.Mock()
     mock_verifier.validate.return_value = False if not is_valid else user
     mock_verifier.fail_reason = "some-reason"
-    mocker.patch("apps.users.views.AccountVerification", return_value=mock_verifier)
+    mocker.patch("apps.users.views.revengine.AccountVerification", return_value=mock_verifier)
     response = api_client.get(reverse("account_verification", args=(encoded_email, token)))
     assert response.status_code == status.HTTP_302_FOUND
     if is_valid:
@@ -636,8 +636,10 @@ class TestUserViewSet:
         assert user_with_verified_email_and_tos_accepted.roleassignment.organization.name == f"{organization.name}-1"
 
     def test_create_happy_path(self, mocker, api_client, valid_create_request_data, bad_actor_good_score):
-        mock_bad_actor_request = mocker.patch("apps.users.views.get_bad_actor_score", return_value=bad_actor_good_score)
-        mock_send_verification_email = mocker.patch("apps.users.views.UserViewset.send_verification_email")
+        mock_bad_actor_request = mocker.patch(
+            "apps.users.views.revengine.get_bad_actor_score", return_value=bad_actor_good_score
+        )
+        mock_send_verification_email = mocker.patch("apps.users.views.revengine.UserViewset.send_verification_email")
         user_count = (User := get_user_model()).objects.count()
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
@@ -661,7 +663,9 @@ class TestUserViewSet:
 
     def test_make_bad_actor_request_payload(self, mocker, api_client, valid_create_request_data, bad_actor_good_score):
         """Test that the bad actor request payload is correct when creating a user."""
-        mock_bad_actor_request = mocker.patch("apps.users.views.get_bad_actor_score", return_value=bad_actor_good_score)
+        mock_bad_actor_request = mocker.patch(
+            "apps.users.views.revengine.get_bad_actor_score", return_value=bad_actor_good_score
+        )
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -692,7 +696,7 @@ class TestUserViewSet:
     ):
 
         mocker.patch(
-            "apps.users.views.get_bad_actor_score",
+            "apps.users.views.revengine.get_bad_actor_score",
             return_value=bad_actor_super_bad_score,
         )
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
@@ -706,8 +710,8 @@ class TestUserViewSet:
         assert response.status_code == status.HTTP_201_CREATED
 
     def test_create_when_bad_actor_request_has_error(self, mocker, api_client, valid_create_request_data):
-        logger_spy = mocker.patch("apps.users.views.logger.exception")
-        mocker.patch("apps.users.views.get_bad_actor_score", side_effect=BadActorAPIError("error"))
+        logger_spy = mocker.patch("apps.users.views.revengine.logger.exception")
+        mocker.patch("apps.users.views.revengine.get_bad_actor_score", side_effect=BadActorAPIError("error"))
         response = api_client.post(reverse("user-list"), data=valid_create_request_data)
         assert response.status_code == status.HTTP_201_CREATED
         logger_spy.assert_called_once_with("Something went wrong getting bad actor score")
@@ -718,7 +722,7 @@ class TestUserViewSet:
             pass
 
         return mocker.patch(
-            "apps.users.views.get_bad_actor_score",
+            "apps.users.views.revengine.get_bad_actor_score",
             side_effect=RandomException("Something bad happened"),
         )
 
@@ -805,7 +809,7 @@ class TestUserViewSet:
         assert org_user_free_plan.check_password(password)
 
     def test_request_account_verification_happy_path(self, api_client, mocker):
-        mock_send_verification_email = mocker.patch("apps.users.views.UserViewset.send_verification_email")
+        mock_send_verification_email = mocker.patch("apps.users.views.revengine.UserViewset.send_verification_email")
         user = create_test_user(email_verified=False)
         api_client.force_authenticate(user=user)
         response = api_client.get(reverse("user-request-account-verification"))
@@ -847,7 +851,7 @@ class TestUserViewSet:
         valid_password,
     ):
         mocker.patch(
-            "apps.users.views.validate_password",
+            "apps.users.views.revengine.validate_password",
             side_effect=DjangoValidationError(initial_message),
         )
         with pytest.raises(DRFValidationError, match=expected_message):

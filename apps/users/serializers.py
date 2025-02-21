@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -25,7 +25,7 @@ from apps.organizations.serializers import (
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
-from apps.users.models import RoleAssignment
+from apps.users.models import RoleAssignment, User
 
 from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 from .validators import tax_id_validator
@@ -143,6 +143,35 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
         read_only_fields = [
             x for x in _AUTHED_USER_FIELDS if x not in ("password", "email", "accepted_terms_of_service")
         ]
+
+
+# TODO @nrh-cklimas: centralize these definitions across the Django app
+# DEV-5873
+RoleTypeCode = Literal["hub_admin", "org_admin", "rp_admin", "superuser"]
+
+
+class UserRole(TypedDict):
+    type: RoleTypeCode | None
+    organizations: list[int]
+    revenue_programs: list[int]
+
+
+class SwitchboardUserSerializer(serializers.ModelSerializer):
+    """Read-only access to users. Organizations and revenue programs are serialized by ID only."""
+
+    role = serializers.SerializerMethodField("get_role")
+
+    class Meta:
+        model = get_user_model()
+        fields = ["email", "first_name", "id", "job_title", "last_name", "role"]
+        read_only_fields = fields
+
+    def get_role(self, obj: User) -> UserRole:
+        return {
+            "type": obj.role_type[0] if isinstance(obj.role_type, tuple) and len(obj.role_type) == 2 else None,
+            "organizations": [org.id for org in obj.permitted_organizations],
+            "revenue_programs": [rp.id for rp in obj.permitted_revenue_programs],
+        }
 
 
 class CustomizeAccountSerializerReturnValue(TypedDict):

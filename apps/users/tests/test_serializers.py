@@ -408,3 +408,54 @@ class TestMutableUserSerializer:
         actual_read_only_fields = set(serializers.MutableUserSerializer.Meta.read_only_fields)
         assert actual_writable_fields == expected_writable_fields
         assert actual_read_only_fields == expected_read_only_fields
+
+
+@pytest.mark.django_db
+class TestSwitchboardUserSerializer:
+    @pytest.mark.parametrize(
+        ("user_fixture", "expected_role"),
+        [
+            ("superuser", "superuser"),
+            ("hub_admin_user", "hub_admin"),
+            ("org_user_free_plan", "org_admin"),
+            ("org_user_multiple_rps", "org_admin"),
+            ("rp_user", "rp_admin"),
+            ("user_with_verified_email_and_tos_accepted", None),
+        ],
+    )
+    def test_has_expected_fields(self, user_fixture: str, expected_role: str, request):
+        user = request.getfixturevalue(user_fixture)
+        data = serializers.SwitchboardUserSerializer(user).data
+        assert data == {
+            "email": user.email,
+            "first_name": user.first_name,
+            "id": user.id,
+            "job_title": user.job_title,
+            "last_name": user.last_name,
+            "role": {
+                "type": expected_role,
+                "organizations": [org.id for org in user.permitted_organizations],
+                "revenue_programs": [rp.id for rp in user.permitted_revenue_programs],
+            },
+        }
+
+    def test_all_fields_readonly(self):
+        assert set(serializers.SwitchboardUserSerializer.Meta.read_only_fields) == set(
+            serializers.SwitchboardUserSerializer.Meta.fields
+        )
+
+    def test_get_role_happy_path(self, hub_admin_user):
+        serializer = serializers.SwitchboardUserSerializer()
+        assert serializer.get_role(hub_admin_user) == {
+            "type": "hub_admin",
+            "organizations": [org.id for org in hub_admin_user.permitted_organizations],
+            "revenue_programs": [rp.id for rp in hub_admin_user.permitted_revenue_programs],
+        }
+
+    def test_get_role_no_role_type(self, user_no_role_assignment):
+        serializer = serializers.SwitchboardUserSerializer()
+        assert serializer.get_role(user_no_role_assignment) == {
+            "type": None,
+            "organizations": [],
+            "revenue_programs": [],
+        }

@@ -724,6 +724,16 @@ class TestPaymentViewset:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"interval": "The interval field is required"}
 
+    def test_when_called_with_no_reason_for_giving_and_required(
+        self, minimally_valid_contribution_form_data, donation_page
+    ):
+        reason_element = next((el for el in donation_page.elements if el["type"] == "DReason"), None)
+        reason_element["requiredFields"] = ["reason_for_giving"]
+        donation_page.save()
+        response = self.client.post(reverse("payment-list"), minimally_valid_contribution_form_data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"reason_for_giving": ["This information is required"]}
+
     def test_when_no_csrf(self):
         """Show that view is inaccessible if no CSRF token is included in request.
 

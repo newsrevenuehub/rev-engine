@@ -16,6 +16,7 @@ import base64
 import datetime
 import json
 from dataclasses import asdict
+from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
 from random import choice, randint, uniform
@@ -23,11 +24,13 @@ from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
 from django.core.files.images import ImageFile
+from django.utils.timezone import now
 
 import PIL.Image
 import pytest
 import stripe
 from faker import Faker
+from knox.models import AuthToken
 from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
@@ -211,6 +214,19 @@ def rp_user(org_user_multiple_rps, default_feature_flags) -> User:
     ra.revenue_programs.add(org_user_multiple_rps.roleassignment.revenue_programs.first().id)
     ra.save()
     return ra.user
+
+
+@pytest.fixture
+def switchboard_api_token(switchboard_user):
+    return AuthToken.objects.create(switchboard_user)[1]
+
+
+@pytest.fixture
+def switchboard_api_expired_token(switchboard_user):
+    token, token_string = AuthToken.objects.create(switchboard_user)
+    token.expiry = now() - timedelta(days=1)
+    token.save()
+    return token_string
 
 
 @pytest.fixture

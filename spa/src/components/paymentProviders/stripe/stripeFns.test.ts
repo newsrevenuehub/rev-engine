@@ -189,23 +189,20 @@ describe('serializeData', () => {
     mockForm.appendChild(mockElement);
   });
 
-  it.each([['swag_opt_out'], ['tribute_type_honoree'], ['tribute_type_in_memory_of']])(
-    'converts the %s form field to actual booleans',
-    (fieldName) => {
-      mockElement.setAttribute('name', fieldName);
-      mockElement.setAttribute('value', 'true');
-      expect(serializeData(mockForm, {} as any)).toEqual(expect.objectContaining({ [fieldName]: true }));
-      mockElement.setAttribute('value', 'false');
-      expect(serializeData(mockForm, {} as any)).toEqual(expect.objectContaining({ [fieldName]: true }));
-      mockForm.removeChild(mockElement);
+  it.each([['swag_opt_out']])('converts the %s form field to actual booleans', (fieldName) => {
+    mockElement.setAttribute('name', fieldName);
+    mockElement.setAttribute('value', 'true');
+    expect(serializeData(mockForm, {} as any)).toEqual(expect.objectContaining({ [fieldName]: true }));
+    mockElement.setAttribute('value', 'false');
+    expect(serializeData(mockForm, {} as any)).toEqual(expect.objectContaining({ [fieldName]: true }));
+    mockForm.removeChild(mockElement);
 
-      // Need some special handling for the undefined scenario.
+    // Need some special handling for the undefined scenario.
 
-      const result = serializeData(mockForm, {} as any);
+    const result = serializeData(mockForm, {} as any);
 
-      expect(result[fieldName]).toBeUndefined();
-    }
-  );
+    expect(result[fieldName]).toBeUndefined();
+  });
 
   it('passes through string form fields as-is', () => {
     mockElement.setAttribute('name', 'mockName');

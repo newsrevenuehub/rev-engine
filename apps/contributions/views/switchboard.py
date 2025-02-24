@@ -60,7 +60,7 @@ class SwitchboardContributionsViewSet(
                 contribution.revenue_program.id,
                 contribution.id,
             )
-            contribution.handle_thank_you_email()
+            contribution.handle_receipt_email()
 
     def handle_exception(self, exc):
         """Ensure select uniqueness constraint errors receive a 409.

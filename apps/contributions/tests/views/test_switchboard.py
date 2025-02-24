@@ -314,13 +314,13 @@ class TestSwitchboardContributionsViewSet:
     def test_create_receipt_behavior(
         self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
     ):
-        mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
         api_client.post(
             reverse("switchboard-contribution-list") + querystring,
             data=creation_data_recurring_with_page,
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
-        assert mock_handle_thank_you_email.called is send_receipt
+        assert mock_handle_receipt_email.called is send_receipt
 
     def test_retrieve(self, api_client, contribution, switchboard_api_token):
         response = api_client.get(

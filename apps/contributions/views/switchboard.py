@@ -83,6 +83,6 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
 
     @action(methods=["get"], url_path="email/(?P<email>[^/]+)", detail=False)
     def get_by_email(self, request: HttpRequest, email: str) -> Response:
-        contributor = get_object_or_404(Contributor.objects.all(), email__iexact=email)
+        contributor = get_object_or_404(Contributor.objects.all(), email__iexact=email.strip())
         serializer = serializers.SwitchboardContributorSerializer(contributor)
         return Response(serializer.data)

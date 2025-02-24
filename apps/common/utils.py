@@ -173,6 +173,11 @@ def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
 
 
+def string_has_truthy_value(value: str) -> bool:
+    """Return whether a string value is considered 'truthy'."""
+    return value.lower().strip() in ["y", "yes", "true"]
+
+
 def upsert_with_diff_check(
     model,
     defaults: dict,

@@ -13,6 +13,7 @@ from apps.common.utils import (
     google_cloud_pub_sub_is_configured,
     logger,
     normalize_slug,
+    string_has_truthy_value,
     upsert_cloudflare_cnames,
     upsert_with_diff_check,
 )
@@ -236,6 +237,26 @@ def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expec
     monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", enable_pubsub)
     monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", gcloud_project)
     assert google_cloud_pub_sub_is_configured() == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("True", True),
+        ("true", True),
+        ("yes", True),
+        ("YES", True),
+        ("y", True),
+        ("Y", True),
+        ("False", False),
+        ("false", False),
+        ("T", False),
+        ("", False),
+        ("unrelated", False),
+    ],
+)
+def test_string_has_truthy_value(value, expected):
+    assert string_has_truthy_value(value) == expected
 
 
 @pytest.mark.django_db

@@ -31,8 +31,8 @@ from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.emails.tasks import (
     make_send_test_contribution_email_data,
     make_send_test_magic_link_email_data,
+    send_receipt_email,
     send_templated_email,
-    send_thank_you_email,
 )
 from apps.organizations import serializers
 from apps.organizations.models import CorePlan, FreePlan, Organization, RevenueProgram
@@ -461,7 +461,7 @@ def send_test_email(request):
     match email_name:
         case "receipt":
             data = make_send_test_contribution_email_data(request.user, revenue_program)
-            send_thank_you_email.delay(data)
+            send_receipt_email.delay(data)
         case "reminder":
             data = make_send_test_contribution_email_data(request.user, revenue_program)
             send_templated_email.delay(

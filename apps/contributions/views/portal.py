@@ -128,7 +128,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             contribution: Contribution = self.get_contributor_contributions(contributor).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
-        contribution.handle_thank_you_email(
+        contribution.handle_receipt_email(
             show_billing_history=contribution.interval != ContributionInterval.ONE_TIME.value
         )
         return Response(status=status.HTTP_204_NO_CONTENT)

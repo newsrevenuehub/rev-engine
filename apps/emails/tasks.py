@@ -236,15 +236,15 @@ def get_test_magic_link(user, revenue_program) -> str:
 
 
 @shared_task(
-    name="send_thank_you_email",
+    name="send_receipt_email",
     max_retries=5,
     retry_backoff=True,
     retry_jitter=False,
     autoretry_for=(SMTPException,),
 )
-def send_thank_you_email(data: SendContributionEmailData) -> None:
-    """Retrieve Stripe customer and send thank you email for a contribution."""
-    logger.info("send_thank_you_email: Attempting to send thank you email with the following template data %s", data)
+def send_receipt_email(data: SendContributionEmailData) -> None:
+    """Retrieve Stripe customer and send receipt email for a contribution."""
+    logger.info("send_receipt_email: Attempting to send receipt email with the following template data %s", data)
     with configure_scope() as scope:
         scope.user = {"email": (to := data["contributor_email"])}
         send_mail(

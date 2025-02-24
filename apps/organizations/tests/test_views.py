@@ -21,8 +21,8 @@ from apps.common.secret_manager import GoogleCloudSecretProvider
 from apps.emails.tasks import (
     make_send_test_contribution_email_data,
     make_send_test_magic_link_email_data,
+    send_receipt_email,
     send_templated_email,
-    send_thank_you_email,
 )
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
@@ -1552,14 +1552,14 @@ class TestSendTestEmail:
         )
 
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
-        send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
+        send_receipt_email_spy = mocker.spy(send_receipt_email, "delay")
         expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
         api_client.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "receipt"},
         )
-        send_thank_you_email_spy.assert_called_once_with(expected_data)
+        send_receipt_email_spy.assert_called_once_with(expected_data)
 
     def test_send_test_reminder_email(self, test_email_user, revenue_program, mocker, api_client, settings):
         settings.CELERY_ALWAYS_EAGER = True

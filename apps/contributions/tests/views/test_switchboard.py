@@ -308,7 +308,7 @@ class TestSwitchboardContributionsViewSet:
     ):
         mock_handle_thank_you_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
         api_client.post(
-            f"{reverse('switchboard-contribution-list')}{'?' + SEND_RECEIPT_QUERY_PARAM if send_receipt else ''}",
+            f"{reverse('switchboard-contribution-list')}{'?' + SEND_RECEIPT_QUERY_PARAM + '=true' if send_receipt else ''}",
             data=creation_data_recurring_with_page,
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )

@@ -14,6 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
+from apps.common.utils import string_has_truthy_value
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor
 
@@ -51,7 +52,9 @@ class SwitchboardContributionsViewSet(
         intent or subscription).
         """
         contribution: Contribution = serializer.save()
-        if self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM) is not None:
+        if isinstance(qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM), str) and string_has_truthy_value(
+            qp
+        ):
             # send_thank_you_email() handles conditionality around whether
             # receipt emails for the revenue program are sent by rev-engine.
             logger.info(

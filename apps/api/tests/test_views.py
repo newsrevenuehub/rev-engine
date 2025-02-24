@@ -535,18 +535,15 @@ class VerifyContributorTokenViewTest(APITestCase):
 @pytest.mark.usefixtures("default_feature_flags")
 class TestAuthorizedContributor:
 
-    @pytest.fixture(autouse=True)
-    def _config(self, mocker):
-        # We do this because we don't care about the results returned and we don't want to hit the database
-        # or Stripe if any contributions exist for the user.
-        mocker.patch.object(SwitchboardContributionsViewSet, "queryset", return_value=Contribution.objects.none())
-
     @pytest.fixture
     def contribution(self, contributor_user):
         return ContributionFactory(contributor=contributor_user)
 
     @pytest.fixture
-    def contributions_url(self, contributor_user):
+    def contributions_url(self, contributor_user, mocker):
+        # We do this because we don't care about the results returned and we don't want to hit the database
+        # or Stripe if any contributions exist for the user.
+        mocker.patch.object(SwitchboardContributionsViewSet, "queryset", return_value=Contribution.objects.none())
         return reverse("portal-contributor-contributions-list", kwargs={"pk": contributor_user.id})
 
     @pytest.fixture

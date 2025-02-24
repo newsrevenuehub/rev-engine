@@ -4,6 +4,7 @@ from django.test import RequestFactory
 import pytest
 
 from apps.common.utils import (
+    booleanize_string,
     create_stripe_webhook,
     delete_cloudflare_cnames,
     delete_stripe_webhook,
@@ -13,7 +14,6 @@ from apps.common.utils import (
     google_cloud_pub_sub_is_configured,
     logger,
     normalize_slug,
-    string_has_truthy_value,
     upsert_cloudflare_cnames,
     upsert_with_diff_check,
 )
@@ -255,8 +255,8 @@ def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expec
         ("unrelated", False),
     ],
 )
-def test_string_has_truthy_value(value, expected):
-    assert string_has_truthy_value(value) == expected
+def test_booleanize_string(value, expected):
+    assert booleanize_string(value) == expected
 
 
 @pytest.mark.django_db

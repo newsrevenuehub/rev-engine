@@ -6,7 +6,7 @@ from django.conf import settings
 
 import pydantic
 
-from apps.common.utils import string_has_truthy_value
+from apps.common.utils import booleanize_string
 from apps.contributions.exceptions import InvalidMetadataError
 
 
@@ -54,7 +54,7 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
         if any([isinstance(v, bool), v is None]):
             return v
         if isinstance(v, str):
-            if string_has_truthy_value(v):
+            if booleanize_string(v):
                 return True
             if v.lower().strip() in ["false", "none", "no", "n"]:
                 return False

@@ -52,7 +52,7 @@ class SwitchboardContributionsViewSet(
         intent or subscription).
         """
         contribution: Contribution = serializer.save()
-        if isinstance(qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM), str) and booleanize_string(qp):
+        if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
             # send_thank_you_email() handles conditionality around whether
             # receipt emails for the revenue program are sent by rev-engine.
             logger.info(

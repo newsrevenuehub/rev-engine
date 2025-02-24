@@ -51,8 +51,7 @@ function serializeForm(form: HTMLFormElement) {
     throw new Error(`Asked to serialize something not a form element: ${form}, ${JSON.stringify(form)}`);
   }
 
-  const booleans = ['swag_opt_out', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
-  const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
+  const booleans = ['swag_opt_out'];
   const obj: Record<string, File | boolean | null | string> = {};
   const formData = new FormData(form);
 
@@ -63,12 +62,6 @@ function serializeForm(form: HTMLFormElement) {
       obj[key] = true;
     } else {
       obj[key] = formData.get(key);
-    }
-
-    // tribute_type could be either a radio or a checkbox.
-    // If it's a checkbox, we need to convert the "true" value to the expected value
-    if (key in tributesToConvert) {
-      obj.tribute_type = tributesToConvert[key as keyof typeof tributesToConvert];
     }
   }
 

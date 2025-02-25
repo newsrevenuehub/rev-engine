@@ -560,10 +560,10 @@ class TestSwitchboardPaymentsViewSet:
         }
 
     def test_create_happy_path(self, api_client, payment_creation_data, token):
-        comment = "Initial payment creation"
+        comment = "Payment created by Switchboard"
         response = api_client.post(
             reverse("switchboard-payment-list"),
-            data={**payment_creation_data, "comment": comment},
+            data=payment_creation_data,
             headers={"Authorization": f"Token {token}"},
         )
         assert response.status_code == status.HTTP_201_CREATED
@@ -624,8 +624,8 @@ class TestSwitchboardPaymentsViewSet:
         assert response.json() == {"detail": "Invalid token."}
 
     def test_patch_payment_happy_path(self, api_client, token, payment):
-        comment = "Updated payment amount"
-        update_data = {"net_amount_paid": 4000, "comment": comment}
+        comment = "Payment updated by Switchboard"
+        update_data = {"net_amount_paid": 4000}
 
         response = api_client.patch(
             reverse("switchboard-payment-detail", args=(payment.id,)),

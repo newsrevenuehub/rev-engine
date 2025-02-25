@@ -100,9 +100,9 @@ class SwitchboardPaymentsViewSet(
     def perform_create(self, serializer):
         with reversion.create_revision():
             serializer.save()
-            reversion.set_comment(self.request.data.get("comment", ""))
+            reversion.set_comment("Payment created by Switchboard")
 
     def perform_update(self, serializer):
         with reversion.create_revision():
             serializer.save()
-            reversion.set_comment(self.request.data.get("comment", ""))
+            reversion.set_comment("Payment updated by Switchboard")

@@ -6,10 +6,12 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
+import reversion
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
+from reversion.views import RevisionMixin
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
@@ -80,6 +82,7 @@ def contributor_by_email(request: HttpRequest, email: str) -> Response:
 
 
 class SwitchboardPaymentsViewSet(
+    RevisionMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
@@ -93,3 +96,13 @@ class SwitchboardPaymentsViewSet(
     queryset = Payment.objects.all()
     serializer_class = serializers.SwitchboardPaymentSerializer
     authentication_classes = [TokenAuthentication]
+
+    def perform_create(self, serializer):
+        with reversion.create_revision():
+            serializer.save()
+            reversion.set_comment(self.request.data.get("comment", ""))
+
+    def perform_update(self, serializer):
+        with reversion.create_revision():
+            serializer.save()
+            reversion.set_comment(self.request.data.get("comment", ""))

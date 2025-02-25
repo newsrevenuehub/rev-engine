@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 
 import pytest
+import reversion
 from knox.models import AuthToken
 from rest_framework import status
 from rest_framework.reverse import reverse
@@ -559,19 +560,29 @@ class TestSwitchboardPaymentsViewSet:
         }
 
     def test_create_happy_path(self, api_client, payment_creation_data, token):
+        comment = "Initial payment creation"
         response = api_client.post(
-            reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
+            reverse("switchboard-payment-list"),
+            data={**payment_creation_data, "comment": comment},
+            headers={"Authorization": f"Token {token}"},
         )
         assert response.status_code == status.HTTP_201_CREATED
-        payment = Payment.objects.get(id=response.json()["id"])
+        new_payment = Payment.objects.get(id=response.json()["id"])
         for k, v in payment_creation_data.items():
+            if k == "comment":
+                continue  # Skip comment field as it's not saved to the model
             match k:
                 case "contribution":
-                    assert payment.contribution.id == v
+                    assert new_payment.contribution.id == v
                 case "transaction_time":
-                    assert payment.transaction_time.isoformat() == v
+                    assert new_payment.transaction_time.isoformat() == v
                 case _:
-                    assert getattr(payment, k) == v
+                    assert getattr(new_payment, k) == v
+
+        # Verify reversion comment was recorded
+        versions = reversion.models.Version.objects.get_for_object(new_payment)
+        assert versions.count() == 1
+        assert versions[0].revision.comment == comment
 
     def test_retrieve(self, api_client, payment, token):
         response = api_client.get(
@@ -613,7 +624,8 @@ class TestSwitchboardPaymentsViewSet:
         assert response.json() == {"detail": "Invalid token."}
 
     def test_patch_payment_happy_path(self, api_client, token, payment):
-        update_data = {"net_amount_paid": 4000}
+        comment = "Updated payment amount"
+        update_data = {"net_amount_paid": 4000, "comment": comment}
 
         response = api_client.patch(
             reverse("switchboard-payment-detail", args=(payment.id,)),
@@ -625,6 +637,10 @@ class TestSwitchboardPaymentsViewSet:
         assert response.data["net_amount_paid"] == 4000
         payment.refresh_from_db()
         assert payment.net_amount_paid == 4000
+
+        versions = reversion.models.Version.objects.get_for_object(payment)
+        assert versions.count() == 1
+        assert versions[0].revision.comment == comment
 
     def test_patch_payment_update_stripe_balance_transaction_id(self, api_client, token, payment):
         another_payment = PaymentFactory()

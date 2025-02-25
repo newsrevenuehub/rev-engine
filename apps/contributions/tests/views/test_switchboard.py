@@ -10,6 +10,7 @@ from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
 )
+from apps.contributions.views.switchboard import SEND_RECEIPT_QUERY_PARAM
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -310,6 +311,26 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
+
+    @pytest.mark.parametrize(
+        ("querystring", "send_receipt"),
+        [
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=yes", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=y", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=true", True),
+            ("", False),
+        ],
+    )
+    def test_create_receipt_behavior(
+        self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
+    ):
+        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        api_client.post(
+            reverse("switchboard-contribution-list") + querystring,
+            data=creation_data_recurring_with_page,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert mock_handle_receipt_email.called is send_receipt
 
     def test_retrieve(self, api_client, contribution, switchboard_api_token):
         response = api_client.get(

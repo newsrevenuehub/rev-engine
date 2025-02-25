@@ -173,6 +173,15 @@ def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
 
 
+def booleanize_string(value: str) -> bool:
+    """Return whether a string value is considered affirmative/positive.
+
+    This is different from "truthy", strictly speaking, because the string
+    "false" is considered truthy by Python.
+    """
+    return value.lower().strip() in ["y", "yes", "true"]
+
+
 def upsert_with_diff_check(
     model,
     defaults: dict,

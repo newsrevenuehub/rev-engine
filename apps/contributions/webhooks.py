@@ -288,7 +288,7 @@ class StripeWebhookProcessor:
 
         - Update contribution with payment provider data, also update status
         - Create a payment instance
-        - Send thank you email
+        - Send receipt email (if it's v1.4 metadata schema version)
         """
         if self.obj_data.get("invoice", None):
             logger.info(
@@ -310,7 +310,8 @@ class StripeWebhookProcessor:
                 contribution_update_data,
                 "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
             )
-            self.contribution.handle_thank_you_email()
+            if (self.contribution.contribution_metadata or {}).get("schema_version") == "1.4":
+                self.contribution.handle_receipt_email()
 
     def handle_subscription_updated(self):
         update_data = self._add_pm_id_and_payment_method_details(
@@ -367,6 +368,13 @@ class StripeWebhookProcessor:
             )
 
     def handle_invoice_payment_succeeded(self):
+        """Handle invoice payment succeeded event.
+
+        - Create a payment
+        - Update payment method data
+        - Update contribution
+        - If it's the first payment, and if it's v1.4 metadata, send a receipt email
+        """
         with transaction.atomic():
             payment = Payment.from_stripe_invoice_payment_succeeded_event(event=self.event)
             pi = stripe.PaymentIntent.retrieve(
@@ -384,5 +392,10 @@ class StripeWebhookProcessor:
                 update_data,
                 "`StripeWebhookProcessor.handle_invoice_payment_succeeded` updated contribution",
             )
-        if payment.contribution.payment_set.count() == 1:
-            self.contribution.handle_thank_you_email()
+        if (
+            payment.contribution.payment_set.count() == 1
+            and (payment.contribution.contribution_metadata or {}).get("schema_version") == "1.4"
+        ):
+            # TODO @BW: Publish event when receipt email is sent
+            # DEV-5841
+            self.contribution.handle_receipt_email()

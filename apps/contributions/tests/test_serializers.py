@@ -347,36 +347,6 @@ def donation_page_with_ask_in_memory():
     return page
 
 
-def get_donation_page_fixture(
-    requested_fixture,
-    donation_page=None,
-    donation_page_with_conditionally_required_phone_element=None,
-    donation_page_with_conditionally_required_reason_for_giving_element_no_presets=None,
-    donation_page_with_conditionally_required_reason_for_giving_element_and_presets=None,
-    donation_page_with_unrequired_reason_for_giving_element_and_presets=None,
-    donation_page_with_ask_honoree=None,
-    donation_page_with_ask_in_memory=None,
-):
-    """Choose donation page fixture via pytest.mark.parametrize convience function.
-
-    Fixtures cannot be directly passed to pytest.mark.parametrize, but in some of our tests,
-    it's quite convenient to be able to make page fixture choice parametrizable. Pytest fixtures have to be passed
-    as params to a test in order to be in a usuable state at run time.
-
-    This function gets passed a string value referring to a requested fixture, as well as a reference to fixtures passed as test
-    call args, allowing us to yield the appropriate test fixture via parametrization.
-    """
-    return {
-        "donation_page": donation_page,
-        "donation_page_with_conditionally_required_phone_element": donation_page_with_conditionally_required_phone_element,
-        "donation_page_with_conditionally_required_reason_for_giving_element_no_presets": donation_page_with_conditionally_required_reason_for_giving_element_no_presets,  # noqa E501 black formats it this way
-        "donation_page_with_conditionally_required_reason_for_giving_element_and_presets": donation_page_with_conditionally_required_reason_for_giving_element_and_presets,  # noqa E501 black formats it this way
-        "donation_page_with_unrequired_reason_for_giving_element_and_presets": donation_page_with_unrequired_reason_for_giving_element_and_presets,  # noqa E501 black formats it this way
-        "donation_page_with_ask_honoree": donation_page_with_ask_honoree,
-        "donation_page_with_ask_in_memory": donation_page_with_ask_in_memory,
-    }[requested_fixture]
-
-
 class MockBadActorResponseObjectNotBad:
     """Used in tests below to simulate response returned by get_bad_actor_score.
 
@@ -453,93 +423,8 @@ class TestBaseCreatePaymentSerializer:
     serializer_class = serializers.BaseCreatePaymentSerializer
 
     @pytest.mark.parametrize(
-        ("input_data", "requested_page", "expect_valid"),
+        ("input_data", "page_fixture", "expect_valid", "error_msg"),
         [
-            ({"reason_for_giving": "Other", "reason_other": ""}, "donation_page", False),
-            (
-                {"reason_for_giving": "Other", "reason_other": ""},
-                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
-                False,
-            ),
-            (
-                {"reason_for_giving": "Other", "reason_other": ""},
-                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                False,
-            ),
-            (
-                {"reason_for_giving": "Other", "reason_other": ""},
-                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
-                False,
-            ),
-            ({"reason_for_giving": "Other"}, "donation_page", False),
-            (
-                {"reason_for_giving": "Other"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
-                False,
-            ),
-            (
-                {"reason_for_giving": "Other"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                False,
-            ),
-            (
-                {"reason_for_giving": "Other"},
-                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
-                False,
-            ),
-            ({"reason_other": "Reason"}, "donation_page", True),
-            (
-                {"reason_other": "Reason"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
-                True,
-            ),
-            (
-                {"reason_other": "Reason"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                True,
-            ),
-            (
-                {"reason_other": "Reason"},
-                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
-                True,
-            ),
-        ],
-    )
-    def test_validate_reason_other(
-        self,
-        input_data,
-        requested_page,
-        expect_valid,
-        minimally_valid_contribution_form_data,
-        donation_page,
-        donation_page_with_conditionally_required_reason_for_giving_element_no_presets,
-        donation_page_with_conditionally_required_reason_for_giving_element_and_presets,
-        donation_page_with_unrequired_reason_for_giving_element_and_presets,
-    ):
-        data = minimally_valid_contribution_form_data | input_data
-        data["page"] = get_donation_page_fixture(
-            requested_page,
-            donation_page=donation_page,
-            donation_page_with_conditionally_required_reason_for_giving_element_no_presets=(
-                donation_page_with_conditionally_required_reason_for_giving_element_no_presets
-            ),
-            donation_page_with_conditionally_required_reason_for_giving_element_and_presets=(
-                donation_page_with_conditionally_required_reason_for_giving_element_and_presets
-            ),
-            donation_page_with_unrequired_reason_for_giving_element_and_presets=(
-                donation_page_with_unrequired_reason_for_giving_element_and_presets
-            ),
-        ).id
-        serializer = self.serializer_class(data=data)
-        assert serializer.is_valid() is expect_valid
-        if expect_valid is False:
-            assert set(serializer.errors.keys()) == {"reason_other"}
-            assert serializer.errors["reason_other"][0] == GENERIC_BLANK
-
-    @pytest.mark.parametrize(
-        ("input_data", "requested_page", "expect_valid", "error_msg"),
-        [
-            ({}, "donation_page", True, None),
             (
                 {},
                 "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
@@ -547,58 +432,14 @@ class TestBaseCreatePaymentSerializer:
                 GENERIC_BLANK,
             ),
             (
-                {},
+                {"reason_for_giving": "Not a preset reason"},
                 "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                False,
-                GENERIC_BLANK,
+                True,
+                None,
             ),
             ({}, "donation_page_with_unrequired_reason_for_giving_element_and_presets", True, None),
-            ({"reason_for_giving": "Other", "reason_other": "Reason"}, "donation_page", True, None),
             (
-                {"reason_for_giving": "Other", "reason_other": "Reason"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
-                True,
-                None,
-            ),
-            (
-                {"reason_for_giving": "Other", "reason_other": "Reason"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                True,
-                None,
-            ),
-            (
-                {"reason_for_giving": "Other", "reason_other": "Reason"},
-                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
-                True,
-                None,
-            ),
-            ({"reason_for_giving": "My reason"}, "donation_page", False, GENERIC_UNEXPECTED_VALUE),
-            (
-                {"reason_for_giving": "My reason"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
-                False,
-                GENERIC_UNEXPECTED_VALUE,
-            ),
-            (
-                {"reason_for_giving": "My reason"},
-                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                False,
-                GENERIC_UNEXPECTED_VALUE,
-            ),
-            (
-                {"reason_for_giving": "My reason"},
-                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
-                False,
-                GENERIC_UNEXPECTED_VALUE,
-            ),
-            (
-                {"reason_for_giving": PRESET_REASONS[0]},
-                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
-                True,
-                None,
-            ),
-            (
-                {"reason_for_giving": PRESET_REASONS[0]},
+                {"reason_for_giving": "Not a preset reason"},
                 "donation_page_with_unrequired_reason_for_giving_element_and_presets",
                 True,
                 None,
@@ -606,32 +447,11 @@ class TestBaseCreatePaymentSerializer:
         ],
     )
     def test_validate_reason_for_giving(
-        self,
-        input_data,
-        expect_valid,
-        minimally_valid_contribution_form_data,
-        requested_page,
-        error_msg,
-        donation_page,
-        donation_page_with_conditionally_required_reason_for_giving_element_no_presets,
-        donation_page_with_conditionally_required_reason_for_giving_element_and_presets,
-        donation_page_with_unrequired_reason_for_giving_element_and_presets,
+        self, input_data, expect_valid, minimally_valid_contribution_form_data, page_fixture, error_msg, request
     ):
         """Test logic around reason_for_giving validation."""
         data = minimally_valid_contribution_form_data | input_data
-        data["page"] = get_donation_page_fixture(
-            requested_page,
-            donation_page=donation_page,
-            donation_page_with_conditionally_required_reason_for_giving_element_no_presets=(
-                donation_page_with_conditionally_required_reason_for_giving_element_no_presets
-            ),
-            donation_page_with_conditionally_required_reason_for_giving_element_and_presets=(
-                donation_page_with_conditionally_required_reason_for_giving_element_and_presets
-            ),
-            donation_page_with_unrequired_reason_for_giving_element_and_presets=(
-                donation_page_with_unrequired_reason_for_giving_element_and_presets
-            ),
-        ).id
+        data["page"] = request.getfixturevalue(page_fixture).id
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
@@ -639,7 +459,7 @@ class TestBaseCreatePaymentSerializer:
             assert serializer.errors["reason_for_giving"][0] == error_msg
 
     @pytest.mark.parametrize(
-        ("input_data", "requested_page", "expect_valid"),
+        ("input_data", "page_fixture", "expect_valid"),
         [
             ({"phone": ""}, "donation_page", True),
             ({"phone": "something"}, "donation_page", True),
@@ -648,29 +468,10 @@ class TestBaseCreatePaymentSerializer:
         ],
     )
     def test_validate_phone(
-        self,
-        input_data,
-        requested_page,
-        expect_valid,
-        donation_page,
-        donation_page_with_conditionally_required_phone_element,
-        minimally_valid_contribution_form_data,
+        self, input_data, page_fixture, expect_valid, minimally_valid_contribution_form_data, request
     ):
-        """Test logic around reason_for_giving validation.
-
-        NB: For some of the parametrized scenarios, this test expects to find a validation error for
-        "reason_other" instead of "reason_for_giving". We test that behavior as part of this test rather than
-        elsewhere because "reason_for_giving" gets rewritten to be the value of "reason_other" via the
-        `BaseCreatePaymentSerializer.resolve_reason_for_giving`, so the two fields are inter-related.
-        """
         data = minimally_valid_contribution_form_data | input_data
-        data["page"] = get_donation_page_fixture(
-            requested_page,
-            donation_page=donation_page,
-            donation_page_with_conditionally_required_phone_element=(
-                donation_page_with_conditionally_required_phone_element
-            ),
-        ).id
+        data["page"] = request.getfixturevalue(page_fixture).id
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
@@ -727,36 +528,6 @@ class TestBaseCreatePaymentSerializer:
         if expect_valid is False:
             assert set(serializer.errors.keys()) == {"in_memory_of"}
             assert serializer.errors["in_memory_of"][0] == GENERIC_BLANK
-
-    @pytest.mark.parametrize(
-        ("input_data", "expected_resolved_value"),
-        [
-            ({"reason_for_giving": "Other", "reason_other": "My reason"}, "My reason"),
-            ({"reason_for_giving": PRESET_REASONS[0]}, PRESET_REASONS[0]),
-        ],
-    )
-    def test_validate_resolves_reason_for_giving(
-        self,
-        input_data,
-        expected_resolved_value,
-        minimally_valid_contribution_form_data,
-        donation_page_with_unrequired_reason_for_giving_element_and_presets,
-    ):
-        """Show validation sets value of `reason_for_giving` to value of `reason_other` when initial value...
-
-        ...for former is 'Other'.
-
-        See note in BaseCreatePaymentSerializer.validate for explanation of why this happens in
-        `validate`.
-        """
-        data = (
-            minimally_valid_contribution_form_data
-            | input_data
-            | {"page": donation_page_with_unrequired_reason_for_giving_element_and_presets.id}
-        )
-        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
-        assert serializer.is_valid() is True
-        assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
     def test_get_bad_actor_score_fields(self, minimally_valid_contribution_form_data, mocker):
         """Show that calling `get_bad_actor_score` returns response data.

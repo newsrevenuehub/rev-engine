@@ -234,11 +234,10 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
     NB: This serializer accomodates a handful of fields that are conditionally requirable, meaning that an org can
     configure a contribution page to include/not include and require/not require those fields. In the field definitions
-    below, the definitions for `phone`, `reason_for_giving`, and `reason_other` are involved in this logic. These fields
-    are unique in that we pass `default=''`. We do this because we want to guarantee that there will always be keys for
-    `reason_other`, `reason_for_giving`, and `phone` in the instantiated serializer's initial data, even if those fields
-    were not sent in the request data. This allows us to avoid writing code to deal with the case of, say, `phone` is
-    conditionally required, but no key/value pair is provided in the request data.
+    below, the definitions for `phone` is involved in this logic. These fields are unique in that we pass `default=''`.
+    We do this because we want to guarantee that there will always be keys for `phone` in the instantiated serializer's
+    initial data, even if those fields were not sent in the request data. This allows us to avoid writing code to deal
+    with the case of, say, `phone` is conditionally required, but no key/value pair is provided in the request data.
 
     Additionally, we have default values for "honoree" and "in_memory_of" to guarantee there are keys for those
     parameters to assist in validating `tribute_type`.
@@ -282,7 +281,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
 
-    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
     honoree = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
@@ -325,50 +323,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             raise serializers.ValidationError(GENERIC_BLANK)
         return value
 
-    def validate_reason_other(self, value):
-        """Guarantee there's a value if `reason_for_giving` is 'Other'."""
-        if self.initial_data.get("reason_for_giving") == "Other" and not value:
-            raise serializers.ValidationError(GENERIC_BLANK)
-        return value
-
-    def resolve_reason_for_giving(self, reason_for_giving, reason_other, preset_reasons):
-        """If `reason_for_giving` value is "Other", then we update it to the value for `reason_other` from the form data. Plus...
-
-        We validate that if `reason_for_giving` is not "Other" that it is one of the preset options (if any) on the page. This can't happen
-        in the initial field level validation for `reason_for_giving` because we need the value for `data["page]` to be resolved, and that
-        will only happen after all field-level validations have run.
-
-        Additionally, if the request data contains `reason_other`, but no value for `reason_for_giving`, we also
-        update `reason_for_giving` to the `reason_other` value. This can happen when an org has configured a page
-        to ask contributors their reason for giving, but without providing a dropdown of pre-set options. In this case,
-        the SPA only sends a value for `reason_other` and `reason_for_giving` will not be a field in the request body.
-        """
-        if all([reason_for_giving, reason_for_giving != "Other", reason_for_giving not in preset_reasons]):
-            raise serializers.ValidationError({"reason_for_giving": GENERIC_UNEXPECTED_VALUE})
-        if any(
-            [
-                reason_for_giving == "Other" and reason_other,
-                # Given expected usage by SPA, "" would be the value when the serializer has provided its default value for
-                # reason_for_giving because that field was not in the request data. If that happens and the SPA has included
-                # `reason_other` as an entry in the request data, that means that the page has configured to require a reason_for_giving,
-                # but a dropdown of preset choices has not been configured.
-                "reason_for_giving" not in self.initial_data and "reason_other" in self.initial_data and reason_other,
-            ]
-        ):
-            return reason_other
-        return reason_for_giving
-
-    def do_conditional_validation(self, data):
-        """Handle validation of conditionally requirable fields."""
-        errors = {}
-        for element in [x for x in data["page"].elements if len(x.get("requiredFields", []))]:
-            for field in element["requiredFields"]:
-                # if it's blank or none or no key for it in data
-                if data.get(field, None) in (None, ""):
-                    errors[field] = GENERIC_BLANK
-        if errors:
-            raise serializers.ValidationError(errors)
-
     def validate(self, data):
         """Validate any fields whose "is_required" behavior is determined dynamically by the org.
 
@@ -380,19 +334,15 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
         So in this `validate` method, we find any contribution page elements that are dynamically requirable and ensure that the submitted
         data contains non blank values.
-
-
-        We also resolve `data["reason_for_giving"]`'s value in case it is "Other". This is not strictly speaking
-        validation, but it can only happen after field level validations have run, so this is place in DRF serializer flow
-        it should happen. The method we use for this (resolve_reason_for_giving) can result in a validation error in some cases.
         """
-        preset_options = next(
-            (elem["content"]["reasons"] for elem in data["page"].elements if elem["type"] == "DReason"), []
-        )
-        data["reason_for_giving"] = self.resolve_reason_for_giving(
-            data.get("reason_for_giving"), data.get("reason_other"), preset_options
-        )
-        self.do_conditional_validation(data)
+        errors = {}
+        for element in (x for x in data["page"].elements if x.get("requiredFields")):
+            if required_missing_value := next(
+                (field for field in element["requiredFields"] if data.get(field) in (None, "")), None
+            ):
+                errors[required_missing_value] = GENERIC_BLANK
+        if errors:
+            raise serializers.ValidationError(errors)
         return data
 
     def get_bad_actor_score(self, data, action: BadActorAction) -> BadActorOverallScore | None:

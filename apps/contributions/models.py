@@ -40,8 +40,8 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
     generate_email_data,
+    send_receipt_email,
     send_templated_email,
-    send_thank_you_email,
 )
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
@@ -76,11 +76,12 @@ class Contributor(IndexedTimeStampedModel):
     @staticmethod
     def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
         """Get existing contributor for email (case insensitive) or create a new one."""
-        if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
+        stripped = email.strip()
+        if existing := Contributor.objects.filter(email__iexact=stripped).order_by("created").first():
             return existing, LEFT_UNCHANGED
 
-        logger.info("Creating new contributor for email %s", email)
-        return Contributor.objects.create(email=email), CREATED
+        logger.info("Creating new contributor for email %s", stripped)
+        return Contributor.objects.create(email=stripped), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""
@@ -689,16 +690,16 @@ class Contribution(IndexedTimeStampedModel):
             self.save(update_fields={"status", "modified"})
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
-    def handle_thank_you_email(self, show_billing_history: bool = False):
-        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email."""
-        logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
+    def handle_receipt_email(self, show_billing_history: bool = False):
+        """Send a receipt email to contribution's contributor if org is configured to have NRE send receipt email."""
+        logger.info("`Contribution.handle_receipt_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
-            logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
+            logger.info("Contribution.handle_receipt_email: the parent org (%s) sends emails with NRE", org.id)
             data = generate_email_data(self, show_billing_history=show_billing_history)
-            send_thank_you_email.delay(data)
+            send_receipt_email.delay(data)
         else:
             logger.info(
-                "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
+                "Contribution.handle_receipt_email called on contribution %s the parent org of which does not send email with NRE",
                 self.id,
             )
 

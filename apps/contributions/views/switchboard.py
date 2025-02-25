@@ -9,18 +9,23 @@ from django.shortcuts import get_object_or_404
 import reversion
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 from reversion.views import RevisionMixin
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
 from apps.api.permissions import IsSwitchboardAccount
+from apps.common.utils import LEFT_UNCHANGED, booleanize_string
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor, Payment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+SEND_RECEIPT_QUERY_PARAM = "send_receipt"
 
 
 class SwitchboardContributionsViewSet(
@@ -39,6 +44,42 @@ class SwitchboardContributionsViewSet(
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
+
+    def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):
+        """Send a receipt email if requested in a query param.
+
+        The default is to not send it.
+
+        Because we are only creating database models with this serializer, not
+        Stripe objects, duplicate receipt emails shouldn't occur. We assume
+        callers have already created an appropriate Stripe object (e.g. payment
+        intent or subscription).
+        """
+        contribution: Contribution = serializer.save()
+        if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
+            # send_thank_you_email() handles conditionality around whether
+            # receipt emails for the revenue program are sent by rev-engine.
+            logger.info(
+                "Sending receipt email for revenue program ID, %s contribution ID %s as requested by query param",
+                contribution.revenue_program.id,
+                contribution.id,
+            )
+            contribution.handle_receipt_email()
+
+    def handle_exception(self, exc):
+        """Ensure select uniqueness constraint errors receive a 409.
+
+        For uniqueness constraints around provider_subscription_id, provider_payment_id, and provider_setup_intent_id, we
+        want to return a 409 Conflict status code. On creation in particular, this will signal to Switchboard that it needs
+        to update an existing contribution rather than create a new one.
+        """
+        if isinstance(exc, ValidationError):
+            details = exc.detail
+            for errors in details.values():
+                if any(x.code == "unique" for x in errors):
+                    exc.status_code = status.HTTP_409_CONFLICT
+                    break
+        return super().handle_exception(exc)
 
 
 class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -59,26 +100,20 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
         Nevertheless, this is the behavior we want in short term so that we can create new contributors without
         accidentally creating duplicates (from the perspective of post DEV-5503 world).
         """
-        email = request.data.get("email")
-        if (existing := Contributor.objects.filter(email__iexact=email.strip())).exists():
-
+        contributor, action = Contributor.get_or_create_contributor_by_email(request.data.get("email"))
+        if action == LEFT_UNCHANGED:
             return Response(
-                {
-                    "error": f"A contributor (ID: {(_first:=existing.first()).id}) with email {_first.email} already exists"
-                },
+                {"error": f"A contributor (ID: {contributor.id}) with email {contributor.email} already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return super().create(request)
+        serializer = self.get_serializer(contributor)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
-@api_view(["GET"])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsSwitchboardAccount])
-def contributor_by_email(request: HttpRequest, email: str) -> Response:
-    """Retrieve a contributor by email."""
-    contributor = get_object_or_404(Contributor.objects.all(), email=email)
-    serializer = serializers.SwitchboardContributorSerializer(contributor)
-    return Response(serializer.data)
+    @action(methods=["get"], url_path="email/(?P<email>[^/]+)", detail=False)
+    def get_by_email(self, request: HttpRequest, email: str) -> Response:
+        contributor = get_object_or_404(Contributor.objects.all(), email__iexact=email.strip())
+        serializer = serializers.SwitchboardContributorSerializer(contributor)
+        return Response(serializer.data)
 
 
 class SwitchboardPaymentsViewSet(

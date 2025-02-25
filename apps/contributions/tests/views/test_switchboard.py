@@ -17,6 +17,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.contributions.views.switchboard import SEND_RECEIPT_QUERY_PARAM
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -45,14 +46,14 @@ class TestSwitchboardContributorsViews:
     """Tests for switchboard contributors views, for SwitchboardContributorsViewSet and related function-based views."""
 
     @pytest.mark.parametrize("already_exists", [True, False])
-    def test_create(self, api_client, faker, already_exists, token):
+    def test_create(self, api_client, faker, already_exists, switchboard_api_token):
         email = faker.email()
         if already_exists:
             existing = ContributorFactory(email=email)
         response = api_client.post(
             reverse("switchboard-contributor-list"),
             data={"email": email},
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         if already_exists:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -67,13 +68,13 @@ class TestSwitchboardContributorsViews:
         return ContributorFactory()
 
     @pytest.mark.parametrize("exists", [True, False])
-    def test_retrieve_by_id(self, api_client, token, contributor, exists):
+    def test_retrieve_by_id(self, api_client, switchboard_api_token, contributor, exists):
         pk = contributor.id
         if not exists:
             contributor.delete()
         response = api_client.get(
             reverse("switchboard-contributor-detail", args=(pk,)),
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         if exists:
             assert response.status_code == status.HTTP_200_OK
@@ -82,13 +83,13 @@ class TestSwitchboardContributorsViews:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.parametrize("exists", [True, False])
-    def test_retrieve_by_email(self, api_client, token, contributor, exists):
+    def test_retrieve_by_email(self, api_client, switchboard_api_token, contributor, exists):
         email = contributor.email
         if not exists:
             contributor.delete()
         response = api_client.get(
-            reverse("switchboard-contributor-by-email", args=(email,)),
-            headers={"Authorization": f"Token {token}"},
+            reverse("switchboard-contributor-get-by-email", args=(email,)),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         if exists:
             assert response.status_code == status.HTTP_200_OK
@@ -96,11 +97,21 @@ class TestSwitchboardContributorsViews:
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_retrieve_by_email_is_case_insensitive(self, api_client, switchboard_api_token, contributor):
+        contributor.email = contributor.email.upper()
+        contributor.save()
+        response = api_client.get(
+            reverse("switchboard-contributor-get-by-email", args=(contributor.email.lower(),)),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"email": contributor.email, "id": contributor.id}
+
     @pytest.fixture
     def retrieve_by_email_config(self, contributor):
         return {
             "method": "get",
-            "url": reverse("switchboard-contributor-by-email", args=(contributor.email,)),
+            "url": reverse("switchboard-contributor-get-by-email", args=(contributor.email,)),
             "data": None,
         }
 
@@ -117,7 +128,9 @@ class TestSwitchboardContributorsViews:
         return {"method": "post", "url": reverse("switchboard-contributor-list"), "data": {"email": faker.email()}}
 
     @pytest.mark.parametrize("case_config", ["retrieve_by_id_config", "create_config", "retrieve_by_email_config"])
-    @pytest.mark.parametrize(("token_fixture", "expect_success"), [("token", True), ("expired_token", False)])
+    @pytest.mark.parametrize(
+        ("token_fixture", "expect_success"), [("switchboard_api_token", True), ("switchboard_api_expired_token", False)]
+    )
     def test_only_works_with_valid_token(self, case_config, token_fixture, expect_success, api_client, request):
         token = request.getfixturevalue(token_fixture)
         config = request.getfixturevalue(case_config)
@@ -243,10 +256,12 @@ class TestSwitchboardContributionsViewSet:
             "creation_data_one_time_with_rp",
         ],
     )
-    def test_create_happy_path(self, api_client, data_fixture, request, token):
+    def test_create_happy_path(self, api_client, data_fixture, request, switchboard_api_token):
         data = request.getfixturevalue(data_fixture)
         response = api_client.post(
-            reverse("switchboard-contribution-list"), data=data, headers={"Authorization": f"Token {token}"}
+            reverse("switchboard-contribution-list"),
+            data=data,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_201_CREATED
         retrieved = Contribution.objects.get(id=response.json()["id"])
@@ -271,10 +286,12 @@ class TestSwitchboardContributionsViewSet:
             "invalid_creation_data_duplicate_setup_intent_id",
         ],
     )
-    def test_create_when_constraint_violated(self, api_client, data_fixture, request, token):
+    def test_create_when_constraint_violated(self, api_client, data_fixture, request, switchboard_api_token):
         data = request.getfixturevalue(data_fixture)
         response = api_client.post(
-            reverse("switchboard-contribution-list"), data=data, headers={"Authorization": f"Token {token}"}
+            reverse("switchboard-contribution-list"),
+            data=data,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         if data_fixture == "invalid_creation_data_both_rp_and_page":
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -302,21 +319,43 @@ class TestSwitchboardContributionsViewSet:
                         "provider_setup_intent_id": ["contribution with this provider setup intent id already exists."]
                     }
 
-    def test_create_when_invalid_metadata(self, api_client, token, creation_data_recurring_with_page, invalid_metadata):
+    def test_create_when_invalid_metadata(
+        self, api_client, switchboard_api_token, creation_data_recurring_with_page, invalid_metadata
+    ):
         creation_data_recurring_with_page["contribution_metadata"] = invalid_metadata
         response = api_client.post(
             reverse("switchboard-contribution-list"),
             data=creation_data_recurring_with_page,
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
 
-    def test_retrieve(self, api_client, contribution, token):
+    @pytest.mark.parametrize(
+        ("querystring", "send_receipt"),
+        [
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=yes", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=y", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=true", True),
+            ("", False),
+        ],
+    )
+    def test_create_receipt_behavior(
+        self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
+    ):
+        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        api_client.post(
+            reverse("switchboard-contribution-list") + querystring,
+            data=creation_data_recurring_with_page,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert mock_handle_receipt_email.called is send_receipt
+
+    def test_retrieve(self, api_client, contribution, switchboard_api_token):
         response = api_client.get(
             reverse("switchboard-contribution-detail", args=(contribution.id,)),
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
@@ -386,13 +425,13 @@ class TestSwitchboardContributionsViewSet:
             "update_data_recurring_with_rp",
         ],
     )
-    def test_update_happy_path(self, api_client, contribution, data_fixture, request, token):
+    def test_update_happy_path(self, api_client, contribution, data_fixture, request, switchboard_api_token):
         data, contribution = request.getfixturevalue(data_fixture)
         response = api_client.patch(
             reverse("switchboard-contribution-detail", args=(contribution.id,)),
             data=data,
             format="json",
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
@@ -447,12 +486,12 @@ class TestSwitchboardContributionsViewSet:
             "invalid_update_data_duplicate_setup_intent_id",
         ],
     )
-    def test_update_when_constraint_violated(self, api_client, data_fixture, request, token):
+    def test_update_when_constraint_violated(self, api_client, data_fixture, request, switchboard_api_token):
         data, contribution = request.getfixturevalue(data_fixture)
         response = api_client.patch(
             reverse("switchboard-contribution-detail", args=(contribution.id,)),
             data=data,
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
             format="json",
         )
         if data_fixture == "invalid_update_data_both_rp_and_page":
@@ -481,12 +520,14 @@ class TestSwitchboardContributionsViewSet:
                         "provider_setup_intent_id": ["contribution with this provider setup intent id already exists."]
                     }
 
-    def test_update_when_patching_rp_for_different_org(self, api_client, contribution, other_orgs_rp, token):
+    def test_update_when_patching_rp_for_different_org(
+        self, api_client, contribution, other_orgs_rp, switchboard_api_token
+    ):
         assert contribution.revenue_program.organization != other_orgs_rp.organization
         response = api_client.patch(
             reverse("switchboard-contribution-detail", args=(contribution.id,)),
             data={"revenue_program": other_orgs_rp.id},
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
@@ -509,11 +550,11 @@ class TestSwitchboardContributionsViewSet:
             unique_field: [f"contribution with this {unique_field.replace('_', ' ')} already exists."]
         }
 
-    def test_update_when_invalid_metadata(self, api_client, token, contribution, invalid_metadata):
+    def test_update_when_invalid_metadata(self, api_client, switchboard_api_token, contribution, invalid_metadata):
         response = api_client.patch(
             reverse("switchboard-contribution-detail", args=(contribution.id,)),
             data={"contribution_metadata": invalid_metadata},
-            headers={"Authorization": f"Token {token}"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -530,13 +571,13 @@ class TestSwitchboardContributionsViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.parametrize("method", ["patch", "post", "get"])
-    def test_requests_when_token_expired(self, api_client, expired_token, method):
+    def test_requests_when_token_expired(self, api_client, switchboard_api_expired_token, method):
         url_name = f"switchboard-contribution-{'list' if method == 'post' else 'detail'}"
         url_kwargs = {"args": (1,)} if method in ("patch", "get") else {}
         url = reverse(url_name, **url_kwargs)
         request_kwargs = {"data": {}} if method != "get" else {}
         response = getattr(api_client, method)(
-            url, headers={"Authorization": f"Token {expired_token}", **request_kwargs}
+            url, headers={"Authorization": f"Token {switchboard_api_expired_token}", **request_kwargs}
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": "Invalid token."}

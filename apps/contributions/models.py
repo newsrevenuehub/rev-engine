@@ -76,11 +76,12 @@ class Contributor(IndexedTimeStampedModel):
     @staticmethod
     def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
         """Get existing contributor for email (case insensitive) or create a new one."""
-        if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
+        stripped = email.strip()
+        if existing := Contributor.objects.filter(email__iexact=stripped).order_by("created").first():
             return existing, LEFT_UNCHANGED
 
-        logger.info("Creating new contributor for email %s", email)
-        return Contributor.objects.create(email=email), CREATED
+        logger.info("Creating new contributor for email %s", stripped)
+        return Contributor.objects.create(email=stripped), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""

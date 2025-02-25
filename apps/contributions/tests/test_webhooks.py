@@ -11,8 +11,9 @@ import json
 import pytest
 
 from apps.contributions.models import Contribution
-from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
 from apps.contributions.typings import (
+    STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     InvalidMetadataError,
     StripeEventData,
     cast_metadata_to_stripe_payment_metadata_schema,
@@ -325,3 +326,71 @@ class TestStripeWebhookProcessor:
 
         assert mock_get_metadata.call_count == 2
         assert mock_get_metadata.call_args_list[0] == mocker.call(contribution_metadata)
+
+    @pytest.mark.parametrize(
+        ("schema_version", "expect_send"),
+        [
+            ("1.4", True),
+            *[(k, False) for k in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS if k != "1.4"],
+        ],
+    )
+    def test_handle_invoice_payment_succeeded_receipt_email_per_schema(
+        self, schema_version, expect_send, invoice_payment_succeeded_for_recurring_payment_event, mocker
+    ):
+        contribution = ContributionFactory(
+            provider_subscription_id=invoice_payment_succeeded_for_recurring_payment_event["data"]["object"][
+                "subscription"
+            ],
+        )
+        contribution.contribution_metadata["schema_version"] = schema_version
+        contribution.save()
+        mock_send_receipt = mocker.patch.object(contribution, "handle_receipt_email")
+        payment = PaymentFactory(contribution=contribution)
+        mocker.patch(
+            "apps.contributions.models.Payment.from_stripe_invoice_payment_succeeded_event",
+            return_value=payment,
+        )
+        mocker.patch("stripe.PaymentIntent.retrieve")
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._add_pm_id_and_payment_method_details")
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._handle_contribution_update")
+        mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
+            return_value=contribution,
+            new_callable=mocker.PropertyMock,
+        )
+        processor = StripeWebhookProcessor(
+            event=StripeEventData(**invoice_payment_succeeded_for_recurring_payment_event)
+        )
+        processor.handle_invoice_payment_succeeded()
+        assert mock_send_receipt.called is expect_send
+
+    @pytest.mark.parametrize(
+        ("schema_version", "expect_send"),
+        [
+            ("1.4", True),
+            *[(k, False) for k in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS if k != "1.4"],
+        ],
+    )
+    def test_handle_payment_intent_succeeded_receipt_email_per_schema(
+        self, schema_version, expect_send, mocker, payment_intent_succeeded_one_time_event
+    ):
+        contribution = ContributionFactory(
+            provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"]
+        )
+        contribution.contribution_metadata["schema_version"] = schema_version
+        contribution.save()
+        mock_send_receipt = mocker.patch.object(contribution, "handle_receipt_email")
+        payment = PaymentFactory(contribution=contribution)
+        mocker.patch(
+            "apps.contributions.models.Payment.from_stripe_payment_intent_succeeded_event", return_value=payment
+        )
+        mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
+            return_value=contribution,
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._add_pm_id_and_payment_method_details")
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._handle_contribution_update")
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        processor.handle_payment_intent_succeeded()
+        assert mock_send_receipt.called is expect_send

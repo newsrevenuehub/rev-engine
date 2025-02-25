@@ -4,6 +4,7 @@ from django.test import RequestFactory
 import pytest
 
 from apps.common.utils import (
+    booleanize_string,
     create_stripe_webhook,
     delete_cloudflare_cnames,
     delete_stripe_webhook,
@@ -236,6 +237,26 @@ def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expec
     monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", enable_pubsub)
     monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", gcloud_project)
     assert google_cloud_pub_sub_is_configured() == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("True", True),
+        ("true", True),
+        ("yes", True),
+        ("YES", True),
+        ("y", True),
+        ("Y", True),
+        ("False", False),
+        ("false", False),
+        ("T", False),
+        ("", False),
+        ("unrelated", False),
+    ],
+)
+def test_booleanize_string(value, expected):
+    assert booleanize_string(value) == expected
 
 
 @pytest.mark.django_db

@@ -329,31 +329,35 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
 
 
 @pytest.mark.parametrize(
-    "email",
-    ["vanilla@email.com", "vanilla+spice@email.com"],
+    ("request_email", "preexisting_email"),
+    [
+        ("vanilla@email.com", None),
+        ("vanilla+spice@email.com", None),
+        ("vanilla@email.com", "VANILLA@email.com"),
+    ],
 )
 @pytest.mark.django_db
 @override_settings(CELERY_ALWAYS_EAGER=True)
-def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
+def test_request_contributor_token_creates_usable_magic_links(mocker, api_client, request_email, preexisting_email):
     """Test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token.
 
     Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it
     extracts the values for `email` and `token` that are provided in magic link, and posts them in data sent to
     the contributor-verify-token endpoint, this test proves that the resulting response will be a success and will contain
     a JWT with a future expiration for the requesting user.
+
+    Note that we test both the case where the contributor already exists and where they do not. In the case where it does,
+    we create the preexisting contributor with the same email, but with a different case. In either case, we show
+    that only one contributor exists in the db after magic link flow is completed.
     """
     from apps.emails import tasks as email_tasks
 
     spy = mocker.spy(email_tasks, "send_mail")
     rp = RevenueProgramFactory()
-    request = rf.post(
-        "/",
-        data={
-            "email": email,
-            "subdomain": rp.slug,
-        },
-    )
-    response = RequestContributorTokenEmailView.as_view()(request)
+    if preexisting_email:
+        ContributorFactory(email=preexisting_email)
+    expected = preexisting_email or request_email
+    response = api_client.post(reverse("contributor-token-request"), {"email": request_email, "subdomain": rp.slug})
     assert response.status_code == 200
     assert spy.call_count == 1
     subject, text_body, _, to_email_list = spy.call_args_list[0][0]
@@ -361,22 +365,46 @@ def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email,
     html_magic_link = bs4(html_body, "html.parser").find("a", {"data-testid": "magic-link"}).attrs["href"]
     assert html_magic_link in text_body
     assert subject == "Manage your contributions"
-    assert to_email_list[0] == email
+    assert to_email_list[0] == expected
     assert len(to_email_list) == 1
-    assert email in html_body
+    assert expected in html_body
     params = parse_qs(urlparse(html_magic_link).query)
-    response = client.post(
+    response = api_client.post(
         reverse("contributor-verify-token"), {"email": params["email"][0], "token": params["token"][0]}
     )
     assert response.status_code == 200
-    assert response.json()["contributor"]["email"] == email
+    assert response.json()["contributor"]["email"] == expected
     jwt_data = jwt.decode(response.cookies["Authorization"].value, settings.SECRET_KEY, algorithms="HS256")
     assert jwt_data["token_type"] == "access"
     assert jwt_data["ctx"] == LONG_TOKEN
     assert jwt_data["exp"] > jwt_data["iat"]
     assert jwt_data["exp"] > int(time())
-    contributor = Contributor.objects.get(email=email)
-    assert jwt_data["contrib_id"] == str(contributor.uuid)
+    assert (query := Contributor.objects.filter(email__iexact=expected)).count() == 1
+    assert jwt_data["contrib_id"] == str(query.first().uuid)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("request_email", "preexisting_email"),
+    [
+        ("foobar@barfoo.com", None),
+        ("foobar@barfoo.com", "fOoBaR@barFoo.com"),
+    ],
+)
+def test_request_contributor_token_vs_dupe_contrib_bug_5865(
+    request_email, preexisting_email, api_client, free_plan_revenue_program
+):
+    """Prove that the endpoint does not create a new contributor if one already exists with the same email but different casing.
+
+    See DEV-5865 for more details.
+    """
+    expected = preexisting_email or request_email
+    if preexisting_email:
+        ContributorFactory(email=preexisting_email)
+    data = {"email": request_email, "subdomain": free_plan_revenue_program.slug}
+    response = api_client.post(reverse("contributor-token-request"), data)
+    assert response.status_code == 200
+    assert Contributor.objects.filter(email__iexact=expected).count() == 1
 
 
 class RequestContributorTokenEmailViewTest(APITestCase):
@@ -566,7 +594,13 @@ class TestAuthorizedContributor:
         return str(access)
 
     @pytest.fixture
-    def request_with_valid_token(self, valid_token, contributions_url, api_client, contribution):
+    def request_with_valid_token(self, valid_token, contributions_url, api_client, contribution, mocker):
+        # we patch this because it's an easy way to prevent leaking stripe api calls and because
+        # we don't care about results returned in this test suite.
+        mocker.patch(
+            "apps.contributions.views.portal.PortalContributorsViewSet.get_contributor_contributions",
+            return_value=Contribution.objects.none().with_first_payment_date(),
+        )
         api_client.cookies["Authorization"] = valid_token
         api_client.cookies["csrftoken"] = csrf._get_new_csrf_string()
         return api_client.get(contributions_url, data={"rp": contribution.revenue_program.slug})

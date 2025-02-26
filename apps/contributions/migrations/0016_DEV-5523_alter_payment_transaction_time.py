@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="payment",
             name="transaction_time",
-            field=models.DateTimeField(db_index=True),
+            field=models.DateTimeField(db_index=False),
         ),
     ]

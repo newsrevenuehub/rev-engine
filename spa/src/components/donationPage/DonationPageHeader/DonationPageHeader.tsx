@@ -32,7 +32,7 @@ export function DonationPageHeader({ page }: DonationPageHeaderProps) {
       if (page.header_logo instanceof File) {
         setLogoSource(await fileToDataUrl(page.header_logo));
       } else {
-        setLogoSource(page.header_logo);
+        setLogoSource(`/cdn-cgi/image/format=auto/${page.header_logo}`);
       }
     }
 
@@ -44,7 +44,7 @@ export function DonationPageHeader({ page }: DonationPageHeaderProps) {
       if (page.header_bg_image instanceof File) {
         setBackgroundSource(await fileToDataUrl(page.header_bg_image));
       } else {
-        setBackgroundSource(page.header_bg_image);
+        setBackgroundSource(`/cdn-cgi/image/format=auto/${page.header_bg_image}`);
       }
     }
 

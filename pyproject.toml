@@ -78,6 +78,7 @@ drf-yasg = "*" # Swagger generator
 factory_boy = "*"
 ipython = "*"
 pre-commit = "*"
+pyjwt = "^2.10"
 pytest = "^7"  # temporarily pinned due to pytest-asyncio not support pytest 8 https://github.com/pytest-dev/pytest-asyncio/issues/737
 pytest-celery = "^0"
 pytest-cov = "*"

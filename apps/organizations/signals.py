@@ -1,7 +1,8 @@
 import logging
 
 from django.conf import settings
-from django.db.models.signals import post_delete, post_save, transaction
+from django.db import transaction
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 import reversion
@@ -84,6 +85,8 @@ def create_default_social_meta(sender, instance: RevenueProgram, created: bool, 
         return
 
     logger.info("Creating default social meta for RP %s", instance.id)
+    # TODO @BW: Wrap this side effect in transaction.on_commit
+    # DEV-????
     social = SocialMeta.objects.create(revenue_program=instance)
     logger.info('Social Meta with id "%s" created for RP id "%s"', social.id, instance.id)
 
@@ -97,6 +100,8 @@ def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kw
             "Deleting mailchimp_access_token_secret for rp %s",
             instance.id,
         )
+        # TODO @BW: Wrap this side effect in transaction.on_commit
+        # DEV-????
         del instance.mailchimp_access_token
     else:
         logger.debug("No mailchimp_access_token_secret to delete for rp %s", instance.id)
@@ -140,6 +145,8 @@ def handle_set_default_donation_page_on_select_core_plan(
     if instance.plan != CorePlan:
         logger.debug("Org %s is not on CorePlan, skipping", instance.id)
         return
+    # TODO @BW: Wrap some of this routine in transaction.on_commit
+    # DEV-????
     if not (rp := instance.revenueprogram_set.first()):
         logger.debug("No RP found for organization %s, skipping", instance.id)
         return

@@ -35,7 +35,7 @@ def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
     logger.info(
         "setup_mailchimp_entities_for_rp_mailing_list called with revenue program %s whose email list id is %s",
         rp.id,
-        rp.mailchimp_email_list_id,
+        rp.mailchimp_list_id,
     )
     rp.ensure_mailchimp_entities()
     rp.publish_revenue_program_mailchimp_list_configuration_complete()

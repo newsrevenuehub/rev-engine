@@ -232,7 +232,18 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
                 "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
-        ("Mailchimp", {"fields": ("mailchimp_server_prefix", "mailchimp_list_id")}),
+        (
+            "Mailchimp",
+            {
+                "fields": (
+                    "mailchimp_server_prefix",
+                    "mailchimp_list_id",
+                    "mailchimp_contributor_segment_id",
+                    "mailchimp_recurring_contributor_segment_id",
+                    "mailchimp_all_contributors_segment_id",
+                )
+            },
+        ),
         (
             "Analytics",
             {

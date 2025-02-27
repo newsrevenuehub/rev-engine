@@ -66,7 +66,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
         logger.info(
             "Enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
         )
-        transaction.on_commit(setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id))
+        transaction.on_commit(lambda: setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id))
     else:
         logger.debug(
             "Not enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id

@@ -9,7 +9,7 @@ import useUser from 'hooks/useUser';
 import useDashboardPendo from 'hooks/useDashboardPendo';
 
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
-jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
+jest.mock('components/settings/Integration/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
 jest.mock('components/dashboard/connectStripe/ConnectStripe');
 jest.mock('./MailchimpConnectionStatus', () => () => <div data-testid="mock-mailchimp-connection-status" />);
 jest.mock('./sidebar/DashboardSidebar');

@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, transaction
 from django.dispatch import receiver
 
 import reversion
@@ -65,7 +65,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
         logger.info(
             "Enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
         )
-        setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id)
+        transaction.on_commit(setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id))
     else:
         logger.debug(
             "Not enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id

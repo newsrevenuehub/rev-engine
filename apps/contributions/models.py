@@ -72,6 +72,9 @@ class BillingHistoryItem(TypedDict):
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
+    # TODO @BW: Rename to `email`, replacing current `email` and make non nullable and blank=False
+    # DEV-5782
+    email_future = models.EmailField(blank=True, null=True, unique=True, db_collation="case_insensitive")
 
     @staticmethod
     def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
@@ -81,7 +84,12 @@ class Contributor(IndexedTimeStampedModel):
             return existing, LEFT_UNCHANGED
 
         logger.info("Creating new contributor for email %s", stripped)
-        return Contributor.objects.create(email=stripped), CREATED
+        # TODO @BW: Remove this conditionality when email_future moves to email
+        # DEV-5782
+        kwargs = {"email": stripped}
+        if not Contributor.objects.filter(email_future=stripped).exists():
+            kwargs["email_future"] = stripped
+        return Contributor.objects.create(**kwargs), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""

@@ -7,13 +7,14 @@ name = "rev-engine"
 version = "0.1.0"
 description = ""
 authors = ["Caktus Group, LLC <teams@caktusgroup.com>"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
 Pillow = "^10.1.0"
 addict = "^2.4.0"
 backoff = "^2.2.1"
-celery = "^5, !=5.3.x" # skip v5.3 and go directly to v5.4 when released (~mid march 2024)
+celery = "^5.4"
 cloudflare = "^2"
 colorama = "0.4.6"
 dateparser = "^1.2.0"
@@ -66,7 +67,7 @@ uwsgitop = "^0.11"
 whitenoise = "^6.2.0"
 django-rest-knox = "^5.0.2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 Faker = "*"
 appnope = "*"  # disabling App Nap on macOS >= 10.9
 bandit = "*"

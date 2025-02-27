@@ -1,14 +1,21 @@
+from datetime import timedelta
+
+from django.utils import timezone
+from django.utils.timezone import now
+
 import pytest
+import reversion
 from knox.models import AuthToken
 from rest_framework import status
 from rest_framework.reverse import reverse
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, Contributor, Payment
 from apps.contributions.serializers import SwitchboardContributionRevenueProgramSourceValues
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
+    PaymentFactory,
 )
 from apps.contributions.views.switchboard import SEND_RECEIPT_QUERY_PARAM
 from apps.organizations.models import PaymentProvider, RevenueProgram
@@ -19,6 +26,19 @@ from apps.organizations.tests.factories import (
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.tests.factories import UserFactory
+
+
+@pytest.fixture
+def token(switchboard_user):
+    return AuthToken.objects.create(switchboard_user)[1]
+
+
+@pytest.fixture
+def expired_token(switchboard_user):
+    token, token_string = AuthToken.objects.create(switchboard_user)
+    token.expiry = now() - timedelta(days=1)
+    token.save()
+    return token_string
 
 
 @pytest.mark.django_db
@@ -561,3 +581,128 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": "Invalid token."}
+
+
+@pytest.mark.django_db
+class TestSwitchboardPaymentsViewSet:
+    @pytest.fixture
+    def payment(self):
+        return PaymentFactory()
+
+    @pytest.fixture
+    def payment_creation_data(self, payment):
+        return {
+            "contribution": payment.contribution.id,
+            "net_amount_paid": 2000,
+            "gross_amount_paid": 2000,
+            "amount_refunded": 0,
+            "stripe_balance_transaction_id": "txn_123456",
+            "transaction_time": now().isoformat(),
+        }
+
+    def test_create_happy_path(self, api_client, payment_creation_data, token):
+        comment = "Payment created by Switchboard"
+        response = api_client.post(
+            reverse("switchboard-payment-list"),
+            data=payment_creation_data,
+            headers={"Authorization": f"Token {token}"},
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        new_payment = Payment.objects.get(id=response.json()["id"])
+        for k, v in payment_creation_data.items():
+            if k == "comment":
+                continue  # Skip comment field as it's not saved to the model
+            match k:
+                case "contribution":
+                    assert new_payment.contribution.id == v
+                case "transaction_time":
+                    assert new_payment.transaction_time.isoformat() == v
+                case _:
+                    assert getattr(new_payment, k) == v
+
+        # Verify reversion comment was recorded
+        versions = reversion.models.Version.objects.get_for_object(new_payment)
+        assert versions.count() == 1
+        assert versions[0].revision.comment == comment
+
+    def test_retrieve(self, api_client, payment, token):
+        response = api_client.get(
+            reverse("switchboard-payment-detail", args=(payment.id,)), headers={"Authorization": f"Token {token}"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {
+            "id": payment.id,
+            "contribution": payment.contribution.id,
+            "net_amount_paid": payment.net_amount_paid,
+            "gross_amount_paid": payment.gross_amount_paid,
+            "amount_refunded": payment.amount_refunded,
+            "stripe_balance_transaction_id": payment.stripe_balance_transaction_id,
+            "transaction_time": payment.transaction_time.replace(tzinfo=timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z"),
+        }
+
+    @pytest.mark.parametrize("method", ["get", "post"])
+    def test_requests_when_not_switchboard_user(self, api_client, superuser, payment, method):
+        token = AuthToken.objects.create(superuser)[1]
+        url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
+        url_kwargs = {"args": (payment.id,)} if method == "get" else {}
+        url = reverse(url_name, **url_kwargs)
+        request_kwargs = {"data": {}} if method == "post" else {}
+        response = getattr(api_client, method)(url, **request_kwargs, headers={"Authorization": f"Token {token}"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.parametrize("method", ["get", "post"])
+    def test_requests_when_token_expired(self, api_client, expired_token, payment, method):
+        url_name = f"switchboard-payment-{'list' if method == 'post' else 'detail'}"
+        url_kwargs = {"args": (payment.id,)} if method == "get" else {}
+        url = reverse(url_name, **url_kwargs)
+        request_kwargs = {"data": {}} if method == "post" else {}
+        response = getattr(api_client, method)(
+            url, headers={"Authorization": f"Token {expired_token}", **request_kwargs}
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.json() == {"detail": "Invalid token."}
+
+    def test_patch_payment_happy_path(self, api_client, token, payment):
+        comment = "Payment updated by Switchboard"
+        update_data = {"net_amount_paid": 4000}
+
+        response = api_client.patch(
+            reverse("switchboard-payment-detail", args=(payment.id,)),
+            data=update_data,
+            headers={"Authorization": f"Token {token}"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["net_amount_paid"] == 4000
+        payment.refresh_from_db()
+        assert payment.net_amount_paid == 4000
+
+        versions = reversion.models.Version.objects.get_for_object(payment)
+        assert versions.count() == 1
+        assert versions[0].revision.comment == comment
+
+    def test_patch_payment_update_stripe_balance_transaction_id(self, api_client, token, payment):
+        another_payment = PaymentFactory()
+        update_data = {"stripe_balance_transaction_id": payment.stripe_balance_transaction_id}
+        response = api_client.patch(
+            reverse("switchboard-payment-detail", args=(another_payment.id,)),
+            data=update_data,
+            headers={"Authorization": f"Token {token}"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.json() == {
+            "stripe_balance_transaction_id": ["payment with this stripe balance transaction id already exists."]
+        }
+
+    def test_create_duplicate_balance_transaction(self, api_client, payment_creation_data, token):
+        PaymentFactory(stripe_balance_transaction_id=payment_creation_data["stripe_balance_transaction_id"])
+        response = api_client.post(
+            reverse("switchboard-payment-list"), data=payment_creation_data, headers={"Authorization": f"Token {token}"}
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.json() == {
+            "stripe_balance_transaction_id": ["payment with this stripe balance transaction id already exists."]
+        }

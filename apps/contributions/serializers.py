@@ -976,3 +976,42 @@ class SwitchboardContributorSerializer(serializers.ModelSerializer):
         model = Contributor
         fields = ["id", "email"]
         read_only_fields = ["id"]
+
+
+class SwitchboardPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "contribution",
+            "net_amount_paid",
+            "gross_amount_paid",
+            "amount_refunded",
+            "stripe_balance_transaction_id",
+            "transaction_time",
+        ]
+        read_only_fields = ["id"]
+
+    def validate(self, data):
+        amount_refunded = data.get("amount_refunded", 0)
+        net_amount_paid = data.get("net_amount_paid", 0)
+        gross_amount_paid = data.get("gross_amount_paid", 0)
+
+        if amount_refunded > 0 and (net_amount_paid > 0 or gross_amount_paid > 0):
+            raise serializers.ValidationError(
+                "Amount refunded cannot be positive when net_amount_paid or gross_amount_paid are positive"
+            )
+        return data
+
+    def validate_net_amount_paid(self, value):
+        self._validate_amount_is_positive(value)
+        return value
+
+    def validate_gross_amount_paid(self, value):
+        self._validate_amount_is_positive(value)
+        return value
+
+    @staticmethod
+    def _validate_amount_is_positive(value):
+        if value < 0:
+            raise serializers.ValidationError("Amount must be positive")

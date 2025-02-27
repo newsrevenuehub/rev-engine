@@ -238,11 +238,27 @@ class TestContributorModel:
         if pre_exists:
             assert contributor == pre_existing
             assert action == LEFT_UNCHANGED
+            assert contributor.email_future is None
         else:
             assert action == CREATED
+            assert contributor.email_future == email
         assert isinstance(contributor, Contributor)
         assert contributor.email.lower() == email.lower()
         assert Contributor.objects.filter(email__iexact=email).count() == 1
+
+    @pytest.mark.parametrize("email_future_pre_exists", [True, False])
+    def test_get_or_create_contributor_by_email_with_future_email(self, email_future_pre_exists):
+        email_future = "email_future@fundjournalism.org"
+        if email_future_pre_exists:
+            # Given current implementation, we shouldn't ever be able to end up in this state,
+            # but as defensive measure, proving that email_future set to None if pre-existing contributor has it set.
+            ContributorFactory(
+                email="different-email@fundjournalism.org",
+                email_future=email_future,
+            )
+        contributor, _ = Contributor.get_or_create_contributor_by_email(email_future)
+        assert contributor.email == email_future
+        assert contributor.email_future == (None if email_future_pre_exists else email_future)
 
     def test_get_contributor_contributions_queryset(self, mocker):
         canonical_contributor = ContributorFactory(email="canonical@fundjournalism.org")

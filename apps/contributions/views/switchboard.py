@@ -96,8 +96,7 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
         Nevertheless, this is the behavior we want in short term so that we can create new contributors without
         accidentally creating duplicates (from the perspective of post DEV-5503 world).
         """
-        email = request.data.get("email").strip()
-        contributor, action = Contributor.get_or_create_contributor_by_email(email)
+        contributor, action = Contributor.get_or_create_contributor_by_email(request.data.get("email"))
         if action == LEFT_UNCHANGED:
             return Response(
                 {"error": f"A contributor (ID: {contributor.id}) with email {contributor.email} already exists"},

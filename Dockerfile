@@ -50,7 +50,7 @@ RUN set -ex \
     libpq-dev \
     " \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
-    && pip install "poetry<2.0.0" \
+    && pip install "poetry" \
     && poetry config virtualenvs.create false \
     && poetry install --no-root --no-dev \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \

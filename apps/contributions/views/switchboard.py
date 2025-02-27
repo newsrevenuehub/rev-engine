@@ -106,7 +106,7 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
                 {"error": f"A contributor (ID: {contributor.id}) with email {contributor.email} already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = self.get_serializer(contributor)
+        serializer = self.serializer_class(contributor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["get"], url_path="email/(?P<email>[^/]+)", detail=False)

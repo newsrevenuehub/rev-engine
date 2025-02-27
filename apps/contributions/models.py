@@ -79,15 +79,16 @@ class Contributor(IndexedTimeStampedModel):
     @staticmethod
     def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
         """Get existing contributor for email (case insensitive) or create a new one."""
-        if existing := Contributor.objects.filter(email__iexact=email).order_by("created").first():
+        stripped = email.strip()
+        if existing := Contributor.objects.filter(email__iexact=stripped).order_by("created").first():
             return existing, LEFT_UNCHANGED
 
         logger.info("Creating new contributor for email %s", email)
         # TODO @BW: Remove this conditionality when email_future moves to email
         # DEV-5782
-        kwargs = {"email": email}
-        if not Contributor.objects.filter(email_future=email).exists():
-            kwargs["email_future"] = email
+        kwargs = {"email": stripped}
+        if not Contributor.objects.filter(email_future=stripped).exists():
+            kwargs["email_future"] = stripped
         return Contributor.objects.create(**kwargs), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):

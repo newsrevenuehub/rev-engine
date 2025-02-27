@@ -10,6 +10,7 @@ from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
 )
+from apps.contributions.views.switchboard import SEND_RECEIPT_QUERY_PARAM
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -67,7 +68,7 @@ class TestSwitchboardContributorsViews:
         if not exists:
             contributor.delete()
         response = api_client.get(
-            reverse("switchboard-contributor-by-email", args=(email,)),
+            reverse("switchboard-contributor-get-by-email", args=(email,)),
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         if exists:
@@ -76,11 +77,21 @@ class TestSwitchboardContributorsViews:
         else:
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_retrieve_by_email_is_case_insensitive(self, api_client, switchboard_api_token, contributor):
+        contributor.email = contributor.email.upper()
+        contributor.save()
+        response = api_client.get(
+            reverse("switchboard-contributor-get-by-email", args=(contributor.email.lower(),)),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"email": contributor.email, "id": contributor.id}
+
     @pytest.fixture
     def retrieve_by_email_config(self, contributor):
         return {
             "method": "get",
-            "url": reverse("switchboard-contributor-by-email", args=(contributor.email,)),
+            "url": reverse("switchboard-contributor-get-by-email", args=(contributor.email,)),
             "data": None,
         }
 
@@ -300,6 +311,26 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
+
+    @pytest.mark.parametrize(
+        ("querystring", "send_receipt"),
+        [
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=yes", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=y", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=true", True),
+            ("", False),
+        ],
+    )
+    def test_create_receipt_behavior(
+        self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
+    ):
+        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        api_client.post(
+            reverse("switchboard-contribution-list") + querystring,
+            data=creation_data_recurring_with_page,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert mock_handle_receipt_email.called is send_receipt
 
     def test_retrieve(self, api_client, contribution, switchboard_api_token):
         response = api_client.get(

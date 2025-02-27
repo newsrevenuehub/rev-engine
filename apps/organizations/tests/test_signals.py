@@ -44,12 +44,16 @@ class TestRevenueProgramPostSaveHandler:
     )
     def test_when_new_instance(self, make_rp_kwargs, expect_task_called, mocker):
         rp = RevenueProgramFactory.build(**make_rp_kwargs)
-        setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
+        on_commit_mock = mocker.patch("django.db.transaction.on_commit")
+        delay_mock = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list.delay")
         handle_rp_mailchimp_entity_setup(sender=mocker.MagicMock(), instance=rp, created=True)
         if expect_task_called:
-            setup_mc_task.delay.assert_called_once_with(rp.id)
+            on_commit_mock.assert_called_once()
+            lambda_func = on_commit_mock.call_args[0][0]
+            lambda_func()
+            delay_mock.assert_called_once_with(rp.id)
         else:
-            assert not setup_mc_task.delay.called
+            on_commit_mock.assert_not_called()
 
     @pytest.mark.parametrize(
         ("update_rp_kwargs", "expect_task_called"),
@@ -59,16 +63,20 @@ class TestRevenueProgramPostSaveHandler:
         ],
     )
     def test_when_existing_instance(self, update_rp_kwargs, expect_task_called, mocker, revenue_program):
-        setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
+        on_commit_mock = mocker.patch("django.db.transaction.on_commit")
+        delay_mock = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list.delay")
         update_fields = set()
         for k, v in update_rp_kwargs.items():
             setattr(revenue_program, k, v)
             update_fields.add(k)
         revenue_program.save(update_fields=update_fields)
         if expect_task_called:
-            setup_mc_task.delay.assert_called_once_with(revenue_program.id)
+            on_commit_mock.assert_called_once()
+            lambda_func = on_commit_mock.call_args[0][0]
+            lambda_func()
+            delay_mock.assert_called_once_with(revenue_program.id)
         else:
-            assert not setup_mc_task.delay.called
+            delay_mock.assert_not_called()
 
 
 @pytest.mark.django_db

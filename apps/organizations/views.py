@@ -283,6 +283,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         if request.method == "PATCH":
             serializer = self.serializer_class(revenue_program, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
+            logger.info("Data is valid. mailchimp configuration for revenue program with ID %s", pk)
             serializer.save()
             revenue_program.refresh_from_db()
         return Response(self.serializer_class(revenue_program).data)

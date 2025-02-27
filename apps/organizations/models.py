@@ -670,7 +670,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def _has_list_id(self, raise_if_not_present=False):
         """Check whether a revenue program has a check for Mailchimp list ID on a revenue program."""
         if not self.revenue_program.mailchimp_list_id:
-            logger.debug("No email list ID on RP %s", self.revenue_program.id)
+            logger.info("No email list ID on RP %s", self.revenue_program.id)
             if raise_if_not_present:
                 raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
             return False

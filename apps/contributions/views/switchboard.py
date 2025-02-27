@@ -6,17 +6,20 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
+import reversion
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from reversion.views import RevisionMixin
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
+from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
 from apps.api.permissions import IsSwitchboardAccount
 from apps.common.utils import LEFT_UNCHANGED, booleanize_string
 from apps.contributions import serializers
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, Contributor, Payment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -29,6 +32,7 @@ class SwitchboardContributionsViewSet(
     viewsets.mixins.CreateModelMixin,
     viewsets.mixins.UpdateModelMixin,
     viewsets.mixins.RetrieveModelMixin,
+    UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
 ):
     """Viewset for switchboard to update contributions."""
@@ -102,7 +106,7 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
                 {"error": f"A contributor (ID: {contributor.id}) with email {contributor.email} already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = self.get_serializer(contributor)
+        serializer = self.serializer_class(contributor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["get"], url_path="email/(?P<email>[^/]+)", detail=False)
@@ -110,3 +114,30 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
         contributor = get_object_or_404(Contributor.objects.all(), email__iexact=email.strip())
         serializer = serializers.SwitchboardContributorSerializer(contributor)
         return Response(serializer.data)
+
+
+class SwitchboardPaymentsViewSet(
+    RevisionMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    UniquenessConstraintViolationViewSetMixin,
+    viewsets.GenericViewSet,
+):
+    """ViewSet for switchboard to retrieve, create and update payments."""
+
+    permission_classes = [IsSwitchboardAccount]
+    http_method_names = ["get", "post", "patch"]
+    queryset = Payment.objects.all()
+    serializer_class = serializers.SwitchboardPaymentSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def perform_create(self, serializer):
+        with reversion.create_revision():
+            serializer.save()
+            reversion.set_comment("Payment created by Switchboard")
+
+    def perform_update(self, serializer):
+        with reversion.create_revision():
+            serializer.save()
+            reversion.set_comment("Payment updated by Switchboard")

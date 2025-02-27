@@ -3,7 +3,7 @@ import SlackIntegrationCard from './SlackIntegrationCard';
 
 export default {
   component: SlackIntegrationCard,
-  title: 'Common/IntegrationCard'
+  title: 'Settings/IntegrationCard'
 } as ComponentMeta<typeof SlackIntegrationCard>;
 
 const Template: ComponentStory<typeof SlackIntegrationCard> = () => <SlackIntegrationCard />;

@@ -4,10 +4,10 @@ import GoogleAnalyticsLogo from 'assets/images/google-analytics.png';
 import NewspackLogo from 'assets/images/newspack.png';
 import SalesforceLogo from 'assets/images/salesforce.jpg';
 import HeaderSection from 'components/common/HeaderSection';
-import { CustomIntegrationCard } from 'components/common/IntegrationCard/CustomIntegrationCard';
-import { MailchimpIntegrationCard } from 'components/common/IntegrationCard/MailchimpIntegrationCard';
-import { SlackIntegrationCard } from 'components/common/IntegrationCard/SlackIntegrationCard';
-import { StripeIntegrationCard } from 'components/common/IntegrationCard/StripeIntegrationCard';
+import { CustomIntegrationCard } from 'components/settings/Integration/IntegrationCard/CustomIntegrationCard';
+import { MailchimpIntegrationCard } from 'components/settings/Integration/IntegrationCard/MailchimpIntegrationCard';
+import { SlackIntegrationCard } from 'components/settings/Integration/IntegrationCard/SlackIntegrationCard';
+import { StripeIntegrationCard } from 'components/settings/Integration/IntegrationCard/StripeIntegrationCard';
 import SubheaderSection from 'components/common/SubheaderSection';
 import { Content, Wrapper } from './Integration.styled';
 

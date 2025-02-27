@@ -83,7 +83,7 @@ class Contributor(IndexedTimeStampedModel):
         if existing := Contributor.objects.filter(email__iexact=stripped).order_by("created").first():
             return existing, LEFT_UNCHANGED
 
-        logger.info("Creating new contributor for email %s", email)
+        logger.info("Creating new contributor for email %s", stripped)
         # TODO @BW: Remove this conditionality when email_future moves to email
         # DEV-5782
         kwargs = {"email": stripped}

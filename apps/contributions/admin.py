@@ -25,7 +25,10 @@ class ContributorAdmin(RevEngineBaseAdmin):
     list_filter = ("email",)
     ordering = ("email",)
     search_fields = ("email",)
-    readonly_fields = ("email",)
+    readonly_fields = (
+        "email",
+        "email_future",
+    )
 
 
 @admin.register(Payment)

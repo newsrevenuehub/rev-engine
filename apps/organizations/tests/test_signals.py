@@ -48,6 +48,9 @@ class TestRevenueProgramPostSaveHandler:
         delay_mock = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list.delay")
         handle_rp_mailchimp_entity_setup(sender=mocker.MagicMock(), instance=rp, created=True)
         if expect_task_called:
+            # we have to take this round-about way because in normal test execution, transaction.on_commit won't
+            # call its lambda, and we want to assert that the task is called. So we mock the lambda, call it ourselves,
+            # and prove that the task function is called with expected args.
             on_commit_mock.assert_called_once()
             lambda_func = on_commit_mock.call_args[0][0]
             lambda_func()
@@ -71,6 +74,9 @@ class TestRevenueProgramPostSaveHandler:
             update_fields.add(k)
         revenue_program.save(update_fields=update_fields)
         if expect_task_called:
+            # we have to take this round-about way because in normal test execution, transaction.on_commit won't
+            # call its lambda, and we want to assert that the task is called. So we mock the lambda, call it ourselves,
+            # and prove that the task function is called with expected args.
             on_commit_mock.assert_called_once()
             lambda_func = on_commit_mock.call_args[0][0]
             lambda_func()

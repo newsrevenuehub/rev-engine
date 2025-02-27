@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("contributions", "0015_DEV-4915_alter_contribution_provider_payment_id_and_more"),
+        ("contributions", "0016_DEV-5725_contributor_email_future"),
     ]
 
     operations = [

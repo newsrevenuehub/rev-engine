@@ -7,6 +7,9 @@ import useUser from 'hooks/useUser';
 
 import Integration from './Integration';
 
+jest.mock('components/settings/Integration/IntegrationCard/ActiveCampaignIntegrationCard', () => ({
+  ActiveCampaignIntegrationCard: () => <div data-testid="mock-mailchimp-card">ActiveCampaign</div>
+}));
 jest.mock('components/settings/Integration/IntegrationCard/MailchimpIntegrationCard', () => ({
   MailchimpIntegrationCard: () => <div data-testid="mock-mailchimp-card">Mailchimp</div>
 }));
@@ -35,7 +38,7 @@ describe('Settings Integration Page', () => {
     });
   });
 
-  it('should render page texts', () => {
+  it('shows page text', () => {
     tree();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
@@ -43,7 +46,8 @@ describe('Settings Integration Page', () => {
     expect(screen.getByText('Connect News Revenue Engine to the tools you use every day.')).toBeInTheDocument();
   });
 
-  test.each([
+  it.each([
+    'ActiveCampaign',
     'Stripe',
     'Slack',
     'Mailchimp',
@@ -52,30 +56,32 @@ describe('Settings Integration Page', () => {
     'digestbuilder',
     'Google Analytics',
     'Newspack'
-  ])('should render %p integration card', (title) => {
+  ])('shows the %p integration card', (title) => {
     tree();
     expect(screen.getByText(title)).toBeVisible();
   });
 
-  it('should call sendUserToStripe', async () => {
-    tree();
-    expect(sendUserToStripe).not.toBeCalled();
-    userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is not connected' }));
-    expect(sendUserToStripe).toBeCalledTimes(1);
-  });
-
-  it('should not call sendUserToStripe', async () => {
-    useConnectStripeAccountMock.mockReturnValue({
-      requiresVerification: false,
-      sendUserToStripe
+  describe('When the Stripe connection checkbox is clicked', () => {
+    it('calls sendUserToStripe if verification is needed', async () => {
+      tree();
+      expect(sendUserToStripe).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is not connected' }));
+      expect(sendUserToStripe).toBeCalledTimes(1);
     });
-    tree();
-    expect(sendUserToStripe).not.toBeCalled();
-    userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is connected' }));
-    expect(sendUserToStripe).not.toBeCalled();
+
+    it("doesn't call sendUsertoStripe if verification isn't needed", async () => {
+      useConnectStripeAccountMock.mockReturnValue({
+        requiresVerification: false,
+        sendUserToStripe
+      });
+      tree();
+      expect(sendUserToStripe).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is connected' }));
+      expect(sendUserToStripe).not.toBeCalled();
+    });
   });
 
-  it('should be accessible', async () => {
+  it('is accessible', async () => {
     const { container } = tree();
     expect(await axe(container)).toHaveNoViolations();
   });

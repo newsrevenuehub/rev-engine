@@ -33,6 +33,10 @@ export const LIST_FONTS = 'fonts/';
 // Revenue Programs
 export const REVENUE_PROGRAMS = 'revenue-programs/';
 
+export function getRevenueProgramActiveCampaignStatusEndpoint(revenueProgramId: RevenueProgram['id']) {
+  return `/revenue-programs/${revenueProgramId}/activecampaign_configure/`;
+}
+
 export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: RevenueProgram['id']) {
   return `/revenue-programs/${revenueProgramId}/mailchimp_configure/`;
 }

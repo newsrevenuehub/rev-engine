@@ -10,6 +10,7 @@ import { SlackIntegrationCard } from 'components/settings/Integration/Integratio
 import { StripeIntegrationCard } from 'components/settings/Integration/IntegrationCard/StripeIntegrationCard';
 import SubheaderSection from 'components/common/SubheaderSection';
 import { Content, Wrapper } from './Integration.styled';
+import { ActiveCampaignIntegrationCard } from './IntegrationCard/ActiveCampaignIntegrationCard';
 
 const CARD_TYPES = {
   // Keep Salesforce first, to be rendered at the top of the list
@@ -84,6 +85,7 @@ const Integration = () => {
         <StripeIntegrationCard />
         <SlackIntegrationCard />
         <MailchimpIntegrationCard />
+        <ActiveCampaignIntegrationCard />
       </Content>
       <SubheaderSection title="Custom Features" subtitle="Contact Support to enable custom integrations." />
       <Content>

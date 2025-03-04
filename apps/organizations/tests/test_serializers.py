@@ -212,11 +212,6 @@ class TestMailchimpRevenueProgramForSwitchboard:
             new_callable=mocker.PropertyMock,
         )
         mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product",
-            return_value=mailchimp_product,
-            new_callable=mocker.PropertyMock,
-        )
-        mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributor_segment",
             return_value=mailchimp_segment,
             new_callable=mocker.PropertyMock,
@@ -256,7 +251,7 @@ class TestMailchimpRevenueProgramForSwitchboard:
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
-        assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
+        assert serialized["mailchimp_recurring_contribution_product"] is None
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
 
     def test_stripe_account_id_is_nullable(self, mc_connected_rp):

@@ -559,18 +559,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.mailchimp_client.get_product(self.mailchimp_one_time_contribution_product_id)
 
-    @cached_property
-    def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
-        if not self.mailchimp_integration_connected:
-            logger.debug(
-                "Mailchimp integration not connected for this revenue program (%s), returning None",
-                self.id,
-            )
-            return None
-        return self.mailchimp_client.get_product(self.mailchimp_recurring_contribution_product_id)
-
     # Below are not cached because they are dependent on model fields.
-
     @property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
         if not self.mailchimp_contributor_segment_id:
@@ -614,14 +603,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         return "one-time contribution"
 
     @property
-    def mailchimp_recurring_contribution_product_id(self):
-        return f"rp-{self.id}-recurring-contribution-product"
-
-    @property
-    def mailchimp_recurring_contribution_product_name(self):
-        return "recurring contribution"
-
-    @property
     def mailchimp_contributor_segment_name(self):
         return "One-time contributors"
 
@@ -652,7 +633,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_integration_connected,
                 self.mailchimp_store,
                 self.mailchimp_one_time_contribution_product,
-                self.mailchimp_recurring_contribution_product,
             ]
         )
 
@@ -702,7 +682,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         logger.info("Ensuring mailchimp entities for RP %s", self.id)
         self.ensure_mailchimp_store()
         self.ensure_mailchimp_contribution_product(MailchimpProductType.ONE_TIME)
-        self.ensure_mailchimp_contribution_product("recurring")
         self.ensure_mailchimp_contributor_segment(
             MailchimpSegmentType.ALL_CONTRIBUTORS,
             {
@@ -744,7 +723,8 @@ class RevenueProgram(IndexedTimeStampedModel):
                     {
                         "field": "ecomm_prod",
                         "op": "is",
-                        "value": self.mailchimp_recurring_contribution_product_name,
+                        # This is temporary
+                        "value": None,
                     },
                 ],
             },

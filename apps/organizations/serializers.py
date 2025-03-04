@@ -193,7 +193,9 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
     mailchimp_store = serializers.SerializerMethodField()
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
-    mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
+    # NB: This is a vestigial field that we're keeping around in short term so SB won't break.
+    # Question shoudld there be a TODO
+    mailchimp_recurring_contribution_product = serializers.ReadOnlyField(default=None)
     stripe_account_id = serializers.ReadOnlyField(allow_null=True)
     id = serializers.ReadOnlyField()
     name = serializers.ReadOnlyField()
@@ -220,13 +222,6 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     def get_mailchimp_one_time_contribution_product(self, obj) -> dict | None:
         return (
             asdict(obj.mailchimp_one_time_contribution_product) if obj.mailchimp_one_time_contribution_product else None
-        )
-
-    def get_mailchimp_recurring_contribution_product(self, obj) -> dict | None:
-        return (
-            asdict(obj.mailchimp_recurring_contribution_product)
-            if obj.mailchimp_recurring_contribution_product
-            else None
         )
 
 

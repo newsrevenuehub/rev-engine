@@ -728,13 +728,11 @@ class TestRevenueProgram:
     )
     @pytest.mark.parametrize("mailchimp_store", ["truthy", None])
     @pytest.mark.parametrize("mailchimp_one_time_contribution_product", ["truthy", None])
-    @pytest.mark.parametrize("mailchimp_recurring_contribution_product", ["truthy", None])
     def test_mailchimp_integration_ready_property(
         self,
         mailchimp_integration_connected: bool,
         mailchimp_store: str | None,
         mailchimp_one_time_contribution_product: str | None,
-        mailchimp_recurring_contribution_product: str | None,
         mocker: pytest_mock.MockerFixture,
     ):
         mocker.patch(
@@ -752,18 +750,12 @@ class TestRevenueProgram:
             new_callable=mocker.PropertyMock,
             return_value=mailchimp_one_time_contribution_product,
         )
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product",
-            new_callable=mocker.PropertyMock,
-            return_value=mailchimp_recurring_contribution_product,
-        )
         rp = RevenueProgramFactory()
         assert rp.mailchimp_integration_ready == all(
             [
                 mailchimp_integration_connected,
                 mailchimp_store,
                 mailchimp_one_time_contribution_product,
-                mailchimp_recurring_contribution_product,
             ]
         )
 
@@ -772,9 +764,6 @@ class TestRevenueProgram:
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", return_value="truthy")
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product", return_value="truthy"
-        )
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product", return_value="truthy"
         )
         revenue_program = RevenueProgramFactory()
         assert revenue_program.mailchimp_integration_ready is True
@@ -812,10 +801,14 @@ class TestRevenueProgram:
         mocker.patch.object(revenue_program, "ensure_mailchimp_contribution_product")
         mocker.patch.object(revenue_program, "ensure_mailchimp_contributor_segment")
         revenue_program.ensure_mailchimp_entities()
-        assert revenue_program.ensure_mailchimp_store.called
+        assert revenue_program.ensure_mailchimp_store.call_count == 1
         revenue_program.ensure_mailchimp_contribution_product.assert_has_calls(
-            [mocker.call(MailchimpProductType.ONE_TIME), mocker.call(MailchimpProductType.RECURRING)], any_order=True
+            [
+                mocker.call(MailchimpProductType.ONE_TIME),
+            ],
+            any_order=True,
         )
+        assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 3
         revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
             [
                 mocker.call(
@@ -859,7 +852,8 @@ class TestRevenueProgram:
                             {
                                 "field": "ecomm_prod",
                                 "op": "is",
-                                "value": revenue_program.mailchimp_recurring_contribution_product_name,
+                                # Temp
+                                "value": None,
                             },
                         ],
                     },
@@ -913,7 +907,6 @@ class TestRevenueProgram:
     "product_type",
     [
         (MailchimpProductType.ONE_TIME),
-        (MailchimpProductType.RECURRING),
     ],
 )
 class TestRevenueProgramMailchimpProducts:

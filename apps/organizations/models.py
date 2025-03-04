@@ -490,9 +490,11 @@ class RevenueProgram(IndexedTimeStampedModel):
     # to grant revengine access to their Mailchimp account.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_list_id = models.TextField(null=True, blank=True)
-    mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_one_time_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_monthly_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_yearly_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
     # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request. Also include
     # activecampaign_access_token below
@@ -570,24 +572,27 @@ class RevenueProgram(IndexedTimeStampedModel):
     def mailchimp_year_contribution_product(self) -> MailchimpProduct | None:
         return self.get_mailchimp_product(self.mailchimp_year_contribution_product_id)
 
+    def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
+        if (_segment_id := getattr(self, segment_id)) is None:
+            return None
+        return self.mailchimp_client.get_segment(_segment_id)
+
     # Below are not cached because they are dependent on model fields.
     @property
-    def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
-        if not self.mailchimp_contributor_segment_id:
-            return None
-        return self.mailchimp_client.get_segment(self.mailchimp_contributor_segment_id)
+    def mailchimp_one_time_contributor_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment(self.mailchimp_one_time_contributor_segment_id)
 
     @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        if not self.mailchimp_all_contributors_segment_id:
-            return None
-        return self.mailchimp_client.get_segment(self.mailchimp_all_contributors_segment_id)
+        return self.get_mailchimp_segment(self.mailchimp_all_contributors_segment_id)
 
     @property
     def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
-        if not self.mailchimp_recurring_contributor_segment_id:
-            return None
-        return self.mailchimp_client.get_segment(self.mailchimp_recurring_contributor_segment_id)
+        return self.get_mailchimp_segment(self.mailchimp_recurring_contributor_segment_id)
+
+    @property
+    def mailchimp_monthly_contributor_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment(self.mailchimp_monthly_contributor_segment_id)
 
     @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -632,14 +637,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def mailchimp_contributor_segment_name(self):
         return "One-time contributors"
-
-    @property
-    def mailchimp_recurring_contributor_segment_name(self):
-        return "Recurring contributors"
-
-    @property
-    def mailchimp_all_contributors_segment_name(self):
-        return "All contributors"
 
     @property
     def mailchimp_integration_connected(self):
@@ -710,53 +707,63 @@ class RevenueProgram(IndexedTimeStampedModel):
         self.ensure_mailchimp_store()
         for prodcut in MailchimpProductType:
             self.ensure_mailchimp_contribution_product(prodcut)
-        self.ensure_mailchimp_contributor_segment(
-            MailchimpSegmentType.ALL_CONTRIBUTORS,
-            {
+        base_conditions = [{"field": "ecomm_purchased", "op": "member"}]
+        is_condition = {"field": "ecomm_prod", "op": "is"}
+        for segment_type, options in {
+            MailchimpSegmentType.ALL_CONTRIBUTORS: {
                 "match": "all",
-                "conditions": [
-                    {
-                        "field": "ecomm_purchased",
-                        "op": "member",
-                    }
-                ],
+                "conditions": base_conditions,
             },
-        )
-        self.ensure_mailchimp_contributor_segment(
-            MailchimpSegmentType.CONTRIBUTOR,
-            {
+            MailchimpSegmentType.RECURRING_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
+                    *base_conditions,
                     {
-                        "field": "ecomm_purchased",
-                        "op": "member",
-                    },
-                    {
-                        "field": "ecomm_prod",
-                        "op": "is",
-                        "value": self.mailchimp_one_time_contribution_product_name,
-                    },
-                ],
-            },
-        )
-        self.ensure_mailchimp_contributor_segment(
-            MailchimpSegmentType.RECURRING_CONTRIBUTOR,
-            {
-                "match": "all",
-                "conditions": [
-                    {
-                        "field": "ecomm_purchased",
-                        "op": "member",
-                    },
-                    {
-                        "field": "ecomm_prod",
-                        "op": "is",
-                        # This is temporary
-                        "value": None,
+                        "condition_type": "TextMerge",
+                        "op": "grouping",
+                        "value": {
+                            "match": "any",
+                            "conditions": [
+                                {
+                                    "condition_type": "EcommProduct",
+                                    "op": "is",
+                                    "field": "ecomm_prod",
+                                    "value": self.mailchimp_year_contribution_product_name,
+                                },
+                                {
+                                    "condition_type": "EcommProduct",
+                                    "op": "is",
+                                    "field": "ecomm_prod",
+                                    "value": self.mailchimp_month_contribution_product_name,
+                                },
+                            ],
+                        },
                     },
                 ],
             },
-        )
+            MailchimpSegmentType.ONE_TIME_CONTRIBUTORS: {
+                "match": "all",
+                "conditions": [
+                    *base_conditions,
+                    {**is_condition, "value": self.mailchimp_one_time_contribution_product_name},
+                ],
+            },
+            MailchimpSegmentType.MONTHLY_CONTRIBUTORS: {
+                "match": "all",
+                "conditions": [
+                    *base_conditions,
+                    {**is_condition, "value": self.mailchimp_month_contribution_product_name},
+                ],
+            },
+            MailchimpSegmentType.YEARLY_CONTRIBUTORS: {
+                "match": "all",
+                "conditions": [
+                    *base_conditions,
+                    {**is_condition, "value": self.mailchimp_year_contribution_product_name},
+                ],
+            },
+        }.items():
+            self.ensure_mailchimp_contributor_segment(segment_type, options)
 
     def publish_revenue_program_activecampaign_configuration_complete(self):
         """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""

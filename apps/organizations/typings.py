@@ -9,5 +9,9 @@ class MailchimpProductType(StrEnum):
 
 class MailchimpSegmentType(StrEnum):
     ALL_CONTRIBUTORS = "all_contributors"
-    CONTRIBUTOR = "contributor"
-    RECURRING_CONTRIBUTOR = "recurring_contributor"
+    # question is it okay for this to change?
+    ONE_TIME_CONTRIBUTORS = "one_time_contributor"
+    # can this change to plural?
+    RECURRING_CONTRIBUTORS = "recurring_contributor"
+    MONTHLY_CONTRIBUTORS = "monthly_contributor"
+    YEARLY_CONTRIBUTORS = "yearly_contributor"

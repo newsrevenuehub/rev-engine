@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from 'test-utils';
 import { useConnectActiveCampaign } from 'hooks/useConnectActiveCampaign';
 import useUser from 'hooks/useUser';
 import ActiveCampaignIntegrationCard from './ActiveCampaignIntegrationCard';
+import { SETTINGS } from 'routes';
 
 jest.mock('hooks/useConnectActiveCampaign');
 jest.mock('hooks/useUser');
@@ -95,42 +96,57 @@ describe('ActiveCampaignIntegrationCard', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it("shows a Core Feature badge if the user's organization is on the FREE plan", () => {
-    useUserMock.mockReturnValue({
-      user: {
-        ...mockUser,
-        organizations: [
-          {
-            plan: {
-              name: 'FREE'
-            }
-          }
-        ]
-      }
-    } as any);
-    tree();
-    expect(screen.getByText('Core Feature')).toBeVisible();
-  });
-
-  it.each([['CORE'], ['PLUS']])(
-    "doesn't show a Core Feature badge if the user's organization is on the %s plan",
-    (name) => {
+  describe("When the user's organization is on the FREE plan", () => {
+    beforeEach(() => {
       useUserMock.mockReturnValue({
         user: {
           ...mockUser,
           organizations: [
             {
               plan: {
-                name
+                name: 'FREE'
               }
             }
           ]
         }
       } as any);
+    });
+
+    it('shows a Core Feature badge', () => {
+      tree();
+      expect(screen.getByText('Core Feature')).toBeVisible();
+    });
+
+    it('shows an Upgrade button that goes to the subscription settings route', () => {
+      tree();
+      expect(screen.getByRole('button', { name: 'Upgrade' })).toHaveAttribute('href', SETTINGS.SUBSCRIPTION);
+    });
+  });
+
+  describe.each([['CORE'], ['PLUS']])("When the user's organization is on the %s plan", (name) => {
+    beforeEach(() => {
+      useUserMock.mockReturnValue({
+        user: {
+          ...mockUser,
+          organizations: [
+            {
+              plan: { name }
+            }
+          ]
+        }
+      } as any);
+    });
+
+    it("doesn't show a Core Feature badge", () => {
       tree();
       expect(screen.queryByText('Core Feature')).not.toBeInTheDocument();
-    }
-  );
+    });
+
+    it("doesn't show an Upgrade button", () => {
+      tree();
+      expect(screen.queryByRole('button', { name: 'Upgrade' })).not.toBeInTheDocument();
+    });
+  });
 
   it('is accessible', async () => {
     const { container } = tree();

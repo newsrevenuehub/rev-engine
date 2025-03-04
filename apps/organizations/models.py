@@ -2,7 +2,6 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
-from typing import Literal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -28,6 +27,7 @@ from apps.organizations.mailchimp import (
     MailchimpStore,
     RevenueProgramMailchimpClient,
 )
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentType
 from apps.organizations.validators import (
     validate_contact_phone_number,
     validate_statement_descriptor_suffix,
@@ -662,7 +662,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             self.mailchimp_client.create_store()
 
-    def ensure_mailchimp_contribution_product(self, product_type: Literal["one_time", "recurring"]) -> None:
+    def ensure_mailchimp_contribution_product(self, product_type: MailchimpProductType) -> None:
         if getattr(self, f"mailchimp_{product_type}_contribution_product", None):
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
         else:
@@ -678,7 +678,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def ensure_mailchimp_contributor_segment(
         self,
-        segment_type: Literal["all_contributors", "contributor", "recurring_contributor"],
+        segment_type: MailchimpSegmentType,
         options,
     ) -> None:
         if getattr(self, f"mailchimp_{segment_type}_segment", None):
@@ -701,10 +701,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     def ensure_mailchimp_entities(self) -> None:
         logger.info("Ensuring mailchimp entities for RP %s", self.id)
         self.ensure_mailchimp_store()
-        self.ensure_mailchimp_contribution_product("one_time")
+        self.ensure_mailchimp_contribution_product(MailchimpProductType.ONE_TIME)
         self.ensure_mailchimp_contribution_product("recurring")
         self.ensure_mailchimp_contributor_segment(
-            "all_contributors",
+            MailchimpSegmentType.ALL_CONTRIBUTORS,
             {
                 "match": "all",
                 "conditions": [
@@ -716,7 +716,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             },
         )
         self.ensure_mailchimp_contributor_segment(
-            "contributor",
+            MailchimpSegmentType.CONTRIBUTOR,
             {
                 "match": "all",
                 "conditions": [
@@ -733,7 +733,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             },
         )
         self.ensure_mailchimp_contributor_segment(
-            "recurring_contributor",
+            MailchimpSegmentType.RECURRING_CONTRIBUTOR,
             {
                 "match": "all",
                 "conditions": [

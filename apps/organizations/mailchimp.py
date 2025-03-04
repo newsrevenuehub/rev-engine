@@ -10,10 +10,12 @@ from django.conf import settings
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
+from apps.organizations.typings import MailchimpSegmentType
+
 
 # this is to avoid circular import issues, as this module is a depdency of
 # organizations.models
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from apps.organizations.models import RevenueProgram
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -193,7 +195,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         else:
             return MailchimpProduct(**response)
 
-    def create_segment(self, segment_name: str, options) -> MailchimpSegment:
+    def create_segment(self, segment_name: MailchimpSegmentType, options) -> MailchimpSegment:
         """Create a segment of the revenue program's Mailchimp list. This list must be previously created."""
         logger.info("Called for RP %s, segment_name %s", self.revenue_program.id, segment_name)
         self._has_list_id(raise_if_not_present=True)

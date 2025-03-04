@@ -49,6 +49,7 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentType
 from apps.pages.defaults import (
     BENEFITS,
     DEFAULT_PERMITTED_PAGE_ELEMENTS,
@@ -813,12 +814,12 @@ class TestRevenueProgram:
         revenue_program.ensure_mailchimp_entities()
         assert revenue_program.ensure_mailchimp_store.called
         revenue_program.ensure_mailchimp_contribution_product.assert_has_calls(
-            [mocker.call("one_time"), mocker.call("recurring")], any_order=True
+            [mocker.call(MailchimpProductType.ONE_TIME), mocker.call(MailchimpProductType.RECURRING)], any_order=True
         )
         revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
             [
                 mocker.call(
-                    "all_contributors",
+                    MailchimpSegmentType.ALL_CONTRIBUTORS,
                     {
                         "match": "all",
                         "conditions": [
@@ -830,7 +831,7 @@ class TestRevenueProgram:
                     },
                 ),
                 mocker.call(
-                    "contributor",
+                    MailchimpSegmentType.CONTRIBUTOR,
                     {
                         "match": "all",
                         "conditions": [
@@ -847,7 +848,7 @@ class TestRevenueProgram:
                     },
                 ),
                 mocker.call(
-                    "recurring_contributor",
+                    MailchimpSegmentType.RECURRING_CONTRIBUTOR,
                     {
                         "match": "all",
                         "conditions": [
@@ -911,8 +912,8 @@ class TestRevenueProgram:
 @pytest.mark.parametrize(
     "product_type",
     [
-        ("one_time"),
-        ("recurring"),
+        (MailchimpProductType.ONE_TIME),
+        (MailchimpProductType.RECURRING),
     ],
 )
 class TestRevenueProgramMailchimpProducts:
@@ -972,7 +973,7 @@ class TestRevenueProgramMailchimpProducts:
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("segment_type", [("all_contributors"), ("contributor"), ("recurring_contributor")])
+@pytest.mark.parametrize("segment_type", MailchimpSegmentType)
 class TestRevenueProgramMailchimpSegments:
     def test_property_happy_path(self, segment_type, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
         setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")

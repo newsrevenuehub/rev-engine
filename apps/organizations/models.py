@@ -549,15 +549,26 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.mailchimp_client.get_store()
 
-    @cached_property
-    def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
+    def get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
         if not self.mailchimp_integration_connected:
             logger.debug(
                 "Mailchimp integration not connected for this revenue program (%s), returning None",
                 self.id,
             )
             return None
-        return self.mailchimp_client.get_product(self.mailchimp_one_time_contribution_product_id)
+        return self.mailchimp_client.get_product(product_id)
+
+    @cached_property
+    def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
+        return self.get_mailchimp_product(self.mailchimp_one_time_contribution_product_id)
+
+    @cached_property
+    def mailchimp_month_contribution_product(self) -> MailchimpProduct | None:
+        return self.get_mailchimp_product(self.mailchimp_month_contribution_product_id)
+
+    @cached_property
+    def mailchimp_year_contribution_product(self) -> MailchimpProduct | None:
+        return self.get_mailchimp_product(self.mailchimp_year_contribution_product_id)
 
     # Below are not cached because they are dependent on model fields.
     @property
@@ -601,6 +612,22 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def mailchimp_one_time_contribution_product_name(self):
         return "one-time contribution"
+
+    @property
+    def mailchimp_year_contribution_product_id(self):
+        return f"rp-{self.id}-yearly-contribution-product"
+
+    @property
+    def mailchimp_year_contribution_product_name(self):
+        return "yearly contribution"
+
+    @property
+    def mailchimp_month_contribution_product_id(self):
+        return f"rp-{self.id}-monthly-contribution-product"
+
+    @property
+    def mailchimp_month_contribution_product_name(self):
+        return "monthly contribution"
 
     @property
     def mailchimp_contributor_segment_name(self):
@@ -681,7 +708,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     def ensure_mailchimp_entities(self) -> None:
         logger.info("Ensuring mailchimp entities for RP %s", self.id)
         self.ensure_mailchimp_store()
-        self.ensure_mailchimp_contribution_product(MailchimpProductType.ONE_TIME)
+        for prodcut in MailchimpProductType:
+            self.ensure_mailchimp_contribution_product(prodcut)
         self.ensure_mailchimp_contributor_segment(
             MailchimpSegmentType.ALL_CONTRIBUTORS,
             {

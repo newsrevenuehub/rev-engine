@@ -801,11 +801,10 @@ class TestRevenueProgram:
         mocker.patch.object(revenue_program, "ensure_mailchimp_contribution_product")
         mocker.patch.object(revenue_program, "ensure_mailchimp_contributor_segment")
         revenue_program.ensure_mailchimp_entities()
-        assert revenue_program.ensure_mailchimp_store.call_count == 1
+        assert revenue_program.ensure_mailchimp_store.called
+        assert revenue_program.ensure_mailchimp_contribution_product.call_count == 3
         revenue_program.ensure_mailchimp_contribution_product.assert_has_calls(
-            [
-                mocker.call(MailchimpProductType.ONE_TIME),
-            ],
+            [mocker.call(prod_type) for prod_type in MailchimpProductType],
             any_order=True,
         )
         assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 3
@@ -905,9 +904,7 @@ class TestRevenueProgram:
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "product_type",
-    [
-        (MailchimpProductType.ONE_TIME),
-    ],
+    list(MailchimpProductType),
 )
 class TestRevenueProgramMailchimpProducts:
     def test_property_happy_path(self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker):

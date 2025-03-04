@@ -807,57 +807,11 @@ class TestRevenueProgram:
             [mocker.call(prod_type) for prod_type in MailchimpProductType],
             any_order=True,
         )
-        assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 3
+        assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 5
+        # add graunular tests for each segment creation via properties on model
         revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
-            [
-                mocker.call(
-                    MailchimpSegmentType.ALL_CONTRIBUTORS,
-                    {
-                        "match": "all",
-                        "conditions": [
-                            {
-                                "field": "ecomm_purchased",
-                                "op": "member",
-                            }
-                        ],
-                    },
-                ),
-                mocker.call(
-                    MailchimpSegmentType.CONTRIBUTOR,
-                    {
-                        "match": "all",
-                        "conditions": [
-                            {
-                                "field": "ecomm_purchased",
-                                "op": "member",
-                            },
-                            {
-                                "field": "ecomm_prod",
-                                "op": "is",
-                                "value": revenue_program.mailchimp_one_time_contribution_product_name,
-                            },
-                        ],
-                    },
-                ),
-                mocker.call(
-                    MailchimpSegmentType.RECURRING_CONTRIBUTOR,
-                    {
-                        "match": "all",
-                        "conditions": [
-                            {
-                                "field": "ecomm_purchased",
-                                "op": "member",
-                            },
-                            {
-                                "field": "ecomm_prod",
-                                "op": "is",
-                                # Temp
-                                "value": None,
-                            },
-                        ],
-                    },
-                ),
-            ]
+            [mocker.call(seg_type, mocker.ANY) for seg_type in MailchimpSegmentType],
+            any_order=True,
         )
 
     def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp):

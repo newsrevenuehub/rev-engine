@@ -808,10 +808,78 @@ class TestRevenueProgram:
             any_order=True,
         )
         assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 5
-        # add graunular tests for each segment creation via properties on model
         revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
             [mocker.call(seg_type, mocker.ANY) for seg_type in MailchimpSegmentType],
             any_order=True,
+        )
+
+    def test_placeholder(self):
+        # add graunular tests for each segment creation via properties on model
+        pass
+
+    @pytest.mark.parametrize("mc_connected", [True, False])
+    def test_get_mailchimp_product(self, mc_connected: bool, revenue_program: RevenueProgram, mocker):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
+            new_callable=mocker.PropertyMock,
+            return_value=mc_connected,
+        )
+        mock_get_product = mocker.patch(
+            "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_product",
+            return_value=(product := "something"),
+        )
+        returned = revenue_program.get_mailchimp_product(product_id := "123")
+        if mc_connected:
+            mock_get_product.assert_called_once_with(product_id)
+            assert returned == product
+        else:
+            mock_get_product.assert_not_called()
+            assert returned is None
+
+    @pytest.mark.parametrize(
+        "mc_segment_field",
+        [
+            "mailchimp_one_time_contributor_segment_id",
+            "mailchimp_recurring_contributor_segment_id",
+            "mailchimp_all_contributors_segment_id",
+            "mailchimp_monthly_contributor_segment_id",
+            "mailchimp_yearly_contributor_segment_id",
+        ],
+    )
+    @pytest.mark.parametrize("field_value", ["123", None])
+    def test_get_mailchimp_segment(self, mc_segment_field, field_value, revenue_program, mocker):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
+            return_value=True,
+            new_callable=mocker.PropertyMock,
+        )
+        mock_get_segment = mocker.patch(
+            "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_segment",
+            return_value=(segment := "something"),
+        )
+        setattr(revenue_program, mc_segment_field, field_value)
+        returned = revenue_program.get_mailchimp_segment(mc_segment_field)
+        if field_value:
+            mock_get_segment.assert_called_once_with(field_value)
+            assert returned == segment
+        else:
+            mock_get_segment.assert_not_called()
+            assert returned is None
+
+    @pytest.mark.parametrize(
+        ("mc_product_id_field", "id_partial"),
+        [
+            ("mailchimp_one_time_contribution_product_id", "one-time"),
+            ("mailchimp_year_contribution_product_id", "yearly"),
+            ("mailchimp_month_contribution_product_id", "monthly"),
+        ],
+    )
+    def test_mailchimp_product_id_fields(
+        self, revenue_program: RevenueProgram, mc_product_id_field: str, id_partial: str
+    ):
+        assert (
+            getattr(revenue_program, mc_product_id_field)
+            == f"rp-{revenue_program.id}-{id_partial}-contribution-product"
         )
 
     def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp):
@@ -905,8 +973,8 @@ class TestRevenueProgramMailchimpProducts:
         patched_client.return_value.get_product.return_value = None
         mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         patched_client.return_value.create_product.assert_called_with(
-            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_id"),
-            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_name"),
+            MailchimpProductType.get_rp_product_id(product_type),
+            MailchimpProductType.get_rp_product_name(product_type),
         )
 
     def test_ensure_mailchimp_contribution_product_handles_error(self, product_type, mc_connected_rp, mocker):

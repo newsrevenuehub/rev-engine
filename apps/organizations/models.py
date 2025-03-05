@@ -27,7 +27,7 @@ from apps.organizations.mailchimp import (
     MailchimpStore,
     RevenueProgramMailchimpClient,
 )
-from apps.organizations.typings import MailchimpProductType, MailchimpSegmentType
+from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentType
 from apps.organizations.validators import (
     validate_contact_phone_number,
     validate_statement_descriptor_suffix,
@@ -619,28 +619,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         return f"rp-{self.id}-one-time-contribution-product"
 
     @property
-    def mailchimp_one_time_contribution_product_name(self):
-        return "one-time contribution"
-
-    @property
     def mailchimp_year_contribution_product_id(self):
         return f"rp-{self.id}-yearly-contribution-product"
 
     @property
-    def mailchimp_year_contribution_product_name(self):
-        return "yearly contribution"
-
-    @property
     def mailchimp_month_contribution_product_id(self):
         return f"rp-{self.id}-monthly-contribution-product"
-
-    @property
-    def mailchimp_month_contribution_product_name(self):
-        return "monthly contribution"
-
-    @property
-    def mailchimp_contributor_segment_name(self):
-        return "One-time contributors"
 
     @property
     def mailchimp_integration_connected(self):
@@ -671,13 +655,13 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.mailchimp_client.create_store()
 
     def ensure_mailchimp_contribution_product(self, product_type: MailchimpProductType) -> None:
-        if getattr(self, f"mailchimp_{product_type}_contribution_product", None):
+        if MailchimpProductType.get_rp_product(product_type, self):
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
         else:
             try:
                 self.mailchimp_client.create_product(
-                    getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
-                    getattr(self, f"mailchimp_{product_type}_contribution_product_name"),
+                    MailchimpProductType.get_rp_product_id(product_type),
+                    MailchimpProductType.get_rp_product_name(product_type),
                 )
             except MailchimpIntegrationError:
                 logger.exception(
@@ -706,11 +690,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                     self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
                     reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
 
-    def ensure_mailchimp_entities(self) -> None:
-        logger.info("Ensuring mailchimp entities for RP %s", self.id)
-        self.ensure_mailchimp_store()
-        for prodcut in MailchimpProductType:
-            self.ensure_mailchimp_contribution_product(prodcut)
+    def ensure_mailchimp_contributor_segments(self) -> None:
         base_conditions = [{"field": "ecomm_purchased", "op": "member"}]
         is_condition = {"field": "ecomm_prod", "op": "is"}
         for segment_type, options in {
@@ -732,13 +712,13 @@ class RevenueProgram(IndexedTimeStampedModel):
                                     "condition_type": "EcommProduct",
                                     "op": "is",
                                     "field": "ecomm_prod",
-                                    "value": self.mailchimp_year_contribution_product_name,
+                                    "value": MailchimpProductName.YEARLY,
                                 },
                                 {
                                     "condition_type": "EcommProduct",
                                     "op": "is",
                                     "field": "ecomm_prod",
-                                    "value": self.mailchimp_month_contribution_product_name,
+                                    "value": MailchimpProductName.MONTHLY,
                                 },
                             ],
                         },
@@ -749,25 +729,32 @@ class RevenueProgram(IndexedTimeStampedModel):
                 "match": "all",
                 "conditions": [
                     *base_conditions,
-                    {**is_condition, "value": self.mailchimp_one_time_contribution_product_name},
+                    {**is_condition, "value": MailchimpProductName.ONE_TIME},
                 ],
             },
             MailchimpSegmentType.MONTHLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
-                    {**is_condition, "value": self.mailchimp_month_contribution_product_name},
+                    {**is_condition, "value": MailchimpProductName.MONTHLY},
                 ],
             },
             MailchimpSegmentType.YEARLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
-                    {**is_condition, "value": self.mailchimp_year_contribution_product_name},
+                    {**is_condition, "value": MailchimpProductName.YEARLY},
                 ],
             },
         }.items():
             self.ensure_mailchimp_contributor_segment(segment_type, options)
+
+    def ensure_mailchimp_entities(self) -> None:
+        logger.info("Ensuring mailchimp entities for RP %s", self.id)
+        self.ensure_mailchimp_store()
+        for product in MailchimpProductType:
+            self.ensure_mailchimp_contribution_product(product)
+        self.ensure_mailchimp_contributor_segments()
 
     def publish_revenue_program_activecampaign_configuration_complete(self):
         """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""

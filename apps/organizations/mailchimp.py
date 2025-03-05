@@ -205,7 +205,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                 {"name": segment_name, "options": options},
             )
         except ApiClientError as error:
-            return self._handle_write_error(self.revenue_program.mailchimp_contributor_segment_name, error)
+            return self._handle_write_error(segment_name, error)
         else:
             return MailchimpSegment(**response)
 

@@ -10,7 +10,7 @@ from django.conf import settings
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
-from apps.organizations.typings import MailchimpSegmentType
+from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentType
 
 
 # this is to avoid circular import issues, as this module is a depdency of
@@ -152,6 +152,28 @@ class MailchimpSegment:
     options: dict
     list_id: str
     _links: list[dict]
+
+
+class RevenueProgramMailChimpProductHelper:
+
+    @staticmethod
+    def get_rp_product(product_type: str, rp: RevenueProgram) -> MailchimpProduct:
+        product_field = f"mailchimp_{product_type}_contribution_product"
+        return getattr(rp, product_field)
+
+    @staticmethod
+    def get_rp_product_id(product_type: str, rp: RevenueProgram) -> str:
+        return f"rp-{rp.id}-{product_type.replace('_', '-')}-contribution-product"
+
+    @staticmethod
+    def get_rp_product_name(product_type: str) -> str:
+        match product_type:
+            case MailchimpProductType.ONE_TIME:
+                return MailchimpProductName.ONE_TIME
+            case MailchimpProductType.YEAR:
+                return MailchimpProductName.YEARLY
+            case MailchimpProductType.MONTH:
+                return MailchimpProductName.MONTHLY
 
 
 class RevenueProgramMailchimpClient(MailchimpMarketing.Client):

@@ -21,7 +21,12 @@ from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.mailchimp import MailchimpEmailList, MailchimpIntegrationError, MailchimpRateLimitError
+from apps.organizations.mailchimp import (
+    MailchimpEmailList,
+    MailchimpIntegrationError,
+    MailchimpRateLimitError,
+    RevenueProgramMailChimpProductHelper,
+)
 from apps.organizations.models import (
     MAX_APPEND_ORG_NAME_ATTEMPTS,
     ORG_SLUG_MAX_LENGTH,
@@ -919,7 +924,7 @@ class TestRevenueProgramMailchimpProducts:
         product = getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product")
         assert product == mailchimp_product_from_api
         patched_client.return_value.get_product.assert_called_with(
-            MailchimpProductType.get_rp_product_id(product_type, mc_connected_rp)
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, mc_connected_rp)
         )
 
     def test_property_when_no_list_id(self, product_type, mc_connected_rp):
@@ -957,8 +962,8 @@ class TestRevenueProgramMailchimpProducts:
         patched_client.return_value.get_product.return_value = None
         mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         patched_client.return_value.create_product.assert_called_with(
-            MailchimpProductType.get_rp_product_id(product_type, mc_connected_rp),
-            MailchimpProductType.get_rp_product_name(product_type),
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, mc_connected_rp),
+            RevenueProgramMailChimpProductHelper.get_rp_product_name(product_type),
         )
 
     def test_ensure_mailchimp_contribution_product_handles_error(self, product_type, mc_connected_rp, mocker):

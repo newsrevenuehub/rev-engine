@@ -26,6 +26,7 @@ from apps.organizations.mailchimp import (
     MailchimpSegment,
     MailchimpStore,
     RevenueProgramMailchimpClient,
+    RevenueProgramMailChimpProductHelper,
 )
 from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentType
 from apps.organizations.validators import (
@@ -562,15 +563,21 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(MailchimpProductType.get_rp_product_id(MailchimpProductType.ONE_TIME, self))
+        return self.get_mailchimp_product(
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.ONE_TIME, self)
+        )
 
     @cached_property
     def mailchimp_month_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(MailchimpProductType.get_rp_product_id(MailchimpProductType.MONTH, self))
+        return self.get_mailchimp_product(
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.MONTH, self)
+        )
 
     @cached_property
     def mailchimp_year_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(MailchimpProductType.get_rp_product_id(MailchimpProductType.YEAR, self))
+        return self.get_mailchimp_product(
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.YEAR, self)
+        )
 
     def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
         """Get a Mailchimp segment by ID as stored on the revenue program."""
@@ -643,13 +650,13 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.mailchimp_client.create_store()
 
     def ensure_mailchimp_contribution_product(self, product_type: MailchimpProductType) -> None:
-        if MailchimpProductType.get_rp_product(product_type, self):
+        if RevenueProgramMailChimpProductHelper.get_rp_product(product_type, self):
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
         else:
             try:
                 self.mailchimp_client.create_product(
-                    MailchimpProductType.get_rp_product_id(product_type, self),
-                    MailchimpProductType.get_rp_product_name(product_type),
+                    RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, self),
+                    RevenueProgramMailChimpProductHelper.get_rp_product_name(product_type),
                 )
             except MailchimpIntegrationError:
                 logger.exception(

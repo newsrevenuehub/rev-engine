@@ -974,7 +974,7 @@ class TestRevenueProgramMailchimpSegments:
         setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, mock_options)
         patched_client.return_value.create_segment.assert_called_with(
-            getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_name"), mock_options
+            getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment"), mock_options
         )
 
     def test_ensure_mailchimp_contributor_segment_handles_error(self, segment_type, mc_connected_rp, mocker):

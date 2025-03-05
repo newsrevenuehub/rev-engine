@@ -580,19 +580,23 @@ class RevenueProgram(IndexedTimeStampedModel):
     # Below are not cached because they are dependent on model fields.
     @property
     def mailchimp_one_time_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(self.mailchimp_one_time_contributor_segment_id)
+        return self.get_mailchimp_segment("mailchimp_one_time_contributor_segment_id")
 
     @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(self.mailchimp_all_contributors_segment_id)
+        return self.get_mailchimp_segment("mailchimp_all_contributors_segment_id")
 
     @property
     def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(self.mailchimp_recurring_contributor_segment_id)
+        return self.get_mailchimp_segment("mailchimp_recurring_contributor_segment_id")
 
     @property
     def mailchimp_monthly_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(self.mailchimp_monthly_contributor_segment_id)
+        return self.get_mailchimp_segment("mailchimp_monthly_contributor_segment_id")
+
+    @property
+    def mailchimp_yearly_contributor_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment("mailchimp_yearly_contributor_segment_id")
 
     @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -690,7 +694,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             try:
                 segment = self.mailchimp_client.create_segment(
-                    getattr(self, f"mailchimp_{segment_type}_segment_name"), options
+                    getattr(self, f"mailchimp_{segment_type}_segment"), options
                 )
             except MailchimpIntegrationError:
                 logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_type, self.id)

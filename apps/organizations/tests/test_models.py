@@ -866,22 +866,6 @@ class TestRevenueProgram:
             mock_get_segment.assert_not_called()
             assert returned is None
 
-    @pytest.mark.parametrize(
-        ("mc_product_id_field", "id_partial"),
-        [
-            ("mailchimp_one_time_contribution_product_id", "one-time"),
-            ("mailchimp_year_contribution_product_id", "yearly"),
-            ("mailchimp_month_contribution_product_id", "monthly"),
-        ],
-    )
-    def test_mailchimp_product_id_fields(
-        self, revenue_program: RevenueProgram, mc_product_id_field: str, id_partial: str
-    ):
-        assert (
-            getattr(revenue_program, mc_product_id_field)
-            == f"rp-{revenue_program.id}-{id_partial}-contribution-product"
-        )
-
     def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp):
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
@@ -935,7 +919,7 @@ class TestRevenueProgramMailchimpProducts:
         product = getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product")
         assert product == mailchimp_product_from_api
         patched_client.return_value.get_product.assert_called_with(
-            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_id")
+            MailchimpProductType.get_rp_product_id(product_type, mc_connected_rp)
         )
 
     def test_property_when_no_list_id(self, product_type, mc_connected_rp):
@@ -973,7 +957,7 @@ class TestRevenueProgramMailchimpProducts:
         patched_client.return_value.get_product.return_value = None
         mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         patched_client.return_value.create_product.assert_called_with(
-            MailchimpProductType.get_rp_product_id(product_type),
+            MailchimpProductType.get_rp_product_id(product_type, mc_connected_rp),
             MailchimpProductType.get_rp_product_name(product_type),
         )
 

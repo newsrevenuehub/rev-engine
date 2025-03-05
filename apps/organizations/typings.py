@@ -19,8 +19,8 @@ class MailchimpProductType(StrEnum):
         return getattr(rp, product_field)
 
     @staticmethod
-    def get_rp_product_id(product_type: str) -> str:
-        return f"mailchimp_{product_type}_contribution_product_id"
+    def get_rp_product_id(product_type: str, rp: "RevenueProgram") -> str:
+        return f"rp-{rp.id}-{product_type.replace('_', '-')}-contribution-product"
 
     @staticmethod
     def get_rp_product_name(product_type: str) -> str:

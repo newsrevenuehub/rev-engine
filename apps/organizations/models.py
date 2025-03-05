@@ -562,22 +562,22 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(self.mailchimp_one_time_contribution_product_id)
+        return self.get_mailchimp_product(MailchimpProductType.get_rp_product_id(MailchimpProductType.ONE_TIME, self))
 
     @cached_property
     def mailchimp_month_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(self.mailchimp_month_contribution_product_id)
+        return self.get_mailchimp_product(MailchimpProductType.get_rp_product_id(MailchimpProductType.MONTH, self))
 
     @cached_property
     def mailchimp_year_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(self.mailchimp_year_contribution_product_id)
+        return self.get_mailchimp_product(MailchimpProductType.get_rp_product_id(MailchimpProductType.YEAR, self))
 
     def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
+        """Get a Mailchimp segment by ID as stored on the revenue program."""
         if (_segment_id := getattr(self, segment_id)) is None:
             return None
         return self.mailchimp_client.get_segment(_segment_id)
 
-    # Below are not cached because they are dependent on model fields.
     @property
     def mailchimp_one_time_contributor_segment(self) -> MailchimpSegment | None:
         return self.get_mailchimp_segment("mailchimp_one_time_contributor_segment_id")
@@ -615,18 +615,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         return "RevEngine"
 
     @property
-    def mailchimp_one_time_contribution_product_id(self):
-        return f"rp-{self.id}-one-time-contribution-product"
-
-    @property
-    def mailchimp_year_contribution_product_id(self):
-        return f"rp-{self.id}-yearly-contribution-product"
-
-    @property
-    def mailchimp_month_contribution_product_id(self):
-        return f"rp-{self.id}-monthly-contribution-product"
-
-    @property
     def mailchimp_integration_connected(self):
         """Whether the Mailchimp integration has an API token and server prefix (e.g. is ready to be configured by a user).
 
@@ -660,7 +648,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             try:
                 self.mailchimp_client.create_product(
-                    MailchimpProductType.get_rp_product_id(product_type),
+                    MailchimpProductType.get_rp_product_id(product_type, self),
                     MailchimpProductType.get_rp_product_name(product_type),
                 )
             except MailchimpIntegrationError:

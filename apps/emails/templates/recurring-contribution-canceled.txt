@@ -5,7 +5,7 @@ Canceled Contribution
 
 Dear {{ contributor_name }},
 
-You've canceled your contribution to {{ rp_name }}.
+Your contribution to {{ rp_name }} has been canceled.
 {% endblock header %}
 
 {% block timestamp_label %}Date Canceled{% endblock timestamp_label %}

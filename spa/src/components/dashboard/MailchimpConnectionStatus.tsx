@@ -1,4 +1,4 @@
-import MailchimpModal from 'components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal';
+import MailchimpModal from 'components/settings/Integration/IntegrationCard/MailchimpIntegrationCard/MailchimpModal';
 import AudienceListModal from 'components/common/Modal/AudienceListModal';
 import SystemNotification from 'components/common/SystemNotification';
 import { GlobalLoading } from 'components/common/GlobalLoading';

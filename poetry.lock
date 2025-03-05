@@ -133,13 +133,13 @@ files = [
 
 [[package]]
 name = "bandit"
-version = "1.8.2"
+version = "1.8.3"
 description = "Security oriented static analyser for python code."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "bandit-1.8.2-py3-none-any.whl", hash = "sha256:df6146ad73dd30e8cbda4e29689ddda48364e36ff655dbfc86998401fcf1721f"},
-    {file = "bandit-1.8.2.tar.gz", hash = "sha256:e00ad5a6bc676c0954669fe13818024d66b70e42cf5adb971480cf3b671e835f"},
+    {file = "bandit-1.8.3-py3-none-any.whl", hash = "sha256:28f04dc0d258e1dd0f99dee8eefa13d1cb5e3fde1a5ab0c523971f97b289bcd8"},
+    {file = "bandit-1.8.3.tar.gz", hash = "sha256:f5847beb654d309422985c36644649924e0ea4425c76dec2e89110b87506193a"},
 ]
 
 [package.dependencies]
@@ -236,13 +236,13 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "cachetools"
-version = "5.5.1"
+version = "5.5.2"
 description = "Extensible memoizing collections and decorators"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "cachetools-5.5.1-py3-none-any.whl", hash = "sha256:b76651fdc3b24ead3c648bbdeeb940c1b04d365b38b4af66788f9ec4a81d42bb"},
-    {file = "cachetools-5.5.1.tar.gz", hash = "sha256:70f238fbba50383ef62e55c6aff6d9673175fe59f7c6782c7a0b9e38f4a9df95"},
+    {file = "cachetools-5.5.2-py3-none-any.whl", hash = "sha256:d26a22bcc62eb95c3beabd9f1ee5e820d3d2704fe2967cbe350e20c8ffcd3f0a"},
+    {file = "cachetools-5.5.2.tar.gz", hash = "sha256:1a661caa9175d26759571b2e19580f9d6393969e5dfca11fdb1f947a23e640d4"},
 ]
 
 [[package]]
@@ -632,13 +632,13 @@ langdetect = ["langdetect (>=1.0.0)"]
 
 [[package]]
 name = "decorator"
-version = "5.1.1"
+version = "5.2.1"
 description = "Decorators for Humans"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.8"
 files = [
-    {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
-    {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
+    {file = "decorator-5.2.1-py3-none-any.whl", hash = "sha256:d316bb415a2d9e2d2b3abcc4084c6502fc09240e292cd76a76afc106a1c8e04a"},
+    {file = "decorator-5.2.1.tar.gz", hash = "sha256:65f266143752f734b0a7cc83c46f4618af75b8c5911b00ccb61d0ac9b6da0360"},
 ]
 
 [[package]]
@@ -973,13 +973,13 @@ typing-extensions = {version = ">=4.0.1", markers = "python_version < \"3.11\""}
 
 [[package]]
 name = "django-storages"
-version = "1.14.4"
+version = "1.14.5"
 description = "Support for many storage backends in Django"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "django-storages-1.14.4.tar.gz", hash = "sha256:69aca94d26e6714d14ad63f33d13619e697508ee33ede184e462ed766dc2a73f"},
-    {file = "django_storages-1.14.4-py3-none-any.whl", hash = "sha256:d61930acb4a25e3aebebc6addaf946a3b1df31c803a6bf1af2f31c9047febaa3"},
+    {file = "django_storages-1.14.5-py3-none-any.whl", hash = "sha256:5ce9c69426f24f379821fd688442314e4aa03de87ae43183c4e16915f4c165d4"},
+    {file = "django_storages-1.14.5.tar.gz", hash = "sha256:ace80dbee311258453e30cd5cfd91096b834180ccf09bc1f4d2cb6d38d68571a"},
 ]
 
 [package.dependencies]
@@ -989,7 +989,7 @@ Django = ">=3.2"
 azure = ["azure-core (>=1.13)", "azure-storage-blob (>=12)"]
 boto3 = ["boto3 (>=1.4.4)"]
 dropbox = ["dropbox (>=7.2.1)"]
-google = ["google-cloud-storage (>=1.27)"]
+google = ["google-cloud-storage (>=1.32)"]
 libcloud = ["apache-libcloud"]
 s3 = ["boto3 (>=1.4.4)"]
 sftp = ["paramiko (>=1.15)"]
@@ -1092,13 +1092,13 @@ base64imagefield = ["Pillow (>=6.2.1)"]
 
 [[package]]
 name = "drf-yasg"
-version = "1.21.8"
+version = "1.21.9"
 description = "Automated generation of real Swagger/OpenAPI 2.0 schemas from Django Rest Framework code."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "drf-yasg-1.21.8.tar.gz", hash = "sha256:cbb7f81c3d140f2207392b4bc5dde65384eeb58e1b7eea1a6d641dec2f7352a9"},
-    {file = "drf_yasg-1.21.8-py3-none-any.whl", hash = "sha256:a410b235e7cc2c0f6b9d4f671e8efe6f2d27cba398fbd16064e16ef814998444"},
+    {file = "drf-yasg-1.21.9.tar.gz", hash = "sha256:53d4319769bac121c56be18095342392b66d755e9fdd309414e1a86b5c3dd5ea"},
+    {file = "drf_yasg-1.21.9-py3-none-any.whl", hash = "sha256:8548cdb072076c35064e57b11a6c955e47117605774b310b3aeab884256e9f19"},
 ]
 
 [package.dependencies]
@@ -1176,13 +1176,13 @@ doc = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
 
 [[package]]
 name = "faker"
-version = "36.1.0"
+version = "36.1.1"
 description = "Faker is a Python package that generates fake data for you."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "Faker-36.1.0-py3-none-any.whl", hash = "sha256:aa0b93487d3adf7cd89953d172e3df896cb7b35d8a5222c0da873edbe2f7adf5"},
-    {file = "faker-36.1.0.tar.gz", hash = "sha256:f40510350aecfe006f45cb3f8879b35e861367cf347f51a7f2ca2c0571fdcc0b"},
+    {file = "Faker-36.1.1-py3-none-any.whl", hash = "sha256:ad1f1be7fd692ec0256517404a9d7f007ab36ac5d4674082fa72404049725eaa"},
+    {file = "faker-36.1.1.tar.gz", hash = "sha256:7cb2bbd4c8f040e4a340ae4019e9a48b6cf1db6a71bda4e5a61d8d13b7bef28d"},
 ]
 
 [package.dependencies]
@@ -1276,13 +1276,13 @@ requests = ["requests (>=2.20.0,<3.0.0.dev0)"]
 
 [[package]]
 name = "google-cloud-core"
-version = "2.4.1"
+version = "2.4.2"
 description = "Google Cloud API client core library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-core-2.4.1.tar.gz", hash = "sha256:9b7749272a812bde58fff28868d0c5e2f585b82f37e09a1f6ed2d4d10f134073"},
-    {file = "google_cloud_core-2.4.1-py2.py3-none-any.whl", hash = "sha256:a9e6a4422b9ac5c29f79a0ede9485473338e2ce78d91f2370c01e730eab22e61"},
+    {file = "google_cloud_core-2.4.2-py2.py3-none-any.whl", hash = "sha256:7459c3e83de7cb8b9ecfec9babc910efb4314030c56dd798eaad12c426f7d180"},
+    {file = "google_cloud_core-2.4.2.tar.gz", hash = "sha256:a4fcb0e2fcfd4bfe963837fad6d10943754fd79c1a50097d68540b6eb3d67f35"},
 ]
 
 [package.dependencies]
@@ -1323,19 +1323,19 @@ libcst = ["libcst (>=0.3.10)"]
 
 [[package]]
 name = "google-cloud-secret-manager"
-version = "2.23.0"
+version = "2.23.1"
 description = "Google Cloud Secret Manager API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google_cloud_secret_manager-2.23.0-py2.py3-none-any.whl", hash = "sha256:fc4c28dd3e932b89d1057100c6625686a43b5ca26e6dd73ffea2afbfbbc97209"},
-    {file = "google_cloud_secret_manager-2.23.0.tar.gz", hash = "sha256:0249f433b6f0899b5e2adfc495e5b2d4a76c484937cad7c27e2b374bebf8f248"},
+    {file = "google_cloud_secret_manager-2.23.1-py2.py3-none-any.whl", hash = "sha256:ed9a58750ec24be46dc17ea9b6cb1e7088490921b810a3c365b3e28be82984a1"},
+    {file = "google_cloud_secret_manager-2.23.1.tar.gz", hash = "sha256:4d779ed5666b5c4a4e24e52f808b2e159b60fc68ed7b1f230ca491918632a114"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.1,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
 google-auth = ">=2.14.1,<2.24.0 || >2.24.0,<2.25.0 || >2.25.0,<3.0.0dev"
-grpc-google-iam-v1 = ">=0.12.4,<1.0.0dev"
+grpc-google-iam-v1 = ">=0.14.0,<1.0.0dev"
 proto-plus = [
     {version = ">=1.25.0,<2.0.0dev", markers = "python_version >= \"3.13\""},
     {version = ">=1.22.3,<2.0.0dev", markers = "python_version < \"3.13\""},
@@ -1424,13 +1424,13 @@ requests = ["requests (>=2.18.0,<3.0.0dev)"]
 
 [[package]]
 name = "googleapis-common-protos"
-version = "1.67.0"
+version = "1.68.0"
 description = "Common protobufs used in Google APIs"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "googleapis_common_protos-1.67.0-py2.py3-none-any.whl", hash = "sha256:579de760800d13616f51cf8be00c876f00a9f146d3e6510e19d1f4111758b741"},
-    {file = "googleapis_common_protos-1.67.0.tar.gz", hash = "sha256:21398025365f138be356d5923e9168737d94d46a72aefee4a6110a1f23463c86"},
+    {file = "googleapis_common_protos-1.68.0-py2.py3-none-any.whl", hash = "sha256:aaf179b2f81df26dfadac95def3b16a95064c76a5f45f07e4c68a21bb371c4ac"},
+    {file = "googleapis_common_protos-1.68.0.tar.gz", hash = "sha256:95d38161f4f9af0d9423eed8fb7b64ffd2568c3464eb542ff02c5bfa1953ab3c"},
 ]
 
 [package.dependencies]
@@ -1556,13 +1556,13 @@ requests = ">=1.2.3"
 
 [[package]]
 name = "identify"
-version = "2.6.7"
+version = "2.6.8"
 description = "File identification library for Python"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "identify-2.6.7-py2.py3-none-any.whl", hash = "sha256:155931cb617a401807b09ecec6635d6c692d180090a1cedca8ef7d58ba5b6aa0"},
-    {file = "identify-2.6.7.tar.gz", hash = "sha256:3fa266b42eba321ee0b2bb0936a6a6b9e36a1351cbb69055b3082f4193035684"},
+    {file = "identify-2.6.8-py2.py3-none-any.whl", hash = "sha256:83657f0f766a3c8d0eaea16d4ef42494b39b34629a4b3192a9d020d349b3e255"},
+    {file = "identify-2.6.8.tar.gz", hash = "sha256:61491417ea2c0c5c670484fd8abbb34de34cdae1e5f39a73ee65e48e4bb663fc"},
 ]
 
 [package.extras]
@@ -1970,13 +1970,13 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "phonenumbers"
-version = "8.13.54"
+version = "8.13.55"
 description = "Python version of Google's common library for parsing, formatting, storing and validating international phone numbers."
 optional = false
 python-versions = "*"
 files = [
-    {file = "phonenumbers-8.13.54-py2.py3-none-any.whl", hash = "sha256:97624ada7260daafd09538baa6574b14cb9151cf29c5b22d9278abd050957edf"},
-    {file = "phonenumbers-8.13.54.tar.gz", hash = "sha256:4c32e3c941b24e5ce28d2211f624f0fef08462781e3d7e5e85192275cfd6c680"},
+    {file = "phonenumbers-8.13.55-py2.py3-none-any.whl", hash = "sha256:25feaf46135f0fb1e61b69513dc97c477285ba98a69204bf5a8cf241a844a718"},
+    {file = "phonenumbers-8.13.55.tar.gz", hash = "sha256:57c989dda3eabab1b5a9e3d24438a39ebd032fa0172bf68bfd90ab70b3d5e08b"},
 ]
 
 [[package]]
@@ -2927,40 +2927,40 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "ruff"
-version = "0.9.6"
+version = "0.9.8"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "ruff-0.9.6-py3-none-linux_armv6l.whl", hash = "sha256:2f218f356dd2d995839f1941322ff021c72a492c470f0b26a34f844c29cdf5ba"},
-    {file = "ruff-0.9.6-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:b908ff4df65dad7b251c9968a2e4560836d8f5487c2f0cc238321ed951ea0504"},
-    {file = "ruff-0.9.6-py3-none-macosx_11_0_arm64.whl", hash = "sha256:b109c0ad2ececf42e75fa99dc4043ff72a357436bb171900714a9ea581ddef83"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1de4367cca3dac99bcbd15c161404e849bb0bfd543664db39232648dc00112dc"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:ac3ee4d7c2c92ddfdaedf0bf31b2b176fa7aa8950efc454628d477394d35638b"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5dc1edd1775270e6aa2386119aea692039781429f0be1e0949ea5884e011aa8e"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:4a091729086dffa4bd070aa5dab7e39cc6b9d62eb2bef8f3d91172d30d599666"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d1bbc6808bf7b15796cef0815e1dfb796fbd383e7dbd4334709642649625e7c5"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:589d1d9f25b5754ff230dce914a174a7c951a85a4e9270613a2b74231fdac2f5"},
-    {file = "ruff-0.9.6-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dc61dd5131742e21103fbbdcad683a8813be0e3c204472d520d9a5021ca8b217"},
-    {file = "ruff-0.9.6-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:5e2d9126161d0357e5c8f30b0bd6168d2c3872372f14481136d13de9937f79b6"},
-    {file = "ruff-0.9.6-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:68660eab1a8e65babb5229a1f97b46e3120923757a68b5413d8561f8a85d4897"},
-    {file = "ruff-0.9.6-py3-none-musllinux_1_2_i686.whl", hash = "sha256:c4cae6c4cc7b9b4017c71114115db0445b00a16de3bcde0946273e8392856f08"},
-    {file = "ruff-0.9.6-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:19f505b643228b417c1111a2a536424ddde0db4ef9023b9e04a46ed8a1cb4656"},
-    {file = "ruff-0.9.6-py3-none-win32.whl", hash = "sha256:194d8402bceef1b31164909540a597e0d913c0e4952015a5b40e28c146121b5d"},
-    {file = "ruff-0.9.6-py3-none-win_amd64.whl", hash = "sha256:03482d5c09d90d4ee3f40d97578423698ad895c87314c4de39ed2af945633caa"},
-    {file = "ruff-0.9.6-py3-none-win_arm64.whl", hash = "sha256:0e2bb706a2be7ddfea4a4af918562fdc1bcb16df255e5fa595bbd800ce322a5a"},
-    {file = "ruff-0.9.6.tar.gz", hash = "sha256:81761592f72b620ec8fa1068a6fd00e98a5ebee342a3642efd84454f3031dca9"},
+    {file = "ruff-0.9.8-py3-none-linux_armv6l.whl", hash = "sha256:d236f0ce0190bbc6fa9b4c4b85e916fb4c50fd087e6558af1bf5a45eb20e374d"},
+    {file = "ruff-0.9.8-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:59fac6922b336d0c38df199761ade561563e1b7636e3a2b767b9ee5a68aa9cbf"},
+    {file = "ruff-0.9.8-py3-none-macosx_11_0_arm64.whl", hash = "sha256:a82082ec72bde2166ec138055307396c4d4e543fd97266dc2bfa24284cb30af6"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e06635d12321605d1d11226c7d3c6b1245a0df498099868d14b4e353b3f0ac22"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:65961815bb35d427e957940d13b2a1d0a67d8b245d3a7e0b5a4a2058536d3532"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c18356beaef174797ad83f11debc5569e96afa73a549b2d073912565cfc4cfd1"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:a1dfc443bee0288ea926a4d9ecfd858bf94ddf0a03a256c63e81b2b6dccdfc7d"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:bc86d5a85cd5ab1d5aff1650f038aa34681d0692cc2467aa9ddef37bd56ea3f9"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:66662aa19535d58fe6d04e5b59a39e495b102f2f5a2a1b9698e240eb78f429ef"},
+    {file = "ruff-0.9.8-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:733647b2fe9367e1aa049c0eba296363746f3bc0dbfd454b0bc4b7b46cdf0146"},
+    {file = "ruff-0.9.8-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:100031be9777f67af7f61b4d4eea2a0531ed6788940aca4360f6b9aae317c53b"},
+    {file = "ruff-0.9.8-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:2f090758d58b4667d9022eee1085a854db93d800279e5a177ebda5adc1faf639"},
+    {file = "ruff-0.9.8-py3-none-musllinux_1_2_i686.whl", hash = "sha256:f774998b9c9a062510533aba9b53085de6be6d41e13a7a0bd086af8a40e838c3"},
+    {file = "ruff-0.9.8-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:6ef7cc80626264ab8ab4d68b359ba867b8a52b0830a9643cd31289146dd40892"},
+    {file = "ruff-0.9.8-py3-none-win32.whl", hash = "sha256:54b57b623a683e696a1ede99db95500763c1badafe105b6ad8d8e9d96e385ae2"},
+    {file = "ruff-0.9.8-py3-none-win_amd64.whl", hash = "sha256:b0878103b2fb8af55ad701308a69ce713108ad346c3a3a143ebcd1e13829c9a7"},
+    {file = "ruff-0.9.8-py3-none-win_arm64.whl", hash = "sha256:e459a4fc4150fcc60da26c59a6a4b70878c60a99df865a71cf6f958dc68c419a"},
+    {file = "ruff-0.9.8.tar.gz", hash = "sha256:12d455f2be6fe98accbea2487bbb8eaec716c760bf60b45e7e13f76f913f56e9"},
 ]
 
 [[package]]
 name = "sentry-sdk"
-version = "2.21.0"
+version = "2.22.0"
 description = "Python client for Sentry (https://sentry.io)"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "sentry_sdk-2.21.0-py2.py3-none-any.whl", hash = "sha256:7623cfa9e2c8150948a81ca253b8e2bfe4ce0b96ab12f8cd78e3ac9c490fd92f"},
-    {file = "sentry_sdk-2.21.0.tar.gz", hash = "sha256:a6d38e0fb35edda191acf80b188ec713c863aaa5ad8d5798decb8671d02077b6"},
+    {file = "sentry_sdk-2.22.0-py2.py3-none-any.whl", hash = "sha256:3d791d631a6c97aad4da7074081a57073126c69487560c6f8bffcf586461de66"},
+    {file = "sentry_sdk-2.22.0.tar.gz", hash = "sha256:b4bf43bb38f547c84b2eadcefbe389b36ef75f3f38253d7a74d6b928c07ae944"},
 ]
 
 [package.dependencies]
@@ -3004,18 +3004,19 @@ sanic = ["sanic (>=0.8)"]
 sqlalchemy = ["sqlalchemy (>=1.2)"]
 starlette = ["starlette (>=0.19.1)"]
 starlite = ["starlite (>=1.48)"]
+statsig = ["statsig (>=0.55.3)"]
 tornado = ["tornado (>=6)"]
 unleash = ["UnleashClient (>=6.0.1)"]
 
 [[package]]
 name = "setuptools"
-version = "75.8.0"
+version = "75.8.2"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "setuptools-75.8.0-py3-none-any.whl", hash = "sha256:e3982f444617239225d675215d51f6ba05f845d4eec313da4418fdbb56fb27e3"},
-    {file = "setuptools-75.8.0.tar.gz", hash = "sha256:c5afc8f407c626b8313a86e10311dd3f661c6cd9c09d4bf8c15c0e11f9f2b0e6"},
+    {file = "setuptools-75.8.2-py3-none-any.whl", hash = "sha256:558e47c15f1811c1fa7adbd0096669bf76c1d3f433f58324df69f3f5ecac4e8f"},
+    {file = "setuptools-75.8.2.tar.gz", hash = "sha256:4880473a969e5f23f2a2be3646b2dfd84af9028716d398e46192f84bc36900d2"},
 ]
 
 [package.extras]
@@ -3131,13 +3132,13 @@ tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
 name = "stevedore"
-version = "5.4.0"
+version = "5.4.1"
 description = "Manage dynamic plugins for Python applications"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "stevedore-5.4.0-py3-none-any.whl", hash = "sha256:b0be3c4748b3ea7b854b265dcb4caa891015e442416422be16f8b31756107857"},
-    {file = "stevedore-5.4.0.tar.gz", hash = "sha256:79e92235ecb828fe952b6b8b0c6c87863248631922c8e8e0fa5b17b232c4514d"},
+    {file = "stevedore-5.4.1-py3-none-any.whl", hash = "sha256:d10a31c7b86cba16c1f6e8d15416955fc797052351a56af15e608ad20811fcfe"},
+    {file = "stevedore-5.4.1.tar.gz", hash = "sha256:3135b5ae50fe12816ef291baff420acb727fcd356106e3e9cbfa9e5985cd6f4b"},
 ]
 
 [package.dependencies]
@@ -3269,13 +3270,13 @@ files = [
 
 [[package]]
 name = "tzlocal"
-version = "5.2"
+version = "5.3"
 description = "tzinfo object for the local timezone"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "tzlocal-5.2-py3-none-any.whl", hash = "sha256:49816ef2fe65ea8ac19d19aa7a1ae0551c834303d5014c6d5a62e4cbda8047b8"},
-    {file = "tzlocal-5.2.tar.gz", hash = "sha256:8d399205578f1a9342816409cc1e46a93ebd5755e39ea2d85334bea911bf0e6e"},
+    {file = "tzlocal-5.3-py3-none-any.whl", hash = "sha256:3814135a1bb29763c6e4f08fd6e41dbb435c7a60bfbb03270211bcc537187d8c"},
+    {file = "tzlocal-5.3.tar.gz", hash = "sha256:2fafbfc07e9d8b49ade18f898d6bcd37ae88ce3ad6486842a2e4f03af68323d2"},
 ]
 
 [package.dependencies]
@@ -3501,4 +3502,4 @@ bandit = []
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e2059d371a228aa9c7ba0521b5e15596b51863452403307ce5db531241815372"
+content-hash = "9ea71ae7fe570382b8d10fa0717e4d2deb80180e382a20599a8ffe8fca80b1d5"

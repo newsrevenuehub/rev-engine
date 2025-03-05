@@ -9,10 +9,12 @@ from apps.organizations.mailchimp import (
     MailchimpSegment,
     MailchimpStore,
     RevenueProgramMailchimpClient,
+    RevenueProgramMailChimpProductHelper,
 )
 from apps.organizations.mailchimp import (
     logger as mailchimp_logger,
 )
+from apps.organizations.typings import MailchimpProductType
 
 
 @pytest.mark.django_db
@@ -187,3 +189,37 @@ class TestRevenueProgramMailchimpClient:
         with pytest.raises(MailchimpRateLimitError):
             client._handle_write_error("test-entity", ApiClientError("test-error", 429))
         logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
+
+
+@pytest.mark.django_db
+class TestRevenueProgramMailchimpProductHelper:
+
+    @pytest.mark.parametrize("product_type", MailchimpProductType)
+    def test_get_rp_product(self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker):
+        mocker.patch(
+            "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_product",
+            return_value=(product := MailchimpProduct(**mailchimp_product_from_api)),
+        )
+        assert RevenueProgramMailChimpProductHelper.get_rp_product(product_type, mc_connected_rp) == product
+
+    @pytest.mark.parametrize("product_type", MailchimpProductType)
+    def test_get_rp_product_id(self, product_type, mc_connected_rp):
+        product_id = RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, mc_connected_rp)
+        match product_type:
+            case MailchimpProductType.ONE_TIME:
+                assert product_id == f"rp-{mc_connected_rp.id}-one-time-contribution-product"
+            case MailchimpProductType.MONTH:
+                assert product_id == f"rp-{mc_connected_rp.id}-monthly-contribution-product"
+            case MailchimpProductType.YEAR:
+                assert product_id == f"rp-{mc_connected_rp.id}-yearly-contribution-product"
+
+    @pytest.mark.parametrize("product_type", MailchimpProductType)
+    def test_get_rp_product_name(self, product_type):
+        product_name = RevenueProgramMailChimpProductHelper.get_rp_product_name(product_type)
+        match product_type:
+            case MailchimpProductType.ONE_TIME:
+                assert product_name == "one-time contribution"
+            case MailchimpProductType.MONTH:
+                assert product_name == "monthly contribution"
+            case MailchimpProductType.YEAR:
+                assert product_name == "yearly contribution"

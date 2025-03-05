@@ -157,13 +157,20 @@ class MailchimpSegment:
 class RevenueProgramMailChimpProductHelper:
 
     @staticmethod
-    def get_rp_product(product_type: str, rp: RevenueProgram) -> MailchimpProduct:
+    def get_rp_product(product_type: MailchimpProductType, rp: RevenueProgram) -> MailchimpProduct:
         product_field = f"mailchimp_{product_type}_contribution_product"
         return getattr(rp, product_field)
 
     @staticmethod
-    def get_rp_product_id(product_type: str, rp: RevenueProgram) -> str:
-        return f"rp-{rp.id}-{product_type.replace('_', '-')}-contribution-product"
+    def get_rp_product_id(product_type: MailchimpProductType, rp: RevenueProgram) -> str:
+        match product_type:
+            case MailchimpProductType.ONE_TIME:
+                partial = "one-time"
+            case MailchimpProductType.YEAR:
+                partial = "yearly"
+            case MailchimpProductType.MONTH:
+                partial = "monthly"
+        return f"rp-{rp.id}-{partial}-contribution-product"
 
     @staticmethod
     def get_rp_product_name(product_type: str) -> str:

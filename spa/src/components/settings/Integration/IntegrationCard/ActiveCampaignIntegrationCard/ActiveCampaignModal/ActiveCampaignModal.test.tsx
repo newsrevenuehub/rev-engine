@@ -5,7 +5,9 @@ import ActiveCampaignModal, { ActiveCampaignModalProps } from './ActiveCampaignM
 jest.mock('./FreePlanContent');
 
 function tree(props?: Partial<ActiveCampaignModalProps>) {
-  return render(<ActiveCampaignModal onClose={jest.fn()} open orgPlan="FREE" {...props} />);
+  return render(
+    <ActiveCampaignModal onClose={jest.fn()} onStartCoreConnection={jest.fn()} open orgPlan="FREE" {...props} />
+  );
 }
 
 describe('ActiveCampaignModal', () => {

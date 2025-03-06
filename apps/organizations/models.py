@@ -745,6 +745,22 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.ensure_mailchimp_contributor_segment(segment_type, options)
 
     def ensure_mailchimp_entities(self) -> None:
+        """Ensure that all Mailchimp entities are created for this revenue program.
+
+        Will create if the don't exist:
+
+        - Mailchimp store
+        - Mailchimp products for
+          - One-time contributions
+          - Monthly contributions
+          - Yearly contributions
+        - Mailchimp segments for
+          - All contributors
+          - Recurring contributors
+          - One-time contributors
+          - Monthly contributors
+          - Yearly contributors
+        """
         logger.info("Ensuring mailchimp entities for RP %s", self.id)
         self.ensure_mailchimp_store()
         for product in MailchimpProductType:

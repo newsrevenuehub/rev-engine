@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import axios from 'ajax/axios';
 import { RevenueProgram } from './useContributionPage';
@@ -18,21 +18,50 @@ export interface RevenueProgramActiveCampaignStatus {
   slug: string;
 }
 
-function fetchActiveCampaignStatus(
+async function fetchActiveCampaignStatus(
   revenueProgramId: RevenueProgram['id']
 ): Promise<RevenueProgramActiveCampaignStatus> {
-  return axios.get(getRevenueProgramActiveCampaignStatusEndpoint(revenueProgramId)).then(({ data }) => data);
+  return (await axios.get(getRevenueProgramActiveCampaignStatusEndpoint(revenueProgramId))).data;
+}
+
+async function patchActiveCampaignApiKeyAndServerUrl(
+  revenueProgramId: RevenueProgram['id'],
+  apiKey: string,
+  serverUrl: string
+): Promise<RevenueProgramActiveCampaignStatus> {
+  return (
+    await axios.patch(getRevenueProgramActiveCampaignStatusEndpoint(revenueProgramId), {
+      activecampaign_api_key: apiKey,
+      activecampaign_server_url: serverUrl
+    })
+  ).data;
 }
 
 export function useConnectActiveCampaign() {
   const { user } = useUser();
   const firstRevenueProgram = useMemo(() => user?.revenue_programs?.[0], [user?.revenue_programs]);
   const enabled = !!(firstRevenueProgram && user?.organizations?.length === 1);
+  const queryClient = useQueryClient();
   const { data, isError, isLoading } = useQuery(
     ['revenueProgramActiveCampaignStatus'],
     () => fetchActiveCampaignStatus(firstRevenueProgram!.id),
     { enabled }
   );
+  const { mutateAsync: updateApiKeyAndServerUrl } = useMutation(
+    ({ apiKey, serverUrl }: { apiKey: string; serverUrl: string }) =>
+      patchActiveCampaignApiKeyAndServerUrl(firstRevenueProgram!.id, apiKey, serverUrl),
+    {
+      onSuccess() {
+        queryClient.invalidateQueries(['revenueProgramActiveCampaignStatus']);
+      }
+    }
+  );
 
-  return { data, isError, isLoading };
+  return {
+    activecampaign_integration_connected: data?.activecampaign_integration_connected,
+    activecampaign_server_url: data?.activecampaign_server_url,
+    updateApiKeyAndServerUrl: data ? updateApiKeyAndServerUrl : undefined,
+    isError,
+    isLoading
+  };
 }

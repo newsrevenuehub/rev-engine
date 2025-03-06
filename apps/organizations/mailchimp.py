@@ -155,14 +155,20 @@ class MailchimpSegment:
 
 
 class RevenueProgramMailChimpProductHelper:
+    """Helper class to manage Mailchimp products for a revenue program."""
 
     @staticmethod
-    def get_rp_product(product_type: MailchimpProductType, rp: RevenueProgram) -> MailchimpProduct:
+    def get_rp_product(product_type: MailchimpProductType, rp: RevenueProgram) -> MailchimpProduct | None:
+        """Get the Mailchimp product for a revenue program, if any, for a given product type."""
         product_field = f"mailchimp_{product_type}_contribution_product"
         return getattr(rp, product_field)
 
     @staticmethod
     def get_rp_product_id(product_type: MailchimpProductType, rp: RevenueProgram) -> str:
+        """Get the Mailchimp product ID for a revenue program, for a given product type.
+
+        The values created by this method are used when we create Mailchimp products.
+        """
         match product_type:
             case MailchimpProductType.ONE_TIME:
                 partial = "one-time"
@@ -174,6 +180,10 @@ class RevenueProgramMailChimpProductHelper:
 
     @staticmethod
     def get_rp_product_name(product_type: str) -> str:
+        """Get the Mailchimp product name for a revenue program, for a given product type.
+
+        The values created by this method are used when we create Mailchimp products.
+        """
         match product_type:
             case MailchimpProductType.ONE_TIME:
                 return MailchimpProductName.ONE_TIME
@@ -200,7 +210,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             }
         )
 
-    def create_product(self, product_id: str, product_name: str) -> MailchimpProduct:
+    def create_product(self, product_id: str, product_name: MailchimpProductName) -> MailchimpProduct:
         logger.info(
             "Called for RP %s, product_id %s, product_name %s", self.revenue_program.id, product_id, product_name
         )

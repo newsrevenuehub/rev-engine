@@ -1,4 +1,4 @@
-from apps.common.typings import StrEnum
+from apps.common import StrEnum
 
 
 class MailchimpProductType(StrEnum):

@@ -5,6 +5,8 @@ from sorl.thumbnail import ImageField as SorlImageField
 
 
 class IndexedTimeStampedModel(models.Model):
+    id: int
+
     created = AutoCreatedField("created", db_index=True)
     modified = AutoLastModifiedField("modified", db_index=True)
 

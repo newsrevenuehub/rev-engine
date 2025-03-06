@@ -9,12 +9,11 @@ from apps.organizations.mailchimp import (
     MailchimpSegment,
     MailchimpStore,
     RevenueProgramMailchimpClient,
-    RevenueProgramMailChimpProductHelper,
 )
 from apps.organizations.mailchimp import (
     logger as mailchimp_logger,
 )
-from apps.organizations.typings import MailchimpProductType
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName
 
 
 @pytest.mark.django_db
@@ -23,55 +22,65 @@ class TestRevenueProgramMailchimpClient:
         with pytest.raises(MailchimpIntegrationError):
             RevenueProgramMailchimpClient(revenue_program)
 
-    def test_create_product_happy_path(self, mc_connected_rp, mailchimp_product_from_api, mocker):
+    @pytest.mark.parametrize("product_type", MailchimpProductType)
+    def test_create_product_happy_path(
+        self, mc_connected_rp, mailchimp_product_from_api, mocker, product_type: MailchimpProductType
+    ):
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.ecommerce, "add_store_product", return_value=mailchimp_product_from_api)
-        assert client.create_product("test-product-id", "test-product-name") == MailchimpProduct(
-            **mailchimp_product_from_api
-        )
+
+        assert client.create_product(product_type) == MailchimpProduct(**mailchimp_product_from_api)
+        expected_name = product_type.as_mailchimp_product_name()
+        expected_id = product_type.as_mailchimp_product_id(mc_connected_rp.id)
         client.ecommerce.add_store_product.assert_called_with(
             mc_connected_rp.mailchimp_store_id,
             {
-                "id": "test-product-id",
-                "title": "test-product-name",
+                "id": expected_id,
+                "title": expected_name,
                 "variants": [
                     {
-                        "id": "test-product-id",
-                        "title": "test-product-name",
+                        "id": expected_id,
+                        "title": expected_name,
                     }
                 ],
             },
         )
 
-    def test_create_product_api_error(self, mc_connected_rp, mocker):
+    @pytest.mark.parametrize("product_type", MailchimpProductType)
+    def test_create_product_api_error(self, mc_connected_rp, mocker, product_type: MailchimpProductType):
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.ecommerce, "add_store_product", side_effect=ApiClientError("test-error"))
         with pytest.raises(MailchimpIntegrationError):
-            client.create_product("test-product-id", "test-product-name")
+            client.create_product(product_type)
 
-    def test_create_segment_happy_path(self, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
+    @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
+    def test_create_segment_happy_path(
+        self, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker, segment_name: MailchimpSegmentName
+    ):
         test_options = {}
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.lists, "create_segment", return_value=mailchimp_contributor_segment_from_api)
-        assert client.create_segment("test-segment-name", test_options) == MailchimpSegment(
+        assert client.create_segment(segment_name, test_options) == MailchimpSegment(
             **mailchimp_contributor_segment_from_api
         )
         client.lists.create_segment.assert_called_with(
             mc_connected_rp.mailchimp_list_id,
-            {"name": "test-segment-name", "options": test_options},
+            {"name": segment_name, "options": test_options},
         )
 
-    def test_create_segment_api_error(self, mc_connected_rp, mocker):
+    @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
+    def test_create_segment_api_error(self, mc_connected_rp, mocker, segment_name: MailchimpSegmentName):
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.lists, "create_segment", side_effect=ApiClientError("test-error"))
         with pytest.raises(MailchimpIntegrationError):
-            client.create_segment("test-segment-name", {})
+            client.create_segment(segment_name, {})
 
-    def test_create_segment_list_unset(self, mc_connected_rp):
+    @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
+    def test_create_segment_list_unset(self, mc_connected_rp, segment_name: MailchimpSegmentName):
         mc_connected_rp.mailchimp_list_id = None
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         with pytest.raises(MailchimpIntegrationError):
-            client.create_segment("test-segment-name", {})
+            client.create_segment(segment_name, {})
 
     def test_create_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
         mocker.patch(
@@ -189,37 +198,3 @@ class TestRevenueProgramMailchimpClient:
         with pytest.raises(MailchimpRateLimitError):
             client._handle_write_error("test-entity", ApiClientError("test-error", 429))
         logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
-
-
-@pytest.mark.django_db
-class TestRevenueProgramMailchimpProductHelper:
-
-    @pytest.mark.parametrize("product_type", MailchimpProductType)
-    def test_get_rp_product(self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker):
-        mocker.patch(
-            "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_product",
-            return_value=(product := MailchimpProduct(**mailchimp_product_from_api)),
-        )
-        assert RevenueProgramMailChimpProductHelper.get_rp_product(product_type, mc_connected_rp) == product
-
-    @pytest.mark.parametrize("product_type", MailchimpProductType)
-    def test_get_rp_product_id(self, product_type, mc_connected_rp):
-        product_id = RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, mc_connected_rp)
-        match product_type:
-            case MailchimpProductType.ONE_TIME:
-                assert product_id == f"rp-{mc_connected_rp.id}-one-time-contribution-product"
-            case MailchimpProductType.MONTHLY:
-                assert product_id == f"rp-{mc_connected_rp.id}-monthly-contribution-product"
-            case MailchimpProductType.YEARLY:
-                assert product_id == f"rp-{mc_connected_rp.id}-yearly-contribution-product"
-
-    @pytest.mark.parametrize("product_type", MailchimpProductType)
-    def test_get_rp_product_name(self, product_type):
-        product_name = RevenueProgramMailChimpProductHelper.get_rp_product_name(product_type)
-        match product_type:
-            case MailchimpProductType.ONE_TIME:
-                assert product_name == "one-time contribution"
-            case MailchimpProductType.MONTHLY:
-                assert product_name == "monthly contribution"
-            case MailchimpProductType.YEARLY:
-                assert product_name == "yearly contribution"

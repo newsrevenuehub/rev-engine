@@ -10,7 +10,7 @@ from django.conf import settings
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
-from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentName
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName
 
 
 # this is to avoid circular import issues, as this module is a depdency of
@@ -154,45 +154,6 @@ class MailchimpSegment:
     _links: list[dict]
 
 
-class RevenueProgramMailChimpProductHelper:
-    """Helper class to manage Mailchimp products for a revenue program."""
-
-    @staticmethod
-    def get_rp_product(product_type: MailchimpProductType, rp: RevenueProgram) -> MailchimpProduct | None:
-        """Get the Mailchimp product for a revenue program, if any, for a given product type."""
-        product_field = f"mailchimp_{product_type}_contribution_product"
-        return getattr(rp, product_field)
-
-    @staticmethod
-    def get_rp_product_id(product_type: MailchimpProductType, rp: RevenueProgram) -> str:
-        """Get the Mailchimp product ID for a revenue program, for a given product type.
-
-        The values created by this method are used when we create Mailchimp products.
-        """
-        match product_type:
-            case MailchimpProductType.ONE_TIME:
-                partial = "one-time"
-            case MailchimpProductType.YEARLY:
-                partial = "yearly"
-            case MailchimpProductType.MONTHLY:
-                partial = "monthly"
-        return f"rp-{rp.id}-{partial}-contribution-product"
-
-    @staticmethod
-    def get_rp_product_name(product_type: MailchimpProductType) -> MailchimpProductName:
-        """Get the Mailchimp product name for a revenue program, for a given product type.
-
-        The values created by this method are used when we create Mailchimp products.
-        """
-        match product_type:
-            case MailchimpProductType.ONE_TIME:
-                return MailchimpProductName.ONE_TIME
-            case MailchimpProductType.YEARLY:
-                return MailchimpProductName.YEARLY
-            case MailchimpProductType.MONTHLY:
-                return MailchimpProductName.MONTHLY
-
-
 class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     """Mailchimp client configured to interact with a revenue program's integration, after it's been initially set up."""
 
@@ -210,7 +171,9 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             }
         )
 
-    def create_product(self, product_id: str, product_name: MailchimpProductName) -> MailchimpProduct:
+    def create_product(self, product_type: MailchimpProductType) -> MailchimpProduct | None:
+        product_id = product_type.as_mailchimp_product_id(self.revenue_program.id)
+        product_name = product_type.as_mailchimp_product_name()
         logger.info(
             "Called for RP %s, product_id %s, product_name %s", self.revenue_program.id, product_id, product_name
         )

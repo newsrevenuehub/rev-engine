@@ -26,13 +26,10 @@ from apps.organizations.mailchimp import (
     MailchimpSegment,
     MailchimpStore,
     RevenueProgramMailchimpClient,
-    RevenueProgramMailChimpProductHelper,
 )
 from apps.organizations.typings import (
-    MailchimpProductName,
     MailchimpProductType,
     MailchimpSegmentName,
-    RevenueProgramMailchimpSegmentIdField,
 )
 from apps.organizations.validators import (
     validate_contact_phone_number,
@@ -525,7 +522,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         return all([self.activecampaign_access_token, self.activecampaign_server_url])
 
     @cached_property
-    def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
+    def chosen_mailchimp_email_list(self) -> dict | None:
         """Alias for self.mailchimp_email_list.
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
@@ -534,7 +531,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         return asdict(self.mailchimp_email_list) if self.mailchimp_email_list else None
 
     @cached_property
-    def available_mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+    def available_mailchimp_email_lists(self) -> list[dict]:
         """Alias for self.mailchimp_email_lists.
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
@@ -557,7 +554,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.mailchimp_client.get_store()
 
-    def get_mailchimp_product(self, product_id: str | None) -> MailchimpProduct | None:
+    def get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
         if not self.mailchimp_integration_connected:
             logger.debug(
                 "Mailchimp integration not connected for this revenue program (%s), returning None",
@@ -568,21 +565,15 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(
-            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.ONE_TIME, self)
-        )
+        return self.get_mailchimp_product(MailchimpProductType.ONE_TIME.as_mailchimp_product_id(self.id))
 
     @cached_property
     def mailchimp_monthly_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(
-            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.MONTHLY, self)
-        )
+        return self.get_mailchimp_product(MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.id))
 
     @cached_property
     def mailchimp_yearly_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(
-            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.YEARLY, self)
-        )
+        return self.get_mailchimp_product(MailchimpProductType.YEARLY.as_mailchimp_product_id(self.id))
 
     def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
         """Get a Mailchimp segment by ID as stored on the revenue program."""
@@ -591,24 +582,24 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.mailchimp_client.get_segment(_segment_id)
 
     @property
-    def mailchimp_one_time_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.ONE_TIME_CONTRIBUTORS)
+    def mailchimp_one_time_contributors_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment(MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.ALL_CONTRIBUTORS)
+        return self.get_mailchimp_segment(MailchimpSegmentName.ALL_CONTRIBUTORS.as_rp_id_field())
 
     @property
-    def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.RECURRING_CONTRIBUTORS)
+    def mailchimp_recurring_contributors_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment(MailchimpSegmentName.RECURRING_CONTRIBUTORS.as_rp_id_field())
 
     @property
-    def mailchimp_monthly_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.MONTHLY_CONTRIBUTORS)
+    def mailchimp_monthly_contributors_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment(MailchimpSegmentName.MONTHLY_CONTRIBUTORS.as_rp_id_field())
 
     @property
-    def mailchimp_yearly_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.YEARLY_CONTRIBUTORS)
+    def mailchimp_yearly_contributors_segment(self) -> MailchimpSegment | None:
+        return self.get_mailchimp_segment(MailchimpSegmentName.YEARLY_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -655,15 +646,11 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.mailchimp_client.create_store()
 
     def ensure_mailchimp_contribution_product(self, product_type: MailchimpProductType) -> None:
-        if RevenueProgramMailChimpProductHelper.get_rp_product(product_type, self):
+        if getattr(self, product_type.as_rp_field(), None):
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
         else:
             try:
-                self.mailchimp_client.create_product(
-                    RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, self),
-                    # should this become a type that uses same key instead of on helper? it's not dynamic
-                    RevenueProgramMailChimpProductHelper.get_rp_product_name(product_type),
-                )
+                self.mailchimp_client.create_product(product_type)
             except MailchimpIntegrationError:
                 logger.exception(
                     "Couldn't create %s Mailchimp contribution product for RP %s; continuing", product_type, self.id
@@ -674,7 +661,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         segment_name: MailchimpSegmentName,
         options: dict,
     ) -> None:
-        if getattr(self, segment_name, None):
+        if getattr(self, segment_name.as_rp_field(), None):
             logger.info("Segment already exists for RP %s", self.id)
         else:
             try:
@@ -683,7 +670,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_name, self.id)
             else:
                 logger.info("%s segment created for RP %s", segment_name, self.id)
-                rp_segment_id = RevenueProgramMailchimpSegmentIdField[segment_name.name].value
+                rp_segment_id = segment_name.as_rp_id_field()
                 setattr(self, rp_segment_id, segment.id)
                 logger.info("Saving Mailchimp %s for RP %s", rp_segment_id, self.id)
                 with reversion.create_revision():
@@ -712,13 +699,13 @@ class RevenueProgram(IndexedTimeStampedModel):
                                     "condition_type": "EcommProduct",
                                     "op": "is",
                                     "field": "ecomm_prod",
-                                    "value": MailchimpProductName.YEARLY,
+                                    "value": MailchimpProductType.YEARLY.as_mailchimp_product_name(),
                                 },
                                 {
                                     "condition_type": "EcommProduct",
                                     "op": "is",
                                     "field": "ecomm_prod",
-                                    "value": MailchimpProductName.MONTHLY,
+                                    "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
                                 },
                             ],
                         },
@@ -729,21 +716,21 @@ class RevenueProgram(IndexedTimeStampedModel):
                 "match": "all",
                 "conditions": [
                     *base_conditions,
-                    {**is_condition, "value": MailchimpProductName.ONE_TIME},
+                    {**is_condition, "value": MailchimpProductType.ONE_TIME.as_mailchimp_product_name()},
                 ],
             },
             MailchimpSegmentName.MONTHLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
-                    {**is_condition, "value": MailchimpProductName.MONTHLY},
+                    {**is_condition, "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name()},
                 ],
             },
             MailchimpSegmentName.YEARLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
-                    {**is_condition, "value": MailchimpProductName.YEARLY},
+                    {**is_condition, "value": MailchimpProductType.YEARLY.as_mailchimp_product_name()},
                 ],
             },
         }.items():

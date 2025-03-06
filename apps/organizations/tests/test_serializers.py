@@ -212,7 +212,7 @@ class TestMailchimpRevenueProgramForSwitchboard:
             new_callable=mocker.PropertyMock,
         )
         mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributor_segment",
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributors_segment",
             return_value=mailchimp_segment,
             new_callable=mocker.PropertyMock,
         )
@@ -221,7 +221,7 @@ class TestMailchimpRevenueProgramForSwitchboard:
             return_value=mailchimp_product,
         )
         mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contributor_segment",
+            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contributors_segment",
             return_value=mailchimp_segment,
             new_callable=mocker.PropertyMock,
         )

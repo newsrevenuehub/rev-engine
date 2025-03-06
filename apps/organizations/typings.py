@@ -9,10 +9,10 @@ class MailchimpProductType(StrEnum):
 
 class MailchimpSegmentType(StrEnum):
     ALL_CONTRIBUTORS = "all_contributors"
-    ONE_TIME_CONTRIBUTORS = "one_time_contributor"
-    RECURRING_CONTRIBUTORS = "recurring_contributor"
-    MONTHLY_CONTRIBUTORS = "monthly_contributor"
-    YEARLY_CONTRIBUTORS = "yearly_contributor"
+    ONE_TIME_CONTRIBUTORS = "one_time_contributors"
+    RECURRING_CONTRIBUTORS = "recurring_contributors"
+    MONTHLY_CONTRIBUTORS = "monthly_contributors"
+    YEARLY_CONTRIBUTORS = "yearly_contributors"
 
 
 class MailchimpProductName(StrEnum):

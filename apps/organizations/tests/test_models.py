@@ -731,12 +731,16 @@ class TestRevenueProgram:
         [True, False],
     )
     @pytest.mark.parametrize("mailchimp_store", ["truthy", None])
-    @pytest.mark.parametrize("mailchimp_one_time_contribution_product", ["truthy", None])
+    @pytest.mark.parametrize("one_time_product_value", ["truthy", None])
+    @pytest.mark.parametrize("monthly_product_value", ["truthy", None])
+    @pytest.mark.parametrize("yearly_product_value", ["truthy", None])
     def test_mailchimp_integration_ready_property(
         self,
         mailchimp_integration_connected: bool,
         mailchimp_store: str | None,
-        mailchimp_one_time_contribution_product: str | None,
+        one_time_product_value: str | None,
+        monthly_product_value: str | None,
+        yearly_product_value: str | None,
         mocker: pytest_mock.MockerFixture,
     ):
         mocker.patch(
@@ -749,61 +753,81 @@ class TestRevenueProgram:
             new_callable=mocker.PropertyMock,
             return_value=mailchimp_store,
         )
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product",
-            new_callable=mocker.PropertyMock,
-            return_value=mailchimp_one_time_contribution_product,
-        )
+        for prop, val in [
+            (MailchimpProductType.ONE_TIME, one_time_product_value),
+            (MailchimpProductType.MONTHLY, monthly_product_value),
+            (MailchimpProductType.YEARLY, yearly_product_value),
+        ]:
+            mocker.patch(
+                f"apps.organizations.models.RevenueProgram.{prop.as_rp_field()}",
+                new_callable=mocker.PropertyMock,
+                return_value=val,
+            )
+
         rp = RevenueProgramFactory()
         assert rp.mailchimp_integration_ready == all(
             [
                 mailchimp_integration_connected,
                 mailchimp_store,
-                mailchimp_one_time_contribution_product,
+                one_time_product_value,
+                monthly_product_value,
+                yearly_product_value,
             ]
         )
 
     def test_mailchimp_integration_ready_property_all_present(self, mocker: pytest_mock.MockerFixture):
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_integration_connected", return_value=True)
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", return_value="truthy")
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product", return_value="truthy"
-        )
+        for prod in MailchimpProductType:
+            mocker.patch(
+                f"apps.organizations.models.RevenueProgram.{prod.as_rp_field()}",
+                return_value="truthy",
+            )
         revenue_program = RevenueProgramFactory()
         assert revenue_program.mailchimp_integration_ready is True
 
-    def test_mailchimp_store_when_not_connected(self, revenue_program):
+    def test_mailchimp_store_when_not_connected(self, revenue_program: RevenueProgram):
         assert revenue_program.mailchimp_integration_connected is False
         assert revenue_program.mailchimp_store is None
 
-    def test_mailchimp_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
+    def test_mailchimp_store_happy_path(
+        self, mc_connected_rp: RevenueProgram, mailchimp_store_from_api, mocker: pytest_mock.MockerFixture
+    ):
         assert mc_connected_rp.mailchimp_integration_connected is True
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_store.return_value = mailchimp_store_from_api
         assert mc_connected_rp.mailchimp_store == mailchimp_store_from_api
 
-    def test_mailchimp_store_when_not_found(self, mc_connected_rp, mocker):
+    def test_mailchimp_store_when_not_found(self, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture):
         assert mc_connected_rp.mailchimp_integration_connected is True
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_store.return_value = None
         assert mc_connected_rp.mailchimp_store is None
 
-    def test_ensure_mailchimp_store_doesnt_create_when_exists(self, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_store_doesnt_create_when_exists(
+        self, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         assert mc_connected_rp.mailchimp_integration_connected is True
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         mc_connected_rp.ensure_mailchimp_store()
         assert not patched_client.return_value.create_store.called
 
-    def test_ensure_mailchimp_store_creates_when_needed(self, revenue_program, mocker):
+    def test_ensure_mailchimp_store_creates_when_needed(
+        self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         assert revenue_program.mailchimp_integration_connected is False
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         revenue_program.ensure_mailchimp_store()
         assert patched_client.return_value.create_store.called
 
-    def test_ensure_mailchimp_entities_calls(self, revenue_program, mocker):
+    def test_ensure_mailchimp_entities_calls(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
+
+        # fix this
+
         mocker.patch.object(revenue_program, "ensure_mailchimp_store")
         mocker.patch.object(revenue_program, "ensure_mailchimp_contribution_product")
         mocker.patch.object(revenue_program, "ensure_mailchimp_contributor_segment")
+        mocker.patch.object(revenue_program, "ensure")
         revenue_program.ensure_mailchimp_entities()
         assert revenue_program.ensure_mailchimp_store.called
         assert revenue_program.ensure_mailchimp_contribution_product.call_count == 3
@@ -817,12 +841,10 @@ class TestRevenueProgram:
             any_order=True,
         )
 
-    def test_placeholder(self):
-        # add graunular tests for each segment creation via properties on model
-        pass
-
     @pytest.mark.parametrize("mc_connected", [True, False])
-    def test_get_mailchimp_product(self, mc_connected: bool, revenue_program: RevenueProgram, mocker):
+    def test_get_mailchimp_product(
+        self, mc_connected: bool, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
             new_callable=mocker.PropertyMock,
@@ -840,18 +862,15 @@ class TestRevenueProgram:
             mock_get_product.assert_not_called()
             assert returned is None
 
-    @pytest.mark.parametrize(
-        "mc_segment_field",
-        [
-            "mailchimp_one_time_contributors_segment_id",
-            "mailchimp_recurring_contributors_segment_id",
-            "mailchimp_all_contributors_segment_id",
-            "mailchimp_monthly_contributors_segment_id",
-            "mailchimp_yearly_contributors_segment_id",
-        ],
-    )
+    @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
     @pytest.mark.parametrize("field_value", ["123", None])
-    def test_get_mailchimp_segment(self, mc_segment_field, field_value, revenue_program, mocker):
+    def test_get_mailchimp_segment(
+        self,
+        segment_name: MailchimpSegmentName,
+        field_value: str | None,
+        revenue_program: RevenueProgram,
+        mocker: pytest_mock.MockerFixture,
+    ):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
             return_value=True,
@@ -861,8 +880,8 @@ class TestRevenueProgram:
             "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_segment",
             return_value=(segment := "something"),
         )
-        setattr(revenue_program, mc_segment_field, field_value)
-        returned = revenue_program.get_mailchimp_segment(mc_segment_field)
+        setattr(revenue_program, (segment_id := segment_name.as_rp_id_field()), field_value)
+        returned = revenue_program.get_mailchimp_segment(segment_id)
         if field_value:
             mock_get_segment.assert_called_once_with(field_value)
             assert returned == segment
@@ -870,22 +889,30 @@ class TestRevenueProgram:
             mock_get_segment.assert_not_called()
             assert returned is None
 
-    def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp):
+    def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp: RevenueProgram):
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
         assert mc_connected_rp.mailchimp_email_list is None
 
-    def test_mailchimp_email_list_happy_path(self, mc_connected_rp, mocker, mailchimp_email_list_from_api):
+    def test_mailchimp_email_list_happy_path(
+        self, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture, mailchimp_email_list_from_api
+    ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_email_list.return_value = mailchimp_email_list_from_api
         assert mc_connected_rp.mailchimp_email_list == mailchimp_email_list_from_api
 
-    def test_mailchimp_email_list_when_not_found(self, mc_connected_rp, mocker):
+    def test_mailchimp_email_list_when_not_found(
+        self,
+        mc_connected_rp: RevenueProgram,
+        mocker: pytest_mock.MockerFixture,
+    ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_email_list.return_value = None
         assert mc_connected_rp.mailchimp_email_list is None
 
-    def test_publish_revenue_program_mailchimp_list_configuration_complete(self, revenue_program, mocker, settings):
+    def test_publish_revenue_program_mailchimp_list_configuration_complete(
+        self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture, settings
+    ):
         mock_publisher = mocker.patch("apps.organizations.models.Publisher")
         settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = (topic := "something")
         revenue_program.publish_revenue_program_mailchimp_list_configuration_complete()
@@ -893,7 +920,7 @@ class TestRevenueProgram:
             topic, Message(data=str(revenue_program.id))
         )
 
-    def test_disable_mailchimp_integration(self, revenue_program, mocker):
+    def test_disable_mailchimp_integration(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
         revenue_program.mailchimp_server_prefix = "something"
         revenue_program.mailchimp_list_id = "something"
         revenue_program.save()
@@ -918,7 +945,11 @@ class TestRevenueProgram:
 )
 class TestRevenueProgramMailchimpProducts:
     def test_property_happy_path(
-        self, product_type: MailchimpProductType, mc_connected_rp, mailchimp_product_from_api, mocker
+        self,
+        product_type: MailchimpProductType,
+        mc_connected_rp,
+        mailchimp_product_from_api,
+        mocker: pytest_mock.MockerFixture,
     ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = mailchimp_product_from_api
@@ -928,28 +959,36 @@ class TestRevenueProgramMailchimpProducts:
             product_type.as_mailchimp_product_id(mc_connected_rp.id)
         )
 
-    def test_property_when_no_list_id(self, product_type, mc_connected_rp):
+    def test_property_when_no_list_id(self, product_type: MailchimpProductType, mc_connected_rp: RevenueProgram):
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, product_type.as_rp_field()) is None
 
-    def test_property_when_disconnected(self, product_type, revenue_program):
+    def test_property_when_disconnected(self, product_type: MailchimpProductType, revenue_program: RevenueProgram):
         assert not revenue_program.mailchimp_integration_connected
         assert getattr(revenue_program, product_type.as_rp_field()) is None
 
-    def test_property_not_found(self, product_type, mc_connected_rp, mocker):
+    def test_property_not_found(
+        self, product_type: MailchimpProductType, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = None
         assert getattr(mc_connected_rp, product_type.as_rp_field()) is None
 
-    def test_property_api_error_raises_exception(self, product_type, mc_connected_rp, mocker):
+    def test_property_api_error_raises_exception(
+        self, product_type: MailchimpProductType, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.side_effect = MailchimpRateLimitError()
         with pytest.raises(MailchimpRateLimitError):
             getattr(mc_connected_rp, product_type.as_rp_field())
 
     def test_ensure_mailchimp_contribution_product_doesnt_create_when_exists(
-        self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker
+        self,
+        product_type: MailchimpProductType,
+        mc_connected_rp: RevenueProgram,
+        mailchimp_product_from_api,
+        mocker: pytest_mock.MockerFixture,
     ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         # update this to use new type
@@ -958,14 +997,16 @@ class TestRevenueProgramMailchimpProducts:
         assert not patched_client.return_value.create_product.called
 
     def test_ensure_mailchimp_contribution_product_creates_when_needed(
-        self, product_type: MailchimpProductType, mc_connected_rp: RevenueProgram, mocker
+        self, product_type: MailchimpProductType, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
     ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = None
         mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         patched_client.return_value.create_product.assert_called_with(product_type)
 
-    def test_ensure_mailchimp_contribution_product_handles_error(self, product_type, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_contribution_product_handles_error(
+        self, product_type: MailchimpProductType, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = None
         patched_client.return_value.create_product.side_effect = MailchimpIntegrationError("test-error")
@@ -980,7 +1021,7 @@ class TestRevenueProgramMailchimpSegments:
         segment_name: MailchimpSegmentName,
         mc_connected_rp: RevenueProgram,
         mailchimp_contributor_segment_from_api,
-        mocker,
+        mocker: pytest_mock.MockerFixture,
     ):
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), "test-segment-id")
         mc_connected_rp.save()
@@ -990,29 +1031,33 @@ class TestRevenueProgramMailchimpSegments:
         patched_client.return_value.get_segment.assert_called_with("test-segment-id")
         assert segment == mailchimp_contributor_segment_from_api
 
-    def test_property_when_no_list_id(self, segment_name, mc_connected_rp):
+    def test_property_when_no_list_id(self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram):
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), "test-segment-id")
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, segment_name.as_rp_field()) is None
 
-    def test_property_when_disconnected(self, segment_name, revenue_program):
+    def test_property_when_disconnected(self, segment_name: MailchimpSegmentName, revenue_program: RevenueProgram):
         assert not revenue_program.mailchimp_integration_connected
         assert getattr(revenue_program, segment_name.as_rp_field()) is None
 
-    def test_property_when_no_segment_id(self, segment_name, mc_connected_rp):
+    def test_property_when_no_segment_id(self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram):
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), None)
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, segment_name.as_rp_field()) is None
 
-    def test_property_not_found(self, segment_name, mc_connected_rp, mocker):
+    def test_property_not_found(
+        self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), "test-segment-id")
         mc_connected_rp.save()
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
         assert getattr(mc_connected_rp, segment_name.as_rp_field()) is None
 
-    def test_property_api_error_raises_exception(self, segment_name, mc_connected_rp, mocker):
+    def test_property_api_error_raises_exception(
+        self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), "test-segment-id")
         mc_connected_rp.mailchimp_list_id = None
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
@@ -1021,7 +1066,7 @@ class TestRevenueProgramMailchimpSegments:
             getattr(mc_connected_rp, segment_name.as_rp_field())
 
     def test_ensure_mailchimp_contributor_segment_doesnt_create_when_exists(
-        self, segment_name, mc_connected_rp, mocker
+        self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
     ):
         segment_id = segment_name.as_rp_id_field()
         setattr(mc_connected_rp, segment_id, "test-segment-id")
@@ -1029,7 +1074,9 @@ class TestRevenueProgramMailchimpSegments:
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_name, {})
         assert not patched_client.return_value.create_product.called
 
-    def test_ensure_mailchimp_contributor_segment_creates_when_needed(self, segment_name, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_contributor_segment_creates_when_needed(
+        self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         mock_options = {}
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
@@ -1038,7 +1085,9 @@ class TestRevenueProgramMailchimpSegments:
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_name, mock_options)
         patched_client.return_value.create_segment.assert_called_with(segment_name, mock_options)
 
-    def test_ensure_mailchimp_contributor_segment_handles_error(self, segment_name, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_contributor_segment_handles_error(
+        self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
         patched_client.return_value.create_segment.side_effect = MailchimpIntegrationError("test-error")

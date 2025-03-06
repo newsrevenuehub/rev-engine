@@ -637,6 +637,8 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_integration_connected,
                 self.mailchimp_store,
                 self.mailchimp_one_time_contribution_product,
+                self.mailchimp_monthly_contribution_product,
+                self.mailchimp_yearly_contribution_product,
             ]
         )
 

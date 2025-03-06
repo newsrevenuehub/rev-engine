@@ -13,7 +13,7 @@ from mailchimp_marketing.api_client import ApiClientError
 from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName
 
 
-# this is to avoid circular import issues, as this module is a depdency of
+# this is to avoid circular import issues, as this module is a dependency of
 # organizations.models
 if typing.TYPE_CHECKING:  # pragma: no cover
     from apps.organizations.models import RevenueProgram

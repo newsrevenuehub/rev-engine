@@ -678,17 +678,15 @@ class RevenueProgram(IndexedTimeStampedModel):
                     reversion.set_comment(f"ensure_mailchimp_segment updated {rp_segment_id}")
 
     def ensure_mailchimp_contributor_segments(self) -> None:
-        base_conditions = [{"field": "ecomm_purchased", "op": "member"}]
         is_condition = {"field": "ecomm_prod", "op": "is"}
         for segment_type, options in {
             MailchimpSegmentName.ALL_CONTRIBUTORS: {
                 "match": "all",
-                "conditions": base_conditions,
+                "conditions": [{"field": "ecomm_purchased", "op": "member"}],
             },
             MailchimpSegmentName.RECURRING_CONTRIBUTORS: {
-                "match": "all",
+                "match": "any",
                 "conditions": [
-                    *base_conditions,
                     {
                         "condition_type": "TextMerge",
                         "op": "grouping",
@@ -715,21 +713,18 @@ class RevenueProgram(IndexedTimeStampedModel):
             MailchimpSegmentName.ONE_TIME_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
-                    *base_conditions,
                     {**is_condition, "value": MailchimpProductType.ONE_TIME.as_mailchimp_product_name()},
                 ],
             },
             MailchimpSegmentName.MONTHLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
-                    *base_conditions,
                     {**is_condition, "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name()},
                 ],
             },
             MailchimpSegmentName.YEARLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
-                    *base_conditions,
                     {**is_condition, "value": MailchimpProductType.YEARLY.as_mailchimp_product_name()},
                 ],
             },

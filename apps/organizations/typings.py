@@ -28,14 +28,17 @@ class MailchimpSegmentName(StrEnum):
     These values get used as the "name" property when creating a segment in Mailchimp.
     """
 
-    ALL_CONTRIBUTORS = "all_contributors"
-    ONE_TIME_CONTRIBUTORS = "one_time_contributors"
-    RECURRING_CONTRIBUTORS = "recurring_contributors"
-    MONTHLY_CONTRIBUTORS = "monthly_contributors"
-    YEARLY_CONTRIBUTORS = "yearly_contributors"
+    ALL_CONTRIBUTORS = "All Contributors"
+    ONE_TIME_CONTRIBUTORS = "One-time contributors"
+    RECURRING_CONTRIBUTORS = "Recurring contributors"
+    MONTHLY_CONTRIBUTORS = "Monthly contributors"
+    YEARLY_CONTRIBUTORS = "Yearly contributors"
+
+    def _machine_cased(self) -> str:
+        return self.lower().replace(" ", "_").replace("-", "_")
 
     def as_rp_field(self) -> str:
-        return f"mailchimp_{self}_segment"
+        return f"mailchimp_{self._machine_cased()}_segment"
 
     def as_rp_id_field(self) -> str:
-        return f"mailchimp_{self}_segment_id"
+        return f"mailchimp_{self._machine_cased()}_segment_id"

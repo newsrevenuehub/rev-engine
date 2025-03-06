@@ -6,3 +6,4 @@ Scheduled Contribution
 {% endblock header %}
 
 {% block timestamp_label %}Scheduled{% endblock timestamp_label %}
+{% block contribution_footer %}{# omit the normal disclaimer #}{% endblock contribution_footer %}

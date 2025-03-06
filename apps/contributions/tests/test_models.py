@@ -42,7 +42,7 @@ from apps.contributions.tests.factories import (
 from apps.contributions.typings import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import generate_email_data, send_templated_email
-from apps.organizations.models import FiscalStatusChoices, FreePlan
+from apps.organizations.models import FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.choices import Roles
@@ -1018,29 +1018,6 @@ class TestContributionModel:
         if email_method_name == "send_recurring_contribution_canceled_email":
             email_expectations.append(
                 f"Date Canceled: {now.strftime('%m/%d/%Y')}",
-            )
-
-        if revenue_program.non_profit and email_method_name != "send_recurring_contribution_canceled_email":
-            email_expectations.append("This receipt may be used for tax purposes.")
-
-            if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
-                email_expectations.append(
-                    f"All contributions or gifts to { revenue_program.name } are tax deductible through our fiscal sponsor"
-                    f" {revenue_program.fiscal_sponsor_name}."
-                )
-                if tax_id:
-                    email_expectations.append(f"{revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}")
-
-            if revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
-                email_expectations.append(
-                    f"{annual_contribution.revenue_program.name} is a 501(c)(3) nonprofit organization"
-                )
-                if tax_id:
-                    email_expectations.append(f"with a Federal Tax ID #{tax_id}")
-
-        if not revenue_program.non_profit and email_method_name != "send_recurring_contribution_canceled_email":
-            email_expectations.append(
-                f"Contributions to {annual_contribution.revenue_program.name} are not deductible as charitable donations."
             )
 
         getattr(annual_contribution, email_method_name)()

@@ -6,6 +6,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useUser from 'hooks/useUser';
 
 import Integration from './Integration';
+import { ACTIVECAMPAIGN_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 jest.mock('components/settings/Integration/IntegrationCard/ActiveCampaignIntegrationCard', () => ({
   ActiveCampaignIntegrationCard: () => <div data-testid="mock-mailchimp-card">ActiveCampaign</div>
@@ -28,6 +29,7 @@ describe('Settings Integration Page', () => {
   beforeEach(() => {
     useUserMock.mockReturnValue({
       user: {
+        flags: [],
         organizations: [{ id: 'mock-org' }]
       },
       isLoading: false
@@ -47,7 +49,6 @@ describe('Settings Integration Page', () => {
   });
 
   it.each([
-    'ActiveCampaign',
     'Stripe',
     'Slack',
     'Mailchimp',
@@ -59,6 +60,23 @@ describe('Settings Integration Page', () => {
   ])('shows the %p integration card', (title) => {
     tree();
     expect(screen.getByText(title)).toBeVisible();
+  });
+
+  it('shows the ActiveCampaign integration card if the user has the appropriate feature flag', () => {
+    useUserMock.mockReturnValue({
+      user: {
+        flags: [{ name: ACTIVECAMPAIGN_INTEGRATION_ACCESS_FLAG_NAME }],
+        organizations: [{ id: 'mock-org' }]
+      },
+      isLoading: false
+    });
+    tree();
+    expect(screen.getByText('ActiveCampaign')).toBeVisible();
+  });
+
+  it("doesn't show the ActiveCampaign integration card if the user doesn't have the appropriate feature flag", () => {
+    tree();
+    expect(screen.queryByText('ActiveCampaign')).not.toBeInTheDocument();
   });
 
   describe('When the Stripe connection checkbox is clicked', () => {

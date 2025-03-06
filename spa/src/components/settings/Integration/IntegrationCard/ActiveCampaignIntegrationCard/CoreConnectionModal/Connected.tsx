@@ -1,0 +1,49 @@
+import PropTypes, { InferProps } from 'prop-types';
+import { Button, Link, LinkButton, ModalContent, ModalFooter } from 'components/base';
+import Instructions from './Instructions';
+import { KNOWLEDGE_BASE_URL } from 'constants/helperUrls';
+import { StepHeading, StepRoot } from './common.styled';
+
+const ConnectedPropTypes = {
+  onClose: PropTypes.func.isRequired,
+  serverUrl: PropTypes.string.isRequired
+};
+
+export interface ConnectedProps extends InferProps<typeof ConnectedPropTypes> {
+  onClose: () => void;
+}
+
+export function Connected({ onClose, serverUrl }: ConnectedProps) {
+  return (
+    <>
+      <ModalContent>
+        <Instructions />
+        <StepRoot>
+          <StepHeading>You're connected!</StepHeading>
+          <p>
+            It may take a few minutes for the information to be received in ActiveCampaign. View and manage the
+            connection in Settings.
+          </p>
+          <p>
+            Check out the{' '}
+            <Link href={`${serverUrl}/app/settings/account/`} target="_blank">
+              RevEngine Knowledge Base
+            </Link>{' '}
+            for additional integration resources.
+          </p>
+        </StepRoot>
+      </ModalContent>
+      <ModalFooter>
+        <LinkButton color="secondary" href={KNOWLEDGE_BASE_URL} target="_blank">
+          Go To Settings
+        </LinkButton>
+        <Button color="text" onClick={onClose}>
+          Finish &amp; Close
+        </Button>
+      </ModalFooter>
+    </>
+  );
+}
+
+Connected.propTypes = ConnectedPropTypes;
+export default Connected;

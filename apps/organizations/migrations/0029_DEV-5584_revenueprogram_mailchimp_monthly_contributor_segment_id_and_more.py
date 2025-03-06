@@ -12,17 +12,22 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="revenueprogram",
-            name="mailchimp_monthly_contributor_segment_id",
+            name="mailchimp_monthly_contributors_segment_id",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AddField(
             model_name="revenueprogram",
-            name="mailchimp_yearly_contributor_segment_id",
+            name="mailchimp_yearly_contributors_segment_id",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.RenameField(
             model_name="revenueprogram",
             old_name="mailchimp_contributor_segment_id",
-            new_name="mailchimp_one_time_contributor_segment_id",
+            new_name="mailchimp_one_time_contributors_segment_id",
+        ),
+        migrations.RenameField(
+            model_name="revenueprogram",
+            old_name="mailchimp_recurring_contributor_segment_id",
+            new_name="mailchimp_recurring_contributors_segment_id",
         ),
     ]

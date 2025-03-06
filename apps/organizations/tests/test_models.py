@@ -54,7 +54,7 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
-from apps.organizations.typings import MailchimpProductType, MailchimpSegmentType
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName, RevenueProgramMailchimpSegmentIdField
 from apps.pages.defaults import (
     BENEFITS,
     DEFAULT_PERMITTED_PAGE_ELEMENTS,
@@ -814,7 +814,7 @@ class TestRevenueProgram:
         )
         assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 5
         revenue_program.ensure_mailchimp_contributor_segment.assert_has_calls(
-            [mocker.call(seg_type, mocker.ANY) for seg_type in MailchimpSegmentType],
+            [mocker.call(seg_type, mocker.ANY) for seg_type in MailchimpSegmentName],
             any_order=True,
         )
 
@@ -951,6 +951,7 @@ class TestRevenueProgramMailchimpProducts:
         self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker
     ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        # update this to use new type
         mocker.patch.object(
             mc_connected_rp, f"mailchimp_{product_type}_contribution_product", mailchimp_product_from_api
         )
@@ -974,71 +975,82 @@ class TestRevenueProgramMailchimpProducts:
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("segment_type", MailchimpSegmentType)
+@pytest.mark.parametrize(
+    "segment_name",
+    [
+        MailchimpSegmentName.ONE_TIME_CONTRIBUTORS,
+        MailchimpSegmentName.RECURRING_CONTRIBUTORS,
+        MailchimpSegmentName.ALL_CONTRIBUTORS,
+        MailchimpSegmentName.MONTHLY_CONTRIBUTORS,
+        MailchimpSegmentName.YEARLY_CONTRIBUTORS,
+    ],
+)
 class TestRevenueProgramMailchimpSegments:
-    def test_property_happy_path(self, segment_type, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+    def test_property_happy_path(self, segment_name, mc_connected_rp, mailchimp_contributor_segment_from_api, mocker):
+        setattr(mc_connected_rp, f"mailchimp_{segment_name}_segment_id", "test-segment-id")
         mc_connected_rp.save()
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = mailchimp_contributor_segment_from_api
-        segment = getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment")
+        segment = getattr(mc_connected_rp, f"mailchimp_{segment_name}_segment")
         patched_client.return_value.get_segment.assert_called_with("test-segment-id")
         assert segment == mailchimp_contributor_segment_from_api
 
-    def test_property_when_no_list_id(self, segment_type, mc_connected_rp):
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+    def test_property_when_no_list_id(self, segment_name, mc_connected_rp):
+        setattr(mc_connected_rp, f"mailchimp_{segment_name}_segment_id", "test-segment-id")
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
-        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_name}_segment") is None
 
-    def test_property_when_disconnected(self, segment_type, revenue_program):
+    def test_property_when_disconnected(self, segment_name, revenue_program):
         assert not revenue_program.mailchimp_integration_connected
-        assert getattr(revenue_program, f"mailchimp_{segment_type}_segment") is None
+        assert getattr(revenue_program, f"mailchimp_{segment_name}_segment") is None
 
-    def test_property_when_no_segment_id(self, segment_type, mc_connected_rp):
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
+    def test_property_when_no_segment_id(self, segment_name, mc_connected_rp):
+        setattr(mc_connected_rp, f"mailchimp_{segment_name}_segment_id", None)
         mc_connected_rp.save()
-        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_name}_segment") is None
 
-    def test_property_not_found(self, segment_type, mc_connected_rp, mocker):
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+    def test_property_not_found(self, segment_name, mc_connected_rp, mocker):
+        setattr(mc_connected_rp, f"mailchimp_{segment_name}_segment_id", "test-segment-id")
         mc_connected_rp.save()
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
-        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_name}_segment") is None
 
-    def test_property_api_error_raises_exception(self, segment_type, mc_connected_rp, mocker):
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+    def test_property_api_error_raises_exception(self, segment_name, mc_connected_rp, mocker):
+        setattr(mc_connected_rp, f"mailchimp_{segment_name}_segment_id", "test-segment-id")
         mc_connected_rp.mailchimp_list_id = None
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.side_effect = MailchimpRateLimitError()
         with pytest.raises(MailchimpRateLimitError):
-            getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment")
+            getattr(mc_connected_rp, f"mailchimp_{segment_name}_segment")
 
     def test_ensure_mailchimp_contributor_segment_doesnt_create_when_exists(
-        self, segment_type, mc_connected_rp, mocker
+        self, segment_name, mc_connected_rp, mocker
     ):
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
+        breakpoint()
+        segment_id = RevenueProgramMailchimpSegmentIdField[segment_name].value
+        setattr(mc_connected_rp, segment_id, "test-segment-id")
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
-        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, {})
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_name, {})
         assert not patched_client.return_value.create_product.called
 
-    def test_ensure_mailchimp_contributor_segment_creates_when_needed(self, segment_type, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_contributor_segment_creates_when_needed(self, segment_name, mc_connected_rp, mocker):
         mock_options = {}
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
         patched_client.return_value.create_segment.return_value = mocker.MagicMock(id="test-new-id")
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
-        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, mock_options)
+        setattr(mc_connected_rp, f"mailchimp_{segment_name}_segment_id", None)
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_name, mock_options)
         patched_client.return_value.create_segment.assert_called_with(
-            getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment"), mock_options
+            getattr(mc_connected_rp, f"mailchimp_{segment_name}_segment"), mock_options
         )
 
-    def test_ensure_mailchimp_contributor_segment_handles_error(self, segment_type, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_contributor_segment_handles_error(self, segment_name, mc_connected_rp, mocker):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
         patched_client.return_value.create_segment.side_effect = MailchimpIntegrationError("test-error")
-        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, {})
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_name, {})
 
 
 class TestPaymentProvider:

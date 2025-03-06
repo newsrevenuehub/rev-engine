@@ -208,9 +208,9 @@ class TestRevenueProgramMailchimpProductHelper:
         match product_type:
             case MailchimpProductType.ONE_TIME:
                 assert product_id == f"rp-{mc_connected_rp.id}-one-time-contribution-product"
-            case MailchimpProductType.MONTH:
+            case MailchimpProductType.MONTHLY:
                 assert product_id == f"rp-{mc_connected_rp.id}-monthly-contribution-product"
-            case MailchimpProductType.YEAR:
+            case MailchimpProductType.YEARLY:
                 assert product_id == f"rp-{mc_connected_rp.id}-yearly-contribution-product"
 
     @pytest.mark.parametrize("product_type", MailchimpProductType)
@@ -219,7 +219,7 @@ class TestRevenueProgramMailchimpProductHelper:
         match product_type:
             case MailchimpProductType.ONE_TIME:
                 assert product_name == "one-time contribution"
-            case MailchimpProductType.MONTH:
+            case MailchimpProductType.MONTHLY:
                 assert product_name == "monthly contribution"
-            case MailchimpProductType.YEAR:
+            case MailchimpProductType.YEARLY:
                 assert product_name == "yearly contribution"

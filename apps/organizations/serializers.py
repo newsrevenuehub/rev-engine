@@ -13,6 +13,7 @@ from apps.organizations.models import (
     PaymentProvider,
     RevenueProgram,
 )
+from apps.organizations.typings import RevenueProgramMailchimpProductField
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -193,8 +194,8 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
     mailchimp_store = serializers.SerializerMethodField()
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
-    mailchimp_month_contribution_product = serializers.SerializerMethodField()
-    mailchimp_year_contribution_product = serializers.SerializerMethodField()
+    mailchimp_monthly_contribution_product = serializers.SerializerMethodField()
+    mailchimp_yearly_contribution_product = serializers.SerializerMethodField()
     # NB: This is a vestigial field that we're keeping around in short term so SB won't break.
     # Question shoudld there be a TODO
     mailchimp_recurring_contribution_product = serializers.ReadOnlyField(default=None)
@@ -215,25 +216,26 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
             "mailchimp_server_prefix",
             "mailchimp_store",
             "mailchimp_one_time_contribution_product",
-            "mailchimp_month_contribution_product",
-            "mailchimp_year_contribution_product",
+            "mailchimp_monthly_contribution_product",
+            "mailchimp_yearly_contribution_product",
             "mailchimp_recurring_contribution_product",
         ]
 
     def get_mailchimp_store(self, obj) -> dict | None:
         return asdict(obj.mailchimp_store) if obj.mailchimp_store else None
 
-    def _get_mc_product(self, product_field: str, obj) -> dict | None:
-        return asdict(getattr(obj, product_field)) if getattr(obj, product_field) else None
+    def _get_mc_product(self, product_field: RevenueProgramMailchimpProductField, obj) -> dict | None:
+        product = getattr(obj, product_field)
+        return asdict(product) if product else None
 
     def get_mailchimp_one_time_contribution_product(self, obj) -> dict | None:
-        return self._get_mc_product("mailchimp_one_time_contribution_product", obj)
+        return self._get_mc_product(RevenueProgramMailchimpProductField.ONE_TIME, obj)
 
-    def get_mailchimp_month_contribution_product(self, obj) -> dict | None:
-        return self._get_mc_product("mailchimp_month_contribution_product", obj)
+    def get_mailchimp_monthly_contribution_product(self, obj) -> dict | None:
+        return self._get_mc_product(RevenueProgramMailchimpProductField.MONTHLY, obj)
 
-    def get_mailchimp_year_contribution_product(self, obj) -> dict | None:
-        return self._get_mc_product("mailchimp_year_contribution_product", obj)
+    def get_mailchimp_yearly_contribution_product(self, obj) -> dict | None:
+        return self._get_mc_product(RevenueProgramMailchimpProductField.YEARLY, obj)
 
 
 class BaseActiveCampaignRevenueProgram(serializers.ModelSerializer):

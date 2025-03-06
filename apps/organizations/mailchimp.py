@@ -10,7 +10,7 @@ from django.conf import settings
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
-from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentType
+from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentName
 
 
 # this is to avoid circular import issues, as this module is a depdency of
@@ -172,14 +172,14 @@ class RevenueProgramMailChimpProductHelper:
         match product_type:
             case MailchimpProductType.ONE_TIME:
                 partial = "one-time"
-            case MailchimpProductType.YEAR:
+            case MailchimpProductType.YEARLY:
                 partial = "yearly"
-            case MailchimpProductType.MONTH:
+            case MailchimpProductType.MONTHLY:
                 partial = "monthly"
         return f"rp-{rp.id}-{partial}-contribution-product"
 
     @staticmethod
-    def get_rp_product_name(product_type: str) -> str:
+    def get_rp_product_name(product_type: MailchimpProductType) -> MailchimpProductName:
         """Get the Mailchimp product name for a revenue program, for a given product type.
 
         The values created by this method are used when we create Mailchimp products.
@@ -187,9 +187,9 @@ class RevenueProgramMailChimpProductHelper:
         match product_type:
             case MailchimpProductType.ONE_TIME:
                 return MailchimpProductName.ONE_TIME
-            case MailchimpProductType.YEAR:
+            case MailchimpProductType.YEARLY:
                 return MailchimpProductName.YEARLY
-            case MailchimpProductType.MONTH:
+            case MailchimpProductType.MONTHLY:
                 return MailchimpProductName.MONTHLY
 
 
@@ -234,7 +234,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         else:
             return MailchimpProduct(**response)
 
-    def create_segment(self, segment_name: MailchimpSegmentType, options) -> MailchimpSegment:
+    def create_segment(self, segment_name: MailchimpSegmentName, options) -> MailchimpSegment:
         """Create a segment of the revenue program's Mailchimp list. This list must be previously created."""
         logger.info("Called for RP %s, segment_name %s", self.revenue_program.id, segment_name)
         self._has_list_id(raise_if_not_present=True)

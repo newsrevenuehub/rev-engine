@@ -28,7 +28,12 @@ from apps.organizations.mailchimp import (
     RevenueProgramMailchimpClient,
     RevenueProgramMailChimpProductHelper,
 )
-from apps.organizations.typings import MailchimpProductName, MailchimpProductType, MailchimpSegmentType
+from apps.organizations.typings import (
+    MailchimpProductName,
+    MailchimpProductType,
+    MailchimpSegmentName,
+    RevenueProgramMailchimpSegmentIdField,
+)
 from apps.organizations.validators import (
     validate_contact_phone_number,
     validate_statement_descriptor_suffix,
@@ -491,11 +496,11 @@ class RevenueProgram(IndexedTimeStampedModel):
     # to grant revengine access to their Mailchimp account.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_list_id = models.TextField(null=True, blank=True)
-    mailchimp_one_time_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
-    mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_one_time_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_recurring_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
-    mailchimp_monthly_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
-    mailchimp_yearly_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_monthly_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_yearly_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
     # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request. Also include
     # activecampaign_access_token below
@@ -552,7 +557,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.mailchimp_client.get_store()
 
-    def get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
+    def get_mailchimp_product(self, product_id: str | None) -> MailchimpProduct | None:
         if not self.mailchimp_integration_connected:
             logger.debug(
                 "Mailchimp integration not connected for this revenue program (%s), returning None",
@@ -568,15 +573,15 @@ class RevenueProgram(IndexedTimeStampedModel):
         )
 
     @cached_property
-    def mailchimp_month_contribution_product(self) -> MailchimpProduct | None:
+    def mailchimp_monthly_contribution_product(self) -> MailchimpProduct | None:
         return self.get_mailchimp_product(
-            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.MONTH, self)
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.MONTHLY, self)
         )
 
     @cached_property
-    def mailchimp_year_contribution_product(self) -> MailchimpProduct | None:
+    def mailchimp_yearly_contribution_product(self) -> MailchimpProduct | None:
         return self.get_mailchimp_product(
-            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.YEAR, self)
+            RevenueProgramMailChimpProductHelper.get_rp_product_id(MailchimpProductType.YEARLY, self)
         )
 
     def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
@@ -587,23 +592,23 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_one_time_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment("mailchimp_one_time_contributor_segment_id")
+        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.ONE_TIME_CONTRIBUTORS)
 
     @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment("mailchimp_all_contributors_segment_id")
+        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.ALL_CONTRIBUTORS)
 
     @property
     def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment("mailchimp_recurring_contributor_segment_id")
+        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.RECURRING_CONTRIBUTORS)
 
     @property
     def mailchimp_monthly_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment("mailchimp_monthly_contributor_segment_id")
+        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.MONTHLY_CONTRIBUTORS)
 
     @property
     def mailchimp_yearly_contributor_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment("mailchimp_yearly_contributor_segment_id")
+        return self.get_mailchimp_segment(RevenueProgramMailchimpSegmentIdField.YEARLY_CONTRIBUTORS)
 
     @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -656,6 +661,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             try:
                 self.mailchimp_client.create_product(
                     RevenueProgramMailChimpProductHelper.get_rp_product_id(product_type, self),
+                    # should this become a type that uses same key instead of on helper? it's not dynamic
                     RevenueProgramMailChimpProductHelper.get_rp_product_name(product_type),
                 )
             except MailchimpIntegrationError:
@@ -665,35 +671,34 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def ensure_mailchimp_contributor_segment(
         self,
-        segment_type: MailchimpSegmentType,
-        options,
+        segment_name: MailchimpSegmentName,
+        options: dict,
     ) -> None:
-        if getattr(self, f"mailchimp_{segment_type}_segment", None):
+        if getattr(self, segment_name, None):
             logger.info("Segment already exists for RP %s", self.id)
         else:
             try:
-                segment = self.mailchimp_client.create_segment(
-                    getattr(self, f"mailchimp_{segment_type}_segment"), options
-                )
+                segment = self.mailchimp_client.create_segment(segment_name, options)
             except MailchimpIntegrationError:
-                logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_type, self.id)
+                logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_name, self.id)
             else:
-                logger.info("%s segment created for RP %s", segment_type, self.id)
-                setattr(self, f"mailchimp_{segment_type}_segment_id", segment.id)
-                logger.info("Saving Mailchimp %s segment id for RP %s", segment_type, self.id)
+                logger.info("%s segment created for RP %s", segment_name, self.id)
+                rp_segment_id = RevenueProgramMailchimpSegmentIdField[segment_name.name].value
+                setattr(self, rp_segment_id, segment.id)
+                logger.info("Saving Mailchimp %s for RP %s", rp_segment_id, self.id)
                 with reversion.create_revision():
-                    self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
-                    reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
+                    self.save(update_fields={rp_segment_id, "modified"})
+                    reversion.set_comment(f"ensure_mailchimp_segment updated {rp_segment_id}")
 
     def ensure_mailchimp_contributor_segments(self) -> None:
         base_conditions = [{"field": "ecomm_purchased", "op": "member"}]
         is_condition = {"field": "ecomm_prod", "op": "is"}
         for segment_type, options in {
-            MailchimpSegmentType.ALL_CONTRIBUTORS: {
+            MailchimpSegmentName.ALL_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": base_conditions,
             },
-            MailchimpSegmentType.RECURRING_CONTRIBUTORS: {
+            MailchimpSegmentName.RECURRING_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
@@ -720,21 +725,21 @@ class RevenueProgram(IndexedTimeStampedModel):
                     },
                 ],
             },
-            MailchimpSegmentType.ONE_TIME_CONTRIBUTORS: {
+            MailchimpSegmentName.ONE_TIME_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
                     {**is_condition, "value": MailchimpProductName.ONE_TIME},
                 ],
             },
-            MailchimpSegmentType.MONTHLY_CONTRIBUTORS: {
+            MailchimpSegmentName.MONTHLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,
                     {**is_condition, "value": MailchimpProductName.MONTHLY},
                 ],
             },
-            MailchimpSegmentType.YEARLY_CONTRIBUTORS: {
+            MailchimpSegmentName.YEARLY_CONTRIBUTORS: {
                 "match": "all",
                 "conditions": [
                     *base_conditions,

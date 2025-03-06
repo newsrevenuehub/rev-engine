@@ -235,8 +235,8 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "mailchimp_integration_ready",
             "stripe_account_id",
             "mailchimp_store",
-            "mailchimp_month_contribution_product",
-            "mailchimp_year_contribution_product",
+            "mailchimp_monthly_contribution_product",
+            "mailchimp_yearly_contribution_product",
             "mailchimp_recurring_contribution_product",
             "mailchimp_one_time_contribution_product",
         }
@@ -255,8 +255,8 @@ class TestMailchimpRevenueProgramForSwitchboard:
         # This field is kept around for legacy reasons to not break SB, but we just send back None.
         assert serialized["mailchimp_recurring_contribution_product"] is None
         for product in (
-            "mailchimp_month_contribution_product",
-            "mailchimp_year_contribution_product",
+            "mailchimp_monthly_contribution_product",
+            "mailchimp_yearly_contribution_product",
             "mailchimp_one_time_contribution_product",
         ):
             assert serialized[product] == asdict(mailchimp_product)

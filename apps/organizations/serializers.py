@@ -224,7 +224,7 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     def get_mailchimp_store(self, obj) -> dict | None:
         return asdict(obj.mailchimp_store) if obj.mailchimp_store else None
 
-    def _get_mc_product(self, product_field, obj) -> dict | None:
+    def _get_mc_product(self, product_field: str, obj) -> dict | None:
         product = getattr(obj, product_field)
         return asdict(product) if product else None
 

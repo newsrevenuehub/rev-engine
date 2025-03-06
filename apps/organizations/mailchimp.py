@@ -197,7 +197,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         else:
             return MailchimpProduct(**response)
 
-    def create_segment(self, segment_name: MailchimpSegmentName, options) -> MailchimpSegment:
+    def create_segment(self, segment_name: MailchimpSegmentName, options) -> MailchimpSegment | None:
         """Create a segment of the revenue program's Mailchimp list. This list must be previously created."""
         logger.info("Called for RP %s, segment_name %s", self.revenue_program.id, segment_name)
         self._has_list_id(raise_if_not_present=True)

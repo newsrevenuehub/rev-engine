@@ -220,11 +220,6 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_product",
             return_value=mailchimp_product,
         )
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contributors_segment",
-            return_value=mailchimp_segment,
-            new_callable=mocker.PropertyMock,
-        )
         serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
         assert set(serialized.keys()) == {
             "id",

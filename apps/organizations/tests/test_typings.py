@@ -37,3 +37,46 @@ class TestMailchimpSegmentName:
         )
         assert MailchimpSegmentName.MONTHLY_CONTRIBUTORS.as_rp_id_field() == "mailchimp_monthly_contributors_segment_id"
         assert MailchimpSegmentName.YEARLY_CONTRIBUTORS.as_rp_id_field() == "mailchimp_yearly_contributors_segment_id"
+
+    def test_get_creation_config(self):
+        """Prove that creation config per type is what we expect.
+
+        This test testing exact implementation, which is normally not useful, but in this case, it's important
+        as we want a guarantee that the dict doesn't change without us knowing, as it impacts how segments get created in Mailchimp.
+        """
+        is_condition = {"field": "ecomm_prod", "op": "is"}
+        assert MailchimpSegmentName.ALL_CONTRIBUTORS.get_segment_creation_config() == {
+            "match": "all",
+            "conditions": [{"field": "ecomm_purchased", "op": "member"}],
+        }
+        assert MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.get_segment_creation_config() == {
+            "match": "all",
+            "conditions": [
+                {**is_condition, "value": MailchimpProductType.ONE_TIME.as_mailchimp_product_name()},
+            ],
+        }
+        assert MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_creation_config() == {
+            "match": "any",
+            "conditions": [
+                {
+                    **is_condition,
+                    "value": MailchimpProductType.YEARLY.as_mailchimp_product_name(),
+                },
+                {
+                    **is_condition,
+                    "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
+                },
+            ],
+        }
+        assert MailchimpSegmentName.MONTHLY_CONTRIBUTORS.get_segment_creation_config() == {
+            "match": "all",
+            "conditions": [
+                {**is_condition, "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name()},
+            ],
+        }
+        assert MailchimpSegmentName.YEARLY_CONTRIBUTORS.get_segment_creation_config() == {
+            "match": "all",
+            "conditions": [
+                {**is_condition, "value": MailchimpProductType.YEARLY.as_mailchimp_product_name()},
+            ],
+        }

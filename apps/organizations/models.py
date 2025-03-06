@@ -688,25 +688,12 @@ class RevenueProgram(IndexedTimeStampedModel):
                 "match": "any",
                 "conditions": [
                     {
-                        "condition_type": "TextMerge",
-                        "op": "grouping",
-                        "value": {
-                            "match": "any",
-                            "conditions": [
-                                {
-                                    "condition_type": "EcommProduct",
-                                    "op": "is",
-                                    "field": "ecomm_prod",
-                                    "value": MailchimpProductType.YEARLY.as_mailchimp_product_name(),
-                                },
-                                {
-                                    "condition_type": "EcommProduct",
-                                    "op": "is",
-                                    "field": "ecomm_prod",
-                                    "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
-                                },
-                            ],
-                        },
+                        **is_condition,
+                        "value": MailchimpProductType.YEARLY.as_mailchimp_product_name(),
+                    },
+                    {
+                        **is_condition,
+                        "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
                     },
                 ],
             },

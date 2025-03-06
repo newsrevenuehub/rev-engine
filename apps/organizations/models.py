@@ -557,8 +557,9 @@ class RevenueProgram(IndexedTimeStampedModel):
     def get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
         if not self.mailchimp_integration_connected:
             logger.debug(
-                "Mailchimp integration not connected for this revenue program (%s), returning None",
+                "Mailchimp integration not connected revenue program (%s). Returning None and won't try to retrieve product %s",
                 self.id,
+                product_id,
             )
             return None
         return self.mailchimp_client.get_product(product_id)

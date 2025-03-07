@@ -1,6 +1,7 @@
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import ActiveCampaignModal, { ActiveCampaignModalProps } from './ActiveCampaignModal';
+import { ACTIVECAMPAIGN_HOME_URL } from 'constants/helperUrls';
 
 jest.mock('./FreePlanContent');
 
@@ -22,10 +23,7 @@ describe('ActiveCampaignModal', () => {
 
     it('shows a link to ActiveCampaign', () => {
       tree();
-      expect(screen.getByRole('link', { name: 'activecampaign.com' })).toHaveAttribute(
-        'href',
-        'https://activecampaign.com'
-      );
+      expect(screen.getByRole('link', { name: 'activecampaign.com' })).toHaveAttribute('href', ACTIVECAMPAIGN_HOME_URL);
     });
 
     it('calls the onClose prop when the modal is closed', () => {

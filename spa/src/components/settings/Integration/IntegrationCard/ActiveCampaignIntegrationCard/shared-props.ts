@@ -1,4 +1,5 @@
 import ActiveCampaignLogo from 'assets/images/activecampaign.svg';
+import { ACTIVECAMPAIGN_HOME_URL } from 'constants/helperUrls';
 import { IntegrationCardProps } from '../IntegrationCard';
 
 /**
@@ -8,6 +9,6 @@ export const cardProps: Pick<IntegrationCardProps, 'description' | 'image' | 'is
   description: 'Connect to ActiveCampaign to create segments and powerful automations to propel campaigns.',
   image: ActiveCampaignLogo,
   isRequired: false,
-  site: { label: 'activecampaign.com', url: 'https://activecampaign.com' },
+  site: { label: 'activecampaign.com', url: ACTIVECAMPAIGN_HOME_URL },
   title: 'ActiveCampaign'
 };

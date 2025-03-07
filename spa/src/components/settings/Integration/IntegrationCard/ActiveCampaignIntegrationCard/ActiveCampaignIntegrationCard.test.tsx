@@ -4,6 +4,7 @@ import { useConnectActiveCampaign } from 'hooks/useConnectActiveCampaign';
 import useUser from 'hooks/useUser';
 import ActiveCampaignIntegrationCard from './ActiveCampaignIntegrationCard';
 import { SETTINGS } from 'routes';
+import { ACTIVECAMPAIGN_HOME_URL } from 'constants/helperUrls';
 
 jest.mock('hooks/useConnectActiveCampaign');
 jest.mock('hooks/useUser');
@@ -51,10 +52,7 @@ describe('ActiveCampaignIntegrationCard', () => {
 
   it("shows a link to ActiveCampaign's web site", () => {
     tree();
-    expect(screen.getByRole('link', { name: 'activecampaign.com' })).toHaveAttribute(
-      'href',
-      'https://activecampaign.com'
-    );
+    expect(screen.getByRole('link', { name: 'activecampaign.com' })).toHaveAttribute('href', ACTIVECAMPAIGN_HOME_URL);
   });
 
   it.each([

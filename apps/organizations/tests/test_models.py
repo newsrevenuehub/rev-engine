@@ -872,31 +872,25 @@ class TestRevenueProgram:
             assert returned is None
             mock_get_product.assert_not_called()
 
-    @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
+    @pytest.mark.parametrize("mc_segment_name", MailchimpSegmentName)
     @pytest.mark.parametrize("field_value", ["123", None])
-    def test_get_mailchimp_segment(
-        self,
-        segment_name: MailchimpSegmentName,
-        field_value: str | None,
-        revenue_program: RevenueProgram,
-        mocker: pytest_mock.MockerFixture,
+    def test_mailchimp_segment_properties(
+        self, field_value: str | None, mc_segment_name: MailchimpSegmentName, mocker, revenue_program: RevenueProgram
     ):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
             return_value=True,
             new_callable=mocker.PropertyMock,
         )
-        mock_get_segment = mocker.patch(
-            "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_segment",
-            return_value=(segment := "something"),
+        mocker.patch(
+            "apps.organizations.models.RevenueProgramMailchimpClient.get_segment", return_value=(segment := "something")
         )
-        setattr(revenue_program, (segment_id := segment_name.as_rp_id_field()), field_value)
-        returned = revenue_program.get_mailchimp_segment(segment_id)
+        under_test = mc_segment_name.as_rp_field()
+        setattr(revenue_program, mc_segment_name.as_rp_id_field(), field_value)
+        returned = getattr(revenue_program, under_test)
         if field_value:
-            mock_get_segment.assert_called_once_with(field_value)
             assert returned == segment
         else:
-            mock_get_segment.assert_not_called()
             assert returned is None
 
     def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp: RevenueProgram):

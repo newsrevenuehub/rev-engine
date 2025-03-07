@@ -576,7 +576,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     def mailchimp_yearly_contribution_product(self) -> MailchimpProduct | None:
         return self._get_mailchimp_product(MailchimpProductType.YEARLY.as_mailchimp_product_id(self.id))
 
-    def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
+    def _get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
         """Get a Mailchimp segment by ID as stored on the revenue program."""
         # This is status quo behavior as well, but noting there is inconsistency here compared with get_mailchimp_product above.
         # Here we attempt to retrieve as long as there's a segment ID on the RP, regardless of connection status. That said,
@@ -587,23 +587,23 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_one_time_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.as_rp_id_field())
+        return self._get_mailchimp_segment(MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(MailchimpSegmentName.ALL_CONTRIBUTORS.as_rp_id_field())
+        return self._get_mailchimp_segment(MailchimpSegmentName.ALL_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_recurring_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(MailchimpSegmentName.RECURRING_CONTRIBUTORS.as_rp_id_field())
+        return self._get_mailchimp_segment(MailchimpSegmentName.RECURRING_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_monthly_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(MailchimpSegmentName.MONTHLY_CONTRIBUTORS.as_rp_id_field())
+        return self._get_mailchimp_segment(MailchimpSegmentName.MONTHLY_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_yearly_contributors_segment(self) -> MailchimpSegment | None:
-        return self.get_mailchimp_segment(MailchimpSegmentName.YEARLY_CONTRIBUTORS.as_rp_id_field())
+        return self._get_mailchimp_segment(MailchimpSegmentName.YEARLY_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:

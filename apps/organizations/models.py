@@ -581,9 +581,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         # This is status quo behavior as well, but noting there is inconsistency here compared with get_mailchimp_product above.
         # Here we attempt to retrieve as long as there's a segment ID on the RP, regardless of connection status. That said,
         # the mailchimp client will raise an error when initializing if not connected.
-        if (_segment_id := getattr(self, segment_id)) is None:
-            return None
-        return self.mailchimp_client.get_segment(_segment_id)
+        if _segment_id := getattr(self, segment_id):
+            return self.mailchimp_client.get_segment(_segment_id)
 
     @property
     def mailchimp_one_time_contributors_segment(self) -> MailchimpSegment | None:

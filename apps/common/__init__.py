@@ -6,12 +6,9 @@ from enum import Enum
 class StrEnum(str, Enum):
     """A custom Enum class that inherits from str and Enum.
 
-    This class is buil-in to Python >= 3.11 as `StrEnum`, but we're currently on 3.10. Nevertheless,
+    This class is built-in to Python >= 3.11 as `StrEnum`, but we're currently on 3.10. Nevertheless,
     this class is a good alternative to using `Literal` for string enums so we're 'rolling our own' for now.
     """
 
     def __str__(self) -> str:
         return self.value
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return str(self)

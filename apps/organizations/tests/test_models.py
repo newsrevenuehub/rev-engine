@@ -945,7 +945,7 @@ class TestRevenueProgram:
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "product_type",
-    list(MailchimpProductType),
+    MailchimpProductType,
 )
 class TestRevenueProgramMailchimpProducts:
     def test_property_happy_path(

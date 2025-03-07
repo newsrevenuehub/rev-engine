@@ -28,7 +28,7 @@ class MailchimpProductType(StrEnum):
 
         This value is used as the "id" property when creating a product in Mailchimp.
         """
-        return f"rp-{self}-{revenue_program_id}-contribution-product".replace("_", "-")
+        return f"rp-{revenue_program_id}-{self}-contribution-product".replace("_", "-")
 
 
 class MailchimpSegmentName(StrEnum):

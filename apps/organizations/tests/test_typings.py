@@ -13,9 +13,9 @@ class TestMailchimpProductType:
         assert MailchimpProductType.MONTHLY.as_rp_field() == "mailchimp_monthly_contribution_product"
 
     def test_as_mailchimp_product_id(self):
-        assert MailchimpProductType.ONE_TIME.as_mailchimp_product_id(1) == "rp-one-time-1-contribution-product"
-        assert MailchimpProductType.YEARLY.as_mailchimp_product_id(2) == "rp-yearly-2-contribution-product"
-        assert MailchimpProductType.MONTHLY.as_mailchimp_product_id(3) == "rp-monthly-3-contribution-product"
+        assert MailchimpProductType.ONE_TIME.as_mailchimp_product_id(1) == "rp-1-one-time-contribution-product"
+        assert MailchimpProductType.YEARLY.as_mailchimp_product_id(2) == "rp-2-yearly-contribution-product"
+        assert MailchimpProductType.MONTHLY.as_mailchimp_product_id(3) == "rp-3-monthly-contribution-product"
 
 
 class TestMailchimpSegmentName:

@@ -97,7 +97,10 @@ class MailchimpSegmentName(StrEnum):
                         {**is_condition, "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name()},
                     ],
                 }
-            case MailchimpSegmentName.YEARLY_CONTRIBUTORS:
+            # pragma added here because the non-match case is not covered by the test. That's okay because in reality
+            # we will never hit this case because if you were to do MailchimpSegmentName("unexpected") it would raise
+            # a ValueError. Without the pragma, pytest-cov reports that this line is only partially covered.
+            case MailchimpSegmentName.YEARLY_CONTRIBUTORS:  # pragma: no branch
                 return {
                     "match": "all",
                     "conditions": [

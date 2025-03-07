@@ -1040,9 +1040,14 @@ class TestRevenueProgramMailchimpSegments:
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, segment_name.as_rp_field()) is None
 
-    def test_property_when_disconnected(self, segment_name: MailchimpSegmentName, revenue_program: RevenueProgram):
-        assert not revenue_program.mailchimp_integration_connected
-        assert getattr(revenue_program, segment_name.as_rp_field()) is None
+    def test_property_when_disconnected(
+        self, segment_name: MailchimpSegmentName, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        # this is so we know the segment id is set, but the integration is not connected
+        setattr(revenue_program, segment_name.as_rp_id_field(), "test-segment-id")
+        assert revenue_program.mailchimp_integration_connected is False
+        with pytest.raises(MailchimpIntegrationError, match="Mailchimp integration not connected"):
+            getattr(revenue_program, segment_name.as_rp_field())
 
     def test_property_when_no_segment_id(self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram):
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), None)

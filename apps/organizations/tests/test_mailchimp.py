@@ -19,7 +19,7 @@ from apps.organizations.typings import MailchimpProductType, MailchimpSegmentNam
 @pytest.mark.django_db
 class TestRevenueProgramMailchimpClient:
     def test_errors_if_rp_disconnected(self, revenue_program):
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(MailchimpIntegrationError, match="Mailchimp integration not connected for RP"):
             RevenueProgramMailchimpClient(revenue_program)
 
     @pytest.mark.parametrize("product_type", MailchimpProductType)
@@ -50,7 +50,10 @@ class TestRevenueProgramMailchimpClient:
     def test_create_product_api_error(self, mc_connected_rp, mocker, product_type: MailchimpProductType):
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.ecommerce, "add_store_product", side_effect=ApiClientError("test-error"))
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(
+            MailchimpIntegrationError,
+            match=f"Error creating {product_type.as_mailchimp_product_id(mc_connected_rp.id)}",
+        ):
             client.create_product(product_type)
 
     @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
@@ -72,14 +75,16 @@ class TestRevenueProgramMailchimpClient:
     def test_create_segment_api_error(self, mc_connected_rp, mocker, segment_name: MailchimpSegmentName):
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.lists, "create_segment", side_effect=ApiClientError("test-error"))
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(MailchimpIntegrationError, match=f"Error creating {segment_name}"):
             client.create_segment(segment_name, {})
 
     @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
     def test_create_segment_list_unset(self, mc_connected_rp, segment_name: MailchimpSegmentName):
         mc_connected_rp.mailchimp_list_id = None
         client = RevenueProgramMailchimpClient(mc_connected_rp)
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(
+            MailchimpIntegrationError, match="Mailchimp must be connected and email list ID must be set"
+        ):
             client.create_segment(segment_name, {})
 
     def test_create_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
@@ -103,13 +108,15 @@ class TestRevenueProgramMailchimpClient:
     def test_create_store_list_unset(self, mc_connected_rp):
         mc_connected_rp.mailchimp_list_id = None
         client = RevenueProgramMailchimpClient(mc_connected_rp)
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(
+            MailchimpIntegrationError, match="Mailchimp must be connected and email list ID must be set"
+        ):
             client.create_store()
 
     def test_create_store_payment_provider_unset(self, mc_connected_rp):
         mc_connected_rp.payment_provider = None
         client = RevenueProgramMailchimpClient(mc_connected_rp)
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(MailchimpIntegrationError, match="No payment provider on RP"):
             client.create_store()
 
     def test_create_store_api_error(self, mc_connected_rp, mocker):
@@ -120,7 +127,7 @@ class TestRevenueProgramMailchimpClient:
         )
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         mocker.patch.object(client.ecommerce, "add_store", side_effect=ApiClientError("test-error"))
-        with pytest.raises(MailchimpIntegrationError):
+        with pytest.raises(MailchimpIntegrationError, match="Error creating store"):
             client.create_store()
 
     def test_get_email_list_happy_path(self, mc_connected_rp, mailchimp_email_list_from_api, mocker):

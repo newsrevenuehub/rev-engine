@@ -197,7 +197,8 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     mailchimp_monthly_contribution_product = serializers.SerializerMethodField()
     mailchimp_yearly_contribution_product = serializers.SerializerMethodField()
     # NB: This is a vestigial field that we're keeping around in short term so SB won't break.
-    # Question shoudld there be a TODO
+    # TODO @BW: Remove this field
+    # DEV-5588
     mailchimp_recurring_contribution_product = serializers.ReadOnlyField(default=None)
     stripe_account_id = serializers.ReadOnlyField(allow_null=True)
     id = serializers.ReadOnlyField()

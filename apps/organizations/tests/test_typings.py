@@ -17,6 +17,11 @@ class TestMailchimpProductType:
         assert MailchimpProductType.YEARLY.as_mailchimp_product_id(2) == "rp-2-yearly-contribution-product"
         assert MailchimpProductType.MONTHLY.as_mailchimp_product_id(3) == "rp-3-monthly-contribution-product"
 
+    def test_as_str(self):
+        assert str(MailchimpProductType.ONE_TIME) == "one_time"
+        assert str(MailchimpProductType.YEARLY) == "yearly"
+        assert str(MailchimpProductType.MONTHLY) == "monthly"
+
 
 class TestMailchimpSegmentName:
     def test_as_rp_field(self):
@@ -80,3 +85,10 @@ class TestMailchimpSegmentName:
                 {**is_condition, "value": MailchimpProductType.YEARLY.as_mailchimp_product_name()},
             ],
         }
+
+    def test_as_str(self):
+        assert str(MailchimpSegmentName.ALL_CONTRIBUTORS) == "All contributors"
+        assert str(MailchimpSegmentName.ONE_TIME_CONTRIBUTORS) == "One-time contributors"
+        assert str(MailchimpSegmentName.RECURRING_CONTRIBUTORS) == "Recurring contributors"
+        assert str(MailchimpSegmentName.MONTHLY_CONTRIBUTORS) == "Monthly contributors"
+        assert str(MailchimpSegmentName.YEARLY_CONTRIBUTORS) == "Yearly contributors"

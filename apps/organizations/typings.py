@@ -37,7 +37,7 @@ class MailchimpSegmentName(StrEnum):
     These values get used as the "name" property when creating a segment in Mailchimp.
     """
 
-    ALL_CONTRIBUTORS = "All Contributors"
+    ALL_CONTRIBUTORS = "All contributors"
     ONE_TIME_CONTRIBUTORS = "One-time contributors"
     RECURRING_CONTRIBUTORS = "Recurring contributors"
     MONTHLY_CONTRIBUTORS = "Monthly contributors"

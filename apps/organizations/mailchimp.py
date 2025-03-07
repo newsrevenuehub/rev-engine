@@ -172,12 +172,18 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         )
 
     def create_product(self, product_type: MailchimpProductType) -> MailchimpProduct | None:
+        """Create a Mailchimp ecommerce product.
+
+        A Mailchimp store must be previously created for the revenue program.
+        """
         product_id = product_type.as_mailchimp_product_id(self.revenue_program.id)
         product_name = product_type.as_mailchimp_product_name()
         logger.info(
-            "Called for RP %s, product_id %s, product_name %s", self.revenue_program.id, product_id, product_name
+            "Attempting to create mailchimp product for RP %s, product_id %s, product_name %s",
+            self.revenue_program.id,
+            product_id,
+            product_name,
         )
-        """Creates a Mailchimp ecommerce product. A Mailchimp store must be previously created for the revenue program."""
         try:
             response = self.ecommerce.add_store_product(
                 self.revenue_program.mailchimp_store_id,
@@ -193,13 +199,16 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                 },
             )
         except ApiClientError as error:
-            return self._handle_write_error(product_id, error)
+            return self._handle_write_error(product_id, error, "create_product")
         else:
+            logger.info(
+                "Successfully created mailchimp product for RP %s, product_id %s", self.revenue_program.id, product_id
+            )
             return MailchimpProduct(**response)
 
     def create_segment(self, segment_name: MailchimpSegmentName, options) -> MailchimpSegment | None:
         """Create a segment of the revenue program's Mailchimp list. This list must be previously created."""
-        logger.info("Called for RP %s, segment_name %s", self.revenue_program.id, segment_name)
+        logger.info("Attempting to create segment for RP %s, segment_name %s", self.revenue_program.id, segment_name)
         self._has_list_id(raise_if_not_present=True)
         try:
             response = self.lists.create_segment(
@@ -207,13 +216,16 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                 {"name": segment_name, "options": options},
             )
         except ApiClientError as error:
-            return self._handle_write_error(segment_name, error)
+            return self._handle_write_error(segment_name, error, "create_segment")
         else:
+            logger.info(
+                "Successfully created segment for RP %s, segment_name %s", self.revenue_program.id, segment_name
+            )
             return MailchimpSegment(**response)
 
     def create_store(self) -> MailchimpStore:
         """Create a Mailchimp ecommerce store for the revenue program's Mailchimp list. This list must be previously created."""
-        logger.info("Called for RP %s", self.revenue_program.id)
+        logger.info("Attempting to create store for RP %s", self.revenue_program.id)
         self._has_list_id(raise_if_not_present=True)
         if not self.revenue_program.payment_provider:
             logger.error("No payment provider on RP %s", self.revenue_program.id)
@@ -228,8 +240,9 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                 }
             )
         except ApiClientError as error:
-            return self._handle_write_error("store", error)
+            return self._handle_write_error("store", error, "create_store")
         else:
+            logger.info("Successfully created store for RP %s", self.revenue_program.id)
             return MailchimpStore(**response)
 
     def get_email_list(self) -> MailchimpEmailList | None:
@@ -306,8 +319,8 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             case _:
                 logger.error("Unexpected error from Mailchimp API. The error text is %s", exc.text, exc_info=exc)
 
-    def _handle_write_error(self, entity: str, exc: ApiClientError) -> None:
-        logger.info("Called for RP %s", self.revenue_program.id)
+    def _handle_write_error(self, entity: str, exc: ApiClientError, caller: str) -> None:
+        logger.info("Called by %s for RP %s", caller, self.revenue_program.id)
         match exc.status_code:
             case 429:
                 logger.warning("Mailchimp rate limit exceeded for RP %s, raising exception", self.revenue_program.id)

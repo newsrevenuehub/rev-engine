@@ -203,5 +203,5 @@ class TestRevenueProgramMailchimpClient:
         client = RevenueProgramMailchimpClient(mc_connected_rp)
         logger_spy = mocker.spy(mailchimp_logger, "warning")
         with pytest.raises(MailchimpRateLimitError):
-            client._handle_write_error("test-entity", ApiClientError("test-error", 429))
+            client._handle_write_error("test-entity", ApiClientError("test-error", 429), "some-caller")
         logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)

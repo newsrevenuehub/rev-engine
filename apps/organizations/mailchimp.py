@@ -72,7 +72,7 @@ class MailchimpProduct:
 
     id: str
     currency_code: str
-    # When this is created by rev-engine, the value will be either "one-time contribution" or "recurring contribution"
+    # When this is created by rev-engine, the value will be one of enums in apps.organizations.typings.MailchimpProductType
     title: str
     handle: str
     url: str

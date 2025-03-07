@@ -7,11 +7,11 @@ from apps.organizations.signals import (
     get_page_to_be_set_as_default,
     handle_delete_rp_mailchimp_access_token_secret,
     handle_rp_activecampaign_setup,
-    handle_rp_mailchimp_entity_setup,
     handle_set_default_donation_page_on_select_core_plan,
     logger,
+    setup_mailchimp_entities_for_rp_mailing_list,
 )
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.tests.factories import OrganizationFactory, PaymentProviderFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -35,6 +35,9 @@ class TestRevenueProgramPostSaveHandler:
         assert SocialMeta.objects.count() == before_count
         assert rp.socialmeta
 
+
+@pytest.mark.django_db(transaction=True)
+class Test_handle_rp_mailchimp_entity_setup:
     @pytest.mark.parametrize(
         ("make_rp_kwargs", "expect_task_called"),
         [
@@ -43,21 +46,15 @@ class TestRevenueProgramPostSaveHandler:
         ],
     )
     def test_when_new_instance(self, make_rp_kwargs, expect_task_called, mocker):
-        rp = RevenueProgramFactory.build(**make_rp_kwargs)
-        on_commit_mock = mocker.patch("django.db.transaction.on_commit")
-        delay_mock = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list.delay")
-        handle_rp_mailchimp_entity_setup(sender=mocker.MagicMock(), instance=rp, created=True)
+        rp = RevenueProgramFactory.build(
+            **make_rp_kwargs, organization=OrganizationFactory(), payment_provider=PaymentProviderFactory()
+        )
+        task_spy = mocker.spy(setup_mailchimp_entities_for_rp_mailing_list, "delay")
+        rp.save()
         if expect_task_called:
-            # we have to take this round-about way because in normal test execution, transaction.on_commit won't
-            # call its lambda, and we want to assert that the task is called. So we mock the lambda, call it ourselves,
-            # and prove that the task function is called with expected args.
-            on_commit_mock.assert_called_once()
-            lambda_func = on_commit_mock.call_args[0][0]
-            lambda_func()
-            delay_mock.assert_called_once_with(rp.id)
+            task_spy.assert_called_once_with(rp_id=rp.id)
         else:
-            on_commit_mock.assert_not_called()
-            delay_mock.assert_not_called()
+            task_spy.assert_not_called()
 
     @pytest.mark.parametrize(
         ("update_rp_kwargs", "expect_task_called"),
@@ -67,24 +64,16 @@ class TestRevenueProgramPostSaveHandler:
         ],
     )
     def test_when_existing_instance(self, update_rp_kwargs, expect_task_called, mocker, revenue_program):
-        on_commit_mock = mocker.patch("django.db.transaction.on_commit")
-        delay_mock = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list.delay")
+        task_spy = mocker.spy(setup_mailchimp_entities_for_rp_mailing_list, "delay")
         update_fields = set()
         for k, v in update_rp_kwargs.items():
             setattr(revenue_program, k, v)
             update_fields.add(k)
         revenue_program.save(update_fields=update_fields)
         if expect_task_called:
-            # we have to test this in a round-about way because in normal test execution, transaction.on_commit won't
-            # call its lambda, and we want to assert that the task is called. So we mock the lambda, call it ourselves,
-            # and prove that the task function is called with expected args.
-            on_commit_mock.assert_called_once()
-            lambda_func = on_commit_mock.call_args[0][0]
-            lambda_func()
-            delay_mock.assert_called_once_with(revenue_program.id)
+            task_spy.assert_called_once_with(rp_id=revenue_program.id)
         else:
-            on_commit_mock.assert_not_called()
-            delay_mock.assert_not_called()
+            task_spy.assert_not_called()
 
 
 @pytest.mark.django_db

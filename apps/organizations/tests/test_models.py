@@ -995,7 +995,6 @@ class TestRevenueProgramMailchimpProducts:
         mocker: pytest_mock.MockerFixture,
     ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
-        # update this to use new type
         mocker.patch.object(mc_connected_rp, product_type.as_rp_field(), mailchimp_product_from_api)
         mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         assert not patched_client.return_value.create_product.called

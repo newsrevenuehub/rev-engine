@@ -554,7 +554,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.mailchimp_client.get_store()
 
-    def get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
+    def _get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
         if not self.mailchimp_integration_connected:
             logger.debug(
                 "Mailchimp integration not connected revenue program (%s). Returning None and won't try to retrieve product %s",
@@ -566,15 +566,15 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(MailchimpProductType.ONE_TIME.as_mailchimp_product_id(self.id))
+        return self._get_mailchimp_product(MailchimpProductType.ONE_TIME.as_mailchimp_product_id(self.id))
 
     @cached_property
     def mailchimp_monthly_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.id))
+        return self._get_mailchimp_product(MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.id))
 
     @cached_property
     def mailchimp_yearly_contribution_product(self) -> MailchimpProduct | None:
-        return self.get_mailchimp_product(MailchimpProductType.YEARLY.as_mailchimp_product_id(self.id))
+        return self._get_mailchimp_product(MailchimpProductType.YEARLY.as_mailchimp_product_id(self.id))
 
     def get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
         """Get a Mailchimp segment by ID as stored on the revenue program."""

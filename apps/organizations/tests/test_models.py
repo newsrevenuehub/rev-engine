@@ -844,26 +844,33 @@ class TestRevenueProgram:
             any_order=True,
         )
 
-    @pytest.mark.parametrize("mc_connected", [True, False])
-    def test_get_mailchimp_product(
-        self, mc_connected: bool, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture
+    @pytest.mark.parametrize("mc_product_type", MailchimpProductType)
+    @pytest.mark.parametrize(
+        "mc_connected",
+        [
+            False,
+            True,
+        ],
+    )
+    def test_mailchimp_product_properties(
+        self, mc_connected: bool, revenue_program: RevenueProgram, mc_product_type: MailchimpProductType, mocker
     ):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_integration_connected",
-            new_callable=mocker.PropertyMock,
             return_value=mc_connected,
+            new_callable=mocker.PropertyMock,
         )
+        under_test = mc_product_type.as_rp_field()
         mock_get_product = mocker.patch(
-            "apps.organizations.mailchimp.RevenueProgramMailchimpClient.get_product",
-            return_value=(product := "something"),
+            "apps.organizations.models.RevenueProgramMailchimpClient.get_product", return_value=(product := "something")
         )
-        returned = revenue_program.get_mailchimp_product(product_id := "123")
+        returned = getattr(revenue_program, under_test)
         if mc_connected:
-            mock_get_product.assert_called_once_with(product_id)
             assert returned == product
+            mock_get_product.assert_called_once_with(mc_product_type.as_mailchimp_product_id(revenue_program.id))
         else:
-            mock_get_product.assert_not_called()
             assert returned is None
+            mock_get_product.assert_not_called()
 
     @pytest.mark.parametrize("segment_name", MailchimpSegmentName)
     @pytest.mark.parametrize("field_value", ["123", None])

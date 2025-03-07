@@ -685,7 +685,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     def ensure_mailchimp_entities(self) -> None:
         """Ensure that all Mailchimp entities are created for this revenue program.
 
-        Will create if the don't exist:
+        Will create if they don't exist:
 
         - Mailchimp store
         - Mailchimp products for

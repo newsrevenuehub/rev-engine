@@ -5,7 +5,7 @@ import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
 
 export default {
   component: MailchimpModal,
-  title: 'Common/IntegrationCard/MailchimpModal'
+  title: 'Settings/IntegrationCard/MailchimpModal'
 } as ComponentMeta<typeof MailchimpModal>;
 
 const Template: ComponentStory<typeof MailchimpModal> = (props: MailchimpModalProps) => <MailchimpModal {...props} />;

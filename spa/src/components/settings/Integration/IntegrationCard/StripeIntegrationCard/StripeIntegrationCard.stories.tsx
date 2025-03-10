@@ -3,7 +3,7 @@ import StripeIntegrationCard from './StripeIntegrationCard';
 
 export default {
   component: StripeIntegrationCard,
-  title: 'Common/IntegrationCard'
+  title: 'Settings/IntegrationCard'
 } as ComponentMeta<typeof StripeIntegrationCard>;
 
 const Template: ComponentStory<typeof StripeIntegrationCard> = () => <StripeIntegrationCard />;

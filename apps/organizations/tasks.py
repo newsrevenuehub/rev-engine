@@ -6,7 +6,8 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from rest_framework import status
 
-from apps.organizations.models import MailchimpRateLimitError, RevenueProgram
+from apps.organizations.mailchimp import MailchimpRateLimitError
+from apps.organizations.models import RevenueProgram
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")

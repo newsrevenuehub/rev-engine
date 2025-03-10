@@ -1,6 +1,8 @@
 import logging
+from functools import partial
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
@@ -65,7 +67,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
         logger.info(
             "Enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
         )
-        setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id)
+        transaction.on_commit(partial(setup_mailchimp_entities_for_rp_mailing_list.delay, rp_id=instance.id))
     else:
         logger.debug(
             "Not enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
@@ -84,6 +86,8 @@ def create_default_social_meta(sender, instance: RevenueProgram, created: bool, 
         return
 
     logger.info("Creating default social meta for RP %s", instance.id)
+    # TODO @BW: Wrap this side effect in transaction.on_commit
+    # DEV-5817
     social = SocialMeta.objects.create(revenue_program=instance)
     logger.info('Social Meta with id "%s" created for RP id "%s"', social.id, instance.id)
 
@@ -97,6 +101,8 @@ def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kw
             "Deleting mailchimp_access_token_secret for rp %s",
             instance.id,
         )
+        # TODO @BW: Wrap this side effect in transaction.on_commit
+        # DEV-5817
         del instance.mailchimp_access_token
     else:
         logger.debug("No mailchimp_access_token_secret to delete for rp %s", instance.id)
@@ -140,6 +146,8 @@ def handle_set_default_donation_page_on_select_core_plan(
     if instance.plan != CorePlan:
         logger.debug("Org %s is not on CorePlan, skipping", instance.id)
         return
+    # TODO @BW: Wrap some of this routine in transaction.on_commit
+    # DEV-5817
     if not (rp := instance.revenueprogram_set.first()):
         logger.debug("No RP found for organization %s, skipping", instance.id)
         return

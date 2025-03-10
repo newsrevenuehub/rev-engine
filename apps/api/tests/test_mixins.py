@@ -8,7 +8,7 @@ from rest_framework.viewsets import ViewSet
 from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
 
 
-class TestViewSet(UniquenessConstraintViolationViewSetMixin, ViewSet):
+class DummyViewset(UniquenessConstraintViolationViewSetMixin, ViewSet):
     pass
 
 
@@ -41,7 +41,7 @@ class TestViewSet(UniquenessConstraintViolationViewSetMixin, ViewSet):
     ],
 )
 def test_handle_exception(validation_error_detail, code, expected_status_code):
-    viewset = TestViewSet()
+    viewset = DummyViewset()
     exc = ValidationError(detail=validation_error_detail, code=code)
 
     response = viewset.handle_exception(exc)
@@ -51,6 +51,6 @@ def test_handle_exception(validation_error_detail, code, expected_status_code):
 
 
 def test_handle_exception_generic_error():
-    viewset = TestViewSet()
+    viewset = DummyViewset()
     with pytest.raises(GenericViewError):
         viewset.handle_exception(GenericViewError())

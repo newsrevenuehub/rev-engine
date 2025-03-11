@@ -7,11 +7,11 @@ from apps.organizations.signals import (
     get_page_to_be_set_as_default,
     handle_delete_rp_mailchimp_access_token_secret,
     handle_rp_activecampaign_setup,
-    handle_rp_mailchimp_entity_setup,
     handle_set_default_donation_page_on_select_core_plan,
     logger,
+    setup_mailchimp_entities_for_rp_mailing_list,
 )
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.tests.factories import OrganizationFactory, PaymentProviderFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -35,6 +35,9 @@ class TestRevenueProgramPostSaveHandler:
         assert SocialMeta.objects.count() == before_count
         assert rp.socialmeta
 
+
+@pytest.mark.django_db(transaction=True)
+class Test_handle_rp_mailchimp_entity_setup:
     @pytest.mark.parametrize(
         ("make_rp_kwargs", "expect_task_called"),
         [
@@ -43,13 +46,15 @@ class TestRevenueProgramPostSaveHandler:
         ],
     )
     def test_when_new_instance(self, make_rp_kwargs, expect_task_called, mocker):
-        rp = RevenueProgramFactory.build(**make_rp_kwargs)
-        setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
-        handle_rp_mailchimp_entity_setup(sender=mocker.MagicMock(), instance=rp, created=True)
+        rp = RevenueProgramFactory.build(
+            **make_rp_kwargs, organization=OrganizationFactory(), payment_provider=PaymentProviderFactory()
+        )
+        task_spy = mocker.spy(setup_mailchimp_entities_for_rp_mailing_list, "delay")
+        rp.save()
         if expect_task_called:
-            setup_mc_task.delay.assert_called_once_with(rp.id)
+            task_spy.assert_called_once_with(rp_id=rp.id)
         else:
-            assert not setup_mc_task.delay.called
+            task_spy.assert_not_called()
 
     @pytest.mark.parametrize(
         ("update_rp_kwargs", "expect_task_called"),
@@ -59,16 +64,16 @@ class TestRevenueProgramPostSaveHandler:
         ],
     )
     def test_when_existing_instance(self, update_rp_kwargs, expect_task_called, mocker, revenue_program):
-        setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
+        task_spy = mocker.spy(setup_mailchimp_entities_for_rp_mailing_list, "delay")
         update_fields = set()
         for k, v in update_rp_kwargs.items():
             setattr(revenue_program, k, v)
             update_fields.add(k)
         revenue_program.save(update_fields=update_fields)
         if expect_task_called:
-            setup_mc_task.delay.assert_called_once_with(revenue_program.id)
+            task_spy.assert_called_once_with(rp_id=revenue_program.id)
         else:
-            assert not setup_mc_task.delay.called
+            task_spy.assert_not_called()
 
 
 @pytest.mark.django_db

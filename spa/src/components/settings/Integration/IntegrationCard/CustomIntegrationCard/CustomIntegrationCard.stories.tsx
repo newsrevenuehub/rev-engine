@@ -8,7 +8,7 @@ import CustomIntegrationCard from './CustomIntegrationCard';
 
 export default {
   component: CustomIntegrationCard,
-  title: 'Common/IntegrationCard'
+  title: 'Settings/IntegrationCard'
 } as Meta<typeof CustomIntegrationCard>;
 
 const Template: StoryFn<typeof CustomIntegrationCard> = (props) => <CustomIntegrationCard {...props} />;

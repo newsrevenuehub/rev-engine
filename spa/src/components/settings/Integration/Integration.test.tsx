@@ -6,8 +6,12 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useUser from 'hooks/useUser';
 
 import Integration from './Integration';
+import { ACTIVECAMPAIGN_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
-jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard', () => ({
+jest.mock('components/settings/Integration/IntegrationCard/ActiveCampaignIntegrationCard', () => ({
+  ActiveCampaignIntegrationCard: () => <div data-testid="mock-mailchimp-card">ActiveCampaign</div>
+}));
+jest.mock('components/settings/Integration/IntegrationCard/MailchimpIntegrationCard', () => ({
   MailchimpIntegrationCard: () => <div data-testid="mock-mailchimp-card">Mailchimp</div>
 }));
 jest.mock('hooks/useConnectStripeAccount');
@@ -25,6 +29,7 @@ describe('Settings Integration Page', () => {
   beforeEach(() => {
     useUserMock.mockReturnValue({
       user: {
+        flags: [],
         organizations: [{ id: 'mock-org' }]
       },
       isLoading: false
@@ -35,7 +40,7 @@ describe('Settings Integration Page', () => {
     });
   });
 
-  it('should render page texts', () => {
+  it('shows page text', () => {
     tree();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
@@ -43,7 +48,7 @@ describe('Settings Integration Page', () => {
     expect(screen.getByText('Connect News Revenue Engine to the tools you use every day.')).toBeInTheDocument();
   });
 
-  test.each([
+  it.each([
     'Stripe',
     'Slack',
     'Mailchimp',
@@ -52,30 +57,49 @@ describe('Settings Integration Page', () => {
     'digestbuilder',
     'Google Analytics',
     'Newspack'
-  ])('should render %p integration card', (title) => {
+  ])('shows the %p integration card', (title) => {
     tree();
     expect(screen.getByText(title)).toBeVisible();
   });
 
-  it('should call sendUserToStripe', async () => {
-    tree();
-    expect(sendUserToStripe).not.toBeCalled();
-    userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is not connected' }));
-    expect(sendUserToStripe).toBeCalledTimes(1);
-  });
-
-  it('should not call sendUserToStripe', async () => {
-    useConnectStripeAccountMock.mockReturnValue({
-      requiresVerification: false,
-      sendUserToStripe
+  it('shows the ActiveCampaign integration card if the user has the appropriate feature flag', () => {
+    useUserMock.mockReturnValue({
+      user: {
+        flags: [{ name: ACTIVECAMPAIGN_INTEGRATION_ACCESS_FLAG_NAME }],
+        organizations: [{ id: 'mock-org' }]
+      },
+      isLoading: false
     });
     tree();
-    expect(sendUserToStripe).not.toBeCalled();
-    userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is connected' }));
-    expect(sendUserToStripe).not.toBeCalled();
+    expect(screen.getByText('ActiveCampaign')).toBeVisible();
   });
 
-  it('should be accessible', async () => {
+  it("doesn't show the ActiveCampaign integration card if the user doesn't have the appropriate feature flag", () => {
+    tree();
+    expect(screen.queryByText('ActiveCampaign')).not.toBeInTheDocument();
+  });
+
+  describe('When the Stripe connection checkbox is clicked', () => {
+    it('calls sendUserToStripe if verification is needed', async () => {
+      tree();
+      expect(sendUserToStripe).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is not connected' }));
+      expect(sendUserToStripe).toBeCalledTimes(1);
+    });
+
+    it("doesn't call sendUsertoStripe if verification isn't needed", async () => {
+      useConnectStripeAccountMock.mockReturnValue({
+        requiresVerification: false,
+        sendUserToStripe
+      });
+      tree();
+      expect(sendUserToStripe).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is connected' }));
+      expect(sendUserToStripe).not.toBeCalled();
+    });
+  });
+
+  it('is accessible', async () => {
     const { container } = tree();
     expect(await axe(container)).toHaveNoViolations();
   });

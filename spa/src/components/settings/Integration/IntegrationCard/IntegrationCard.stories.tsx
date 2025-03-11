@@ -4,7 +4,7 @@ import StripeLogo from 'assets/images/stripe.png';
 import IntegrationCard from './IntegrationCard';
 
 export default {
-  title: 'Common/IntegrationCard',
+  title: 'Settings/IntegrationCard',
   component: IntegrationCard
 } as ComponentMeta<typeof IntegrationCard>;
 

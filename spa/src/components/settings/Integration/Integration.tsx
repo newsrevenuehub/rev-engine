@@ -10,6 +10,10 @@ import { SlackIntegrationCard } from 'components/settings/Integration/Integratio
 import { StripeIntegrationCard } from 'components/settings/Integration/IntegrationCard/StripeIntegrationCard';
 import SubheaderSection from 'components/common/SubheaderSection';
 import { Content, Wrapper } from './Integration.styled';
+import { ActiveCampaignIntegrationCard } from './IntegrationCard/ActiveCampaignIntegrationCard';
+import useUser from 'hooks/useUser';
+import { ACTIVECAMPAIGN_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
 const CARD_TYPES = {
   // Keep Salesforce first, to be rendered at the top of the list
@@ -76,6 +80,8 @@ const CARD_TYPES = {
 };
 
 const Integration = () => {
+  const { user } = useUser();
+
   return (
     <Wrapper>
       <HeaderSection title="Settings" />
@@ -84,6 +90,9 @@ const Integration = () => {
         <StripeIntegrationCard />
         <SlackIntegrationCard />
         <MailchimpIntegrationCard />
+        {user && flagIsActiveForUser(ACTIVECAMPAIGN_INTEGRATION_ACCESS_FLAG_NAME, user) && (
+          <ActiveCampaignIntegrationCard />
+        )}
       </Content>
       <SubheaderSection title="Custom Features" subtitle="Contact Support to enable custom integrations." />
       <Content>

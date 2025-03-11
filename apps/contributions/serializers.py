@@ -730,7 +730,7 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
     first_payment_date = serializers.SerializerMethodField(read_only=True, allow_null=True)
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
-    next_payment_date = serializers.SerializerMethodField(read_only=True, allow_null=True)
+    next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:

@@ -2,7 +2,6 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
-from typing import Literal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -10,7 +9,6 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 
-import mailchimp_marketing as MailchimpMarketing
 import reversion
 import stripe
 from addict import Dict as AttrDict
@@ -21,6 +19,18 @@ from apps.common.secret_manager import GoogleCloudSecretProvider
 from apps.common.utils import google_cloud_pub_sub_is_configured, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.google_cloud.pubsub import Message, Publisher
+from apps.organizations.mailchimp import (
+    MailchimpEmailList,
+    MailchimpIntegrationError,
+    MailchimpProduct,
+    MailchimpSegment,
+    MailchimpStore,
+    RevenueProgramMailchimpClient,
+)
+from apps.organizations.typings import (
+    MailchimpProductType,
+    MailchimpSegmentName,
+)
 from apps.organizations.validators import (
     validate_contact_phone_number,
     validate_statement_descriptor_suffix,
@@ -410,308 +420,6 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.none()
 
 
-class MailchimpIntegrationError(Exception):
-    pass
-
-
-class MailchimpRateLimitError(Exception):
-    pass
-
-
-# A sibling app (switchboard-api) has manually managed definitions like the `Mailchimp...` ones below
-# This is not an ideal way to manage this but in short term it allows us to get everything running in prod quickly
-# while also ensuring the two app data models are in sync (insofar as we human maintainers can ensure that).
-@dataclass(frozen=True)
-class MailchimpProductImage:
-    """An instance of a Mailchimp product image, as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str  # Unique identifier for the image
-    product_id: str  # ID of the product this image belongs to
-    url: str  # URL to the product image
-    variant_ids: list[str]  # List of variant IDs associated with this image
-
-
-@dataclass(frozen=True)
-class MailchimpProductVariant:
-    """An instance of a Mailchimp product variant, as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str  # Unique identifier for the product variant
-    product_id: str  # ID of the product this variant belongs to
-    title: str  # Title of the product variant
-    url: str  # URL to the product variant
-    sku: str  # Stock Keeping Unit (SKU) associated with the product variant
-    price: float  # Price of the product variant
-    inventory_quantity: int  # Available inventory for the product variant
-    image_url: str | None = None  # URL of the product variant's image
-
-
-@dataclass(frozen=True)
-class MailchimpProductLink:
-    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str  # Unique identifier for the link
-    product_id: str  # ID of the product this link belongs to
-    url: str  # URL to the product link
-    type: str  # Type of the link (could be 'website', 'store', etc.)
-
-
-@dataclass(frozen=True)
-class MailchimpProduct:
-    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str
-    currency_code: str
-    # When this is created by rev-engine, the value will be either "one-time contribution" or "recurring contribution"
-    title: str
-    handle: str
-    url: str
-    description: str
-    type: str
-    vendor: str
-    image_url: str
-    variants: list[MailchimpProductVariant]
-    images: list[MailchimpProductImage]
-    published_at_foreign: str
-    _links: list[MailchimpProductLink]
-
-
-@dataclass(frozen=True)
-class MailchimpEmailList:
-    """An instance of a Mailchimp email list (aka audience), as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str
-    web_id: int
-    name: str
-    contact: dict
-    permission_reminder: str
-    use_archive_bar: bool
-    campaign_defaults: dict
-    notify_on_subscribe: bool
-    notify_on_unsubscribe: bool
-    date_created: str
-    list_rating: str
-    email_type_option: bool
-    subscribe_url_short: str
-    subscribe_url_long: str
-    beamer_address: str
-    visibility: str
-    double_optin: bool
-    has_welcome: bool
-    marketing_permissions: bool
-    modules: list
-    stats: dict
-    _links: list[dict]
-
-
-@dataclass(frozen=True)
-class MailchimpStore:
-    """An instance of a Mailchimp store, as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str
-    list_id: str
-    name: str
-    platform: str
-    domain: str
-    is_syncing: bool
-    email_address: str
-    currency_code: str
-    money_format: str
-    primary_locale: str
-    timezone: str
-    phone: str
-    address: dict
-    connected_site: dict
-    automations: dict
-    list_is_active: bool
-    created_at: str
-    updated_at: str
-    _links: list[dict]
-
-
-@dataclass(frozen=True)
-class MailchimpSegment:
-    """An instance of a Mailchimp segment, as represented by the Mailchimp API and relayed by rev-engine."""
-
-    id: str
-    name: str
-    member_count: int
-    type: Literal["saved", "static", "fuzzy"]
-    created_at: str
-    updated_at: str
-    options: dict
-    list_id: str
-    _links: list[dict]
-
-
-class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
-    """Mailchimp client configured to interact with a revenue program's integration, after it's been initially set up."""
-
-    def __init__(self, rp: "RevenueProgram"):
-        logger.info("Called for RP %s", rp.id)
-        if not rp.mailchimp_integration_connected:
-            logger.warning("Called for RP %s which is not connected to Mailchimp", rp.id)
-            raise MailchimpIntegrationError(f"Mailchimp integration not connected for RP {rp.id}")
-        super().__init__()
-        self.revenue_program = rp
-        self.set_config(
-            {
-                "access_token": rp.mailchimp_access_token,
-                "server": rp.mailchimp_server_prefix,
-            }
-        )
-
-    def create_product(self, product_id: str, product_name: str) -> MailchimpProduct:
-        logger.info(
-            "Called for RP %s, product_id %s, product_name %s", self.revenue_program.id, product_id, product_name
-        )
-        """Creates a Mailchimp ecommerce product. A Mailchimp store must be previously created for the revenue program."""
-        try:
-            response = self.ecommerce.add_store_product(
-                self.revenue_program.mailchimp_store_id,
-                {
-                    "id": product_id,
-                    "title": product_name,
-                    "variants": [
-                        {
-                            "id": product_id,
-                            "title": product_name,
-                        }
-                    ],
-                },
-            )
-        except ApiClientError as error:
-            return self._handle_write_error(product_id, error)
-        else:
-            return MailchimpProduct(**response)
-
-    def create_segment(self, segment_name: str, options) -> MailchimpSegment:
-        """Create a segment of the revenue program's Mailchimp list. This list must be previously created."""
-        logger.info("Called for RP %s, segment_name %s", self.revenue_program.id, segment_name)
-        self._has_list_id(raise_if_not_present=True)
-        try:
-            response = self.lists.create_segment(
-                self.revenue_program.mailchimp_list_id,
-                {"name": segment_name, "options": options},
-            )
-        except ApiClientError as error:
-            return self._handle_write_error(self.revenue_program.mailchimp_contributor_segment_name, error)
-        else:
-            return MailchimpSegment(**response)
-
-    def create_store(self) -> MailchimpStore:
-        """Create a Mailchimp ecommerce store for the revenue program's Mailchimp list. This list must be previously created."""
-        logger.info("Called for RP %s", self.revenue_program.id)
-        self._has_list_id(raise_if_not_present=True)
-        if not self.revenue_program.payment_provider:
-            logger.error("No payment provider on RP %s", self.revenue_program.id)
-            raise MailchimpIntegrationError("No payment provider on RP %s", self.revenue_program.id)
-        try:
-            response = self.ecommerce.add_store(
-                {
-                    "id": self.revenue_program.mailchimp_store_id,
-                    "list_id": self.revenue_program.mailchimp_list_id,
-                    "name": self.revenue_program.mailchimp_store_name,
-                    "currency_code": self.revenue_program.payment_provider.currency,
-                }
-            )
-        except ApiClientError as error:
-            return self._handle_write_error("store", error)
-        else:
-            return MailchimpStore(**response)
-
-    def get_email_list(self) -> MailchimpEmailList | None:
-        """Retrieve the Mailchimp list belonging to the integration, if it exists."""
-        logger.debug("Called for RP %s", self.revenue_program.id)
-        if not self._has_list_id():
-            return None
-        try:
-            logger.info("Getting list %s for RP %s", self.revenue_program.mailchimp_list_id, self.revenue_program.id)
-            response = self.lists.get_list(self.revenue_program.mailchimp_list_id)
-        except ApiClientError as error:
-            # we want to log as an error if not found because in this case, something has gone wrong in that we have a
-            # list ID but it is not found on Mailchimp.  This will give us a signal in Sentry, while not blocking
-            # serialization of the revenue program.
-            return self._handle_read_error("mailchimp email list", error, log_level_on_not_found="error")
-        else:
-            return MailchimpEmailList(**response)
-
-    def get_product(self, product_id: str) -> MailchimpProduct | None:
-        """Retrieve an ecommerce product from the revenue program's Mailchimp store, if it exists."""
-        logger.debug("Called for RP %s", self.revenue_program.id)
-        try:
-            response = self.ecommerce.get_store_product(self.revenue_program.mailchimp_store_id, product_id)
-        except ApiClientError as exc:
-            return self._handle_read_error("contribution product", exc)
-        else:
-            return MailchimpProduct(**response)
-
-    def get_segment(self, segment_id: int) -> MailchimpSegment | None:
-        """Retrieve a segment of the revenue program's Mailchimp list, if it exists."""
-        logger.debug("Called for RP %s", self.revenue_program.id)
-        if not self._has_list_id():
-            return None
-        try:
-            response = self.lists.get_segment(self.revenue_program.mailchimp_list_id, segment_id)
-        except ApiClientError as error:
-            return self._handle_read_error("contributor segment", error)
-        else:
-            return MailchimpSegment(**response)
-
-    def get_store(self) -> MailchimpStore | None:
-        """Retrieve the revenue program's Mailchimp ecommerce store, if it exists."""
-        logger.debug("Called for RP %s", self.revenue_program.id)
-        try:
-            response = self.ecommerce.get_store(self.revenue_program.mailchimp_store_id)
-        except ApiClientError as exc:
-            return self._handle_read_error("store", exc)
-        else:
-            return MailchimpStore(**response)
-
-    def _has_list_id(self, raise_if_not_present=False):
-        """Check whether a revenue program has a check for Mailchimp list ID on a revenue program."""
-        if not self.revenue_program.mailchimp_list_id:
-            logger.debug("No email list ID on RP %s", self.revenue_program.id)
-            if raise_if_not_present:
-                raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
-            return False
-        return True
-
-    def _handle_read_error(
-        self, entity: str, exc: ApiClientError, log_level_on_not_found: Literal["debug", "error", "warning"] = "debug"
-    ) -> None:
-        logger.info("Called for RP %s", self.revenue_program.id)
-        match exc.status_code:
-            case 404:
-                getattr(logger, log_level_on_not_found)(
-                    "Mailchimp %s not found for RP %s, returning None", entity, self.revenue_program.id
-                )
-            case 429:
-                logger.warning("Mailchimp rate limit exceeded for RP %s, raising exception", self.revenue_program.id)
-                # We raise this error because we have Celery tasks that interact with Mailchimp API and
-                # in case of rate limit error we will want to retry
-                raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
-            case _:
-                logger.error("Unexpected error from Mailchimp API. The error text is %s", exc.text, exc_info=exc)
-
-    def _handle_write_error(self, entity: str, exc: ApiClientError) -> None:
-        logger.info("Called for RP %s", self.revenue_program.id)
-        match exc.status_code:
-            case 429:
-                logger.warning("Mailchimp rate limit exceeded for RP %s, raising exception", self.revenue_program.id)
-                # We raise this error because we have Celery tasks that interact with Mailchimp API and
-                # in case of rate limit error we will want to retry
-                raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
-            case _:
-                logger.error(
-                    "Error creating %s for RP %s. The error text is %s",
-                    entity,
-                    self.revenue_program.id,
-                    exc.text,
-                    exc_info=exc,
-                )
-                raise MailchimpIntegrationError(f"Error creating {entity}")
-
-
 class RevenueProgramManager(models.Manager):
     pass
 
@@ -785,9 +493,11 @@ class RevenueProgram(IndexedTimeStampedModel):
     # to grant revengine access to their Mailchimp account.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_list_id = models.TextField(null=True, blank=True)
-    mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
-    mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_one_time_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_recurring_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_monthly_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_yearly_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
     # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request. Also include
     # activecampaign_access_token below
@@ -812,7 +522,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         return all([self.activecampaign_access_token, self.activecampaign_server_url])
 
     @cached_property
-    def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
+    def chosen_mailchimp_email_list(self) -> dict | None:
         """Alias for self.mailchimp_email_list.
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
@@ -821,7 +531,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         return asdict(self.mailchimp_email_list) if self.mailchimp_email_list else None
 
     @cached_property
-    def available_mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+    def available_mailchimp_email_lists(self) -> list[dict]:
         """Alias for self.mailchimp_email_lists.
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
@@ -844,45 +554,55 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.mailchimp_client.get_store()
 
+    def _get_mailchimp_product(self, product_id: str) -> MailchimpProduct | None:
+        if not self.mailchimp_integration_connected:
+            logger.debug(
+                "Mailchimp integration not connected revenue program (%s). Returning None and won't try to retrieve product %s",
+                self.id,
+                product_id,
+            )
+            return None
+        return self.mailchimp_client.get_product(product_id)
+
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        if not self.mailchimp_integration_connected:
-            logger.debug(
-                "Mailchimp integration not connected for this revenue program (%s), returning None",
-                self.id,
-            )
-            return None
-        return self.mailchimp_client.get_product(self.mailchimp_one_time_contribution_product_id)
+        return self._get_mailchimp_product(MailchimpProductType.ONE_TIME.as_mailchimp_product_id(self.id))
 
     @cached_property
-    def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
-        if not self.mailchimp_integration_connected:
-            logger.debug(
-                "Mailchimp integration not connected for this revenue program (%s), returning None",
-                self.id,
-            )
-            return None
-        return self.mailchimp_client.get_product(self.mailchimp_recurring_contribution_product_id)
+    def mailchimp_monthly_contribution_product(self) -> MailchimpProduct | None:
+        return self._get_mailchimp_product(MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.id))
 
-    # Below are not cached because they are dependent on model fields.
+    @cached_property
+    def mailchimp_yearly_contribution_product(self) -> MailchimpProduct | None:
+        return self._get_mailchimp_product(MailchimpProductType.YEARLY.as_mailchimp_product_id(self.id))
+
+    def _get_mailchimp_segment(self, segment_id: str) -> MailchimpSegment | None:
+        """Get a Mailchimp segment by ID as stored on the revenue program."""
+        # This is status quo behavior as well, but noting there is inconsistency here compared with get_mailchimp_product above.
+        # Here we attempt to retrieve as long as there's a segment ID on the RP, regardless of connection status. That said,
+        # the mailchimp client will raise an error when initializing if not connected.
+        if _segment_id := getattr(self, segment_id):
+            return self.mailchimp_client.get_segment(_segment_id)
 
     @property
-    def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
-        if not self.mailchimp_contributor_segment_id:
-            return None
-        return self.mailchimp_client.get_segment(self.mailchimp_contributor_segment_id)
+    def mailchimp_one_time_contributors_segment(self) -> MailchimpSegment | None:
+        return self._get_mailchimp_segment(MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        if not self.mailchimp_all_contributors_segment_id:
-            return None
-        return self.mailchimp_client.get_segment(self.mailchimp_all_contributors_segment_id)
+        return self._get_mailchimp_segment(MailchimpSegmentName.ALL_CONTRIBUTORS.as_rp_id_field())
 
     @property
-    def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
-        if not self.mailchimp_recurring_contributor_segment_id:
-            return None
-        return self.mailchimp_client.get_segment(self.mailchimp_recurring_contributor_segment_id)
+    def mailchimp_recurring_contributors_segment(self) -> MailchimpSegment | None:
+        return self._get_mailchimp_segment(MailchimpSegmentName.RECURRING_CONTRIBUTORS.as_rp_id_field())
+
+    @property
+    def mailchimp_monthly_contributors_segment(self) -> MailchimpSegment | None:
+        return self._get_mailchimp_segment(MailchimpSegmentName.MONTHLY_CONTRIBUTORS.as_rp_id_field())
+
+    @property
+    def mailchimp_yearly_contributors_segment(self) -> MailchimpSegment | None:
+        return self._get_mailchimp_segment(MailchimpSegmentName.YEARLY_CONTRIBUTORS.as_rp_id_field())
 
     @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -899,34 +619,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def mailchimp_store_name(self):
         return "RevEngine"
-
-    @property
-    def mailchimp_one_time_contribution_product_id(self):
-        return f"rp-{self.id}-one-time-contribution-product"
-
-    @property
-    def mailchimp_one_time_contribution_product_name(self):
-        return "one-time contribution"
-
-    @property
-    def mailchimp_recurring_contribution_product_id(self):
-        return f"rp-{self.id}-recurring-contribution-product"
-
-    @property
-    def mailchimp_recurring_contribution_product_name(self):
-        return "recurring contribution"
-
-    @property
-    def mailchimp_contributor_segment_name(self):
-        return "One-time contributors"
-
-    @property
-    def mailchimp_recurring_contributor_segment_name(self):
-        return "Recurring contributors"
-
-    @property
-    def mailchimp_all_contributors_segment_name(self):
-        return "All contributors"
 
     @property
     def mailchimp_integration_connected(self):
@@ -947,7 +639,8 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_integration_connected,
                 self.mailchimp_store,
                 self.mailchimp_one_time_contribution_product,
-                self.mailchimp_recurring_contribution_product,
+                self.mailchimp_monthly_contribution_product,
+                self.mailchimp_yearly_contribution_product,
             ]
         )
 
@@ -957,91 +650,61 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             self.mailchimp_client.create_store()
 
-    def ensure_mailchimp_contribution_product(self, product_type: Literal["one_time", "recurring"]) -> None:
-        if getattr(self, f"mailchimp_{product_type}_contribution_product", None):
+    def ensure_mailchimp_contribution_product(self, product_type: MailchimpProductType) -> None:
+        if getattr(self, product_type.as_rp_field(), None):
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
         else:
             try:
-                self.mailchimp_client.create_product(
-                    getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
-                    getattr(self, f"mailchimp_{product_type}_contribution_product_name"),
-                )
+                self.mailchimp_client.create_product(product_type)
             except MailchimpIntegrationError:
                 logger.exception(
                     "Couldn't create %s Mailchimp contribution product for RP %s; continuing", product_type, self.id
                 )
 
     def ensure_mailchimp_contributor_segment(
-        self, segment_type: Literal["all_contributors", "contributor", "recurring_contributor"], options
+        self,
+        segment_name: MailchimpSegmentName,
     ) -> None:
-        if getattr(self, f"mailchimp_{segment_type}_segment", None):
+        """Ensure that a Mailchimp segment exists for this revenue program."""
+        if getattr(self, segment_name.as_rp_field(), None):
             logger.info("Segment already exists for RP %s", self.id)
         else:
             try:
-                segment = self.mailchimp_client.create_segment(
-                    getattr(self, f"mailchimp_{segment_type}_segment_name"), options
-                )
+                segment = self.mailchimp_client.create_segment(segment_name, segment_name.get_segment_creation_config())
             except MailchimpIntegrationError:
-                logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_type, self.id)
+                logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_name, self.id)
             else:
-                logger.info("%s segment created for RP %s", segment_type, self.id)
-                setattr(self, f"mailchimp_{segment_type}_segment_id", segment.id)
-                logger.info("Saving Mailchimp %s segment id for RP %s", segment_type, self.id)
+                logger.info("%s segment created for RP %s", segment_name, self.id)
+                rp_segment_id = segment_name.as_rp_id_field()
+                setattr(self, rp_segment_id, segment.id)
+                logger.info("Saving Mailchimp %s for RP %s", rp_segment_id, self.id)
                 with reversion.create_revision():
-                    self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
-                    reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
+                    self.save(update_fields={rp_segment_id, "modified"})
+                    reversion.set_comment(f"ensure_mailchimp_segment updated {rp_segment_id}")
 
     def ensure_mailchimp_entities(self) -> None:
+        """Ensure that all Mailchimp entities are created for this revenue program.
+
+        Will create if they don't exist:
+
+        - Mailchimp store
+        - Mailchimp products for
+          - One-time contributions
+          - Monthly contributions
+          - Yearly contributions
+        - Mailchimp segments for
+          - All contributors
+          - Recurring contributors
+          - One-time contributors
+          - Monthly contributors
+          - Yearly contributors
+        """
         logger.info("Ensuring mailchimp entities for RP %s", self.id)
         self.ensure_mailchimp_store()
-        self.ensure_mailchimp_contribution_product("one_time")
-        self.ensure_mailchimp_contribution_product("recurring")
-        self.ensure_mailchimp_contributor_segment(
-            "all_contributors",
-            {
-                "match": "all",
-                "conditions": [
-                    {
-                        "field": "ecomm_purchased",
-                        "op": "member",
-                    }
-                ],
-            },
-        )
-        self.ensure_mailchimp_contributor_segment(
-            "contributor",
-            {
-                "match": "all",
-                "conditions": [
-                    {
-                        "field": "ecomm_purchased",
-                        "op": "member",
-                    },
-                    {
-                        "field": "ecomm_prod",
-                        "op": "is",
-                        "value": self.mailchimp_one_time_contribution_product_name,
-                    },
-                ],
-            },
-        )
-        self.ensure_mailchimp_contributor_segment(
-            "recurring_contributor",
-            {
-                "match": "all",
-                "conditions": [
-                    {
-                        "field": "ecomm_purchased",
-                        "op": "member",
-                    },
-                    {
-                        "field": "ecomm_prod",
-                        "op": "is",
-                        "value": self.mailchimp_recurring_contribution_product_name,
-                    },
-                ],
-            },
-        )
+        for product in MailchimpProductType:
+            self.ensure_mailchimp_contribution_product(product)
+        for segment in MailchimpSegmentName:
+            self.ensure_mailchimp_contributor_segment(segment)
 
     def publish_revenue_program_activecampaign_configuration_complete(self):
         """Publish a message to the `RP_ACTIVECAMPAIGN_CONFIGURATION_COMPLETE_TOPIC` topic."""

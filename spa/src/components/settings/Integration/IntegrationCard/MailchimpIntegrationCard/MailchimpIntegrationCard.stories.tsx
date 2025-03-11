@@ -3,7 +3,7 @@ import MailchimpIntegrationCard from './MailchimpIntegrationCard';
 
 export default {
   component: MailchimpIntegrationCard,
-  title: 'Common/IntegrationCard'
+  title: 'Settings/IntegrationCard'
 } as ComponentMeta<typeof MailchimpIntegrationCard>;
 
 const Template: ComponentStory<typeof MailchimpIntegrationCard> = () => <MailchimpIntegrationCard />;

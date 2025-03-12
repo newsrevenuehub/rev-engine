@@ -367,6 +367,8 @@ DTM_IGNORED_MIGRATIONS = {
 
 ### Django-CSP Settings
 
+# Stripe reference: https://docs.stripe.com/security/guide?csp=csp-js#content-security-policy
+
 # TODO @BW: Fix CSP violation caused by react-select emotion
 # DEV-2359
 ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
@@ -382,6 +384,7 @@ CSP_DEFAULT_SRC = (
 )
 CSP_SCRIPT_SRC = (
     "'self'",
+    "https://*.js.stripe.com",
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.googletagmanager.com",
@@ -418,6 +421,7 @@ CSP_FONT_SRC = (
     "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
 )
 CSP_FRAME_SRC = (
+    "https://*.js.stripe.com",
     "https://js.stripe.com",
     "https://hooks.stripe.com",
     "https://www.google.com/recaptcha/",
@@ -434,6 +438,7 @@ CSP_CONNECT_SRC = (
     "https://risk.clearbit.com",
     "https://static.cloudflareinsights.com",
     "https://p1.parsely.com",
+    "https://api.stripe.com",
 )
 CSP_OBJECT_SRC = ("'none'",)
 

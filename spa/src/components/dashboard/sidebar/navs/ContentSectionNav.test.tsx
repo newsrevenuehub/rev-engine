@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, EMAILS_SLUG } from 'routes';
 import { render, screen } from 'test-utils';
 import ContentSectionNav from './ContentSectionNav';
 import { getUserRole } from 'utilities/getUserRole';
@@ -30,31 +30,31 @@ describe('ContentSectionNav', () => {
     expect(pagesLink).toHaveAttribute('href', CONTENT_SLUG);
   });
 
-  it('shows a link to the Customize page', () => {
+  it('shows a link to the Emails page', () => {
     tree();
 
-    const pagesLink = screen.getByRole('listitem', { name: 'Customize' });
+    const pagesLink = screen.getByRole('listitem', { name: 'Emails' });
 
     expect(pagesLink).toBeVisible();
-    expect(pagesLink).toHaveAttribute('href', CUSTOMIZE_SLUG);
+    expect(pagesLink).toHaveAttribute('href', EMAILS_SLUG);
   });
 
   it.each([
     ['superuser', { isOrgAdmin: false }],
     ['hub admin', { isRPAdmin: false }]
-  ])('hides link to Customize page if user role not = %s', (_, role) => {
+  ])('hides link to Emails page if user role not = %s', (_, role) => {
     getUserRoleMock.mockReturnValue(role as any);
     tree();
-    expect(screen.queryByRole('listitem', { name: 'Customize' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('listitem', { name: 'Emails' })).not.toBeInTheDocument();
   });
 
   it.each([
     ['org admin', { isOrgAdmin: true }],
     ['rp admin', { isRPAdmin: true }]
-  ])('shows link to Customize page if user role = %s', (_, role) => {
+  ])('shows link to Emails page if user role = %s', (_, role) => {
     getUserRoleMock.mockReturnValue(role as any);
     tree();
-    expect(screen.getByRole('listitem', { name: 'Customize' })).toBeInTheDocument();
+    expect(screen.getByRole('listitem', { name: 'Emails' })).toBeInTheDocument();
   });
 
   it('shows a link to the Contributor Portal page', () => {

@@ -196,10 +196,8 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
     mailchimp_monthly_contribution_product = serializers.SerializerMethodField()
     mailchimp_yearly_contribution_product = serializers.SerializerMethodField()
-    # NB: This is a vestigial field that we're keeping around in short term so SB won't break.
-    # TODO @BW: Remove this field
-    # DEV-5588
-    mailchimp_recurring_contribution_product = serializers.ReadOnlyField(default=None)
+    # Add todo here.
+    mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
     stripe_account_id = serializers.ReadOnlyField(allow_null=True)
     id = serializers.ReadOnlyField()
     name = serializers.ReadOnlyField()
@@ -237,6 +235,9 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
 
     def get_mailchimp_yearly_contribution_product(self, obj) -> dict | None:
         return self._get_mc_product(MailchimpProductType.YEARLY.as_rp_field(), obj)
+
+    def get_mailchimp_recurring_contribution_product(self, obj) -> dict | None:
+        return self._get_mc_product(MailchimpProductType.RECURRING.as_rp_field(), obj)
 
 
 class BaseActiveCampaignRevenueProgram(serializers.ModelSerializer):

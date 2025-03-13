@@ -5,7 +5,6 @@ import * as S from './Dashboard.styled';
 // Routing
 import {
   CONTENT_SLUG,
-  CUSTOMIZE_SLUG,
   CONTRIBUTOR_PORTAL_SLUG,
   DASHBOARD_SLUG,
   DONATIONS_SLUG,
@@ -14,7 +13,8 @@ import {
   EDITOR_ROUTE_PAGE_REDIRECT,
   MAILCHIMP_OAUTH_SUCCESS_ROUTE,
   PROFILE,
-  SETTINGS
+  SETTINGS,
+  EMAILS_SLUG
 } from 'routes';
 
 // Children
@@ -22,7 +22,6 @@ import Profile from 'components/account/Profile';
 import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
 import PageError from 'components/common/PageError/PageError';
 import Content from 'components/content/Content';
-import CustomizeRoute from 'components/content/CustomizeRoute';
 import ContributorPortalRoute from 'components/content/ContributorPortalRoute';
 import ConnectStripe from 'components/dashboard/connectStripe/ConnectStripe';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
@@ -45,6 +44,7 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 import AnalyticsSetup from 'components/common/AnalyticsSetup/AnalyticsSetup';
+import { EmailsRoute } from 'components/content/emails';
 
 function Dashboard() {
   const { user } = useUser();
@@ -74,6 +74,11 @@ function Dashboard() {
               <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
                 <MailchimpOAuthSuccess />
               </SentryRoute>
+              <SentryRoute path={EMAILS_SLUG}>
+                <SingleOrgUserOnlyRoute>
+                  <EmailsRoute />
+                </SingleOrgUserOnlyRoute>
+              </SentryRoute>
               {user && hasContributionsSectionAccess(user) ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
@@ -87,11 +92,6 @@ function Dashboard() {
               {hasContentSectionAccess ? (
                 <SentryRoute path={CONTRIBUTOR_PORTAL_SLUG}>
                   <ContributorPortalRoute />
-                </SentryRoute>
-              ) : null}
-              {hasContentSectionAccess ? (
-                <SentryRoute path={CUSTOMIZE_SLUG}>
-                  <CustomizeRoute />
                 </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (

@@ -1,6 +1,6 @@
 import Pages from 'assets/icons/pages.svg?react';
-import Customize from 'assets/icons/customize.svg?react';
-import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import Email from '@material-design-icons/svg/outlined/email.svg?react';
+import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, EMAILS_SLUG } from 'routes';
 import {
   NavItem,
   NavSection,
@@ -26,16 +26,11 @@ function ContentSectionNav() {
         <SideBarText id="pages-nav-item-id">Pages</SideBarText>
       </NavItem>
       {(isOrgAdmin || isRPAdmin) && (
-        <NavItem
-          aria-labelledby="customize-nav-item-id"
-          role="listitem"
-          data-testid="nav-styles-item"
-          to={CUSTOMIZE_SLUG}
-        >
+        <NavItem aria-labelledby="emails-nav-item-id" role="listitem" data-testid="nav-email-item" to={EMAILS_SLUG}>
           <NavItemIcon>
-            <Customize />
+            <Email />
           </NavItemIcon>
-          <SideBarText id="customize-nav-item-id">Customize</SideBarText>
+          <SideBarText id="emails-nav-item-id">Emails</SideBarText>
         </NavItem>
       )}
       {(isOrgAdmin || isRPAdmin) && (

@@ -810,7 +810,10 @@ class TestRevenueProgram:
         assert revenue_program.ensure_mailchimp_store.called
         assert revenue_program.ensure_mailchimp_contribution_product.call_count == 3
         revenue_program.ensure_mailchimp_contribution_product.assert_has_calls(
-            [mocker.call(prod_type) for prod_type in MailchimpProductType],
+            [
+                mocker.call(prod_type)
+                for prod_type in [x for x in MailchimpProductType if x != MailchimpProductType.RECURRING]
+            ],
             any_order=True,
         )
         assert revenue_program.ensure_mailchimp_contributor_segment.call_count == 5

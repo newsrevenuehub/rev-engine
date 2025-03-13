@@ -573,7 +573,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self._get_mailchimp_product(MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.id))
 
     @cached_property
-    def mailchimp_recurringly_contribution_product(self) -> MailchimpProduct | None:
+    def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
         return self._get_mailchimp_product(MailchimpProductType.RECURRING.as_mailchimp_product_id(self.id))
 
     @cached_property

@@ -61,6 +61,17 @@ declare module 'styled-components' {
       '-80': '#ded3e4';
       '-90': '#efe9f1';
     };
+    red: {
+      '-10': '#c5203e';
+      '-20': '#cf4451';
+      '-30': '#d95f64';
+      '-40': '#e17779';
+      '-50': '#e98e8e';
+      '-60': '#efa5a3';
+      '-70': '#f5bbb9';
+      '-80': '#f9d2d0';
+      '-90': '#fde8e7';
+    };
   }
 
   export interface DefaultTheme {

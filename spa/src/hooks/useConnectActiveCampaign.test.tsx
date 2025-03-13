@@ -46,6 +46,7 @@ describe('useConnectActiveCampaign', () => {
 
   beforeEach(() => {
     axiosMock.onGet(activeCampaignStatusEndpoint).reply(200, mockActiveCampaignStatusResponse);
+    axiosMock.onPatch(activeCampaignStatusEndpoint).reply(200, mockActiveCampaignStatusResponse);
     useUserMock.mockReturnValue({ user: mockUser, isError: false, isLoading: false, refetch: jest.fn() });
   });
   afterEach(() => axiosMock.reset());
@@ -75,7 +76,9 @@ describe('useConnectActiveCampaign', () => {
 
     expect(result.current.isError).toBe(false);
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.data).toBeUndefined();
+    expect(result.current.activecampaign_integration_connected).toBeUndefined();
+    expect(result.current.activecampaign_server_url).toBeUndefined();
+    expect(result.current.updateApiKeyAndServerUrl).toBeUndefined();
   });
 
   it('returns an error if the request fails', async () => {
@@ -88,7 +91,9 @@ describe('useConnectActiveCampaign', () => {
     await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
     expect(result.current.isError).toBe(true);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.data).toBeUndefined();
+    expect(result.current.activecampaign_integration_connected).toBeUndefined();
+    expect(result.current.activecampaign_server_url).toBeUndefined();
+    expect(result.current.updateApiKeyAndServerUrl).toBeUndefined();
     errorSpy.mockRestore();
   });
 
@@ -98,6 +103,23 @@ describe('useConnectActiveCampaign', () => {
     await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
     expect(result.current.isError).toBe(false);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.data).toEqual(mockActiveCampaignStatusResponse);
+    expect(result.current.activecampaign_integration_connected).toBe(
+      mockActiveCampaignStatusResponse.activecampaign_integration_connected
+    );
+    expect(result.current.activecampaign_server_url).toBe(mockActiveCampaignStatusResponse.activecampaign_server_url);
+  });
+
+  it('returns a updateApiKeyAndServerUrl function that PATCHes the revenue program', async () => {
+    const { result, waitFor } = hook();
+
+    await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+    result.current.updateApiKeyAndServerUrl!({ apiKey: 'test-api-key', serverUrl: 'test-server-url' });
+    await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
+    expect(axiosMock.history.patch[0].data).toBe(
+      JSON.stringify({
+        activecampaign_api_key: 'test-api-key',
+        activecampaign_server_url: 'test-server-url'
+      })
+    );
   });
 });

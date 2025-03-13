@@ -731,16 +731,10 @@ class TestRevenueProgram:
         [True, False],
     )
     @pytest.mark.parametrize("mailchimp_store", ["truthy", None])
-    @pytest.mark.parametrize("one_time_product_value", ["truthy", None])
-    @pytest.mark.parametrize("monthly_product_value", ["truthy", None])
-    @pytest.mark.parametrize("yearly_product_value", ["truthy", None])
     def test_mailchimp_integration_ready_property(
         self,
         mailchimp_integration_connected: bool,
         mailchimp_store: str | None,
-        one_time_product_value: str | None,
-        monthly_product_value: str | None,
-        yearly_product_value: str | None,
         mocker: pytest_mock.MockerFixture,
     ):
         mocker.patch(
@@ -753,25 +747,12 @@ class TestRevenueProgram:
             new_callable=mocker.PropertyMock,
             return_value=mailchimp_store,
         )
-        for prop, val in [
-            (MailchimpProductType.ONE_TIME, one_time_product_value),
-            (MailchimpProductType.MONTHLY, monthly_product_value),
-            (MailchimpProductType.YEARLY, yearly_product_value),
-        ]:
-            mocker.patch(
-                f"apps.organizations.models.RevenueProgram.{prop.as_rp_field()}",
-                new_callable=mocker.PropertyMock,
-                return_value=val,
-            )
 
         rp = RevenueProgramFactory()
         assert rp.mailchimp_integration_ready == all(
             [
                 mailchimp_integration_connected,
                 mailchimp_store,
-                one_time_product_value,
-                monthly_product_value,
-                yearly_product_value,
             ]
         )
 

@@ -11,7 +11,7 @@ from apps.organizations.models import RevenueProgram
 stripe.api_key = get_hub_stripe_api_key()
 
 logging.getLogger("stripe").setLevel(logging.WARNING)
-
+logger = logging.getLogger(__name__)
 rps = RevenueProgram.objects.all()
 
 
@@ -26,10 +26,10 @@ def run():
         try:
             domains = stripe.ApplePayDomain.list(stripe_account=acct, limit=100)
         except stripe.error.PermissionError:
-            logging.info("error listing domain for %s", rp)
+            logger.info("error listing domain for %s", rp)
             continue
 
         names = [x.domain_name for x in domains.data]
         expected_domain = f"{rp.slug}.{settings.DOMAIN_APEX}"
         if expected_domain not in names:
-            logging.info("apple pay domain missing for %s", rp.slug)
+            logger.info("apple pay domain missing for %s", rp.slug)

@@ -61,6 +61,8 @@ export function EmailsRoute() {
       return user.revenue_programs[0].id;
     }
   }, [user?.revenue_programs]);
+  const orgPlan = useMemo(() => user?.organizations[0].plan.name, [user?.organizations]);
+  const prompt = orgPlan === 'FREE' ? '' : 'View and edit capabilities coming soon.';
 
   function handleSendTest(emailName: TestEmailName) {
     if (!firstRevenueProgramId) {
@@ -82,7 +84,7 @@ export function EmailsRoute() {
           </Link>
         }
         title="Emails"
-        subtitle="RevEngine sends emails to your contributors to confirm transactions and keep them informed about their contributions. View, edit, or customize emails sent to your organization's contributors."
+        subtitle={`RevEngine sends emails to your contributors to confirm transactions and keep them informed about their contributions. ${prompt}`}
       />
       <Blocks>
         {blocks.map((block) => (

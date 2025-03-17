@@ -22,6 +22,7 @@ describe('EmailsRoute', () => {
       isError: false,
       isLoading: false,
       user: {
+        organizations: [{ plan: { name: 'CORE' } }],
         revenue_programs: [{ id: 123 }]
       }
     } as any);
@@ -30,6 +31,32 @@ describe('EmailsRoute', () => {
   it('shows a link to the email article on the knowledge base', () => {
     tree();
     expect(screen.getByRole('link', { name: 'More About Emails' })).toHaveAttribute('href', EMAIL_KB_URL);
+  });
+
+  it("doesn't show 'coming soon' text for users on the FREE plan", () => {
+    useUserMock.mockReturnValue({
+      isError: false,
+      isLoading: false,
+      user: {
+        organizations: [{ plan: { name: 'FREE' } }],
+        revenue_programs: [{ id: 123 }]
+      }
+    } as any);
+    tree();
+    expect(screen.queryByText('View and edit capabilities coming soon.', { exact: false })).not.toBeInTheDocument();
+  });
+
+  it.each(['CORE', 'PLUS'])("shows 'coming soon' text for users on the %s plan", (name) => {
+    useUserMock.mockReturnValue({
+      isError: false,
+      isLoading: false,
+      user: {
+        organizations: [{ plan: { name } }],
+        revenue_programs: [{ id: 123 }]
+      }
+    } as any);
+    tree();
+    expect(screen.getByText('View and edit capabilities coming soon.', { exact: false })).toBeVisible();
   });
 
   describe.each(blocks)('Block $#', (block) => {

@@ -19,4 +19,5 @@ export const Screenshots = styled.div`
   display: grid;
   gap: 30px;
   grid-template-columns: repeat(2, 200px);
+  padding-top: 20px;
 `;

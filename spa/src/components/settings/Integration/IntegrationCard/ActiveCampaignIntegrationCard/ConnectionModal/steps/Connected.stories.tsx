@@ -11,6 +11,3 @@ export default meta;
 type Story = StoryObj<typeof Connected>;
 
 export const Default: Story = {};
-Default.args = {
-  serverUrl: 'https://PLACEHOLDER-SERVER_URL'
-};

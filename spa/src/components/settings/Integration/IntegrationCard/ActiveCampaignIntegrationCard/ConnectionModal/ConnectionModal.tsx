@@ -19,7 +19,7 @@ export interface ConnectionModalProps extends InferProps<typeof ConnectionModalP
  * enter the server URL and API key manually.
  */
 export function ConnectionModal({ onClose, open }: ConnectionModalProps) {
-  const { activecampaign_server_url, updateApiKeyAndServerUrl } = useConnectActiveCampaign();
+  const { updateApiKeyAndServerUrl } = useConnectActiveCampaign();
   const [updateError, setUpdateError] = useState<ReactChild>();
 
   // There is one branch in the flow here. Note that you can't go back from userNeeded or connected.
@@ -89,11 +89,7 @@ export function ConnectionModal({ onClose, open }: ConnectionModalProps) {
           />
         )}
       </>
-      <>
-        {step === 'connected' && activecampaign_server_url && (
-          <Connected onClose={handleClose} serverUrl={activecampaign_server_url} />
-        )}
-      </>
+      <>{step === 'connected' && <Connected onClose={handleClose} />}</>
     </Modal>
   );
 }

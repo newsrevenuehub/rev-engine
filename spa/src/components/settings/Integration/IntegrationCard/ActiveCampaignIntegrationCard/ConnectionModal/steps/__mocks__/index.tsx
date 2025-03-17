@@ -7,7 +7,7 @@ import { UserQuestionProps } from '../UserQuestion';
 
 export function Connected(props: ConnectedProps) {
   return (
-    <div data-testid="mock-connected" data-server-url={props.serverUrl}>
+    <div data-testid="mock-connected">
       <button onClick={props.onClose}>onClose</button>
     </div>
   );

@@ -1,20 +1,19 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { Button, Link, LinkButton, ModalContent } from 'components/base';
+import { Button, Link, ModalContent } from 'components/base';
 import { KNOWLEDGE_BASE_URL } from 'constants/helperUrls';
 import Instructions from '../Instructions';
 import Progress from '../Progress';
 import { ModalFooter, StepHeading, StepRoot } from './common.styled';
 
 const ConnectedPropTypes = {
-  onClose: PropTypes.func.isRequired,
-  serverUrl: PropTypes.string.isRequired
+  onClose: PropTypes.func.isRequired
 };
 
 export interface ConnectedProps extends InferProps<typeof ConnectedPropTypes> {
   onClose: () => void;
 }
 
-export function Connected({ onClose, serverUrl }: ConnectedProps) {
+export function Connected({ onClose }: ConnectedProps) {
   return (
     <>
       <ModalContent>
@@ -36,9 +35,6 @@ export function Connected({ onClose, serverUrl }: ConnectedProps) {
         </StepRoot>
       </ModalContent>
       <ModalFooter>
-        <LinkButton color="secondary" href={`${serverUrl}/app/settings/account/`} target="_blank">
-          Go To Settings
-        </LinkButton>
         <Button color="primaryDark" onClick={onClose}>
           Finish &amp; Close
         </Button>

@@ -5,8 +5,8 @@ import PropTypes, { InferProps } from 'prop-types';
 import { Button, ModalContent } from 'components/base';
 import Instructions from '../Instructions';
 import Progress from '../Progress';
-import { ModalFooter, Screenshots } from './GetApiKey.styled';
-import { StepHeading, StepRoot, StepSubheading } from './common.styled';
+import { Screenshots } from './GetApiKey.styled';
+import { ModalFooter, StepHeading, StepRoot, StepSubheading } from './common.styled';
 
 const GetApiKeyPropTypes = {
   onNextStep: PropTypes.func.isRequired,
@@ -39,7 +39,7 @@ export function GetApiKey({ onNextStep, onPreviousStep }: GetApiKeyProps) {
           </Screenshots>
         </StepRoot>
       </ModalContent>
-      <ModalFooter>
+      <ModalFooter $spaced>
         <Button color="text" onClick={onPreviousStep} startIcon={<ArrowBack />}>
           Previous Step
         </Button>

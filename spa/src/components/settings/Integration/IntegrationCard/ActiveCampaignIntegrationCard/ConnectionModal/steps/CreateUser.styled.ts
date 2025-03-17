@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { ModalFooter as BaseModalFooter } from 'components/base';
 
 export const Bullets = styled.ul`
   margin-left: 0;
@@ -9,10 +8,6 @@ export const Bullets = styled.ul`
     margin-bottom: 1em;
     margin-left: 0;
   }
-`;
-
-export const ModalFooter = styled(BaseModalFooter)`
-  justify-content: space-between;
 `;
 
 export const Screenshots = styled.div`

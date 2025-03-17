@@ -1,9 +1,5 @@
 import styled from 'styled-components';
-import { ModalFooter as BaseModalFooter, TextField as BaseTextField } from 'components/base';
-
-export const ModalFooter = styled(BaseModalFooter)`
-  justify-content: space-between;
-`;
+import { TextField as BaseTextField } from 'components/base';
 
 export const TextField = styled(BaseTextField)`
   width: 440px;

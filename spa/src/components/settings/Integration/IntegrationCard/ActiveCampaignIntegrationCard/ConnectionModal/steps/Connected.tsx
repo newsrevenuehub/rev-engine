@@ -1,9 +1,9 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { Button, Link, LinkButton, ModalContent, ModalFooter } from 'components/base';
+import { Button, Link, LinkButton, ModalContent } from 'components/base';
 import { KNOWLEDGE_BASE_URL } from 'constants/helperUrls';
 import Instructions from '../Instructions';
 import Progress from '../Progress';
-import { StepHeading, StepRoot } from './common.styled';
+import { ModalFooter, StepHeading, StepRoot } from './common.styled';
 
 const ConnectedPropTypes = {
   onClose: PropTypes.func.isRequired,

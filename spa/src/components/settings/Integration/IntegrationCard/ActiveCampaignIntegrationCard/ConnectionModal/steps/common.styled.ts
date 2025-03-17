@@ -1,4 +1,10 @@
 import styled from 'styled-components';
+import { ModalFooter as BaseModalFooter } from 'components/base';
+
+export const ModalFooter = styled(BaseModalFooter)<{ $spaced?: boolean }>`
+  padding-top: 30px;
+  ${(props) => props.$spaced && 'justify-content: space-between;'}
+`;
 
 export const StepRoot = styled.div`
   padding-left: 35px;

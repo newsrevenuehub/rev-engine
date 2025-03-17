@@ -1,6 +1,7 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { Button, Link, LinkButton, ModalContent, ModalFooter } from 'components/base';
+import { Button, Link, LinkButton, ModalContent } from 'components/base';
 import { KNOWLEDGE_BASE_URL } from 'constants/helperUrls';
+import { ModalFooter } from './common.styled';
 
 const UserNeededPropTypes = {
   onClose: PropTypes.func.isRequired

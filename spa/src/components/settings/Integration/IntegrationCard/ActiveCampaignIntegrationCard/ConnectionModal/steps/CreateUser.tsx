@@ -5,8 +5,8 @@ import usersAndGroupsImage from 'assets/images/activecampaign-setup/users-and-gr
 import { Button, ModalContent } from 'components/base';
 import Instructions from '../Instructions';
 import Progress from '../Progress';
-import { Bullets, ModalFooter, Screenshots } from './CreateUser.styled';
-import { StepHeading, StepRoot, StepSubheading } from './common.styled';
+import { Bullets, Screenshots } from './CreateUser.styled';
+import { ModalFooter, StepHeading, StepRoot, StepSubheading } from './common.styled';
 
 const CreateUserPropTypes = {
   onNextStep: PropTypes.func.isRequired,
@@ -47,7 +47,7 @@ export function CreateUser({ onNextStep, onPreviousStep }: CreateUserProps) {
           </Screenshots>
         </StepRoot>
       </ModalContent>
-      <ModalFooter>
+      <ModalFooter $spaced>
         <Button color="text" onClick={onPreviousStep} startIcon={<ArrowBack />}>
           Previous Step
         </Button>

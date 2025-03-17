@@ -1,10 +1,10 @@
 import { ArrowForward } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
 import { FormEvent, useState } from 'react';
-import { Button, FormControlLabel, ModalContent, ModalFooter, Radio } from 'components/base';
+import { Button, FormControlLabel, ModalContent, Radio } from 'components/base';
 import Instructions from '../Instructions';
 import { RadioGroup } from './UserQuestion.styled';
-import { StepHeading, StepRoot } from './common.styled';
+import { ModalFooter, StepHeading, StepRoot } from './common.styled';
 
 const UserQuestionPropTypes = {
   onNextStep: PropTypes.func.isRequired

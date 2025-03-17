@@ -5,8 +5,8 @@ import { Button, ModalContent } from 'components/base';
 import Instructions from '../Instructions';
 import Progress from '../Progress';
 import ErrorMessage from '../ErrorMessage';
-import { StepHeading, StepRoot } from './common.styled';
-import { ModalFooter, TextField, TextFields } from './EnterApiKey.styled';
+import { ModalFooter, StepHeading, StepRoot } from './common.styled';
+import { TextField, TextFields } from './EnterApiKey.styled';
 
 const EnterApiKeyPropTypes = {
   error: PropTypes.node,
@@ -84,7 +84,7 @@ export function EnterApiKey({ error, onPreviousStep, onSetKeyAndUrl }: EnterApiK
         </StepRoot>
         {error && <ErrorMessage>{error}</ErrorMessage>}
       </ModalContent>
-      <ModalFooter>
+      <ModalFooter $spaced>
         <Button color="text" onClick={onPreviousStep} startIcon={<ArrowBack />}>
           Previous Step
         </Button>

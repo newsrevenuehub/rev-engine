@@ -40,7 +40,7 @@ describe('ActiveCampaignIntegrationCard', () => {
       ...mockActiveCampaignData,
       isError: false,
       isLoading: false,
-      updateApiKeyAndServerUrl: jest.fn()
+      updateAccessTokenAndServerUrl: jest.fn()
     });
     useUserMock.mockReturnValue({
       isError: false,
@@ -71,7 +71,7 @@ describe('ActiveCampaignIntegrationCard', () => {
         activecampaign_integration_connected,
         isError: false,
         isLoading: false,
-        updateApiKeyAndServerUrl: jest.fn()
+        updateAccessTokenAndServerUrl: jest.fn()
       });
       tree();
 
@@ -167,7 +167,7 @@ describe('ActiveCampaignIntegrationCard', () => {
         activecampaign_integration_connected: true,
         isError: false,
         isLoading: false,
-        updateApiKeyAndServerUrl: jest.fn()
+        updateAccessTokenAndServerUrl: jest.fn()
       });
 
       tree();

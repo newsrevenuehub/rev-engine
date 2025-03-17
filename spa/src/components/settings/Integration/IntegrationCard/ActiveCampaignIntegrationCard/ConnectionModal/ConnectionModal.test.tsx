@@ -12,12 +12,12 @@ function tree(props?: Partial<ConnectionModalProps>) {
 
 describe('ConnectionModal', () => {
   const useConnectActiveCampaignMock = jest.mocked(useConnectActiveCampaign);
-  let updateApiKeyAndServerUrl: jest.Mock;
+  let updateAccessTokenAndServerUrl: jest.Mock;
 
   beforeEach(() => {
-    updateApiKeyAndServerUrl = jest.fn();
+    updateAccessTokenAndServerUrl = jest.fn();
     useConnectActiveCampaignMock.mockReturnValue({
-      updateApiKeyAndServerUrl,
+      updateAccessTokenAndServerUrl,
       activecampaign_integration_connected: false,
       activecampaign_server_url: undefined,
       isError: false,
@@ -124,20 +124,22 @@ describe('ConnectionModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'onNextStep' }));
     fireEvent.click(screen.getByRole('button', { name: 'onNextStep' }));
     fireEvent.click(screen.getByRole('button', { name: 'onSetKeyAndUrl' }));
-    expect(updateApiKeyAndServerUrl.mock.calls).toEqual([[{ apiKey: 'mock-api-key', serverUrl: 'mock-server-url' }]]);
+    expect(updateAccessTokenAndServerUrl.mock.calls).toEqual([
+      [{ accessToken: 'mock-api-key', serverUrl: 'mock-server-url' }]
+    ]);
 
     // Let the component update.
     await act(() => Promise.resolve());
   });
 
   it('sets an error message on EnterApiKey if updating fails', async () => {
-    updateApiKeyAndServerUrl.mockRejectedValue(new Error());
+    updateAccessTokenAndServerUrl.mockRejectedValue(new Error());
     tree();
     fireEvent.click(screen.getByRole('button', { name: 'onNextStep true' }));
     fireEvent.click(screen.getByRole('button', { name: 'onNextStep' }));
     fireEvent.click(screen.getByRole('button', { name: 'onNextStep' }));
     fireEvent.click(screen.getByRole('button', { name: 'onSetKeyAndUrl' }));
-    await waitFor(() => expect(updateApiKeyAndServerUrl).toBeCalledTimes(1));
+    await waitFor(() => expect(updateAccessTokenAndServerUrl).toBeCalledTimes(1));
     expect(screen.getByTestId('mock-enter-api-key-error')).toHaveTextContent(
       'Failed to save API information. Please try again.'
     );
@@ -157,7 +159,7 @@ describe('ConnectionModal', () => {
     const onClose = jest.fn();
 
     useConnectActiveCampaignMock.mockReturnValue({
-      updateApiKeyAndServerUrl,
+      updateAccessTokenAndServerUrl,
       activecampaign_integration_connected: false,
       activecampaign_server_url: 'mock-server-url',
       isError: false,

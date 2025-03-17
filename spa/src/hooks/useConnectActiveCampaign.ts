@@ -26,12 +26,12 @@ async function fetchActiveCampaignStatus(
 
 async function patchActiveCampaignApiKeyAndServerUrl(
   revenueProgramId: RevenueProgram['id'],
-  apiKey: string,
+  accessToken: string,
   serverUrl: string
 ): Promise<RevenueProgramActiveCampaignStatus> {
   return (
     await axios.patch(getRevenueProgramActiveCampaignStatusEndpoint(revenueProgramId), {
-      activecampaign_api_key: apiKey,
+      activecampaign_access_token: accessToken,
       activecampaign_server_url: serverUrl
     })
   ).data;
@@ -47,9 +47,9 @@ export function useConnectActiveCampaign() {
     () => fetchActiveCampaignStatus(firstRevenueProgram!.id),
     { enabled }
   );
-  const { mutateAsync: updateApiKeyAndServerUrl } = useMutation(
-    ({ apiKey, serverUrl }: { apiKey: string; serverUrl: string }) =>
-      patchActiveCampaignApiKeyAndServerUrl(firstRevenueProgram!.id, apiKey, serverUrl),
+  const { mutateAsync: updateAccessTokenAndServerUrl } = useMutation(
+    ({ accessToken, serverUrl }: { accessToken: string; serverUrl: string }) =>
+      patchActiveCampaignApiKeyAndServerUrl(firstRevenueProgram!.id, accessToken, serverUrl),
     {
       onSuccess() {
         queryClient.invalidateQueries(['revenueProgramActiveCampaignStatus']);
@@ -60,7 +60,7 @@ export function useConnectActiveCampaign() {
   return {
     activecampaign_integration_connected: data?.activecampaign_integration_connected,
     activecampaign_server_url: data?.activecampaign_server_url,
-    updateApiKeyAndServerUrl: data ? updateApiKeyAndServerUrl : undefined,
+    updateAccessTokenAndServerUrl: data ? updateAccessTokenAndServerUrl : undefined,
     isError,
     isLoading
   };

@@ -19,7 +19,7 @@ export interface ConnectionModalProps extends InferProps<typeof ConnectionModalP
  * enter the server URL and API key manually.
  */
 export function ConnectionModal({ onClose, open }: ConnectionModalProps) {
-  const { updateApiKeyAndServerUrl } = useConnectActiveCampaign();
+  const { updateAccessTokenAndServerUrl } = useConnectActiveCampaign();
   const [updateError, setUpdateError] = useState<ReactChild>();
 
   // There is one branch in the flow here. Note that you can't go back from userNeeded or connected.
@@ -43,16 +43,16 @@ export function ConnectionModal({ onClose, open }: ConnectionModalProps) {
     }
   }
 
-  async function handleSetKeyAndUrl(apiKey: string, serverUrl: string) {
-    if (!updateApiKeyAndServerUrl) {
+  async function handleSetKeyAndUrl(accessToken: string, serverUrl: string) {
+    if (!updateAccessTokenAndServerUrl) {
       // Should never happen.
-      throw new Error('updateApiKeyAndServerUrl is undefined');
+      throw new Error('updateAccessTokenAndServerUrl is undefined');
     }
 
     setUpdateError(undefined);
 
     try {
-      await updateApiKeyAndServerUrl({ apiKey, serverUrl });
+      await updateAccessTokenAndServerUrl({ accessToken, serverUrl });
       setStep('connected');
     } catch (error) {
       setUpdateError(

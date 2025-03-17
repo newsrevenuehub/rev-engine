@@ -66,7 +66,7 @@ export function DDonorInfo(props: DDonorInfoProps) {
             helperText={errors.phone}
             id="donor-info-phone"
             label={t('donationPage.dDonorInfo.phone')}
-            inputProps={{ className: 'NreTextFieldInput', maxLength: 40 }}
+            inputProps={{ className: 'NreTextFieldInput', maxlength: 20 }}
             name="phone"
             onChange={({ target }) => setPhone(target.value)}
             required={props.element.requiredFields?.includes('phone')}

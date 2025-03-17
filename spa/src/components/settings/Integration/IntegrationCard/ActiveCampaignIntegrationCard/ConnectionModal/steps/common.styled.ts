@@ -7,7 +7,7 @@ export const ModalFooter = styled(BaseModalFooter)<{ $spaced?: boolean }>`
 `;
 
 export const StepRoot = styled.div`
-  padding-left: 35px;
+  padding: 0 35px;
 `;
 
 export const StepHeading = styled.h3`

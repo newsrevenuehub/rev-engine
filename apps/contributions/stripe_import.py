@@ -234,7 +234,7 @@ def parse_slug_from_url(url: str) -> str | None:
         raise InvalidStripeTransactionDataError(f"URL {url} has a host that is not allowed for import")
     parsed = urlparse(url)
     path_segments = [segment for segment in parsed.path.split("/") if segment]
-    return path_segments[0] if len(path_segments) else None
+    return path_segments[0] if path_segments else None
 
 
 class RedisCachePipeline(Pipeline):

@@ -247,12 +247,11 @@ class TestMailchimpRevenueProgramForSwitchboard:
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
-        # This field is kept around for legacy reasons to not break SB, but we just send back None.
-        assert serialized["mailchimp_recurring_contribution_product"] is None
         for product in (
             "mailchimp_monthly_contribution_product",
             "mailchimp_yearly_contribution_product",
             "mailchimp_one_time_contribution_product",
+            "mailchimp_recurring_contribution_product",
         ):
             assert serialized[product] == asdict(mailchimp_product)
 

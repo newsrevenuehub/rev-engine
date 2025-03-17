@@ -573,6 +573,10 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self._get_mailchimp_product(MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.id))
 
     @cached_property
+    def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
+        return self._get_mailchimp_product(MailchimpProductType.RECURRING.as_mailchimp_product_id(self.id))
+
+    @cached_property
     def mailchimp_yearly_contribution_product(self) -> MailchimpProduct | None:
         return self._get_mailchimp_product(MailchimpProductType.YEARLY.as_mailchimp_product_id(self.id))
 
@@ -638,9 +642,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             [
                 self.mailchimp_integration_connected,
                 self.mailchimp_store,
-                self.mailchimp_one_time_contribution_product,
-                self.mailchimp_monthly_contribution_product,
-                self.mailchimp_yearly_contribution_product,
+                # Skip contribution products for now.
             ]
         )
 
@@ -701,7 +703,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         """
         logger.info("Ensuring mailchimp entities for RP %s", self.id)
         self.ensure_mailchimp_store()
-        for product in MailchimpProductType:
+        for product in [x for x in MailchimpProductType if x != MailchimpProductType.RECURRING]:
             self.ensure_mailchimp_contribution_product(product)
         for segment in MailchimpSegmentName:
             self.ensure_mailchimp_contributor_segment(segment)

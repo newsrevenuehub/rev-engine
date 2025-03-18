@@ -267,8 +267,13 @@ class TestMailchimpRevenueProgramForSwitchboard:
 def test_calling_ActiveCampaignRevenueProgramForSpaSerializer_save_creates_revision(revenue_program, mocker):
     create_revision = mocker.patch("reversion.create_revision")
     set_comment = mocker.patch("reversion.set_comment")
+    mocker.patch(
+        "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+        return_value=True,
+    )
     serializer = ActiveCampaignRevenueProgramForSpaSerializer(
-        instance=revenue_program, data={"activecampaign_server_url": "http://example.com"}
+        instance=revenue_program,
+        data={"activecampaign_server_url": "http://example.com", "activecampaign_access_token": "token"},
     )
     serializer.is_valid(raise_exception=True)
     serializer.save()

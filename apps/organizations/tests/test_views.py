@@ -651,12 +651,7 @@ def secret_value() -> str:
 
 
 @pytest.fixture
-def new_secret_value(secret_value) -> str:
-    return secret_value[::-1]
-
-
-@pytest.fixture
-def _mock_secret_manager(mocker, secret_value, new_secret_value):
+def _mock_secret_manager(mocker, secret_value):
 
     class SecretManager:
         def __init__(self, secret_value):
@@ -665,8 +660,8 @@ def _mock_secret_manager(mocker, secret_value, new_secret_value):
         def get(self, *args, **kwargs):
             return self.secret
 
-        def set(self, *args, **kwargs):
-            self.secret = new_secret_value
+        def set(self, obj, value):
+            self.secret = value
 
     manager = SecretManager(secret_value)
 
@@ -986,7 +981,6 @@ class TestRevenueProgramViewSet:
                 "slug": revenue_program.slug,
                 "stripe_account_id": revenue_program.stripe_account_id,
                 "activecampaign_integration_connected": revenue_program.activecampaign_integration_connected,
-                "activecampaign_server_url": revenue_program.activecampaign_server_url,
             }
 
     @pytest.mark.parametrize(
@@ -998,17 +992,24 @@ class TestRevenueProgramViewSet:
             ("superuser", True),
         ],
     )
-    @pytest.mark.parametrize("update_access_token", [True, False])
     @pytest.mark.usefixtures("_mock_secret_manager")
     def test_activecampaign_configure_when_patch(
-        self, update_access_token, revenue_program, user_fixture, permitted, api_client, request, new_secret_value
+        self,
+        revenue_program,
+        user_fixture,
+        permitted,
+        api_client,
+        mocker,
+        request,
     ):
+        mocker.patch(
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+            return_value=True,
+        )
         user = request.getfixturevalue(user_fixture)
         api_client.force_authenticate(user)
         assert (old_url := revenue_program.activecampaign_server_url) != (new_url := "https://new.url")
-        data = {"activecampaign_server_url": new_url}
-        if update_access_token:
-            data["activecampaign_access_token"] = "something-truthy"
+        data = {"activecampaign_server_url": new_url, "activecampaign_access_token": (token := "something-truthy")}
         response = api_client.patch(
             reverse("revenue-program-activecampaign-configure", args=(revenue_program.pk,)),
             data=data,
@@ -1016,10 +1017,8 @@ class TestRevenueProgramViewSet:
         assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_404_NOT_FOUND)
         revenue_program.refresh_from_db()
         if permitted:
-            assert response.json()["activecampaign_server_url"] == new_url
             assert revenue_program.activecampaign_server_url == new_url
-            if update_access_token:
-                assert revenue_program.activecampaign_access_token == new_secret_value
+            assert revenue_program.activecampaign_access_token == token
         else:
             assert revenue_program.activecampaign_server_url == old_url
 

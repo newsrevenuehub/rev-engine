@@ -12,8 +12,6 @@ export interface PaidPlanContentProps extends InferProps<typeof PaidPlanContentP
   onStartConnection: () => void;
 }
 
-// TODO: add tests and stories
-
 export function PaidPlanContent({ onClose, onStartConnection }: PaidPlanContentProps) {
   return (
     <>

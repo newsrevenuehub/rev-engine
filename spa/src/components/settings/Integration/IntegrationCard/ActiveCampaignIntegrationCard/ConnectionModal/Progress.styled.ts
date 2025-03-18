@@ -21,7 +21,7 @@ export const CurrentDot = styled.div<{ $final: boolean }>`
 `;
 
 export const Dot = styled.div<{ $active: boolean }>`
-  // FIXME color literal
+  // TODO in DEV-5933: add #b1b1b1 to theme
   background-color: ${({ $active, theme }) => ($active ? theme.basePalette.primary.purple : '#b1b1b1')};
   border-radius: 8px;
   height: 16px;

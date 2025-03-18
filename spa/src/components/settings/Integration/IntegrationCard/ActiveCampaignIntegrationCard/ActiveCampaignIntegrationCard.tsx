@@ -34,7 +34,7 @@ export function ActiveCampaignIntegrationCard() {
     handleConnectionModalOpen();
   }
 
-  // TODO: handle disconnection
+  // TODO in DEV-5947: handle disconnection
 
   return (
     <>

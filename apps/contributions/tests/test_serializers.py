@@ -9,6 +9,7 @@ import pytest
 import stripe
 from addict import Dict as AttrDict
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
+from rest_framework.serializers import CharField
 from rest_framework.test import APIRequestFactory
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
@@ -468,7 +469,7 @@ class TestBaseCreatePaymentSerializer:
             (
                 {"phone": "more than 20 characters"},
                 "donation_page",
-                "Ensure this field has no more than 20 characters.",
+                CharField.default_error_messages["max_length"].format(max_length=20),
             ),
         ],
     )

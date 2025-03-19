@@ -293,7 +293,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
                 timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
             )
             if response.status_code != 200:
-                logger.info("ActiveCampaign URL and token are invalid")
+                logger.info("ActiveCampaign URL and token are invalid for rp %s", self.instance)
                 return False
         except requests.exceptions.RequestException:
             logger.exception("Unexpected error confirming ActiveCampaign URL and token")

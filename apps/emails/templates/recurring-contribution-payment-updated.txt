@@ -9,3 +9,5 @@ You've recently changed your payment method for a contribution to {{ rp_name }}.
 {% endblock header %}
 
 {% block timestamp_label %}Date Changed{% endblock timestamp_label %}
+
+{% block contribution_footer %}{# omit the normal disclaimer #}{% endblock contribution_footer %}

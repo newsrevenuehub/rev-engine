@@ -285,6 +285,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
 
     def confirm_activecampaign_url_and_token(self, url: str, token: str) -> bool:
         """Confirm the ActiveCampaign URL and token are valid."""
+        logger.info("Confirming ActiveCampaign URL and token for rp %s", self.instance)
         try:
             response = requests.get(
                 url=f"{url}/api/3/users/me/",
@@ -295,7 +296,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
                 logger.info("ActiveCampaign URL and token are invalid")
                 return False
         except requests.exceptions.RequestException:
-            logger.exception("Error confirming ActiveCampaign URL and token")
+            logger.exception("Unexpected error confirming ActiveCampaign URL and token")
             return False
         else:
             return True

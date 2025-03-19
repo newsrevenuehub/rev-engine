@@ -63,7 +63,7 @@ export function ConnectionModal({ onClose, open }: ConnectionModalProps) {
     } catch (error: any) {
       const axiosError = error as AxiosError<SaveRevenueProgramActiveCampaignUrlAndKeyValidationErrors>;
       const message =
-        axiosError?.response?.data?.non_field_errors?.[0] === AC_URL_OR_TOKEN_VALIDATION_ERROR ? (
+        axiosError.response.data.non_field_errors?.[0] === AC_URL_OR_TOKEN_VALIDATION_ERROR ? (
           <>
             <strong>Invalid API information.</strong> Please confirm API URL and key and try again.
           </>

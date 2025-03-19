@@ -22,7 +22,7 @@ export interface SaveRevenueProgramActiveCampaignUrlAndKeyValidationErrors {
   /**
    * Non-field error message.
    */
-  non_field_errors?: Array<string>;
+  non_field_errors?: string[];
 }
 
 async function fetchActiveCampaignStatus(

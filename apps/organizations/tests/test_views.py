@@ -1022,6 +1022,21 @@ class TestRevenueProgramViewSet:
         else:
             assert revenue_program.activecampaign_server_url == old_url
 
+    def test_activecampaign_configure_when_patch_and_ac_url_and_token_invalid(
+        self, org_admin_who_owns_rp, revenue_program, api_client, mocker
+    ):
+        mocker.patch(
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+            return_value=False,
+        )
+        api_client.force_authenticate(org_admin_who_owns_rp)
+        response = api_client.patch(
+            reverse("revenue-program-activecampaign-configure", args=(revenue_program.pk,)),
+            data={"activecampaign_server_url": "https://new.url", "activecampaign_access_token": "something-truthy"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"non_field_errors": ["Invalid ActiveCampaign URL or token"]}
+
     def test_mailchimp(self, api_client, superuser, revenue_program):
         api_client.force_authenticate(superuser)
         response = api_client.get(reverse("revenue-program-mailchimp", args=(revenue_program.id,)))

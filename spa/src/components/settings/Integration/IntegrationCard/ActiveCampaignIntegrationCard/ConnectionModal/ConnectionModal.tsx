@@ -14,7 +14,7 @@ const ConnectionModalPropTypes = {
   open: PropTypes.bool
 };
 
-const AC_URL_OR_TOKEN_VALIDATION_ERROR = 'Invalid ActiveCampaign URL or token';
+export const AC_URL_OR_TOKEN_VALIDATION_ERROR = 'Invalid ActiveCampaign URL or token';
 
 export interface ConnectionModalProps extends InferProps<typeof ConnectionModalPropTypes> {
   onClose: () => void;

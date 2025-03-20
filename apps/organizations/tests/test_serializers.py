@@ -2,13 +2,16 @@ from dataclasses import asdict
 from random import choice
 
 import pytest
+import pytest_mock
 from faker import Faker
+from requests.exceptions import RequestException
 
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,
     MailchimpSegment,
     MailchimpStore,
+    RevenueProgram,
 )
 from apps.organizations.serializers import (
     ActiveCampaignRevenueProgramForSpaSerializer,
@@ -264,13 +267,51 @@ class TestMailchimpRevenueProgramForSwitchboard:
 
 
 @pytest.mark.django_db
-def test_calling_ActiveCampaignRevenueProgramForSpaSerializer_save_creates_revision(revenue_program, mocker):
-    create_revision = mocker.patch("reversion.create_revision")
-    set_comment = mocker.patch("reversion.set_comment")
-    serializer = ActiveCampaignRevenueProgramForSpaSerializer(
-        instance=revenue_program, data={"activecampaign_server_url": "http://example.com"}
-    )
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    create_revision.assert_called_once()
-    set_comment.assert_called_once_with("Updated by ActiveCampaignRevenueProgramForSpaSerializer")
+class TestActiveCampaignRevenueProgramForSpaSerializer:
+    def test_calling_save_creates_revision(self, revenue_program, mocker):
+        create_revision = mocker.patch("reversion.create_revision")
+        set_comment = mocker.patch("reversion.set_comment")
+        mocker.patch(
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer._confirm_activecampaign_url_and_token",
+            return_value=True,
+        )
+        serializer = ActiveCampaignRevenueProgramForSpaSerializer(
+            instance=revenue_program,
+            data={"activecampaign_server_url": "http://example.com", "activecampaign_access_token": "token"},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        create_revision.assert_called_once()
+        set_comment.assert_called_once_with("Updated by ActiveCampaignRevenueProgramForSpaSerializer")
+
+    @pytest.mark.parametrize("url_and_key_valid", [True, False])
+    def test_validate(self, url_and_key_valid: bool, mocker: pytest_mock.MockerFixture):
+        mocker.patch(
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer._confirm_activecampaign_url_and_token",
+            return_value=url_and_key_valid,
+        )
+        serializer = ActiveCampaignRevenueProgramForSpaSerializer(
+            data={"activecampaign_server_url": "http://example.com", "activecampaign_access_token": "token"}
+        )
+        assert serializer.is_valid() == url_and_key_valid
+        if not url_and_key_valid:
+            assert list(serializer.errors.keys()) == ["non_field_errors"]
+            assert len(serializer.errors["non_field_errors"]) == 1
+            assert str(serializer.errors["non_field_errors"][0]) == "Invalid ActiveCampaign URL or token"
+
+    @pytest.mark.parametrize("status_code", [200, 403])
+    def test__confirm_activecampaign_url_and_token_happy_path(
+        self, mocker: pytest_mock.MockerFixture, revenue_program: RevenueProgram, status_code: int
+    ):
+        mocker.patch("requests.get", return_value=mocker.Mock(status_code=status_code))
+        serializer = ActiveCampaignRevenueProgramForSpaSerializer(instance=revenue_program)
+        assert serializer._confirm_activecampaign_url_and_token("http://example.com", "token") is (status_code == 200)
+
+    def test__confirm_activecampaign_url_and_token_when_unexpected_error(
+        self, mocker: pytest_mock.MockerFixture, revenue_program: RevenueProgram
+    ):
+        mocker.patch("requests.get", side_effect=RequestException())
+        mock_logger = mocker.patch("apps.organizations.serializers.logger.exception")
+        serializer = ActiveCampaignRevenueProgramForSpaSerializer(instance=revenue_program)
+        assert serializer._confirm_activecampaign_url_and_token("http://example.com", "token") is False
+        mock_logger.assert_called_once_with("Unexpected error confirming ActiveCampaign URL and token")

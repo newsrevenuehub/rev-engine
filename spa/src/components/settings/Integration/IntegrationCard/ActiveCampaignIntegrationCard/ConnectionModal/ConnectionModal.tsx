@@ -1,14 +1,20 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { ReactChild, useState } from 'react';
 import { Modal, ModalHeader } from 'components/base';
-import { useConnectActiveCampaign } from 'hooks/useConnectActiveCampaign';
+import {
+  useConnectActiveCampaign,
+  SaveRevenueProgramActiveCampaignUrlAndKeyValidationErrors
+} from 'hooks/useConnectActiveCampaign';
 import { Connected, CreateUser, EnterApiKey, GetApiKey, UserNeeded, UserQuestion } from './steps';
 import { ModalHeaderIcon } from './ConnectionModal.styled';
+import { AxiosError } from 'axios';
 
 const ConnectionModalPropTypes = {
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool
 };
+
+export const AC_URL_OR_TOKEN_VALIDATION_ERROR = 'Invalid ActiveCampaign URL or token';
 
 export interface ConnectionModalProps extends InferProps<typeof ConnectionModalPropTypes> {
   onClose: () => void;
@@ -54,12 +60,19 @@ export function ConnectionModal({ onClose, open }: ConnectionModalProps) {
     try {
       await updateAccessTokenAndServerUrl({ accessToken, serverUrl });
       setStep('connected');
-    } catch (error) {
-      setUpdateError(
-        <>
-          <strong>Failed to save API information.</strong> Please try again.
-        </>
-      );
+    } catch (error: any) {
+      const axiosError = error as AxiosError<SaveRevenueProgramActiveCampaignUrlAndKeyValidationErrors>;
+      const message =
+        axiosError?.response?.data?.non_field_errors?.[0] === AC_URL_OR_TOKEN_VALIDATION_ERROR ? (
+          <>
+            <strong>Invalid API information.</strong> Please confirm API URL and key and try again.
+          </>
+        ) : (
+          <>
+            <strong>Failed to save API information.</strong> Please try again.
+          </>
+        );
+      setUpdateError(message);
     }
   }
 

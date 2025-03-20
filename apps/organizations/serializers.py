@@ -282,7 +282,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
             "activecampaign_server_url",
         ]
 
-    def confirm_activecampaign_url_and_token(self, url: str, token: str) -> bool:
+    def _confirm_activecampaign_url_and_token(self, url: str, token: str) -> bool:
         """Confirm the ActiveCampaign URL and token are valid."""
         logger.info("Confirming ActiveCampaign URL and token for rp %s", self.instance)
         try:
@@ -305,7 +305,7 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
     ) -> ActiveCampaignRevenueProgramForSpaSerializerData:
         """Validate the ActiveCampaign URL and token by attempting a GET request to ActiveCampaign."""
         data = super().validate(data)
-        if not self.confirm_activecampaign_url_and_token(
+        if not self._confirm_activecampaign_url_and_token(
             data["activecampaign_server_url"], data["activecampaign_access_token"]
         ):
             raise serializers.ValidationError("Invalid ActiveCampaign URL or token")

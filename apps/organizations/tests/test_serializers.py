@@ -272,7 +272,7 @@ class TestActiveCampaignRevenueProgramForSpaSerializer:
         create_revision = mocker.patch("reversion.create_revision")
         set_comment = mocker.patch("reversion.set_comment")
         mocker.patch(
-            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer._confirm_activecampaign_url_and_token",
             return_value=True,
         )
         serializer = ActiveCampaignRevenueProgramForSpaSerializer(
@@ -287,7 +287,7 @@ class TestActiveCampaignRevenueProgramForSpaSerializer:
     @pytest.mark.parametrize("url_and_key_valid", [True, False])
     def test_validate(self, url_and_key_valid: bool, mocker: pytest_mock.MockerFixture):
         mocker.patch(
-            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer._confirm_activecampaign_url_and_token",
             return_value=url_and_key_valid,
         )
         serializer = ActiveCampaignRevenueProgramForSpaSerializer(
@@ -300,18 +300,18 @@ class TestActiveCampaignRevenueProgramForSpaSerializer:
             assert str(serializer.errors["non_field_errors"][0]) == "Invalid ActiveCampaign URL or token"
 
     @pytest.mark.parametrize("status_code", [200, 403])
-    def test_confirm_activecampaign_url_and_token_happy_path(
+    def test__confirm_activecampaign_url_and_token_happy_path(
         self, mocker: pytest_mock.MockerFixture, revenue_program: RevenueProgram, status_code: int
     ):
         mocker.patch("requests.get", return_value=mocker.Mock(status_code=status_code))
         serializer = ActiveCampaignRevenueProgramForSpaSerializer(instance=revenue_program)
-        assert serializer.confirm_activecampaign_url_and_token("http://example.com", "token") is (status_code == 200)
+        assert serializer._confirm_activecampaign_url_and_token("http://example.com", "token") is (status_code == 200)
 
-    def test_confirm_activecampaign_url_and_token_when_unexpected_error(
+    def test__confirm_activecampaign_url_and_token_when_unexpected_error(
         self, mocker: pytest_mock.MockerFixture, revenue_program: RevenueProgram
     ):
         mocker.patch("requests.get", side_effect=RequestException())
         mock_logger = mocker.patch("apps.organizations.serializers.logger.exception")
         serializer = ActiveCampaignRevenueProgramForSpaSerializer(instance=revenue_program)
-        assert serializer.confirm_activecampaign_url_and_token("http://example.com", "token") is False
+        assert serializer._confirm_activecampaign_url_and_token("http://example.com", "token") is False
         mock_logger.assert_called_once_with("Unexpected error confirming ActiveCampaign URL and token")

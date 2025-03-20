@@ -1003,7 +1003,7 @@ class TestRevenueProgramViewSet:
         request,
     ):
         mocker.patch(
-            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer._confirm_activecampaign_url_and_token",
             return_value=True,
         )
         user = request.getfixturevalue(user_fixture)
@@ -1026,7 +1026,7 @@ class TestRevenueProgramViewSet:
         self, org_admin_who_owns_rp, revenue_program, api_client, mocker
     ):
         mocker.patch(
-            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer.confirm_activecampaign_url_and_token",
+            "apps.organizations.serializers.ActiveCampaignRevenueProgramForSpaSerializer._confirm_activecampaign_url_and_token",
             return_value=False,
         )
         api_client.force_authenticate(org_admin_who_owns_rp)

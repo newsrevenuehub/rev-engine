@@ -6,21 +6,25 @@ class TestMailchimpProductType:
         assert MailchimpProductType.ONE_TIME.as_mailchimp_product_name() == "one-time contribution"
         assert MailchimpProductType.YEARLY.as_mailchimp_product_name() == "yearly contribution"
         assert MailchimpProductType.MONTHLY.as_mailchimp_product_name() == "monthly contribution"
+        assert MailchimpProductType.RECURRING.as_mailchimp_product_name() == "recurring contribution"
 
     def test_as_rp_field(self):
         assert MailchimpProductType.ONE_TIME.as_rp_field() == "mailchimp_one_time_contribution_product"
         assert MailchimpProductType.YEARLY.as_rp_field() == "mailchimp_yearly_contribution_product"
         assert MailchimpProductType.MONTHLY.as_rp_field() == "mailchimp_monthly_contribution_product"
+        assert MailchimpProductType.RECURRING.as_rp_field() == "mailchimp_recurring_contribution_product"
 
     def test_as_mailchimp_product_id(self):
         assert MailchimpProductType.ONE_TIME.as_mailchimp_product_id(1) == "rp-1-one-time-contribution-product"
         assert MailchimpProductType.YEARLY.as_mailchimp_product_id(2) == "rp-2-yearly-contribution-product"
         assert MailchimpProductType.MONTHLY.as_mailchimp_product_id(3) == "rp-3-monthly-contribution-product"
+        assert MailchimpProductType.RECURRING.as_mailchimp_product_id(4) == "rp-4-recurring-contribution-product"
 
     def test_as_str(self):
         assert str(MailchimpProductType.ONE_TIME) == "one_time"
         assert str(MailchimpProductType.YEARLY) == "yearly"
         assert str(MailchimpProductType.MONTHLY) == "monthly"
+        assert str(MailchimpProductType.RECURRING) == "recurring"
 
 
 class TestMailchimpSegmentName:

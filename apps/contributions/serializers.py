@@ -950,6 +950,8 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             )
         return value
 
+    # TODO @BW: Add validation to ensure provider_customer_id is set if send_receipt is true in request context
+    # DEV-5961
     def validate(self, data):
         """Ensure that either a revenue program or a donation page is set on the contribution, but not both."""
         data = super().validate(data)

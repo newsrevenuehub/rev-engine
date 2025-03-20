@@ -1,10 +1,17 @@
 import { axe } from 'jest-axe';
-import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, EMAILS_SLUG } from 'routes';
+import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, CUSTOMIZE_SLUG, EMAILS_SLUG } from 'routes';
 import { render, screen } from 'test-utils';
+import { EMAILS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import useUser from 'hooks/useUser';
 import ContentSectionNav from './ContentSectionNav';
-import { getUserRole } from 'utilities/getUserRole';
+import {
+  USER_ROLE_HUB_ADMIN_TYPE,
+  USER_ROLE_ORG_ADMIN_TYPE,
+  USER_ROLE_RP_ADMIN_TYPE,
+  USER_SUPERUSER_TYPE
+} from 'constants/authConstants';
 
-jest.mock('utilities/getUserRole');
+jest.mock('hooks/useUser');
 
 function tree() {
   return render(
@@ -15,10 +22,15 @@ function tree() {
 }
 
 describe('ContentSectionNav', () => {
-  const getUserRoleMock = jest.mocked(getUserRole);
+  const useUserMock = jest.mocked(useUser);
 
   beforeEach(() => {
-    getUserRoleMock.mockReturnValue({ isOrgAdmin: true } as any);
+    useUserMock.mockReturnValue({
+      user: {
+        flags: [],
+        role_type: ['org_admin']
+      }
+    } as any);
   });
 
   it('shows a link to the Pages page', () => {
@@ -30,58 +42,69 @@ describe('ContentSectionNav', () => {
     expect(pagesLink).toHaveAttribute('href', CONTENT_SLUG);
   });
 
-  it('shows a link to the Emails page', () => {
-    tree();
+  describe.each([[USER_SUPERUSER_TYPE], [USER_ROLE_HUB_ADMIN_TYPE]])('When the user is a %s', (role) => {
+    beforeEach(() => {
+      useUserMock.mockReturnValue({
+        user: {
+          flags: [{ name: EMAILS_SECTION_ACCESS_FLAG_NAME }],
+          role_type: [role]
+        }
+      } as any);
+    });
 
-    const pagesLink = screen.getByRole('listitem', { name: 'Emails' });
+    it('shows neither Customize or Emails link, even if they have the spa-emails-section-access feature flag', () => {
+      tree();
+      expect(screen.queryByRole('listitem', { name: 'Customize' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('listitem', { name: 'Emails' })).not.toBeInTheDocument();
+    });
 
-    expect(pagesLink).toBeVisible();
-    expect(pagesLink).toHaveAttribute('href', EMAILS_SLUG);
+    it('hides the Contributor Portal link', () => {
+      tree();
+      expect(screen.queryByRole('listitem', { name: 'Contributor Portal' })).not.toBeInTheDocument();
+    });
   });
 
-  it.each([
-    ['superuser', { isOrgAdmin: false }],
-    ['hub admin', { isRPAdmin: false }]
-  ])('hides link to Emails page if user role not = %s', (_, role) => {
-    getUserRoleMock.mockReturnValue(role as any);
-    tree();
-    expect(screen.queryByRole('listitem', { name: 'Emails' })).not.toBeInTheDocument();
-  });
+  describe.each([[USER_ROLE_ORG_ADMIN_TYPE], [USER_ROLE_RP_ADMIN_TYPE]])('When the user is a %s', (role) => {
+    it("shows the Customize link and not Emails if the user doesn't have the spa-emails-section-access feature flag", () => {
+      useUserMock.mockReturnValue({
+        user: {
+          flags: [],
+          role_type: [role]
+        }
+      } as any);
+      tree();
 
-  it.each([
-    ['org admin', { isOrgAdmin: true }],
-    ['rp admin', { isRPAdmin: true }]
-  ])('shows link to Emails page if user role = %s', (_, role) => {
-    getUserRoleMock.mockReturnValue(role as any);
-    tree();
-    expect(screen.getByRole('listitem', { name: 'Emails' })).toBeInTheDocument();
-  });
+      const customizeItem = screen.getByRole('listitem', { name: 'Customize' });
 
-  it('shows a link to the Contributor Portal page', () => {
-    tree();
+      expect(customizeItem).toBeVisible();
+      expect(customizeItem).toHaveAttribute('href', CUSTOMIZE_SLUG);
+      expect(screen.queryByRole('listitem', { name: 'Emails' })).not.toBeInTheDocument();
+    });
 
-    const pagesLink = screen.getByRole('listitem', { name: 'Contributor Portal' });
+    it('shows the Emails link and not Customize if the user has the spa-emails-section-access feature flag', () => {
+      useUserMock.mockReturnValue({
+        user: {
+          flags: [{ name: EMAILS_SECTION_ACCESS_FLAG_NAME }],
+          role_type: [role]
+        }
+      } as any);
+      tree();
 
-    expect(pagesLink).toBeVisible();
-    expect(pagesLink).toHaveAttribute('href', CONTRIBUTOR_PORTAL_SLUG);
-  });
+      const emailsItem = screen.getByRole('listitem', { name: 'Emails' });
 
-  it.each([
-    ['superuser', { isSuperUser: true }],
-    ['hub admin', { isHubAdmin: true }]
-  ])('hides link to Contributor Portal page if user role = %s', (_, role) => {
-    getUserRoleMock.mockReturnValue(role as any);
-    tree();
-    expect(screen.queryByRole('listitem', { name: 'Contributor Portal' })).not.toBeInTheDocument();
-  });
+      expect(emailsItem).toBeVisible();
+      expect(emailsItem).toHaveAttribute('href', EMAILS_SLUG);
+      expect(screen.queryByRole('listitem', { name: 'Customize' })).not.toBeInTheDocument();
+    });
 
-  it.each([
-    ['org admin', { isOrgAdmin: true }],
-    ['rp admin', { isRPAdmin: true }]
-  ])('shows link to Contributor Portal page if user role = %s', (_, role) => {
-    getUserRoleMock.mockReturnValue(role as any);
-    tree();
-    expect(screen.getByRole('listitem', { name: 'Contributor Portal' })).toBeInTheDocument();
+    it('shows a link to the Contributor Portal page', () => {
+      tree();
+
+      const pagesLink = screen.getByRole('listitem', { name: 'Contributor Portal' });
+
+      expect(pagesLink).toBeVisible();
+      expect(pagesLink).toHaveAttribute('href', CONTRIBUTOR_PORTAL_SLUG);
+    });
   });
 
   it('is accessible', async () => {

@@ -14,7 +14,8 @@ import {
   MAILCHIMP_OAUTH_SUCCESS_ROUTE,
   PROFILE,
   SETTINGS,
-  EMAILS_SLUG
+  EMAILS_SLUG,
+  CUSTOMIZE_SLUG
 } from 'routes';
 
 // Children
@@ -33,7 +34,7 @@ import Organization from 'components/settings/Organization';
 import MailchimpConnectionStatus from './MailchimpConnectionStatus';
 
 // Feature flag-related
-import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME, EMAILS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import Subscription from 'components/settings/Subscription/Subscription';
@@ -45,10 +46,12 @@ import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAcce
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 import AnalyticsSetup from 'components/common/AnalyticsSetup/AnalyticsSetup';
 import { EmailsRoute } from 'components/content/emails';
+import CustomizeRoute from 'components/content/CustomizeRoute';
 
 function Dashboard() {
   const { user } = useUser();
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, user);
+  const hasEmailSectionAccess = user?.role_type && flagIsActiveForUser(EMAILS_SECTION_ACCESS_FLAG_NAME, user);
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
     : user && hasContributionsSectionAccess(user)
@@ -74,14 +77,16 @@ function Dashboard() {
               <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
                 <MailchimpOAuthSuccess />
               </SentryRoute>
-              <SentryRoute path={EMAILS_SLUG}>
-                <SingleOrgUserOnlyRoute>
-                  <EmailsRoute />
-                </SingleOrgUserOnlyRoute>
-              </SentryRoute>
               {user && hasContributionsSectionAccess(user) ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
+                </SentryRoute>
+              ) : null}
+              {hasEmailSectionAccess ? (
+                <SentryRoute path={EMAILS_SLUG}>
+                  <SingleOrgUserOnlyRoute>
+                    <EmailsRoute />
+                  </SingleOrgUserOnlyRoute>
                 </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (
@@ -92,6 +97,11 @@ function Dashboard() {
               {hasContentSectionAccess ? (
                 <SentryRoute path={CONTRIBUTOR_PORTAL_SLUG}>
                   <ContributorPortalRoute />
+                </SentryRoute>
+              ) : null}
+              {!hasEmailSectionAccess && hasContentSectionAccess ? (
+                <SentryRoute path={CUSTOMIZE_SLUG}>
+                  <CustomizeRoute />
                 </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (

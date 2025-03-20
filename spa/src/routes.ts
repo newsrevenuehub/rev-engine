@@ -4,6 +4,7 @@ export const DASHBOARD_SLUG = '/dashboard/';
 export const DONATIONS_SLUG = '/contributions/';
 export const CONTENT_SLUG = '/pages/';
 export const CONTRIBUTOR_PORTAL_SLUG = '/contributor-portal/';
+export const CUSTOMIZE_SLUG = '/customize/';
 export const CONNECT_SLUG = '/connect/';
 
 export const EDITOR_ROUTE = '/edit/';

@@ -75,6 +75,7 @@ function DashboardRouter() {
           ROUTES.DASHBOARD_SLUG,
           ROUTES.DONATIONS_SLUG,
           ROUTES.CONTENT_SLUG,
+          ROUTES.CUSTOMIZE_SLUG,
           ROUTES.CONTRIBUTOR_PORTAL_SLUG,
           ROUTES.EDITOR_ROUTE,
           ROUTES.EMAILS_SLUG,

@@ -9,7 +9,6 @@ import Customize, { PAID_SUBTITLE } from './Customize';
 jest.mock('hooks/useUser');
 jest.mock('hooks/useSessionState');
 jest.mock('components/common/GlobalLoading/GlobalLoading');
-jest.mock('components/common/Hero/Hero');
 jest.mock('components/common/SendTestEmail/SendTestEmail');
 jest.mock('./CustomizeCoreUpgradePrompt/CustomizeCoreUpgradePrompt');
 
@@ -73,13 +72,17 @@ describe('Customize Styles', () => {
       useUserMock.mockReturnValue({ isLoading: false, user: mockUser } as any);
     });
 
-    it('should render Hero component with correct subtitle', () => {
-      const subtitle = plan === PLAN_NAMES.FREE ? '' : PAID_SUBTITLE;
-      tree();
-      const hero = screen.getByTestId('mock-hero');
-      expect(hero).toBeVisible();
-      expect(hero.dataset.subtitle).toBe(subtitle);
-    });
+    if (plan === PLAN_NAMES.FREE) {
+      it('should show no subtitle', () => {
+        tree();
+        expect(screen.queryByTestId('subtitle')).not.toBeInTheDocument();
+      });
+    } else {
+      it(`should show a "${PAID_SUBTITLE}" subtitle`, () => {
+        tree();
+        expect(screen.getByTestId('subtitle')).toHaveTextContent(PAID_SUBTITLE);
+      });
+    }
 
     it('should render SendTestEmail with correct rpId', () => {
       tree();

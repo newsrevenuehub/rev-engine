@@ -3,13 +3,14 @@ import join from 'url-join';
 export const DASHBOARD_SLUG = '/dashboard/';
 export const DONATIONS_SLUG = '/contributions/';
 export const CONTENT_SLUG = '/pages/';
-export const CUSTOMIZE_SLUG = '/customize/';
 export const CONTRIBUTOR_PORTAL_SLUG = '/contributor-portal/';
+export const CUSTOMIZE_SLUG = '/customize/';
 export const CONNECT_SLUG = '/connect/';
 
 export const EDITOR_ROUTE = '/edit/';
 export const EDITOR_ROUTE_PAGE = join([EDITOR_ROUTE, '/pages/:pageId/']);
 export const EDITOR_ROUTE_PAGE_REDIRECT = join([EDITOR_ROUTE, '/:revProgramSlug/:pageSlug/']);
+export const EMAILS_SLUG = '/emails/';
 export const DONATION_PAGE_SLUG = '/:pageSlug/';
 export const THANK_YOU_SLUG = '/thank-you/';
 export const PAYMENT_SUCCESS = '/payment/success/';

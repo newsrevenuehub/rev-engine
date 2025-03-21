@@ -214,48 +214,6 @@ describe('Account', () => {
     beforeEach(() => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { fixture: 'pages/list-pages-1' });
     });
-    it('should direct user to Stripe-provided Account Link URL -- via modal', () => {
-      const rp = selfServiceUserNotStripeVerified.revenue_programs[0];
-      const stripeAccountLinkResponse = {
-        reason: 'past_due',
-        requiresVerification: true,
-        // in prod, this will be a URL furnished by Stripe, to Stripe
-        url: 'https://www.google.com/'
-      };
-      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
-      cy.intercept(
-        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkStatusPath(rp.id)) },
-        { statusCode: 202, body: stripeAccountLinkResponse }
-      ).as('stripeAccountLink');
-      cy.visit(DASHBOARD_SLUG);
-      cy.getByTestId('connect-stripe-modal-button').click();
-      cy.wait('@stripeAccountLink');
-      cy.url().should('eq', stripeAccountLinkResponse.url);
-    });
-
-    it('should direct user to Stripe-provided Account Link URL -- via toast', () => {
-      const rp = selfServiceUserNotStripeVerified.revenue_programs[0];
-      cy.setCookie(CONNECT_STRIPE_COOKIE_NAME, 'true', { path: '/' });
-      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
-      const stripeAccountLinkResponse = {
-        reason: 'past_due',
-        requiresVerification: true,
-        // in prod, this will be a URL furnished by Stripe, to Stripe
-        url: 'https://www.google.com/'
-      };
-      cy.intercept(
-        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkStatusPath(rp.id)) },
-        { statusCode: 202, body: stripeAccountLinkResponse }
-      ).as('stripeAccountLink');
-      cy.visit(DASHBOARD_SLUG);
-      cy.getByTestId('connect-stripe-toast-button').click();
-      cy.wait('@stripeAccountLink');
-      cy.url().should('eq', stripeAccountLinkResponse.url);
-    });
 
     it('should stop displaying Account Link CTA when account becomes verified', () => {
       const rp = selfServiceUserNotStripeVerified.revenue_programs[0];

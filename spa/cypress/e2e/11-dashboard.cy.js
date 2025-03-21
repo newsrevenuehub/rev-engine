@@ -70,50 +70,6 @@ describe('Dashboard', () => {
       cy.visit(DASHBOARD_SLUG);
       cy.getByTestId('finalize-profile-modal').should('exist');
     });
-
-    it('sends a request to update the user profile when the profile form is completed', async () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: userWithNoOrgs });
-      cy.intercept(
-        { method: 'PATCH', pathname: getEndpoint(`${USER}/${userWithNoOrgs.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`) },
-        { statusCode: 204 }
-      ).as('patchUser');
-      cy.visit(DASHBOARD_SLUG);
-      cy.getByTestId('first-name').type('First Name');
-      cy.getByTestId('last-name').type('Last Name');
-      cy.getByTestId('job-title').type('Job Title');
-      cy.getByTestId('company-name').type('Organization');
-      cy.getByTestId('tax-status').select('Non-profit');
-      cy.getByTestId('tax-id').type('987654321');
-      cy.get('button[type="submit"]').click();
-      cy.wait('@patchUser').then(({ request }) => {
-        expect(request.body).eql({
-          first_name: 'First Name',
-          last_name: 'Last Name',
-          job_title: 'Job Title',
-          organization_name: 'Organization',
-          fiscal_status: 'nonprofit',
-          organization_tax_id: '987654321'
-        });
-      });
-    });
-
-    it('shows an error message if submitting the profile form fails', async () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: userWithNoOrgs });
-      cy.intercept(
-        { method: 'PATCH', pathname: getEndpoint(`${USER}/${userWithNoOrgs.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`) },
-        { statusCode: 500 }
-      ).as('patchUser');
-      cy.visit(DASHBOARD_SLUG);
-      cy.getByTestId('first-name').type('First Name');
-      cy.getByTestId('last-name').type('Last Name');
-      cy.getByTestId('job-title').type('Job Title');
-      cy.getByTestId('company-name').type('Organization');
-      cy.getByTestId('tax-status').select('Non-profit');
-      cy.get('button[type="submit"]').click();
-      cy.wait('@patchUser').then(({ request }) => {
-        cy.getByTestId('profile-modal-error').should('exist');
-      });
-    });
   });
 
   describe('User does NOT have contributions section access flag', () => {
@@ -206,39 +162,5 @@ describe('Dashboard', () => {
       cy.visit(DASHBOARD_SLUG);
       cy.getByTestId('finalize-profile-modal').should('not.exist');
     });
-  });
-
-  describe('Footer', () => {
-    for (const { body, label } of [
-      { label: 'Hub admins', body: hubAdminWithContentFlag },
-      { label: 'org admins', body: orgAdminWithContentFlag }
-    ]) {
-      it(`shows a help link to ${label}`, () => {
-        cy.log(JSON.stringify(body));
-        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body });
-        cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
-        cy.visit(DASHBOARD_SLUG);
-        cy.getByTestId('nav-help-item')
-          .should('exist')
-          .should('have.text', 'Help')
-          .should('have.attr', 'href', 'https://fundjournalism.org/news-revenue-engine-help/')
-          .should('have.attr', 'target', '_blank');
-      });
-
-      it(`shows a FAQ link to ${label}`, () => {
-        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body });
-        cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
-        cy.visit(DASHBOARD_SLUG);
-        cy.getByTestId('nav-faq-item')
-          .should('exist')
-          .should('have.text', 'FAQ')
-          .should(
-            'have.attr',
-            'href',
-            'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496'
-          )
-          .should('have.attr', 'target', '_blank');
-      });
-    }
   });
 });

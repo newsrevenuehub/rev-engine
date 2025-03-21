@@ -55,6 +55,8 @@ class SwitchboardContributionsViewSet(
         callers have already created an appropriate Stripe object (e.g. payment
         intent or subscription).
         """
+        # TODO @BW: Make this transaction rollback if the email fails
+        # DEV-5961
         contribution: Contribution = serializer.save()
         if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
             # send_thank_you_email() handles conditionality around whether

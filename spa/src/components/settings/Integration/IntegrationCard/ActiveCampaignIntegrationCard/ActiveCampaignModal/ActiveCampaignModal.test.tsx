@@ -2,11 +2,15 @@ import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import ActiveCampaignModal, { ActiveCampaignModalProps } from './ActiveCampaignModal';
 import { ACTIVECAMPAIGN_HOME_URL } from 'constants/helperUrls';
+import { EnginePlan } from 'hooks/useContributionPage';
 
 jest.mock('./FreePlanContent');
+jest.mock('./PaidPlanContent');
 
 function tree(props?: Partial<ActiveCampaignModalProps>) {
-  return render(<ActiveCampaignModal onClose={jest.fn()} open orgPlan="FREE" {...props} />);
+  return render(
+    <ActiveCampaignModal onClose={jest.fn()} onStartConnection={jest.fn()} open orgPlan="FREE" {...props} />
+  );
 }
 
 describe('ActiveCampaignModal', () => {
@@ -36,7 +40,7 @@ describe('ActiveCampaignModal', () => {
     });
 
     describe("When the user's org is on the Free plan", () => {
-      it("shows <FreePlanContent> if the user's organization plan is Free", () => {
+      it('shows <FreePlanContent>', () => {
         tree({ orgPlan: 'FREE' });
         expect(screen.getByTestId('mock-free-plan-content')).toBeInTheDocument();
       });
@@ -51,8 +55,32 @@ describe('ActiveCampaignModal', () => {
       });
     });
 
-    // TODO in DEV-5899: handle Core plan
-    // TODO in DEV-5898: handle Plus plan
+    describe.each([['CORE'], ['PLUS']])("When the user's org is on the %s plan", (name) => {
+      const orgPlan = name as EnginePlan['name'];
+
+      it('shows <PaidPlanContent>', () => {
+        tree({ orgPlan });
+        expect(screen.getByTestId('mock-paid-plan-content')).toBeInTheDocument();
+      });
+
+      it('calls the onClose prop if <PaidPlanContent> asks for it', () => {
+        const onClose = jest.fn();
+
+        tree({ onClose, orgPlan });
+        expect(onClose).not.toBeCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'PaidPlanContent onClose' }));
+        expect(onClose).toBeCalledTimes(1);
+      });
+
+      it('calls the onStartConnection prop if <PaidPlanContent> requests to start the connection', () => {
+        const onStartConnection = jest.fn();
+
+        tree({ onStartConnection, orgPlan });
+        expect(onStartConnection).not.toBeCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'PaidPlanContent onStartConnection' }));
+        expect(onStartConnection).toBeCalledTimes(1);
+      });
+    });
 
     it('is accessible', async () => {
       const { container } = tree();

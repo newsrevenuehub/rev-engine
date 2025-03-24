@@ -36,6 +36,7 @@ import useContributionPageList from 'hooks/useContributionPageList';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import { DonationUpgradePrompts } from './DonationUpgradePrompts';
+import ExportButton from 'components/common/Button/ExportButton';
 
 const Donations = () => {
   const { path } = useRouteMatch();
@@ -180,9 +181,8 @@ const Donations = () => {
             )}
             <Hero
               title="Contributions"
+              cornerContent={<ExportButton email={user.email} transactions={maxData} />}
               subtitle="Welcome to your contributions. Easily track and manage contributions."
-              placeholder="Contributions"
-              exportData={{ email: user.email, transactions: maxData }}
             />
             <DonationUpgradePrompts />
             <Filters

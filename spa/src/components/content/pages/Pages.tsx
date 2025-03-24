@@ -12,6 +12,7 @@ import { EDITOR_ROUTE } from 'routes';
 import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import AddPage from './AddPage';
 import { Content, PageUsage } from './Pages.styled';
+import Searchbar from 'components/common/TextField/Searchbar';
 
 function Pages() {
   const history = useHistory();
@@ -47,9 +48,8 @@ function Pages() {
     <GenericErrorBoundary>
       <Hero
         title="Pages"
+        cornerContent={<Searchbar onChange={setPageSearchQuery} placeholder="Pages" />}
         subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
-        placeholder="Pages"
-        onChange={setPageSearchQuery}
       />
       {isLoading ? (
         <div data-testid="pages-loading">

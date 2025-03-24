@@ -58,9 +58,12 @@ describe('ActiveCampaignModal', () => {
     describe.each([['CORE'], ['PLUS']])("When the user's org is on the %s plan", (name) => {
       const orgPlan = name as EnginePlan['name'];
 
-      it('shows <PaidPlanContent>', () => {
-        tree({ orgPlan });
-        expect(screen.getByTestId('mock-paid-plan-content')).toBeInTheDocument();
+      it.each([[true], [false]])('shows <PaidPlanContent> with the correct connected prop (%s)', (connected) => {
+        tree({ connected, orgPlan });
+
+        const content = screen.getByTestId('mock-paid-plan-content');
+
+        expect(content.dataset.connected).toBe(connected.toString());
       });
 
       it('calls the onClose prop if <PaidPlanContent> asks for it', () => {

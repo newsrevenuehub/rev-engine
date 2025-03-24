@@ -55,6 +55,7 @@ export function ActiveCampaignIntegrationCard() {
       />
       {orgPlan && (
         <ActiveCampaignModal
+          connected={activecampaign_integration_connected}
           onClose={handleMainModalClose}
           onStartConnection={handleMainModalStartsConnection}
           open={mainModalOpen}

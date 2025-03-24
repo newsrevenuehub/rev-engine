@@ -23,12 +23,12 @@ export function UserNeeded({ onClose }: UserNeededProps) {
         </p>
       </ModalContent>
       <ModalFooter>
-        <LinkButton color="primaryDark" href={KNOWLEDGE_BASE_URL} target="_blank">
-          Knowledge Base
-        </LinkButton>
         <Button color="secondary" onClick={onClose}>
           Close
         </Button>
+        <LinkButton color="primaryDark" href={KNOWLEDGE_BASE_URL} target="_blank">
+          Knowledge Base
+        </LinkButton>
       </ModalFooter>
     </>
   );

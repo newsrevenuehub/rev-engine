@@ -247,6 +247,10 @@ class TestSwitchboardContributionsViewSet:
         ContributionFactory(provider_setup_intent_id=(si_id := "si_123"))
         return {**creation_data_recurring_with_page, "provider_setup_intent_id": si_id}
 
+    @pytest.fixture
+    def invalid_creation_data_no_contributor(self, creation_data_recurring_with_page):
+        return {k: v for k, v in creation_data_recurring_with_page.items() if k != "contributor"}
+
     @pytest.mark.parametrize(
         "data_fixture",
         [
@@ -331,6 +335,15 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
+
+    def test_create_when_no_contributor(self, api_client, switchboard_api_token, invalid_creation_data_no_contributor):
+        response = api_client.post(
+            reverse("switchboard-contribution-list"),
+            data=invalid_creation_data_no_contributor,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"contributor": ["This field is required."]}
 
     @pytest.mark.parametrize(
         ("querystring", "send_receipt"),
@@ -476,6 +489,12 @@ class TestSwitchboardContributionsViewSet:
         ContributionFactory(provider_setup_intent_id=data["provider_setup_intent_id"])
         return data, contribution
 
+    @pytest.fixture
+    def invalid_update_nullifies_contributor(self, update_data_recurring_with_page):
+        data, contribution = update_data_recurring_with_page
+        data["contributor"] = None
+        return data, contribution
+
     @pytest.mark.parametrize(
         "data_fixture",
         [
@@ -559,6 +578,20 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"contribution_metadata": ["does not conform to a known schema"]}
+
+    def test_update_when_nullifying_contributor(
+        self, api_client, switchboard_api_token, invalid_update_nullifies_contributor
+    ):
+        data, contribution = invalid_update_nullifies_contributor
+        assert contribution.contributor is not None
+        response = api_client.patch(
+            reverse("switchboard-contribution-detail", args=(contribution.id,)),
+            data=data,
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"contributor": ["This field may not be null."]}
 
     @pytest.mark.parametrize("method", ["patch", "post", "get"])
     def test_requests_when_not_switchboard_user(self, api_client, other_user, contribution, method):

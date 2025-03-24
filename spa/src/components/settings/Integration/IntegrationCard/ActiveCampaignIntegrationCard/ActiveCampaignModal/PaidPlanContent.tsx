@@ -25,7 +25,7 @@ export function PaidPlanContent({ connected, onClose, onStartConnection }: PaidP
           {connected ? 'Close' : 'Maybe Later'}
         </Button>
         {connected ? (
-          <LinkButton href={KNOWLEDGE_BASE_URL} target="_blank">
+          <LinkButton color="primaryDark" href={KNOWLEDGE_BASE_URL} target="_blank">
             Go To Knowledge Base
           </LinkButton>
         ) : (

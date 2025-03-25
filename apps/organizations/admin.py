@@ -233,6 +233,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
             },
         ),
         ("Mailchimp", {"fields": ("mailchimp_server_prefix", "mailchimp_list_id")}),
+        ("ActiveCampaign", {"fields": ("activecampaign_server_url",)}),
         (
             "Analytics",
             {
@@ -279,7 +280,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "organizations/revenueprogram_changeform.html"
 
-    readonly_fields = ["mailchimp_server_prefix", "mailchimp_list_id"]
+    readonly_fields = ["activecampaign_server_url", "mailchimp_server_prefix", "mailchimp_list_id"]
 
     def get_readonly_fields(self, request, obj=None):
         # If it's an addform, we can't allow setting default_donation_page until the RevenueProgram has been defined

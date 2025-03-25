@@ -4,6 +4,8 @@ export const CORE_UPGRADE_URL = 'https://fundjournalism.org/i-want-revengine-cor
 export const FAQ_URL = 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496';
 export const EMAIL_KB_URL = 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2672656386';
 export const HELP_URL = 'https://fundjournalism.org/news-revenue-engine-help/';
+export const KNOWLEDGE_BASE_URL =
+  'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496';
 export const PLUS_UPGRADE_URL = 'https://fundjournalism.org/i-want-revengine-plus/';
 export const PRICING_URL = 'https://fundjournalism.org/pricing/';
 export const PRIVACY_POLICY_URL = 'https://fundjournalism.org/faq/privacy-policy/';

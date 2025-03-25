@@ -15,3 +15,22 @@ Free.args = {
   open: true,
   orgPlan: 'FREE'
 };
+
+export const Core: Story = {};
+Core.args = {
+  open: true,
+  orgPlan: 'CORE'
+};
+
+export const Plus: Story = {};
+Plus.args = {
+  open: true,
+  orgPlan: 'PLUS'
+};
+
+export const Connected: Story = {};
+Connected.args = {
+  connected: true,
+  open: true,
+  orgPlan: 'CORE'
+};

@@ -47,7 +47,7 @@ export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes
  */
 export function ImageUpload(props: ImageUploadProps) {
   const {
-    accept = 'image/gif,image/jpeg,image/png,image/svg+xml,image/webp',
+    accept = 'image/gif,image/jpeg,image/png,image/webp',
     className,
     id,
     label,

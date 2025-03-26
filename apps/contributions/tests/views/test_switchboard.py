@@ -615,6 +615,70 @@ class TestSwitchboardContributionsViewSet:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": "Invalid token."}
 
+    def test_filter_by_provider_subscription_id(self, api_client, switchboard_api_token):
+        subscription_contribution = ContributionFactory(monthly_subscription=True)
+        ContributionFactory()
+        ContributionFactory()
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"provider_subscription_id": subscription_contribution.provider_subscription_id},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["id"] == subscription_contribution.id
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"provider_subscription_id": "non_existent_id"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 0
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 3
+
+    def test_filter_by_provider_payment_id(self, api_client, switchboard_api_token):
+        payment_contribution = ContributionFactory(one_time=True)
+        ContributionFactory()
+        ContributionFactory()
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"provider_payment_id": payment_contribution.provider_payment_id},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["id"] == payment_contribution.id
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"provider_payment_id": "non_existent_id"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 0
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 3
+
 
 @pytest.mark.django_db
 class TestSwitchboardPaymentsViewSet:
@@ -739,3 +803,35 @@ class TestSwitchboardPaymentsViewSet:
         assert response.json() == {
             "stripe_balance_transaction_id": ["payment with this stripe balance transaction id already exists."]
         }
+
+    def test_filter_by_stripe_balance_transaction_id(self, api_client, payment, token):
+        # ensure there are multiple payments
+        PaymentFactory()
+        PaymentFactory()
+
+        response = api_client.get(
+            reverse("switchboard-payment-list"),
+            {"stripe_balance_transaction_id": payment.stripe_balance_transaction_id},
+            headers={"Authorization": f"Token {token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["id"] == payment.id
+
+        response = api_client.get(
+            reverse("switchboard-payment-list"),
+            {"stripe_balance_transaction_id": "non_existent_id"},
+            headers={"Authorization": f"Token {token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 0
+
+        response = api_client.get(
+            reverse("switchboard-payment-list"),
+            headers={"Authorization": f"Token {token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 3

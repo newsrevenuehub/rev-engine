@@ -7,6 +7,7 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
 import reversion
+from django_filters.rest_framework import DjangoFilterBackend
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -34,6 +35,7 @@ class SwitchboardContributionsViewSet(
     viewsets.mixins.RetrieveModelMixin,
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
+    mixins.ListModelMixin,
 ):
     """Viewset for switchboard to update contributions."""
 
@@ -44,6 +46,8 @@ class SwitchboardContributionsViewSet(
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["provider_subscription_id", "provider_payment_id"]
 
     def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):
         """Send a receipt email if requested in a query param.
@@ -122,6 +126,7 @@ class SwitchboardPaymentsViewSet(
     RevisionMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
+    mixins.ListModelMixin,
     mixins.UpdateModelMixin,
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
@@ -133,6 +138,8 @@ class SwitchboardPaymentsViewSet(
     queryset = Payment.objects.all()
     serializer_class = serializers.SwitchboardPaymentSerializer
     authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["stripe_balance_transaction_id"]
 
     def perform_create(self, serializer):
         with reversion.create_revision():

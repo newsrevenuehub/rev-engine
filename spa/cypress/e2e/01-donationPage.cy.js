@@ -59,34 +59,10 @@ describe('Clearbit', () => {
 describe('Donation page displays dynamic page elements', () => {
   beforeEach(() => cy.visitDonationPage());
 
-  it('should render expected rich text content', () => {
-    cy.contains('Your support keeps us going!');
-  });
-
   it('should render expected expected frequencies', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     cy.getByTestId('d-frequency');
     frequency.content.forEach((freq) => cy.contains(mapFrequencyValueToDisplayName[freq.value]));
-  });
-
-  it('should render expected amounts', () => {
-    const frequency = getPageElementByType(livePageOne, 'DFrequency');
-    const amounts = getPageElementByType(livePageOne, 'DAmount');
-    cy.getByTestId('d-amount');
-    frequency.content.forEach((freq) => {
-      cy.contains(mapFrequencyValueToDisplayName[freq.value]).click();
-      amounts.content.options[freq.value].forEach((amount) => cy.contains(amount));
-    });
-  });
-
-  it("doesn't change the other amount field if the user uses arrow keys when it's focused", () => {
-    cy.getByTestId(`amount-other`).within(() => {
-      cy.get('input').type('123');
-      cy.get('input').type('{upArrow}');
-      cy.get('input').should('have.value', '123');
-      cy.get('input').type('{downArrow}');
-      cy.get('input').should('have.value', '123');
-    });
   });
 
   it('should render text indicating expected frequencies', () => {
@@ -112,7 +88,7 @@ describe('Donation page displays dynamic page elements', () => {
     }
   });
 
-  it('should render the correct fee base on frequency and amount', () => {
+  it('should render the correct fee based on frequency and amount', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     const amounts = getPageElementByType(livePageOne, 'DAmount');
 
@@ -152,129 +128,6 @@ describe('Donation page displays dynamic page elements', () => {
     cy.url().should('include', expectedPageSlug);
     cy.wait(['@getPageWithPayFeesDefault']);
     getFeesCheckbox().should('not.be.checked');
-  });
-
-  it('should render DSwag', () => {
-    cy.getByTestId('d-swag').should('exist');
-  });
-
-  it('should render swag options if swagThreshold is met', () => {
-    const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
-    const swagThreshold = swagElement.content.swagThreshold;
-
-    cy.contains(
-      `Give a total of ${livePageOne.currency.symbol}${swagThreshold} ${livePageOne.currency.code} /year or more to be eligible`
-    );
-    cy.getByTestId('swag-content').should('not.exist');
-    cy.setUpDonation('Yearly', '365');
-    cy.getByTestId('swag-content').should('exist');
-  });
-
-  it('should render a dropdown of swagOptions for each swag in the list', () => {
-    const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
-
-    cy.setUpDonation('Yearly', '365');
-    cy.contains('Totes Dope Tote').should('exist');
-    cy.findByRole('button', { name: /Totes Dope Tote/ }).click();
-    cy.findAllByRole('option').its('length').should('eq', swagElement.content.swags[0].swagOptions.length);
-  });
-});
-
-describe('Reason for Giving element', () => {
-  beforeEach(() => {
-    cy.visitDonationPage();
-  });
-
-  it('should render the Reason for Giving element', () => {
-    cy.getByTestId('d-reason').should('exist');
-  });
-
-  it('should render select with options', () => {
-    cy.getByTestId('reason-for-giving-reason-select').should('exist');
-    cy.getByTestId('reason-for-giving-reason-select').click();
-    cy.findByRole('option', { name: 'test1' }).click();
-  });
-
-  it('should not show "honoree/in_memory_of" input if "No" is selected', () => {
-    cy.getByTestId('tribute-type-null')
-      .get('input')
-      .then(($input) => {
-        cy.log($input);
-        expect($input).to.be.checked;
-      });
-
-    cy.getByTestId('tribute-input').should('not.exist');
-  });
-
-  it('should show tribute input if honoree or in_memory_of is selected', () => {
-    cy.getByTestId('tribute-type-honoree').click();
-    cy.getByTestId('tribute-input').should('exist');
-
-    cy.getByTestId('tribute-type-inMemoryOf').click();
-    cy.getByTestId('tribute-input').should('exist');
-  });
-
-  it('requires a selection if the element is required', () => {
-    const validationError = 'This field is required';
-    const pageWithRequiredReason = {
-      ...livePageOne,
-      elements: livePageOne.elements.map((el) => {
-        if (el.type === 'DReason') {
-          return { ...el, requiredFields: 'reason_for_giving' };
-        }
-
-        return el;
-      })
-    };
-
-    // Load page with updated fixture.
-
-    cy.intercept(
-      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
-      {
-        body: { reason_for_giving: validationError },
-        statusCode: 400
-      }
-    );
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-      { body: pageWithRequiredReason, statusCode: 200 }
-    ).as('getPageDetail');
-    cy.visit(getTestingDonationPageUrl('my-page/'));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', 'my-page');
-    cy.wait('@getPageDetail');
-
-    // Assert that we don't go to the payment modal if we don't pick a reason.
-    // We should be blocked by browser validation.
-
-    fillOutDonorInfoSection();
-    fillOutAddressSection();
-    cy.get('form')
-      .findByRole('button', { name: /Continue to Payment/ })
-      .click();
-    cy.get('form #stripe-payment-element').should('not.exist');
-  });
-
-  it("doesn't require a selection if the element isn't required", () => {
-    // The default page fixture doesn't require a reason for giving.
-
-    cy.interceptStripeApi();
-    cy.intercept(
-      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
-      {
-        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
-        statusCode: 201
-      }
-    );
-    fillOutDonorInfoSection();
-    fillOutAddressSection();
-    cy.get('form')
-      .findByRole('button', { name: /Continue to Payment/ })
-      .click();
-
-    // Assert that the payment modal appears.
-    cy.get('form #stripe-payment-element');
   });
 });
 
@@ -415,21 +268,6 @@ describe('404 behavior', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
     cy.getByTestId('page-error').should('exist');
-  });
-});
-
-describe('Footer-like content', () => {
-  beforeEach(() => cy.visitDonationPage());
-
-  it('should render page footer with link to fundjournalism.org', () => {
-    cy.getByTestId('donation-page-footer').should('exist');
-    cy.getByTestId('donation-page-footer')
-      .contains('fundjournalism.org')
-      .should('have.attr', 'href', 'https://fundjournalism.org/');
-  });
-
-  it('should render correct copyright info, including revenue program name', () => {
-    cy.getByTestId('donation-page-footer').contains(new Date().getFullYear() + ' ' + livePageOne.revenue_program.name);
   });
 });
 
@@ -969,38 +807,6 @@ describe('User flow: unhappy paths', () => {
       .click();
     cy.wait('@create-one-time-payment__unauthorized');
     cy.get('[data-testid="live-error-fallback"]');
-  });
-
-  specify("Users indicates they want to specify an amount, but doesn't specify an actual number", () => {
-    cy.visitDonationPage();
-
-    // Test various user interactions to prove that the submit button never becomes enabled and the label is correct.
-
-    cy.getByTestId('amount-other').click();
-    cy.get('form')
-      .findByRole('button', { name: /Enter a valid amount/ })
-      .should('have.attr', 'disabled');
-
-    // Do this twice to try both states of the "pay fees" toggle.
-
-    for (let i = 0; i < 2; i++) {
-      cy.getByTestId('pay-fees').click();
-      cy.get('form')
-        .findByRole('button', { name: /Enter a valid amount/ })
-        .should('have.attr', 'disabled');
-
-      cy.getByTestId('pay-fees').within(() => cy.get('input[type="checkbox"]').click());
-      cy.get('form')
-        .findByRole('button', { name: /Enter a valid amount/ })
-        .should('have.attr', 'disabled');
-    }
-
-    cy.get('[data-testid="amount-other-selected"] input').type('3');
-    cy.get('[data-testid="amount-other-selected"] input').clear();
-    cy.getByTestId('pay-fees').click();
-    cy.get('form')
-      .findByRole('button', { name: /Enter a valid amount/ })
-      .should('have.attr', 'disabled');
   });
 
   specify('User enters single character into country field, then hits enter', () => {

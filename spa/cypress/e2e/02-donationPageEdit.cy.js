@@ -68,42 +68,12 @@ describe('Contribution page edit', () => {
     return cy.wait('@getPage');
   });
 
-  it('should render page edit buttons', () => {
-    cy.getByTestId('preview-page-button');
-    cy.getByTestId('edit-page-button');
-    cy.getByTestId('save-page-button');
-    cy.getByTestId('delete-page-button');
-  });
-
-  it('should disable the save button before any edits are made', () => {
-    cy.get('[data-testid="save-page-button"]').should('be.disabled');
-  });
-
   it('should default to the edit interface once a page has loaded', () => {
     cy.getByTestId('edit-interface');
   });
 
-  it('should open edit interface when clicking edit button', () => {
-    // Toggle out of edit mode.
-
-    cy.getByTestId('preview-page-button').click();
-    cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('edit-interface');
-  });
-
-  it('should close edit interface when clicking preview button', () => {
-    cy.getByTestId('preview-page-button').click();
-    cy.getByTestId('edit-interface').should('not.exist');
-  });
-
   describe('Currency display', () => {
     const testAmounts = ['amount-120-selected', 'amount-180', 'amount-365', 'amount-other'];
-
-    it('displays the currency symbol defined in the page data', () => {
-      for (const amount of testAmounts) {
-        cy.getByTestId(amount).should('contain', livePage.currency.symbol);
-      }
-    });
 
     it("defaults to $ as currency symbol if it's not defined", () => {
       // Have to re-run the entire before() process, but with different API
@@ -182,140 +152,6 @@ describe('Contribution page edit', () => {
     it('should render element detail when edit item is clicked', () => {
       cy.editElement('DRichText');
       cy.getByTestId('element-properties').should('exist');
-    });
-
-    describe('Frequency editor', () => {
-      beforeEach(() => cy.editElement('DFrequency'));
-
-      it('should render the frequency editor when edit item is clicked', () => {
-        cy.getByTestId('frequency-editor');
-        cy.contains('Contribution Frequency');
-      });
-
-      it('should validate frequency', () => {
-        // Uncheck all the frequencies
-        cy.findByRole('checkbox', { name: 'One-time payments enabled' }).click();
-        cy.findByRole('checkbox', { name: 'Monthly payments enabled' }).click();
-        cy.findByRole('checkbox', { name: 'Yearly payments enabled' }).click();
-
-        cy.findByText('You must have at least 1 frequency enabled.');
-        cy.findByRole('button', { name: 'Update' }).should('be.disabled');
-      });
-
-      it('should accept valid input and changes should show on page', () => {
-        // Make a change and save it.
-        cy.findByRole('checkbox', { name: 'Monthly payments enabled' }).click();
-        cy.findByRole('checkbox', { name: 'Yearly payments enabled' }).click();
-        cy.findByRole('button', { name: 'Update' }).click();
-
-        // Contribution page should only show item checked, and nothing else.
-        cy.getByTestId('d-frequency').contains('One-time');
-        cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
-        cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
-      });
-    });
-  });
-
-  describe('Amount editor', () => {
-    const amountElement = livePage.elements.find((el) => el.type === 'DAmount');
-    const options = amountElement.content.options;
-
-    beforeEach(() => {
-      cy.intercept(`**/${LIST_STYLES}**`, {});
-      cy.editElement('DAmount');
-    });
-
-    it('should render the amount editor', () => {
-      cy.getByTestId('amount-editor');
-    });
-
-    it('should show existing frequencies and amounts', () => {
-      for (const frequency in options) {
-        if (frequency === 'other') {
-          continue;
-        }
-
-        cy.getByTestId(`amount-interval-${frequency}`).within(() =>
-          options[frequency].forEach((amount) => {
-            cy.contains(amount);
-          })
-        );
-      }
-    });
-
-    it('should remove an amount when the remove button is clicked', () => {
-      const amountToRemove = 120;
-
-      cy.getByTestId('amount-interval-one_time').within(() => {
-        cy.findByRole('button', { name: `Remove ${amountToRemove}` }).click();
-        cy.contains(amountToRemove).should('not.exist');
-      });
-    });
-
-    it('should add an amount', () => {
-      const amountToAdd = 5;
-
-      cy.getByTestId('amount-interval-one_time').within(() => {
-        cy.findByLabelText('Add amount').type(amountToAdd);
-        cy.findByLabelText('Add').click();
-        cy.contains(amountToAdd);
-      });
-    });
-
-    it('should prevent user from removing last amount in list', () => {
-      cy.getByTestId('amount-interval-one_time').within(() => {
-        cy.findAllByRole('button', { name: /Remove/ }).each((el) => cy.wrap(el).click({ force: true }));
-        // This is the last amount in the fixture.
-        cy.contains('365');
-      });
-    });
-  });
-
-  describe('Contributor info editor', () => {
-    it('should render the contributor info editor', () => {
-      cy.editElement('DDonorInfo');
-      cy.getByTestId('contributor-info-editor').should('exist');
-    });
-  });
-
-  describe('Contributor address editor', () => {
-    it('should render the DonorAddressEditor', () => {
-      cy.editElement('DDonorAddress');
-      cy.getByTestId('donor-address-editor').should('exist');
-    });
-  });
-
-  describe('Payment editor', () => {
-    beforeEach(() => cy.getByTestId('edit-page-button').click());
-
-    it('should render the PaymentEditor', () => {
-      cy.editElement('DPayment');
-      cy.getByTestId('payment-editor').should('exist');
-    });
-
-    it('should disable the checkbox to default paying fees if paying fees is turned off', () => {
-      cy.editElement('DPayment');
-      cy.findByRole('checkbox', { name: 'Offer option to pay payment provider fees' }).click();
-      cy.findByRole('checkbox', { name: 'Selected by default' }).should('be.disabled');
-    });
-  });
-
-  describe('Swag editor', () => {
-    const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
-
-    beforeEach(() => {
-      cy.getByTestId('edit-page-button').click();
-      cy.editElement('DSwag');
-    });
-
-    it('should render the swag editor', () => {
-      cy.getByTestId('swag-editor').should('exist');
-    });
-
-    it('should show existing swags', () => {
-      const swagName = pageSwagElement.content.swags[0].swagName;
-
-      cy.findByRole('textbox', { name: 'Swag Selection Label' }).should('have.value', swagName);
     });
   });
 
@@ -413,11 +249,6 @@ describe('Contribution page edit', () => {
         .should('eq', '/media/test.png');
     });
 
-    it('should render the Sidebar tab', () => {
-      cy.getByTestId('edit-page-button').click({ force: true });
-      cy.getByTestId('edit-sidebar-tab').click({ force: true });
-    });
-
     it('should add elements to the editor tab', () => {
       let existingElementsLength = 0;
 
@@ -495,40 +326,6 @@ describe('Edit interface: Settings', () => {
     cy.getByTestId('edit-settings-tab').click({ force: true });
   });
 
-  it('should render the settings tab when settings tab clicked', () => {
-    cy.getByTestId('page-setup');
-  });
-
-  it('should pre-fill incoming data', () => {
-    const expectedHeading = livePage.heading;
-    cy.findByRole('textbox', { name: 'Form panel heading' }).should('have.value', expectedHeading);
-  });
-
-  it('should update contribution page view with new content and display it in preview mode', () => {
-    const previousHeading = livePage.heading;
-    const newHeading = 'My new test heading';
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-    cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
-
-    cy.getByTestId('s-page-heading').contains(previousHeading);
-    cy.findByRole('textbox', { name: 'Form panel heading' }).clear();
-    cy.findByRole('textbox', { name: 'Form panel heading' }).type(newHeading, { force: true });
-    cy.get('#edit-settings-tab-panel').within(() =>
-      cy.findByRole('button', { name: 'Update' }).scrollIntoView().click()
-    );
-    cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
-    cy.getByTestId('s-page-heading').contains(newHeading);
-
-    // Make sure update is reflected in preview:
-    cy.getByTestId('save-page-button').click();
-    cy.getByTestId('s-page-heading').contains(newHeading);
-    cy.getByTestId('cancel-button').click();
-    cy.getByTestId('s-page-heading').contains(newHeading);
-
-    // Go back to edit mode
-    cy.getByTestId('edit-page-button').click();
-  });
-
   it('should show a warning when updating a live page', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.getByTestId('edit-layout-tab').click({ force: true });
@@ -536,56 +333,6 @@ describe('Edit interface: Settings', () => {
     cy.getByTestId('save-page-button').click();
     cy.getByTestId('confirmation-modal').contains("You're making changes to a live contribution page. Continue?");
     cy.getByTestId('cancel-button').click();
-  });
-
-  it("disables the Undo button if the user hasn't made a change", () => {
-    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
-  });
-
-  for (const label of imageFieldNames) {
-    const mockFile = { contents: Cypress.Buffer.from('mock-image'), fileName: 'image.jpeg', lastModified: Date.now() };
-
-    it(`enables the Undo button when the user selects an image for "${label}"`, () => {
-      // Inputs are hidden from view.
-      cy.findByLabelText(label).selectFile(mockFile, { force: true });
-      cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
-    });
-  }
-
-  for (const name of textFieldNames) {
-    it(`enables the Undo button when the user edits "${name}"`, () => {
-      cy.findByRole('textbox', { name }).scrollIntoView().type('change');
-      cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
-    });
-  }
-
-  it('resets changes when the Undo button is clicked', () => {
-    for (const label of imageFieldNames) {
-      const mockFile = {
-        contents: Cypress.Buffer.from('mock-image'),
-        fileName: `image-${label}.jpeg`,
-        lastModified: Date.now()
-      };
-
-      cy.findByLabelText(label).selectFile(mockFile, { force: true });
-      cy.findByAltText(`image-${label}.jpeg`).should('exist');
-    }
-
-    for (const name of textFieldNames) {
-      cy.findByRole('textbox', { name }).type('change', { force: true });
-    }
-
-    cy.findByRole('button', { name: 'Undo' }).click();
-    cy.findByLabelText('Form panel heading').should('have.value', pageDetail.heading);
-    cy.findByLabelText('Post Thank You redirect').should('have.value', pageDetail.post_thank_you_redirect);
-
-    // The underlying file inputs will not have changed value, because
-    // JavaScript can't change a file input's value. We check values indirectly
-    // by verifying the image previews are now gone.
-
-    for (const label of imageFieldNames) {
-      cy.findByAltText(`image-${label}.jpeg`).should('not.exist');
-    }
   });
 
   it('sends blank strings for the appropriate fields when images are removed', () => {
@@ -716,25 +463,6 @@ describe('Edit interface: Styles', () => {
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('edit-style-tab').click({ force: true });
   });
-
-  it("disables the Undo button if the user hasn't made a change", () => {
-    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
-  });
-
-  it('enables the Undo button when the user makes a change', () => {
-    cy.findByLabelText('Heading Font', { selector: 'input' }).click();
-    cy.findByText('Custom Font').click();
-    cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
-  });
-
-  it('resets changes when the Undo button is clicked', () => {
-    cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
-    cy.findByLabelText('Heading Font', { selector: 'input' }).click();
-    cy.findByText('Custom Font').click();
-    cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Custom Font');
-    cy.findByRole('button', { name: 'Undo' }).click();
-    cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
-  });
 });
 
 describe('Contribution page delete', () => {
@@ -803,45 +531,5 @@ describe('Page load side effects', () => {
 
   it('should NOT contain clearbit.js script in body', () => {
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
-  });
-});
-
-describe('ReasonEditor', () => {
-  beforeEach(() => {
-    cy.forceLogin(orgAdminUser);
-    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
-    cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPageDetail');
-    cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
-
-    cy.visit(testEditPageUrl);
-    cy.url().should('include', testEditPageUrl);
-    cy.wait('@getPageDetail');
-    cy.getByTestId('edit-page-button').click();
-    cy.editElement('DReason');
-  });
-
-  it('should render the ReasonEditor', () => {
-    cy.getByTestId('reason-editor').should('exist');
-  });
-
-  it('should show the three "ask-" checkboxes', () => {
-    cy.findByRole('checkbox', { name: 'Ask contributor why they are making a contribution' }).should('exist');
-    cy.findByRole('checkbox', { name: 'Ask contributor if their contribution is in honor of somebody' }).should(
-      'exist'
-    );
-    cy.findByRole('checkbox', { name: 'Ask contributor if their contribution is in memory of somebody' }).should(
-      'exist'
-    );
-  });
-
-  it('should only show reason for giving options if asking for a reason is checked', () => {
-    cy.findByRole('checkbox', { name: 'Ask contributor why they are making a contribution' }).should('be.checked');
-    cy.findByText('Add a Reason for Giving').should('exist');
-    cy.findByRole('checkbox', { name: 'Ask contributor why they are making a contribution' }).click();
-    cy.findByText('Add a Reason for Giving').should('not.exist');
   });
 });

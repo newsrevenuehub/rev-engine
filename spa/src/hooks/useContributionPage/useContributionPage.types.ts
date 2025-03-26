@@ -178,6 +178,19 @@ export interface FrequencyElement extends ContributionPageElement {
   }[];
 }
 
+export interface ImageElement extends ContributionPageElement {
+  /**
+   * If the element has been saved, this is an object with a string property
+   * containing the URL to the uploaded file. If it's been edited but not saved yet,
+   * it is the uploaded file with no object wrapper.
+   */
+  content:
+    | File
+    | {
+        url: string;
+      };
+}
+
 export interface PaymentElement extends ContributionPageElement {
   content: {
     /**

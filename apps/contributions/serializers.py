@@ -883,8 +883,10 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-
     revenue_program_source = serializers.SerializerMethodField(read_only=True)
+    # TODO @BW: Remove this once Contribution.contributor is non-nullable
+    # DEV-5953
+    contributor = serializers.PrimaryKeyRelatedField(queryset=Contributor.objects.all(), allow_null=False)
 
     class Meta:
         model = Contribution
@@ -948,6 +950,8 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             )
         return value
 
+    # TODO @BW: Add validation to ensure provider_customer_id is set if send_receipt is true in request context
+    # DEV-5961
     def validate(self, data):
         """Ensure that either a revenue program or a donation page is set on the contribution, but not both."""
         data = super().validate(data)

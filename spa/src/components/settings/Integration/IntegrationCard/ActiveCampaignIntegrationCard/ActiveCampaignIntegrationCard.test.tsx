@@ -87,10 +87,24 @@ describe('ActiveCampaignIntegrationCard', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('opens a modal if the View Details button is clicked', () => {
+  it.each([
+    ['connected', true],
+    ['unconnected', false]
+  ])('opens a modal with %s state if the View Details button is clicked', (_, activecampaign_integration_connected) => {
+    useConnectActiveCampaignMock.mockReturnValue({
+      ...mockActiveCampaignData,
+      activecampaign_integration_connected,
+      isError: false,
+      isLoading: false,
+      updateAccessTokenAndServerUrl: jest.fn()
+    });
     tree();
     fireEvent.click(screen.getByRole('button', { name: 'View Details' }));
-    expect(screen.getByRole('dialog')).toHaveAccessibleName('ActiveCampaign Integration');
+
+    const dialog = screen.getByRole('dialog');
+
+    expect(dialog).toHaveAccessibleName('ActiveCampaign Integration');
+    expect(dialog.dataset.connected).toBe(activecampaign_integration_connected.toString());
   });
 
   it('closes the modal if the modal requests it', () => {

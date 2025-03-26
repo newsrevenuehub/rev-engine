@@ -7,6 +7,7 @@ import { EnginePlan } from 'hooks/useContributionPage';
 import { PaidPlanContent } from './PaidPlanContent';
 
 const ActiveCampaignModalPropTypes = {
+  connected: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
   onStartConnection: PropTypes.func.isRequired,
   open: PropTypes.bool
@@ -22,9 +23,21 @@ export interface ActiveCampaignModalProps extends InferProps<typeof ActiveCampai
  * This modal shows general info about the ActiveCampaign integration and,
  * depending on the user's organization's plan, different options to proceed.
  */
-export function ActiveCampaignModal({ onClose, onStartConnection, open, orgPlan }: ActiveCampaignModalProps) {
+export function ActiveCampaignModal({
+  connected,
+  onClose,
+  onStartConnection,
+  open,
+  orgPlan
+}: ActiveCampaignModalProps) {
   return (
-    <Modal width={566} open={!!open} onClose={onClose} aria-label="ActiveCampaign Integration">
+    <Modal
+      width={566}
+      open={!!open}
+      onClose={onClose}
+      aria-label="ActiveCampaign Integration"
+      data-connected={connected}
+    >
       <ModalHeader onClose={onClose}>
         <IntegrationCardHeader {...cardProps} />
       </ModalHeader>
@@ -32,7 +45,7 @@ export function ActiveCampaignModal({ onClose, onStartConnection, open, orgPlan 
         {orgPlan === 'FREE' ? (
           <FreePlanContent onClose={onClose} />
         ) : (
-          <PaidPlanContent onClose={onClose} onStartConnection={onStartConnection} />
+          <PaidPlanContent connected={connected} onClose={onClose} onStartConnection={onStartConnection} />
         )}
       </>
     </Modal>

@@ -31,8 +31,8 @@ export function CreateUser({ onNextStep, onPreviousStep }: CreateUserProps) {
             <li>Navigate to 'Settings' › 'Users and Groups', and select 'Create a new user'.</li>
             <li>Enter the required information (you'll need access to the email address for verification purposes).</li>
             <li>
-              Logout and re-login as the newly created user. The new user account is where you can manage your RevEngine
-              integration.
+              Log out and log back in as the newly created user. The new user account is where you can manage your
+              RevEngine integration.
             </li>
           </Bullets>
           <Screenshots>

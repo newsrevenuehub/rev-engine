@@ -617,8 +617,8 @@ class TestSwitchboardContributionsViewSet:
 
     def test_filter_by_provider_subscription_id(self, api_client, switchboard_api_token):
         subscription_contribution = ContributionFactory(monthly_subscription=True)
-        ContributionFactory()
-        ContributionFactory()
+        ContributionFactory(monthly_subscription=True)
+        ContributionFactory(monthly_subscription=True)
 
         response = api_client.get(
             reverse("switchboard-contribution-list"),
@@ -649,8 +649,8 @@ class TestSwitchboardContributionsViewSet:
 
     def test_filter_by_provider_payment_id(self, api_client, switchboard_api_token):
         payment_contribution = ContributionFactory(one_time=True)
-        ContributionFactory()
-        ContributionFactory()
+        ContributionFactory(one_time=True)
+        ContributionFactory(one_time=True)
 
         response = api_client.get(
             reverse("switchboard-contribution-list"),

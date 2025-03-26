@@ -18,6 +18,13 @@ export interface RevenueProgramActiveCampaignStatus {
   slug: string;
 }
 
+export interface SaveRevenueProgramActiveCampaignUrlAndKeyValidationErrors {
+  /**
+   * Non-field error message.
+   */
+  non_field_errors?: string[];
+}
+
 async function fetchActiveCampaignStatus(
   revenueProgramId: RevenueProgram['id']
 ): Promise<RevenueProgramActiveCampaignStatus> {

@@ -1,7 +1,7 @@
 import { axe } from 'jest-axe';
 import { act, fireEvent, render, screen, waitFor } from 'test-utils';
 import { useConnectActiveCampaign } from 'hooks/useConnectActiveCampaign';
-import ConnectionModal, { ConnectionModalProps } from './ConnectionModal';
+import ConnectionModal, { ConnectionModalProps, AC_URL_OR_TOKEN_VALIDATION_ERROR } from './ConnectionModal';
 
 jest.mock('hooks/useConnectActiveCampaign');
 jest.mock('./steps');
@@ -132,7 +132,7 @@ describe('ConnectionModal', () => {
     await act(() => Promise.resolve());
   });
 
-  it('sets an error message on EnterApiKey if updating fails', async () => {
+  it('sets a generic error message on EnterApiKey if generically fails', async () => {
     updateAccessTokenAndServerUrl.mockRejectedValue(new Error());
     tree();
     fireEvent.click(screen.getByRole('button', { name: 'onNextStep true' }));
@@ -142,6 +142,21 @@ describe('ConnectionModal', () => {
     await waitFor(() => expect(updateAccessTokenAndServerUrl).toBeCalledTimes(1));
     expect(screen.getByTestId('mock-enter-api-key-error')).toHaveTextContent(
       'Failed to save API information. Please try again.'
+    );
+  });
+
+  it('sets a specific error message on EnterApiKey if the API key or server URL is invalid', async () => {
+    updateAccessTokenAndServerUrl.mockRejectedValue({
+      response: { data: { non_field_errors: [AC_URL_OR_TOKEN_VALIDATION_ERROR] } }
+    });
+    tree();
+    fireEvent.click(screen.getByRole('button', { name: 'onNextStep true' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onNextStep' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onNextStep' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onSetKeyAndUrl' }));
+    await waitFor(() => expect(updateAccessTokenAndServerUrl).toBeCalledTimes(1));
+    expect(screen.getByTestId('mock-enter-api-key-error')).toHaveTextContent(
+      'Invalid API information. Please confirm API URL and key and try again.'
     );
   });
 

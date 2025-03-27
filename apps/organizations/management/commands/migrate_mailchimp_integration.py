@@ -115,7 +115,7 @@ class MailchimpMigrator:
 
     def get_subscription_interval_for_order(self, order_id: str) -> Literal["month", "year"] | None:
         """Get the subscription interval for an order."""
-        invoice_key = self.stripe_importer.make_key(entity_name="invoice", entity_id=order_id)
+        invoice_key = self.stripe_importer.make_key(entity_name="Invoice", entity_id=order_id)
         if not (invoice := self.stripe_importer.get_resource_from_cache(invoice_key)):
             logger.warning("Invoice with ID %s not found in cache", order_id)
             return None
@@ -330,11 +330,17 @@ def migrate_rp_mailchimp_integration(rp_id: int, mc_batch_size: int, mc_results_
         mc_batch_size=mc_batch_size,
         mc_results_per_page=mc_results_per_page,
     )
+
     migrator.get_stripe_invoices()
-    migrator.ensure_mailchimp_monthly_and_yearly_products()
-    migrator.ensure_monthly_and_yearly_mailchimp_segments()
-    migrator.ensure_mailchimp_recurring_segment_criteria()
-    migrator.update_mailchimp_orders_for_rp()
+    # at this point we have Stripe data in Redis cache
+    try:
+        migrator.ensure_mailchimp_monthly_and_yearly_products()
+        migrator.ensure_monthly_and_yearly_mailchimp_segments()
+        migrator.ensure_mailchimp_recurring_segment_criteria()
+        migrator.update_mailchimp_orders_for_rp()
+    # no matter what, we want to clear the cache
+    finally:
+        migrator.stripe_importer.clear_all_stripe_transactions_cache()
 
 
 class Command(BaseCommand):

@@ -164,7 +164,7 @@ class MailchimpMigrator:
     def ensure_mailchimp_monthly_and_yearly_products(self) -> None:
         """Ensure that the RP's MC account has new product types for monthly and yearly contributions."""
         target_products = [MailchimpProductType.MONTHLY, MailchimpProductType.YEARLY]
-        to_create = [x for x in target_products if not getattr(self.rp, (field := x.as_rp_field()))]
+        to_create = [x for x in target_products if not getattr(self.rp, x.as_rp_field())]
         if not to_create:
             logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp product types", self.rp.id)
             return
@@ -173,6 +173,7 @@ class MailchimpMigrator:
             self.rp.ensure_mailchimp_contribution_product(product_type)
             # MC products are use cached property, and since we reference above before
             # creating, we need to clear cached value.
+            field = product_type.as_rp_field()
             self.rp.__dict__.pop(field, None)
             if not getattr(self.rp, field):
                 logger.warning(

@@ -263,7 +263,13 @@ class MailchimpMigrator:
         return orders_to_update
 
     def _get_updateable_orders(self) -> list[PartialMailchimpRecurringOrder]:
-        return [x for x in self._get_all_orders() if x["id"].startswith("in_")]
+        return [
+            x
+            for x in self._get_all_orders()
+            if x["id"].startswith("in_")
+            and len(x["lines"]) == 0
+            and x["lines"][0]["product_id"] == MailchimpProductType.RECURRING.as_mailchimp_product_id(self.rp.id)
+        ]
 
     def get_update_mailchimp_orders_batches(self) -> list[BatchOperation]:
         batches = []

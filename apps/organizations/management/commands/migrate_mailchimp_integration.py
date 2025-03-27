@@ -101,11 +101,11 @@ class MailchimpMigrator:
                 f"Revenue program with ID {self.rp.id} does not have a Stripe account ID"
             )
 
-    def get_stripe_invoices(self) -> None:
+    def get_stripe_data(self) -> None:
         """Retrieve all invoices from Stripe for the revenue program."""
         logger.info("Retrieving all invoices from Stripe for revenue program with ID %s", self.rp.id)
         try:
-            self.stripe_importer.list_and_cache_invoices()
+            self.stripe_importer.list_and_cache_stripe_resources_for_recurring_contributions()
         # or is this backoff error?
         except stripe.error.StripeError as e:
             logger.warning("Failed to retrieve invoices from Stripe for revenue program with ID %s: %s", self.rp.id, e)
@@ -119,8 +119,13 @@ class MailchimpMigrator:
         if not (invoice := self.stripe_importer.get_resource_from_cache(invoice_key)):
             logger.warning("Invoice with ID %s not found in cache", order_id)
             return None
-        if not (sub := invoice.get("subscription")):
-            logger.warning("Invoice with ID %s does not have a subscription", order_id)
+        if not (sub_id := invoice.get("subscription")):
+            logger.warning("Invoice with ID %s does not have a subscription ID", order_id)
+            return None
+        sub_key = self.stripe_importer.make_key(entity_name="Subscription", entity_id=sub_id)
+
+        if not (sub := self.stripe_importer.get_resource_from_cache(sub_key)):
+            logger.warning("Subscription with ID %s (for invoice %s) not found in cache", sub_id, order_id)
             return None
         if not (plan := sub.get("plan")):
             logger.warning("Subscription %s for invoice with ID %s does not have a plan object", sub["id"], order_id)
@@ -204,13 +209,13 @@ class MailchimpMigrator:
             )
         if segment.options == (options := MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()):
             logger.info(
-                "Revenue program with ID %s already has upated membership criteria for recurring contributors segment",
+                "Revenue program with ID %s already has updated membership criteria for recurring contributors segment",
                 self.rp.id,
             )
             return
         try:
             self.mc_client.lists.update_segment(
-                segment.list_id, self.rp.mailchimp_recurring_contributors_segment_id, options
+                segment.list_id, self.rp.mailchimp_recurring_contributors_segment_id, {"options": options}
             )
         except ApiClientError as e:
             logger.warning(
@@ -331,7 +336,7 @@ def migrate_rp_mailchimp_integration(rp_id: int, mc_batch_size: int, mc_results_
         mc_results_per_page=mc_results_per_page,
     )
 
-    migrator.get_stripe_invoices()
+    migrator.get_stripe_data()
     # at this point we have Stripe data in Redis cache
     try:
         migrator.ensure_mailchimp_monthly_and_yearly_products()

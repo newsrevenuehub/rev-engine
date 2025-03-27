@@ -1,7 +1,6 @@
 import inspect
 import json
 import logging
-import os
 import time
 from dataclasses import dataclass
 from typing import Literal, TypedDict
@@ -18,11 +17,8 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName
 
 
-# For QA, we'll set this to 10 so that we can test pagination without
-# having to create a bunch of test data
-MC_RESULTS_PER_PAGE = int(os.environ.get("MC_RESULTS_PER_PAGE", 1000))
-# For QA, we'll set this to 5 so that we can behavior around > 1 call
-MC_BATCH_SIZE = int(os.environ.get("MC_BATCH_SIZE", 500))
+MC_RESULTS_PER_PAGE_DEFAULT = 1000
+MC_BATCH_SIZE_DEFAULT = 500
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -68,6 +64,8 @@ class MailchimpMigrator:
     """Class to handle the migration of a revenue program's Mailchimp integration."""
 
     rp_id: int
+    mc_batch_size: int
+    mc_results_per_page: int
 
     def __post_init__(self):
         try:
@@ -238,7 +236,7 @@ class MailchimpMigrator:
         """Get all orders for a store."""
         offset = 0
         orders_to_update = []
-        limit = MC_RESULTS_PER_PAGE
+        limit = self.mc_results_per_page
         line_item_save_keys = inspect.get_annotations(MailchimpOrderLineItem).keys()
         while True:
             logger.info(
@@ -292,9 +290,9 @@ class MailchimpMigrator:
         if not batches:
             logger.info("No orders to update for revenue program ID %s", self.rp.id)
         batch_outcomes = []
-        for i in range(0, len(batches), MC_BATCH_SIZE):
+        for i in range(0, len(batches), self.mc_batch_size):
             start_time = time.time()
-            response = self.mc_client.batches.start({"operations": batches[i : i + MC_BATCH_SIZE]})
+            response = self.mc_client.batches.start({"operations": batches[i : i + self.mc_batch_size]})
             batch_id = response["id"]
             logger.info("Batch %s started with ID: {batch_id}", i + 1)
             # this can take up to 10 minutes to return
@@ -331,8 +329,12 @@ class MailchimpMigrator:
         return "timeout"
 
 
-def migrate_rp_mailchimp_integration(rp_id: int) -> None:
-    migrator = MailchimpMigrator(rp_id)
+def migrate_rp_mailchimp_integration(rp_id: int, mc_batch_size: int, mc_results_per_page: int) -> None:
+    migrator = MailchimpMigrator(
+        rp_id=rp_id,
+        mc_batch_size=mc_batch_size,
+        mc_results_per_page=mc_results_per_page,
+    )
     migrator.get_stripe_invoices()
     migrator.ensure_mailchimp_monthly_and_yearly_products()
     migrator.ensure_monthly_and_yearly_mailchimp_segments()
@@ -347,12 +349,12 @@ class Command(BaseCommand):
         parser.add_argument(  # pragma: no cover
             "revenue_programs",
             type=lambda s: [x.strip() for x in s.split(",")],
-            default=[],
-            help="Optional comma-separated list of revenue program ids to limit to",
+            help="Comma-separated list of revenue program ids to limit to",
         )
-        parser.add_argument("--mc-page-count", type=int, help="", default=MC_RESULTS_PER_PAGE)
+        parser.add_argument("--mc-page-count", type=int, help="", default=MC_RESULTS_PER_PAGE_DEFAULT)
+        parser.add_argument("--mc-batch-size", type=int, help="", default=MC_BATCH_SIZE_DEFAULT)
 
     def handle(self, *args, **options):
         for rp_id in options["revenue_programs"]:
-            migrate_rp_mailchimp_integration(rp_id)
+            migrate_rp_mailchimp_integration(rp_id, options["mc_batch_size"], options["mc_page_count"])
         logger.info("Mailchimp migration complete")

@@ -187,21 +187,13 @@ class MailchimpMigrator:
                 f"Revenue program with ID {self.rp.id} does not have monthly and yearly Mailchimp product types"
             )
         target_segments = [MailchimpSegmentName.MONTHLY_CONTRIBUTORS, MailchimpSegmentName.YEARLY_CONTRIBUTORS]
-        to_create = [x for x in target_segments if not getattr(self.rp, (field := x.as_rp_id_field()))]
+        to_create = [x for x in target_segments if not getattr(self.rp, x.as_rp_id_field())]
         if not to_create:
             logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp segments", self.rp.id)
             return
         for segment in to_create:
             logger.info("Creating Mailchimp segment %s for revenue program ID %s", segment, self.rp.id)
             self.rp.ensure_mailchimp_contributor_segment(segment)
-            # MC segments use cached property, and since we reference above before creating
-            # we need to clear cached value to see if it now exists.
-            self.rp.__dict__.pop(field, None)
-            if not getattr(self.rp, field):
-                logger.warning("Failed to create Mailchimp segment %s for revenue program ID %s", segment, self.rp.id)
-                raise Dev5586MailchimpMigrationerror(
-                    f"Failed to create Mailchimp segment {segment} for revenue program ID {self.rp.id}"
-                )
 
     def ensure_mailchimp_recurring_segment_criteria(self) -> None:
         """Ensure that the membership criteria for the recurring contributors segment is up to date."""

@@ -54,17 +54,17 @@ class TestMailchimpSegmentName:
         as we want a guarantee that the dict doesn't change without us knowing, as it impacts how segments get created in Mailchimp.
         """
         is_condition = {"field": "ecomm_prod", "op": "is"}
-        assert MailchimpSegmentName.ALL_CONTRIBUTORS.get_segment_creation_config() == {
+        assert MailchimpSegmentName.ALL_CONTRIBUTORS.get_segment_options() == {
             "match": "all",
             "conditions": [{"field": "ecomm_purchased", "op": "member"}],
         }
-        assert MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.get_segment_creation_config() == {
+        assert MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.get_segment_options() == {
             "match": "all",
             "conditions": [
                 {**is_condition, "value": MailchimpProductType.ONE_TIME.as_mailchimp_product_name()},
             ],
         }
-        assert MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_creation_config() == {
+        assert MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options() == {
             "match": "any",
             "conditions": [
                 {
@@ -77,13 +77,13 @@ class TestMailchimpSegmentName:
                 },
             ],
         }
-        assert MailchimpSegmentName.MONTHLY_CONTRIBUTORS.get_segment_creation_config() == {
+        assert MailchimpSegmentName.MONTHLY_CONTRIBUTORS.get_segment_options() == {
             "match": "all",
             "conditions": [
                 {**is_condition, "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name()},
             ],
         }
-        assert MailchimpSegmentName.YEARLY_CONTRIBUTORS.get_segment_creation_config() == {
+        assert MailchimpSegmentName.YEARLY_CONTRIBUTORS.get_segment_options() == {
             "match": "all",
             "conditions": [
                 {**is_condition, "value": MailchimpProductType.YEARLY.as_mailchimp_product_name()},

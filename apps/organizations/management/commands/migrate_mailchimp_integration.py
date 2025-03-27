@@ -159,15 +159,17 @@ class MailchimpMigrator:
     def ensure_mailchimp_monthly_and_yearly_products(self) -> None:
         """Ensure that the RP's MC account has new product types for monthly and yearly contributions."""
         target_products = [MailchimpProductType.MONTHLY, MailchimpProductType.YEARLY]
-        to_create = [x for x in target_products if not getattr(self.rp, x.as_rp_field())]
+        to_create = [x for x in target_products if not getattr(self.rp, (field := x.as_rp_field()))]
         if not to_create:
             logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp product types", self.rp.id)
             return
         for product_type in to_create:
             logger.info("Creating Mailchimp product type %s for revenue program ID %s", product_type, self.rp.id)
             self.rp.ensure_mailchimp_contribution_product(product_type)
-            self.rp.refresh_from_db()
-            if not getattr(self.rp, product_type.as_rp_field()):
+            # MC products are use cached property, and since we reference above before
+            # creating, we need to clear cached value.
+            self.rp.__dict__.pop(field, None)
+            if not getattr(self.rp, field):
                 logger.warning(
                     "Failed to create Mailchimp product type %s for revenue program ID %s", product_type, self.rp.id
                 )
@@ -185,15 +187,17 @@ class MailchimpMigrator:
                 f"Revenue program with ID {self.rp.id} does not have monthly and yearly Mailchimp product types"
             )
         target_segments = [MailchimpSegmentName.MONTHLY_CONTRIBUTORS, MailchimpSegmentName.YEARLY_CONTRIBUTORS]
-        to_create = [x for x in target_segments if not getattr(self.rp, x.as_rp_id_field())]
+        to_create = [x for x in target_segments if not getattr(self.rp, (field := x.as_rp_id_field()))]
         if not to_create:
             logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp segments", self.rp.id)
             return
         for segment in to_create:
             logger.info("Creating Mailchimp segment %s for revenue program ID %s", segment, self.rp.id)
             self.rp.ensure_mailchimp_contributor_segment(segment)
-            self.rp.refresh_from_db()
-            if not getattr(self.rp, segment.as_rp_id_field()):
+            # MC segments use cached property, and since we reference above before creating
+            # we need to clear cached value to see if it now exists.
+            self.rp.__dict__.pop(field, None)
+            if not getattr(self.rp, field):
                 logger.warning("Failed to create Mailchimp segment %s for revenue program ID %s", segment, self.rp.id)
                 raise Dev5586MailchimpMigrationerror(
                     f"Failed to create Mailchimp segment {segment} for revenue program ID {self.rp.id}"
@@ -206,16 +210,15 @@ class MailchimpMigrator:
             raise Dev5586MailchimpMigrationerror(
                 f"Revenue program with ID {self.rp.id} does not have recurring contributors segment"
             )
-        if segment.options == (conditions := MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_creation_config()):
+        if segment.options == (options := MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()):
             logger.info(
                 "Revenue program with ID %s already has upated membership criteria for recurring contributors segment",
                 self.rp.id,
             )
             return
         try:
-            # is there a spelling issue here on old? or was this the only already pluralized one?
             self.rp.mailchimp_client.lists.update_segment(
-                segment.list_id, MailchimpSegmentName.RECURRING_CONTRIBUTORS, conditions
+                segment.list_id, MailchimpSegmentName.RECURRING_CONTRIBUTORS, options
             )
         except ApiClientError as e:
             logger.warning(
@@ -351,8 +354,18 @@ class Command(BaseCommand):
             type=lambda s: [x.strip() for x in s.split(",")],
             help="Comma-separated list of revenue program ids to limit to",
         )
-        parser.add_argument("--mc-page-count", type=int, help="", default=MC_RESULTS_PER_PAGE_DEFAULT)
-        parser.add_argument("--mc-batch-size", type=int, help="", default=MC_BATCH_SIZE_DEFAULT)
+        parser.add_argument(
+            "--mc-page-count",
+            type=int,
+            help="Number of results per page when retrieving orders",
+            default=MC_RESULTS_PER_PAGE_DEFAULT,
+        )
+        parser.add_argument(
+            "--mc-batch-size",
+            type=int,
+            help="Size of batches sent to MC when batch updating orders",
+            default=MC_BATCH_SIZE_DEFAULT,
+        )
 
     def handle(self, *args, **options):
         for rp_id in options["revenue_programs"]:

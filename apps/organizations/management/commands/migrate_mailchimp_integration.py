@@ -209,8 +209,8 @@ class MailchimpMigrator:
             )
             return
         try:
-            self.rp.mailchimp_client.lists.update_segment(
-                segment.list_id, MailchimpSegmentName.RECURRING_CONTRIBUTORS, options
+            self.mc_client.lists.update_segment(
+                segment.list_id, self.rp.mailchimp_recurring_contributors_segment_id, options
             )
         except ApiClientError as e:
             logger.warning(

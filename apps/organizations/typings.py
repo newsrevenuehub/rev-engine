@@ -47,6 +47,7 @@ class MailchimpSegmentConditionSchema(TypedDict):
     for more information.
     """
 
+    condition_type: Literal["EcommCategory", "EcommPurchased"]
     field: str
     op: str
     value: NotRequired[str]
@@ -90,19 +91,25 @@ class MailchimpSegmentName(StrEnum):
 
     def get_segment_options(self) -> MailchimpSegmentOptions:
         """Return the configuration for creating a segment in Mailchimp."""
-        is_condition = {"field": "ecomm_prod", "op": "is"}
         match self:
             case MailchimpSegmentName.ALL_CONTRIBUTORS:
                 return MailchimpSegmentOptions(
                     match="all",
-                    conditions=[MailchimpSegmentConditionSchema(field="ecomm_purchased", op="member")],
+                    conditions=[
+                        MailchimpSegmentConditionSchema(
+                            condition_type="EcommPurchased", field="ecomm_purchased", op="member"
+                        )
+                    ],
                 )
             case MailchimpSegmentName.ONE_TIME_CONTRIBUTORS:
                 return MailchimpSegmentOptions(
                     match="all",
                     conditions=[
                         MailchimpSegmentConditionSchema(
-                            **is_condition, value=MailchimpProductType.ONE_TIME.as_mailchimp_product_name()
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.ONE_TIME.as_mailchimp_product_name(),
                         ),
                     ],
                 )
@@ -111,10 +118,16 @@ class MailchimpSegmentName(StrEnum):
                     match="any",
                     conditions=[
                         MailchimpSegmentConditionSchema(
-                            **is_condition, value=MailchimpProductType.YEARLY.as_mailchimp_product_name()
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.YEARLY.as_mailchimp_product_name(),
                         ),
                         MailchimpSegmentConditionSchema(
-                            **is_condition, value=MailchimpProductType.MONTHLY.as_mailchimp_product_name()
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
                         ),
                     ],
                 )
@@ -124,7 +137,10 @@ class MailchimpSegmentName(StrEnum):
                     match="all",
                     conditions=[
                         MailchimpSegmentConditionSchema(
-                            **is_condition, value=MailchimpProductType.MONTHLY.as_mailchimp_product_name()
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
                         ),
                     ],
                 )
@@ -137,7 +153,10 @@ class MailchimpSegmentName(StrEnum):
                     match="all",
                     conditions=[
                         MailchimpSegmentConditionSchema(
-                            **is_condition, value=MailchimpProductType.YEARLY.as_mailchimp_product_name()
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.YEARLY.as_mailchimp_product_name(),
                         ),
                     ],
                 )

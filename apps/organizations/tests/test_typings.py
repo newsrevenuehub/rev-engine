@@ -53,10 +53,10 @@ class TestMailchimpSegmentName:
         This test testing exact implementation, which is normally not useful, but in this case, it's important
         as we want a guarantee that the dict doesn't change without us knowing, as it impacts how segments get created in Mailchimp.
         """
-        is_condition = {"field": "ecomm_prod", "op": "is"}
+        is_condition = {"field": "ecomm_prod", "op": "is", "condition_type": "EcommCategory"}
         assert MailchimpSegmentName.ALL_CONTRIBUTORS.get_segment_options() == {
             "match": "all",
-            "conditions": [{"field": "ecomm_purchased", "op": "member"}],
+            "conditions": [{"field": "ecomm_purchased", "op": "member", "condition_type": "EcommPurchased"}],
         }
         assert MailchimpSegmentName.ONE_TIME_CONTRIBUTORS.get_segment_options() == {
             "match": "all",

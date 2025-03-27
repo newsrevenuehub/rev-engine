@@ -34,6 +34,12 @@ export const LS_CSRF_TOKEN = 'CSRF_TOKEN';
 export const CSRF_HEADER = 'X-CSRFTOKEN';
 export const PASSWORD_RESET_URL = '/users/password-reset/';
 
+// Cloudflare
+export const USE_CLOUDFLARE_IMAGE_TRANSFORMATIONS = resolveConstantFromEnv(
+  'USE_CLOUDFLARE_IMAGE_TRANSFORMATIONS',
+  false
+);
+
 // Google reCAPTCHA
 export const GRECAPTCHA_SITE_KEY = '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri';
 

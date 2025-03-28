@@ -9,6 +9,7 @@ import pytest
 import stripe
 from addict import Dict as AttrDict
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
+from rest_framework.serializers import CharField
 from rest_framework.test import APIRequestFactory
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
@@ -459,24 +460,29 @@ class TestBaseCreatePaymentSerializer:
             assert serializer.errors["reason_for_giving"][0] == error_msg
 
     @pytest.mark.parametrize(
-        ("input_data", "page_fixture", "expect_valid"),
+        ("input_data", "page_fixture", "error_message"),
         [
-            ({"phone": ""}, "donation_page", True),
-            ({"phone": "something"}, "donation_page", True),
-            ({"phone": ""}, "donation_page_with_conditionally_required_phone_element", False),
-            ({"phone": "something"}, "donation_page_with_conditionally_required_phone_element", True),
+            ({"phone": ""}, "donation_page", None),
+            ({"phone": "something"}, "donation_page", None),
+            ({"phone": ""}, "donation_page_with_conditionally_required_phone_element", GENERIC_BLANK),
+            ({"phone": "something"}, "donation_page_with_conditionally_required_phone_element", None),
+            (
+                {"phone": "more than 20 characters"},
+                "donation_page",
+                CharField.default_error_messages["max_length"].format(max_length=20),
+            ),
         ],
     )
     def test_validate_phone(
-        self, input_data, page_fixture, expect_valid, minimally_valid_contribution_form_data, request
+        self, input_data, page_fixture, error_message, minimally_valid_contribution_form_data, request
     ):
         data = minimally_valid_contribution_form_data | input_data
         data["page"] = request.getfixturevalue(page_fixture).id
         serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
-        assert serializer.is_valid() is expect_valid
-        if expect_valid is False:
+        assert serializer.is_valid() is not bool(error_message)
+        if error_message:
             assert set(serializer.errors.keys()) == {"phone"}
-            assert serializer.errors["phone"][0] == GENERIC_BLANK
+            assert serializer.errors["phone"][0] == error_message
 
     @pytest.mark.parametrize(
         ("input_data", "expect_valid"),

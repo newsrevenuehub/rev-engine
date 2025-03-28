@@ -93,14 +93,14 @@ class MailchimpMigrator:
             - has a Stripe account ID
         """
         if not self.rp.mailchimp_integration_ready:
-            logger.warning("Revenue program with ID %s does not have Mailchimp integration connected", self.rp.id)
+            logger.warning("Revenue program with ID %s does not have Mailchimp integration connected", self.rp_id)
             raise Dev5586MailchimpMigrationerror(
-                f"Revenue program with ID {self.rp.id} does not have Mailchimp integration connected"
+                f"Revenue program with ID {self.rp_id} does not have Mailchimp integration connected"
             )
         if not self.rp.stripe_account_id:
-            logger.warning("Revenue program with ID %s does not have a Stripe account ID", self.rp.id)
+            logger.warning("Revenue program with ID %s does not have a Stripe account ID", self.rp_id)
             raise Dev5586MailchimpMigrationerror(
-                f"Revenue program with ID {self.rp.id} does not have a Stripe account ID"
+                f"Revenue program with ID {self.rp_id} does not have a Stripe account ID"
             )
 
     def get_stripe_data(self) -> None:
@@ -113,13 +113,13 @@ class MailchimpMigrator:
         then all subscriptions, and then we can look up an order by invoice, find its subscription ID, and then
         retrieve the plan details from the subscription to determine if it's monthly or yearly.
         """
-        logger.info("Retrieving all invoices from Stripe for revenue program with ID %s", self.rp.id)
+        logger.info("Retrieving all invoices from Stripe for revenue program with ID %s", self.rp_id)
         try:
             self.stripe_importer.list_and_cache_stripe_resources_for_recurring_contributions()
         except stripe.error.StripeError as e:
-            logger.warning("Failed to retrieve invoices from Stripe for revenue program with ID %s: %s", self.rp.id, e)
+            logger.warning("Failed to retrieve invoices from Stripe for revenue program with ID %s: %s", self.rp_id, e)
             raise Dev5586MailchimpMigrationerror(
-                f"Failed to retrieve invoices from Stripe for revenue program with ID {self.rp.id}"
+                f"Failed to retrieve invoices from Stripe for revenue program with ID {self.rp_id}"
             ) from e
 
     def get_subscription_interval_for_order(self, order_id: str) -> Literal["month", "year"] | None:
@@ -164,9 +164,9 @@ class MailchimpMigrator:
             return None
         line = order["lines"][0]
         new_id = (
-            MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.rp.id)
+            MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.rp_id)
             if interval == "month"
-            else MailchimpProductType.YEARLY.as_mailchimp_product_id(self.rp.id)
+            else MailchimpProductType.YEARLY.as_mailchimp_product_id(self.rp_id)
         )
         if line["product_id"] == new_id and line["product_variant_id"] == new_id:
             logger.info("Order already has correct product type, no update needed")
@@ -182,10 +182,10 @@ class MailchimpMigrator:
         target_products = [MailchimpProductType.MONTHLY, MailchimpProductType.YEARLY]
         to_create = [x for x in target_products if not getattr(self.rp, x.as_rp_field())]
         if not to_create:
-            logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp product types", self.rp.id)
+            logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp product types", self.rp_id)
             return
         for product_type in to_create:
-            logger.info("Creating Mailchimp product type %s for revenue program ID %s", product_type, self.rp.id)
+            logger.info("Creating Mailchimp product type %s for revenue program ID %s", product_type, self.rp_id)
             self.rp.ensure_mailchimp_contribution_product(product_type)
             # MC-product-related properties on RevenueProgram are cached within a session, and since we reference above before
             # creating when will be None, we need to clear cached value so downstream code will not get None.
@@ -193,10 +193,10 @@ class MailchimpMigrator:
             self.rp.__dict__.pop(field, None)
             if not getattr(self.rp, field):
                 logger.warning(
-                    "Failed to create Mailchimp product type %s for revenue program ID %s", product_type, self.rp.id
+                    "Failed to create Mailchimp product type %s for revenue program ID %s", product_type, self.rp_id
                 )
                 raise Dev5586MailchimpMigrationerror(
-                    f"Failed to create Mailchimp product type {product_type} for revenue program ID {self.rp.id}"
+                    f"Failed to create Mailchimp product type {product_type} for revenue program ID {self.rp_id}"
                 )
 
     def ensure_monthly_and_yearly_mailchimp_segments(self) -> None:
@@ -207,19 +207,19 @@ class MailchimpMigrator:
         # cache after creating products.
         if not (self.rp.mailchimp_monthly_contribution_product and self.rp.mailchimp_yearly_contribution_product):
             logger.warning(
-                "Revenue program with ID %s does not have monthly and yearly Mailchimp product types", self.rp.id
+                "Revenue program with ID %s does not have monthly and yearly Mailchimp product types", self.rp_id
             )
             raise Dev5586MailchimpMigrationerror(
-                f"Revenue program with ID {self.rp.id} does not have monthly and yearly Mailchimp product types"
+                f"Revenue program with ID {self.rp_id} does not have monthly and yearly Mailchimp product types"
             )
         target_segments = [MailchimpSegmentName.MONTHLY_CONTRIBUTORS, MailchimpSegmentName.YEARLY_CONTRIBUTORS]
         # we take the absence of the segment ID field on the RP as evidence that it needs to be created
         to_create = [x for x in target_segments if not getattr(self.rp, x.as_rp_id_field())]
         if not to_create:
-            logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp segments", self.rp.id)
+            logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp segments", self.rp_id)
             return
         for segment in to_create:
-            logger.info("Creating Mailchimp segment %s for revenue program ID %s", segment, self.rp.id)
+            logger.info("Creating Mailchimp segment %s for revenue program ID %s", segment, self.rp_id)
             self.rp.ensure_mailchimp_contributor_segment(segment)
 
     def ensure_mailchimp_recurring_segment_criteria(self) -> None:
@@ -229,9 +229,9 @@ class MailchimpMigrator:
         the monthly or yearly product, whereas in the past, we checked for purchase of the recurring product.
         """
         if not (segment := self.rp.mailchimp_recurring_contributors_segment):
-            logger.warning("Revenue program with ID %s does not have recurring contributors segment", self.rp.id)
+            logger.warning("Revenue program with ID %s does not have recurring contributors segment", self.rp_id)
             raise Dev5586MailchimpMigrationerror(
-                f"Revenue program with ID {self.rp.id} does not have recurring contributors segment"
+                f"Revenue program with ID {self.rp_id} does not have recurring contributors segment"
             )
         new_options = MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()
         # we don't assume that conditions list order will be guaranteed, hence why we compare sets rather than
@@ -246,7 +246,7 @@ class MailchimpMigrator:
         ):
             logger.info(
                 "Revenue program with ID %s already has updated membership criteria for recurring contributors segment",
-                self.rp.id,
+                self.rp_id,
             )
             return
         try:
@@ -256,16 +256,16 @@ class MailchimpMigrator:
         except ApiClientError as e:
             logger.warning(
                 "Failed to update membership criteria for recurring contributors segment for revenue program ID %s: %s",
-                self.rp.id,
+                self.rp_id,
                 e.text,
             )
             raise Dev5586MailchimpMigrationerror(
                 f"Failed to update membership criteria for recurring contributors "
-                f"segment for revenue program ID {self.rp.id}"
+                f"segment for revenue program ID {self.rp_id}"
             ) from e
         else:
             logger.info(
-                "Updated membership criteria for recurring contributors segment for revenue program ID %s", self.rp.id
+                "Updated membership criteria for recurring contributors segment for revenue program ID %s", self.rp_id
             )
 
     def _get_all_orders(self) -> list[PartialMailchimpRecurringOrder]:
@@ -315,7 +315,7 @@ class MailchimpMigrator:
             for x in self._get_all_orders()
             if x["id"].startswith("in_")
             and len(x["lines"]) == 1
-            and x["lines"][0]["product_id"] == MailchimpProductType.RECURRING.as_mailchimp_product_id(self.rp.id)
+            and x["lines"][0]["product_id"] == MailchimpProductType.RECURRING.as_mailchimp_product_id(self.rp_id)
         ]
 
     def get_update_mailchimp_order_line_item_batches(self) -> list[BatchOperation]:
@@ -330,7 +330,7 @@ class MailchimpMigrator:
             "Found %s order%s to update for revenue program ID %s",
             (count := len(updateable_orders)),
             "" if count == 1 else "s",
-            self.rp.id,
+            self.rp_id,
         )
         for x in updateable_orders:
             if not (interval := self.get_subscription_interval_for_order(x["id"])):
@@ -345,7 +345,7 @@ class MailchimpMigrator:
         """Update Mailchimp order line items for the revenue program."""
         batches = self.get_update_mailchimp_order_line_item_batches()
         if not batches:
-            logger.info("No orders to update for revenue program ID %s", self.rp.id)
+            logger.info("No orders to update for revenue program ID %s", self.rp_id)
         batch_outcomes = []
         for i in range(0, len(batches), self.mc_batch_size):
             start_time = time.time()
@@ -449,5 +449,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for rp_id in options["revenue_programs"]:
-            migrate_rp_mailchimp_integration(rp_id, options["mc_batch_size"], options["mc_page_count"])
+            migrate_rp_mailchimp_integration(int(rp_id), options["mc_batch_size"], options["mc_page_count"])
         logger.info("Mailchimp migration complete")

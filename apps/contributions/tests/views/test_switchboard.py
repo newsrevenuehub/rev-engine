@@ -627,8 +627,8 @@ class TestSwitchboardContributionsViewSet:
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
-        results = response.json()["results"]
-        assert len(results) == 1
+
+        assert len(results := response.json()["results"]) == 1
         assert results[0]["id"] == subscription_contribution.id
 
         response = api_client.get(
@@ -659,8 +659,7 @@ class TestSwitchboardContributionsViewSet:
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
-        results = response.json()["results"]
-        assert len(results) == 1
+        assert len(results := response.json()["results"]) == 1
         assert results[0]["id"] == payment_contribution.id
 
         response = api_client.get(
@@ -669,16 +668,14 @@ class TestSwitchboardContributionsViewSet:
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
-        results = response.json()["results"]
-        assert len(results) == 0
+        assert len(response.json()["results"]) == 0
 
         response = api_client.get(
             reverse("switchboard-contribution-list"),
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
-        results = response.json()["results"]
-        assert len(results) == 3
+        assert len(response.json()["results"]) == 3
 
 
 @pytest.mark.django_db

@@ -10,7 +10,7 @@ from django.conf import settings
 import mailchimp_marketing as MailchimpMarketing
 from mailchimp_marketing.api_client import ApiClientError
 
-from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName, MailchimpSegmentOptions
 
 
 # this is to avoid circular import issues, as this module is a dependency of
@@ -149,7 +149,7 @@ class MailchimpSegment:
     type: Literal["saved", "static", "fuzzy"]
     created_at: str
     updated_at: str
-    options: dict
+    options: MailchimpSegmentOptions
     list_id: str
     _links: list[dict]
 

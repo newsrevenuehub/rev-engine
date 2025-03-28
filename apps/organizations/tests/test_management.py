@@ -6,6 +6,11 @@ from django.core.management.base import CommandError
 import pytest
 import pytest_mock
 
+from apps.organizations.management.commands.migrate_mailchimp_integration import (
+    Dev5586MailchimpMigrationerror,
+    MailchimpMigrator,
+    migrate_rp_mailchimp_integration,
+)
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 
@@ -84,3 +89,225 @@ class TestDisableMailchimpIntegrationCommand:
         with pytest.raises(CommandError):
             call_command("disable_mailchimp_integration")
         mock_disable.assert_not_called()
+
+
+def test_migrate_mailchimp_integration_management_command(mocker):
+    mock_migrate_fn = mocker.patch(
+        "apps.organizations.management.commands.migrate_mailchimp_integration.migrate_rp_mailchimp_integration"
+    )
+    rp_ids = [1, 2, 3]
+    call_command(
+        "migrate_mailchimp_integration",
+        ",".join(map(str, rp_ids)),
+        mc_page_count=(pg_count := 100),
+        mc_batch_size=(batch_size := 100),
+    )
+    mock_migrate_fn.assert_has_calls((mocker.call(x, pg_count, batch_size) for x in rp_ids), any_order=True)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("raise_error", [True, False])
+def test_migrate_rp_mailchimp_integration(
+    mocker: pytest_mock.MockerFixture, mc_connected_rp: RevenueProgram, raise_error: bool
+):
+    mock_migrator = mocker.patch(
+        "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator"
+    )
+    batch_size = results_per_page = 100
+    if raise_error:
+        mock_logger = mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.logger.exception"
+        )
+        mock_migrator.return_value.ensure_mailchimp_monthly_and_yearly_products.side_effect = (
+            Dev5586MailchimpMigrationerror(msg := "Test error")
+        )
+        with pytest.raises(Dev5586MailchimpMigrationerror, match=msg):
+            migrate_rp_mailchimp_integration(
+                mc_connected_rp.id, mc_batch_size=batch_size, mc_results_per_page=results_per_page
+            )
+        mock_logger.assert_called_once_with("Migration for revenue program with ID %s failed", mocker.ANY)
+    else:
+        migrate_rp_mailchimp_integration(
+            mc_connected_rp.id, mc_batch_size=batch_size, mc_results_per_page=results_per_page
+        )
+        for method in (
+            "ensure_mailchimp_monthly_and_yearly_products",
+            "ensure_monthly_and_yearly_mailchimp_segments",
+            "ensure_mailchimp_recurring_segment_criteria",
+            "update_mailchimp_order_line_items_for_rp",
+        ):
+            getattr(mock_migrator.return_value, method).assert_called_once()
+    mock_migrator.assert_called_once_with(
+        rp_id=mc_connected_rp.id,
+        mc_batch_size=batch_size,
+        mc_results_per_page=results_per_page,
+    )
+    mock_migrator.return_value.get_stripe_data.assert_called_once()
+    mock_migrator.return_value.stripe_importer.clear_all_stripe_transactions_cache.assert_called_once()
+
+
+@pytest.mark.django_db
+class TestMailchimpMigrator:
+
+    @pytest.mark.parametrize("rp_exists", [True, False])
+    def test_init(self, rp_exists: bool, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture):
+        rp_id = mc_connected_rp.id if rp_exists else 999999999
+        batch_size = results_per_page = 100
+        if rp_exists:
+            mock_mc_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+            mock_stripe_importer = mocker.patch(
+                "apps.organizations.management.commands.migrate_mailchimp_integration.StripeTransactionsImporter"
+            )
+            migrator = MailchimpMigrator(
+                rp_id=rp_id,
+                mc_batch_size=batch_size,
+                mc_results_per_page=results_per_page,
+            )
+            assert migrator.rp == mc_connected_rp
+            assert migrator.mc_batch_size == batch_size
+            assert migrator.mc_results_per_page == results_per_page
+            assert migrator.mc_client == mock_mc_client.return_value
+            assert migrator.mc_store == mock_mc_client.return_value.get_store.return_value
+            assert migrator.stripe_importer == mock_stripe_importer.return_value
+        else:
+            with pytest.raises(Dev5586MailchimpMigrationerror, match=f"Revenue program with ID {rp_id} does not exist"):
+                migrator = MailchimpMigrator(
+                    rp_id=rp_id,
+                    mc_batch_size=batch_size,
+                    mc_results_per_page=results_per_page,
+                )
+
+    def test_validate_rp_happy_path(self, mocker: pytest_mock.MockerFixture):
+        mock_rp = mocker.MagicMock()
+        mock_rp.mailchimp_integration_ready = True
+        mock_rp.stripe_account_id = "acct_id"
+        mocker.patch("apps.organizations.models.RevenueProgram.objects.get", return_value=mock_rp)
+        MailchimpMigrator(
+            rp_id=1,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        ).validate_rp()
+
+    def test_validate_rp_when_not_mc_integration_ready(self, mocker: pytest_mock.MockerFixture):
+        mock_rp = mocker.MagicMock()
+        mock_rp.mailchimp_integration_ready = False
+        mocker.patch("apps.organizations.models.RevenueProgram.objects.get", return_value=mock_rp)
+        rp_id = 1
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match=f"Revenue program with ID {rp_id} does not have Mailchimp integration connected",
+        ):
+            MailchimpMigrator(
+                rp_id=1,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).validate_rp()
+
+    def test_validate_rp_when_not_stripe_account_id(self, mocker: pytest_mock.MockerFixture):
+        mock_rp = mocker.MagicMock()
+        mock_rp.mailchimp_integration_ready = True
+        mock_rp.stripe_account_id = None
+        mocker.patch("apps.organizations.models.RevenueProgram.objects.get", return_value=mock_rp)
+        rp_id = 1
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match=f"Revenue program with ID {rp_id} does not have a Stripe account ID",
+        ):
+            MailchimpMigrator(
+                rp_id=1,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).validate_rp()
+
+    def test_get_stripe_data(self):
+        pass
+
+    def test_get_subscription_interval_for_order_happy_path(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_invoice_not_found(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_id_not_found(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_not_found(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_not_have_plan(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_plan_has_weird_interval(self):
+        pass
+
+    @pytest.mark.parametrize("interval", ["month", "year"])
+    def test_get_update_order_batch_op_happy_path(self, interval: str, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_get_update_order_batch_op_when_order_not_have_1_line(self):
+        pass
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_happy_path(self):
+        pass
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_already_exist(self):
+        pass
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_not_exist_after_creation(self):
+        pass
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_happy_path(self):
+        pass
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_when_missing_product(self):
+        pass
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_when_already_exist(self):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_when_segment_missing(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_when_already_updated(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_when_error_updating(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test__get_all_orders_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test__get_all_orders_when_api_error(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def _get_updateable_orders(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_get_update_mailchimp_order_line_item_batches_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_get_update_mailchimp_order_line_item_batches_when_interval_not_found(
+        self, mocker: pytest_mock.MockerFixture
+    ):
+        pass
+
+    def test_get_update_mailchimp_order_line_item_batches_when_batch_is_none(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_update_mailchimp_order_line_items_for_rp_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_update_mailchimp_order_line_items_for_rp_when_no_batches(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_monitor_batch_status_happy_path(self):
+        pass
+
+    def test_monitor_batch_status_when_api_error(self):
+        pass
+
+    def test_monitor_batch_status_when_timeout(self):
+        pass

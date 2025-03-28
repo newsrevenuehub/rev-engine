@@ -34,6 +34,7 @@ class MailchimpOrderLineItem(TypedDict):
     line items used when updating an order.
     """
 
+    id: str
     product_id: str
     product_variant_id: str
     quantity: int
@@ -147,6 +148,7 @@ class MailchimpMigrator:
             logger.warning("Order has %s line item%s, cannot update", count, "" if count == 1 else "s")
             raise Dev5586MailchimpMigrationerror("Order has more than one line item, cannot update")
         line = order["lines"][0]
+        line_id = line.pop("id")
         new_id = (
             MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.rp.id)
             if interval == "month"
@@ -157,8 +159,8 @@ class MailchimpMigrator:
             return None
         return BatchOperation(
             method="PATCH",
-            path=f"/ecommerce/stores/{self.mc_store.id}/orders/{order['id']}",
-            body=json.dumps({"lines": [{**line, "product_id": new_id, "product_variant_id": new_id}]}),
+            path=f"/ecommerce/stores/{self.mc_store.id}/orders/{order['id']}/{line_id}",
+            body=json.dumps({**line, "product_id": new_id, "product_variant_id": new_id}),
         )
 
     def ensure_mailchimp_monthly_and_yearly_products(self) -> None:
@@ -268,7 +270,7 @@ class MailchimpMigrator:
             x
             for x in self._get_all_orders()
             if x["id"].startswith("in_")
-            and len(x["lines"]) == 0
+            and len(x["lines"]) == 1
             and x["lines"][0]["product_id"] == MailchimpProductType.RECURRING.as_mailchimp_product_id(self.rp.id)
         ]
 
@@ -324,6 +326,8 @@ class MailchimpMigrator:
                     "Batch %s status: %s, completed operations: %s/%s",
                     batch_id,
                     status["status"],
+                    # this part doesn't seem to ever be defined on object.
+                    # run this down ahead of PR.
                     status.get("completed_operations", 0),
                     status.get("total_operations", 0),
                 )

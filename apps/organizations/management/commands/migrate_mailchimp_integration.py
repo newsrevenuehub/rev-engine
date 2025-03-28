@@ -159,8 +159,8 @@ class MailchimpMigrator:
             return None
         return BatchOperation(
             method="PATCH",
-            path=f"/ecommerce/stores/{self.mc_store.id}/orders/{order['id']}/{line_id}",
-            body=json.dumps({**line, "product_id": new_id, "product_variant_id": new_id}),
+            path=f"/ecommerce/stores/{self.mc_store.id}/orders/{order['id']}/lines/{line_id}",
+            body=json.dumps({"product_id": new_id, "product_variant_id": new_id}),
         )
 
     def ensure_mailchimp_monthly_and_yearly_products(self) -> None:

@@ -218,3 +218,96 @@ class TestMailchimpMigrator:
                 mc_batch_size=100,
                 mc_results_per_page=100,
             ).validate_rp()
+
+    def test_get_stripe_data(self):
+        pass
+
+    def test_get_subscription_interval_for_order_happy_path(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_invoice_not_found(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_id_not_found(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_not_found(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_not_have_plan(self):
+        pass
+
+    def test_get_subscription_interval_for_order_when_sub_plan_has_weird_interval(self):
+        pass
+
+    @pytest.mark.parametrize("interval", ["month", "year"])
+    def test_get_update_order_batch_op_happy_path(self, interval: str, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_get_update_order_batch_op_when_order_not_have_1_line(self):
+        pass
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_happy_path(self):
+        pass
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_already_exist(self):
+        pass
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_not_exist_after_creation(self):
+        pass
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_happy_path(self):
+        pass
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_when_missing_product(self):
+        pass
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_when_already_exist(self):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_when_segment_missing(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_when_already_updated(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_ensure_mailchimp_recurring_segment_criteria_when_error_updating(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test__get_all_orders_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test__get_all_orders_when_api_error(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def _get_updateable_orders(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_get_update_mailchimp_order_line_item_batches_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_get_update_mailchimp_order_line_item_batches_when_interval_not_found(
+        self, mocker: pytest_mock.MockerFixture
+    ):
+        pass
+
+    def test_get_update_mailchimp_order_line_item_batches_when_batch_is_none(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_update_mailchimp_order_line_items_for_rp_happy_path(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_update_mailchimp_order_line_items_for_rp_when_no_batches(self, mocker: pytest_mock.MockerFixture):
+        pass
+
+    def test_monitor_batch_status_happy_path(self):
+        pass
+
+    def test_monitor_batch_status_when_api_error(self):
+        pass
+
+    def test_monitor_batch_status_when_timeout(self):
+        pass

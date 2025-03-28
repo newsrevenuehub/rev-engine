@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 import reversion
 from django_filters.rest_framework import DjangoFilterBackend
 from knox.auth import TokenAuthentication
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -30,12 +30,12 @@ SEND_RECEIPT_QUERY_PARAM = "send_receipt"
 
 
 class SwitchboardContributionsViewSet(
-    viewsets.mixins.CreateModelMixin,
-    viewsets.mixins.UpdateModelMixin,
-    viewsets.mixins.RetrieveModelMixin,
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
-    mixins.ListModelMixin,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+    viewsets.mixins.UpdateModelMixin,
 ):
     """Viewset for switchboard to update contributions."""
 
@@ -88,7 +88,11 @@ class SwitchboardContributionsViewSet(
         return super().handle_exception(exc)
 
 
-class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class SwitchboardContributorsViewSet(
+    viewsets.GenericViewSet,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+):
     """Viewset for switchboard to create and retrieve contributors."""
 
     permission_classes = [IsSwitchboardAccount]
@@ -124,12 +128,12 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
 
 class SwitchboardPaymentsViewSet(
     RevisionMixin,
-    mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.UpdateModelMixin,
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+    viewsets.mixins.UpdateModelMixin,
 ):
     """ViewSet for switchboard to retrieve, create and update payments."""
 

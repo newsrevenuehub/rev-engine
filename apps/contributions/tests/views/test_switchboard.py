@@ -8,6 +8,7 @@ import reversion
 from knox.models import AuthToken
 from rest_framework import status
 from rest_framework.reverse import reverse
+from rest_framework.test import APIClient
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution, Contributor, Payment
@@ -615,7 +616,7 @@ class TestSwitchboardContributionsViewSet:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": "Invalid token."}
 
-    def test_filter_by_provider_subscription_id(self, api_client, switchboard_api_token):
+    def test_filter_by_provider_subscription_id(self, api_client: APIClient, switchboard_api_token: str):
         subscription_contribution = ContributionFactory(monthly_subscription=True)
         ContributionFactory(monthly_subscription=True)
         ContributionFactory(monthly_subscription=True)
@@ -647,7 +648,7 @@ class TestSwitchboardContributionsViewSet:
         results = response.json()["results"]
         assert len(results) == 3
 
-    def test_filter_by_provider_payment_id(self, api_client, switchboard_api_token):
+    def test_filter_by_provider_payment_id(self, api_client: APIClient, switchboard_api_token: str):
         payment_contribution = ContributionFactory(one_time=True)
         ContributionFactory(one_time=True)
         ContributionFactory(one_time=True)
@@ -804,7 +805,7 @@ class TestSwitchboardPaymentsViewSet:
             "stripe_balance_transaction_id": ["payment with this stripe balance transaction id already exists."]
         }
 
-    def test_filter_by_stripe_balance_transaction_id(self, api_client, payment, token):
+    def test_filter_by_stripe_balance_transaction_id(self, api_client: APIClient, payment: Payment, token: str):
         # ensure there are multiple payments
         PaymentFactory()
         PaymentFactory()

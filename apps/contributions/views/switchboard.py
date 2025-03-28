@@ -7,8 +7,9 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
 import reversion
+from django_filters.rest_framework import DjangoFilterBackend
 from knox.auth import TokenAuthentication
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -29,11 +30,12 @@ SEND_RECEIPT_QUERY_PARAM = "send_receipt"
 
 
 class SwitchboardContributionsViewSet(
-    viewsets.mixins.CreateModelMixin,
-    viewsets.mixins.UpdateModelMixin,
-    viewsets.mixins.RetrieveModelMixin,
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+    viewsets.mixins.UpdateModelMixin,
 ):
     """Viewset for switchboard to update contributions."""
 
@@ -44,6 +46,8 @@ class SwitchboardContributionsViewSet(
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["provider_subscription_id", "provider_payment_id"]
 
     def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):
         """Send a receipt email if requested in a query param.
@@ -84,7 +88,11 @@ class SwitchboardContributionsViewSet(
         return super().handle_exception(exc)
 
 
-class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class SwitchboardContributorsViewSet(
+    viewsets.GenericViewSet,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+):
     """Viewset for switchboard to create and retrieve contributors."""
 
     permission_classes = [IsSwitchboardAccount]
@@ -120,11 +128,12 @@ class SwitchboardContributorsViewSet(mixins.RetrieveModelMixin, mixins.CreateMod
 
 class SwitchboardPaymentsViewSet(
     RevisionMixin,
-    mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
-    mixins.UpdateModelMixin,
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
+    viewsets.mixins.CreateModelMixin,
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.RetrieveModelMixin,
+    viewsets.mixins.UpdateModelMixin,
 ):
     """ViewSet for switchboard to retrieve, create and update payments."""
 
@@ -133,6 +142,8 @@ class SwitchboardPaymentsViewSet(
     queryset = Payment.objects.all()
     serializer_class = serializers.SwitchboardPaymentSerializer
     authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["stripe_balance_transaction_id"]
 
     def perform_create(self, serializer):
         with reversion.create_revision():

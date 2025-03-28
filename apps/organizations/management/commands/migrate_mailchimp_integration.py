@@ -30,7 +30,7 @@ class Dev5586MailchimpMigrationerror(Exception):
 class MailchimpOrderLineItem(TypedDict):
     """Type definition for a Mailchimp order line item.
 
-    Note that a returned line item will have additional field. This is for
+    Note that a returned line item will have additional fields. This is for
     line items used when updating an order.
     """
 
@@ -45,7 +45,7 @@ class MailchimpOrderLineItem(TypedDict):
 class PartialMailchimpRecurringOrder(TypedDict):
     """Type definition for Mailchimp order for a recurring contribution.
 
-    We use this when updating orders.
+    We use this when updating orders. Note that actual orders have more fields.
     """
 
     id: str
@@ -85,10 +85,11 @@ class MailchimpMigrator:
         """Validate that the revenue program is ready for Mailchimp migration.
 
         We ensure the RP:
-            - has an MC server prefix
-            - has an MC access token
-            - has an MC list ID
-            - has an MC store
+            - via mailchimp_integration_ready:
+                - has an MC server prefix
+                - has an MC access token
+                - has an MC list ID
+                - has an MC store
             - has a Stripe account ID
         """
         if not self.rp.mailchimp_integration_ready:
@@ -103,11 +104,18 @@ class MailchimpMigrator:
             )
 
     def get_stripe_data(self) -> None:
-        """Retrieve all invoices from Stripe for the revenue program."""
+        """Retrieve all invoices and subscriptions from Stripe for the revenue program.
+
+        We need this data when updating a Mailchimp order. We can tell if an order is for a recurring contribution
+        because its id will begin with `in_` referencing a Stripe invoice, but from that alone we can't deduce
+        the subscription interval (monthly or yearly). We need to retrieve the associated subscription to get the plan details,
+        and the easiest way to do this is by reusing Stripe transaction import code. We retrieve all invoices,
+        then all subscriptions, and then we can look up an order by invoice, find its subscription ID, and then
+        retrieve the plan details from the subscription to determine if it's monthly or yearly.
+        """
         logger.info("Retrieving all invoices from Stripe for revenue program with ID %s", self.rp.id)
         try:
             self.stripe_importer.list_and_cache_stripe_resources_for_recurring_contributions()
-        # or is this backoff error?
         except stripe.error.StripeError as e:
             logger.warning("Failed to retrieve invoices from Stripe for revenue program with ID %s: %s", self.rp.id, e)
             raise Dev5586MailchimpMigrationerror(
@@ -115,7 +123,14 @@ class MailchimpMigrator:
             ) from e
 
     def get_subscription_interval_for_order(self, order_id: str) -> Literal["month", "year"] | None:
-        """Get the subscription interval for an order."""
+        """Get the subscription interval for an order.
+
+        We will have a Mailchimp order ID which is also a Stripe invoice ID (starts with `in_`). When
+        this function runs, we expect to have imported Stripe invoice and subscription data for the RP.
+        We try to find the invoice in our data cache, look to its subscription ID, and then retrieve that
+        from cache. In success case, we report back the subscription interval. Otehrwise, we log warning
+        and return None.
+        """
         invoice_key = self.stripe_importer.make_key(entity_name="Invoice", entity_id=order_id)
         if not (invoice := self.stripe_importer.get_resource_from_cache(invoice_key)):
             logger.warning("Invoice with ID %s not found in cache", order_id)
@@ -143,12 +158,11 @@ class MailchimpMigrator:
     def get_udpate_order_batch_op(
         self, interval: Literal["month", "year"], order: PartialMailchimpRecurringOrder
     ) -> BatchOperation | None:
-        """Get a batch operation to update an order to the new product type."""
+        """Get a batch operation to update an order line item to the new product type."""
         if (count := len(order["lines"])) != 1:
             logger.warning("Order has %s line item%s, cannot update", count, "" if count == 1 else "s")
-            raise Dev5586MailchimpMigrationerror("Order has more than one line item, cannot update")
+            return None
         line = order["lines"][0]
-        line_id = line.pop("id")
         new_id = (
             MailchimpProductType.MONTHLY.as_mailchimp_product_id(self.rp.id)
             if interval == "month"
@@ -159,7 +173,7 @@ class MailchimpMigrator:
             return None
         return BatchOperation(
             method="PATCH",
-            path=f"/ecommerce/stores/{self.mc_store.id}/orders/{order['id']}/lines/{line_id}",
+            path=f"/ecommerce/stores/{self.mc_store.id}/orders/{order['id']}/lines/{line['id']}",
             body=json.dumps({"product_id": new_id, "product_variant_id": new_id}),
         )
 
@@ -173,8 +187,8 @@ class MailchimpMigrator:
         for product_type in to_create:
             logger.info("Creating Mailchimp product type %s for revenue program ID %s", product_type, self.rp.id)
             self.rp.ensure_mailchimp_contribution_product(product_type)
-            # MC products are use cached property, and since we reference above before
-            # creating, we need to clear cached value.
+            # MC-product-related properties on RevenueProgram are cached within a session, and since we reference above before
+            # creating when will be None, we need to clear cached value so downstream code will not get None.
             field = product_type.as_rp_field()
             self.rp.__dict__.pop(field, None)
             if not getattr(self.rp, field):
@@ -187,6 +201,10 @@ class MailchimpMigrator:
 
     def ensure_monthly_and_yearly_mailchimp_segments(self) -> None:
         """Ensure that the RP's MC account has new segments for monthly and yearly contributors."""
+        # NB: Keep in mind that rp.mailchimp_<interval>_contribution_product is a cached property so if it's been referenced
+        # when its value is None, and then product created, unless cache is cleared, value will continue to be None within session.
+        # In practice, this function gets called after `ensure_mailchimp_monthly_and_yearly_products` which takes care of clearing
+        # cache after creating products.
         if not (self.rp.mailchimp_monthly_contribution_product and self.rp.mailchimp_yearly_contribution_product):
             logger.warning(
                 "Revenue program with ID %s does not have monthly and yearly Mailchimp product types", self.rp.id
@@ -195,6 +213,7 @@ class MailchimpMigrator:
                 f"Revenue program with ID {self.rp.id} does not have monthly and yearly Mailchimp product types"
             )
         target_segments = [MailchimpSegmentName.MONTHLY_CONTRIBUTORS, MailchimpSegmentName.YEARLY_CONTRIBUTORS]
+        # we take the absence of the segment ID field on the RP as evidence that it needs to be created
         to_create = [x for x in target_segments if not getattr(self.rp, x.as_rp_id_field())]
         if not to_create:
             logger.info("Revenue program with ID %s already has monthly and yearly Mailchimp segments", self.rp.id)
@@ -204,13 +223,25 @@ class MailchimpMigrator:
             self.rp.ensure_mailchimp_contributor_segment(segment)
 
     def ensure_mailchimp_recurring_segment_criteria(self) -> None:
-        """Ensure that the membership criteria for the recurring contributors segment is up to date."""
+        """Ensure that the membership criteria for the recurring contributors segment is up to date.
+
+        Specifically, the new criterion for being a member of this segment is that a customer purchased either
+        the monthly or yearly product, whereas in the past, we checked for purchase of the recurring product.
+        """
         if not (segment := self.rp.mailchimp_recurring_contributors_segment):
             logger.warning("Revenue program with ID %s does not have recurring contributors segment", self.rp.id)
             raise Dev5586MailchimpMigrationerror(
                 f"Revenue program with ID {self.rp.id} does not have recurring contributors segment"
             )
-        if segment.options == (options := MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()):
+        new_options = MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()
+        # we don't assume that conditions list order will be guaranteed, hence why we compare sets rather than
+        # directly comparing segment.options to new_options.
+        if all(
+            [
+                segment.options["match"] == new_options["match"],
+                set(segment.options["conditions"]) == set(new_options["conditions"]),
+            ]
+        ):
             logger.info(
                 "Revenue program with ID %s already has updated membership criteria for recurring contributors segment",
                 self.rp.id,
@@ -218,7 +249,7 @@ class MailchimpMigrator:
             return
         try:
             self.mc_client.lists.update_segment(
-                segment.list_id, self.rp.mailchimp_recurring_contributors_segment_id, {"options": options}
+                segment.list_id, self.rp.mailchimp_recurring_contributors_segment_id, {"options": new_options}
             )
         except ApiClientError as e:
             logger.warning(
@@ -254,6 +285,8 @@ class MailchimpMigrator:
                 logger.warning("Failed to retrieve orders for store ID %s: %s", store_id, e.text)
                 raise Dev5586MailchimpMigrationerror(f"Failed to retrieve orders for store ID {store_id}") from e
             for x in _orders["orders"]:
+                # we only store a subset of order fields from each order so that we reduce memory footprint
+                # when dealing with 10s of thousands of orders (worst case is expected to be ~50k orders for a large RP)
                 lines = [
                     MailchimpOrderLineItem(**{k: v for k, v in y.items() if k in line_item_save_keys})
                     for y in x["lines"]
@@ -266,6 +299,15 @@ class MailchimpMigrator:
         return orders_to_update
 
     def _get_updateable_orders(self) -> list[PartialMailchimpRecurringOrder]:
+        """Get all orders that are eligible for updating.
+
+        For an order to be eligible for updating, it must:
+        - be for a recurring contribution, identified by its ID starting with `in_`
+        - have exactly one line item. NRH-produced orders are expected to have a single line item and our downstream
+          code is equipped to only deal with a single item
+        - the line item's product ID must match the Mailchimp recurring product ID for the revenue program (which is the product
+          being replaced by either yearly or monthly products)
+        """
         return [
             x
             for x in self._get_all_orders()
@@ -274,7 +316,12 @@ class MailchimpMigrator:
             and x["lines"][0]["product_id"] == MailchimpProductType.RECURRING.as_mailchimp_product_id(self.rp.id)
         ]
 
-    def get_update_mailchimp_orders_batches(self) -> list[BatchOperation]:
+    def get_update_mailchimp_order_line_item_batches(self) -> list[BatchOperation]:
+        """Get a list of batch operations to update order line items in Mailchimp.
+
+        Note that if we encount an order for which we cannot find a subscription interval, we log a warning
+        and continue on to the next order.
+        """
         batches = []
         updateable_orders = self._get_updateable_orders()
         logger.info(
@@ -287,15 +334,14 @@ class MailchimpMigrator:
             if not (interval := self.get_subscription_interval_for_order(x["id"])):
                 logger.warning("Failed to get subscription interval for order with ID %s. Skipping", x["id"])
                 continue
-            try:
-                if batch := self.get_udpate_order_batch_op(interval, x):
-                    batches.append(batch)
-            except Dev5586MailchimpMigrationerror:
-                continue
+            if batch := self.get_udpate_order_batch_op(interval, x):
+                batches.append(batch)
+
         return batches
 
-    def update_mailchimp_orders_for_rp(self) -> list[dict[str, Literal["finished", "canceled", "timeout"]]]:
-        batches = self.get_update_mailchimp_orders_batches()
+    def update_mailchimp_order_line_items_for_rp(self) -> list[dict[str, Literal["finished", "canceled", "timeout"]]]:
+        """Update Mailchimp order line items for the revenue program."""
+        batches = self.get_update_mailchimp_order_line_item_batches()
         if not batches:
             logger.info("No orders to update for revenue program ID %s", self.rp.id)
         batch_outcomes = []
@@ -317,21 +363,33 @@ class MailchimpMigrator:
     def monitor_batch_status(
         self, batch_id, timeout=600, interval=10
     ) -> Literal["finished", "canceled", "timeout"] | None:
-        """Monitor the status of a batch operation."""
+        """Monitor the status of a batch operation.
+
+        We poll the Mailchimp API for the status of the batch operation until it is either finished or times out.
+
+        Note that in finish case, MC provides a `response_body_url` which contains a gzipped JSON file
+        with more info about the operation. This may be helpful for debugging errors.
+        """
         start_time = time.time()
         while time.time() - start_time < timeout:
             try:
                 status = self.mc_client.batches.status(batch_id)
                 logger.info(
-                    "Batch %s status: %s, completed operations: %s/%s",
+                    "Batch %s status: %s, completed operations: %s/%s, errored operations: %s",
                     batch_id,
                     status["status"],
-                    # this part doesn't seem to ever be defined on object.
-                    # run this down ahead of PR.
-                    status.get("completed_operations", 0),
-                    status.get("total_operations", 0),
+                    status["finished_operations"],
+                    status["total_operations"],
+                    status["errored_operations"],
                 )
-                if status["status"] in ["finished", "canceled"]:
+                if status["status"] == "finished":
+                    logger.info(
+                        "Batch %s finished with %s successful operations and %s errors. More details available at %s",
+                        batch_id,
+                        status["finished_operations"],
+                        status["errored_operations"],
+                        status["response_body_url"],
+                    )
                     return status
                 time.sleep(interval)
             except ApiClientError:
@@ -341,6 +399,7 @@ class MailchimpMigrator:
 
 
 def migrate_rp_mailchimp_integration(rp_id: int, mc_batch_size: int, mc_results_per_page: int) -> None:
+    """Migrate a revenue program's Mailchimp integration."""
     migrator = MailchimpMigrator(
         rp_id=rp_id,
         mc_batch_size=mc_batch_size,
@@ -348,12 +407,17 @@ def migrate_rp_mailchimp_integration(rp_id: int, mc_batch_size: int, mc_results_
     )
 
     migrator.get_stripe_data()
-    # at this point we have Stripe data in Redis cache
+    # at this point we have Stripe data in Redis cache. Note that we wont' be able to update orders
+    # if we haven't called .get_stripe_data first.
     try:
         migrator.ensure_mailchimp_monthly_and_yearly_products()
         migrator.ensure_monthly_and_yearly_mailchimp_segments()
         migrator.ensure_mailchimp_recurring_segment_criteria()
-        migrator.update_mailchimp_orders_for_rp()
+        migrator.update_mailchimp_order_line_items_for_rp()
+        logger.info("Migration for revenue program with ID %s completed successfully", migrator.rp.id)
+    except Dev5586MailchimpMigrationerror:
+        logger.exception("Migration for revenue program with ID %s failed", migrator.rp.id)
+        raise
     # no matter what, we want to clear the cache
     finally:
         migrator.stripe_importer.clear_all_stripe_transactions_cache()
@@ -363,10 +427,10 @@ class Command(BaseCommand):
     """Command to migrate RP's using old (pre-DEV-5584) Mailchimp products and segments to new ones."""
 
     def add_arguments(self, parser: CommandParser):
-        parser.add_argument(  # pragma: no cover
+        parser.add_argument(
             "revenue_programs",
             type=lambda s: [x.strip() for x in s.split(",")],
-            help="Comma-separated list of revenue program ids to limit to",
+            help="Comma-separated list of revenue program ids to migrate. Example: 1,2,3",
         )
         parser.add_argument(
             "--mc-page-count",

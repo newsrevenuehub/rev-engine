@@ -43,7 +43,7 @@ class MailchimpSegmentConditionSchema(TypedDict):
     condition schemas. Some SegmentConditionSchemas (for instance IPGeoIn) require
     additional fields, which are not yet implemented here.
 
-    Se https://mailchimp.com/developer/marketing/docs/alternative-schemas/#segment-condition-schemas
+    See https://mailchimp.com/developer/marketing/docs/alternative-schemas/#segment-condition-schemas
     for more information.
     """
 

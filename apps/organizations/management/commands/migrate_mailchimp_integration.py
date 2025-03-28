@@ -236,10 +236,12 @@ class MailchimpMigrator:
         new_options = MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()
         # we don't assume that conditions list order will be guaranteed, hence why we compare sets rather than
         # directly comparing segment.options to new_options.
+        old_conditions = {(k, v) for condition in segment.options.get("conditions", []) for k, v in condition.items()}
+        new_conditions = {(k, v) for condition in new_options["conditions"] for k, v in condition.items()}
         if all(
             [
                 segment.options["match"] == new_options["match"],
-                set(segment.options["conditions"]) == set(new_options["conditions"]),
+                old_conditions == new_conditions,
             ]
         ):
             logger.info(

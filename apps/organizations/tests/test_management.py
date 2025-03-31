@@ -8,6 +8,7 @@ from django.core.management.base import CommandError
 
 import pytest
 import pytest_mock
+from mailchimp_marketing.api_client import ApiClientError
 from stripe.error import StripeError
 
 from apps.organizations.management.commands.migrate_mailchimp_integration import (
@@ -552,17 +553,114 @@ class TestMailchimpMigrator:
         ).ensure_monthly_and_yearly_mailchimp_segments()
         mock_ensure_segment.assert_not_called()
 
-    def test_ensure_mailchimp_recurring_segment_criteria_happy_path(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test_ensure_mailchimp_recurring_segment_criteria_happy_path(
+        self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram
+    ):
+        mc_ready_rp.mailchimp_recurring_contributors_segment_id = "segment_id"
+        mc_ready_rp.save()
+        mock_segment = mocker.MagicMock(
+            list_id="list_id",
+            options={
+                "match": "old",
+                "conditions": [],
+            },
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributors_segment",
+            return_value=mock_segment,
+            new_callable=mocker.PropertyMock,
+        )
+        mock_update_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.lists.update_segment"
+        )
+        MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        ).ensure_mailchimp_recurring_segment_criteria()
+        mock_update_segment.assert_called_once_with(
+            mock_segment.list_id,
+            mc_ready_rp.mailchimp_recurring_contributors_segment_id,
+            {"options": MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()},
+        )
 
-    def test_ensure_mailchimp_recurring_segment_criteria_when_segment_missing(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test_ensure_mailchimp_recurring_segment_criteria_when_segment_missing(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributors_segment",
+            return_value=None,
+            new_callable=mocker.PropertyMock,
+        )
+        mock_update_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.lists.update_segment"
+        )
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match=f"Revenue program with ID {mc_ready_rp.id} does not have recurring contributors segment",
+        ):
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).ensure_mailchimp_recurring_segment_criteria()
+        mock_update_segment.assert_not_called()
 
-    def test_ensure_mailchimp_recurring_segment_criteria_when_already_updated(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test_ensure_mailchimp_recurring_segment_criteria_when_already_updated(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mock_segment = mocker.MagicMock(
+            list_id="list_id", options=MailchimpSegmentName.RECURRING_CONTRIBUTORS.get_segment_options()
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributors_segment",
+            return_value=mock_segment,
+            new_callable=mocker.PropertyMock,
+        )
+        mock_update_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.lists.update_segment"
+        )
+        MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        ).ensure_mailchimp_recurring_segment_criteria()
+        mock_update_segment.assert_not_called()
 
-    def test_ensure_mailchimp_recurring_segment_criteria_when_error_updating(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test_ensure_mailchimp_recurring_segment_criteria_when_error_updating(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mc_ready_rp.mailchimp_recurring_contributors_segment_id = "segment_id"
+        mc_ready_rp.save()
+        mock_segment = mocker.MagicMock(
+            list_id="list_id",
+            options={
+                "match": "old",
+                "conditions": [],
+            },
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contributors_segment",
+            return_value=mock_segment,
+            new_callable=mocker.PropertyMock,
+        )
+        mock_update_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.lists.update_segment",
+            side_effect=ApiClientError("Test error"),
+        )
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match=(
+                f"Failed to update membership criteria for recurring contributors "
+                f"segment for revenue program ID {mc_ready_rp.id}"
+            ),
+        ):
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).ensure_mailchimp_recurring_segment_criteria()
+        mock_update_segment.assert_called_once()
 
     def test__get_all_orders_happy_path(self, mocker: pytest_mock.MockerFixture):
         pass

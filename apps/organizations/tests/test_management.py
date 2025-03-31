@@ -671,16 +671,26 @@ class TestMailchimpMigrator:
     def _get_updateable_orders(self, mocker: pytest_mock.MockerFixture):
         pass
 
-    def test_get_update_mailchimp_order_line_item_batches_happy_path(self, mocker: pytest_mock.MockerFixture):
-        pass
-
-    def test_get_update_mailchimp_order_line_item_batches_when_interval_not_found(
-        self, mocker: pytest_mock.MockerFixture
+    def test_get_update_mailchimp_order_line_item_batches_happy_path(
+        self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram
     ):
-        pass
-
-    def test_get_update_mailchimp_order_line_item_batches_when_batch_is_none(self, mocker: pytest_mock.MockerFixture):
-        pass
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator._get_updateable_orders",
+            return_value=[{"id": "1"}, {"id": "2"}, {"id": "3"}],
+        )
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator.get_subscription_interval_for_order",
+            side_effect=["month", "month", None],
+        )
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator.get_update_order_batch_op",
+            side_effect=["something", None],
+        )
+        MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=1,
+            mc_results_per_page=100,
+        ).get_update_mailchimp_order_line_item_batches()
 
     @pytest.mark.parametrize("num_batches", [0, 1, 2])
     def test_update_mailchimp_order_line_items_for_rp_happy_path(

@@ -38,12 +38,6 @@ class MailchimpOrderLineItem(TypedDict):
     product_id: str
     product_variant_id: str
 
-    # remove these -- i think they might not be needed anymore
-
-    quantity: int
-    price: float
-    discount: float
-
 
 class PartialMailchimpRecurringOrder(TypedDict):
     """Type definition for Mailchimp order for a recurring contribution.

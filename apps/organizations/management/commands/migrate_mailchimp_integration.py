@@ -37,6 +37,9 @@ class MailchimpOrderLineItem(TypedDict):
     id: str
     product_id: str
     product_variant_id: str
+
+    # remove these -- i think they might not be needed anymore
+
     quantity: int
     price: float
     discount: float
@@ -155,7 +158,7 @@ class MailchimpMigrator:
                 logger.warning("Invalid interval for subscription %s for invoice with ID %s", sub["id"], order_id)
                 return None
 
-    def get_udpate_order_batch_op(
+    def get_update_order_batch_op(
         self, interval: Literal["month", "year"], order: PartialMailchimpRecurringOrder
     ) -> BatchOperation | None:
         """Get a batch operation to update an order line item to the new product type."""
@@ -336,35 +339,32 @@ class MailchimpMigrator:
             if not (interval := self.get_subscription_interval_for_order(x["id"])):
                 logger.warning("Failed to get subscription interval for order with ID %s. Skipping", x["id"])
                 continue
-            if batch := self.get_udpate_order_batch_op(interval, x):
+            if batch := self.get_update_order_batch_op(interval, x):
                 batches.append(batch)
 
         return batches
 
-    def update_mailchimp_order_line_items_for_rp(self) -> list[dict[str, Literal["finished", "canceled", "timeout"]]]:
+    def update_mailchimp_order_line_items_for_rp(self, sleep_time: int = 6) -> None:
         """Update Mailchimp order line items for the revenue program."""
         batches = self.get_update_mailchimp_order_line_item_batches()
         if not batches:
             logger.info("No orders to update for revenue program ID %s", self.rp_id)
-        batch_outcomes = []
         for i in range(0, len(batches), self.mc_batch_size):
             start_time = time.time()
             response = self.mc_client.batches.start({"operations": batches[i : i + self.mc_batch_size]})
             batch_id = response["id"]
             logger.info("Batch %s started with ID: {batch_id}", i + 1)
             # this can take up to 10 minutes to return
-            status = self.monitor_batch_status(batch_id)
-            batch_outcomes.append({"batch_id": batch_id, "status": status})
+            self.monitor_batch_status(batch_id)
             end_time = time.time()
             # if batches remain, and if current pacing would put us on track to exceed 10 requests per minute
             if i < len(batches) - 1 and end_time - start_time < 6:
                 logger.info("Waiting 6 seconds before next batch submission...")
-                time.sleep(6)
-        return batch_outcomes
+                time.sleep(sleep_time)
 
     def monitor_batch_status(
         self, batch_id, timeout=600, interval=10
-    ) -> Literal["finished", "canceled", "timeout"] | None:
+    ) -> Literal["finished", "canceled", "timeout", "error"] | None:
         """Monitor the status of a batch operation.
 
         We poll the Mailchimp API for the status of the batch operation until it is either finished or times out.
@@ -392,10 +392,14 @@ class MailchimpMigrator:
                         status["errored_operations"],
                         status["response_body_url"],
                     )
-                    return status
+                    return "finished"
+                if status["status"] == "canceled":
+                    logger.warning("Batch %s was canceled", batch_id)
+                    return "canceled"
                 time.sleep(interval)
             except ApiClientError:
                 logger.exception("Error checking status for batch %s", batch_id)
+                return "error"
         logger.warning("Monitoring timed out for batch %s", batch_id)
         return "timeout"
 

@@ -242,7 +242,7 @@ class TestMailchimpMigrator:
         mock_store = mocker.MagicMock(id="mc_store_id")
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_store",
-            new_callable=mocker.PropertyMock,
+            new_callable=mocker.PropertyMock(id="mc_store_id"),
             return_value=mock_store,
         )
         return mc_connected_rp
@@ -662,11 +662,49 @@ class TestMailchimpMigrator:
             ).ensure_mailchimp_recurring_segment_criteria()
         mock_update_segment.assert_called_once()
 
-    def test__get_all_orders_happy_path(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test__get_all_orders_happy_path(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        mocker.patch.object(
+            migrator.mc_client.ecommerce,
+            "get_store_orders",
+            side_effect=[
+                {
+                    "orders": [
+                        {"id": "order_id", "lines": [{"product_id": "product_id"}]},
+                    ],
+                    "total_items": 2,
+                },
+                {
+                    "orders": [
+                        {"id": "order_id_2", "lines": [{"product_id": "product_id"}]},
+                    ],
+                    "total_items": 2,
+                },
+            ],
+        )
+        migrator._get_all_orders()
 
-    def test__get_all_orders_when_api_error(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test__get_all_orders_when_api_error(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        mocker.patch.object(
+            migrator.mc_client.ecommerce,
+            "get_store_orders",
+            side_effect=ApiClientError("Test error"),
+        )
+
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match="Failed to retrieve orders for store ID",
+        ):
+            migrator._get_all_orders()
 
     def test__get_updateable_orders(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
         mocker.patch(

@@ -1,10 +1,12 @@
 from io import StringIO
+from unittest.mock import MagicMock
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
 import pytest
 import pytest_mock
+from stripe.error import StripeError
 
 from apps.organizations.management.commands.migrate_mailchimp_integration import (
     Dev5586MailchimpMigrationerror,
@@ -219,26 +221,116 @@ class TestMailchimpMigrator:
                 mc_results_per_page=100,
             ).validate_rp()
 
-    def test_get_stripe_data(self):
-        pass
+    @pytest.fixture
+    def mc_ready_rp(self, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture) -> RevenueProgram:
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_integration_ready", return_value=mc_connected_rp
+        )
+        # this approach is needed to avodi
+        # AttributeError: can't delete attribute 'stripe_account_id'
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.stripe_account_id",
+            new_callable=mocker.PropertyMock,
+            return_value="acct_id",
+        )
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_client", new_callable=mocker.PropertyMock)
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", new_callable=mocker.PropertyMock)
+        return mc_connected_rp
 
-    def test_get_subscription_interval_for_order_happy_path(self):
-        pass
+    @pytest.fixture
+    def mock_stripe_importer(self, mocker: pytest_mock.MockerFixture) -> MagicMock:
+        instance = mocker.MagicMock()
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.StripeTransactionsImporter",
+            return_value=instance,
+        )
+        return instance
 
-    def test_get_subscription_interval_for_order_when_invoice_not_found(self):
-        pass
+    @pytest.mark.parametrize("has_error", [True, False])
+    def test_get_stripe_data(
+        self,
+        has_error: bool,
+        mc_ready_rp: RevenueProgram,
+        mock_stripe_importer: MagicMock,
+    ):
+        if has_error:
+            mock_stripe_importer.list_and_cache_stripe_resources_for_recurring_contributions.side_effect = StripeError(
+                "Test error"
+            )
+            with pytest.raises(
+                Dev5586MailchimpMigrationerror,
+                match=f"Failed to retrieve invoices from Stripe for revenue program with ID {mc_ready_rp.id}",
+            ):
+                MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100).get_stripe_data()
 
-    def test_get_subscription_interval_for_order_when_sub_id_not_found(self):
-        pass
+        else:
+            MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100).get_stripe_data()
 
-    def test_get_subscription_interval_for_order_when_sub_not_found(self):
-        pass
+    @pytest.mark.parametrize("interval", ["month", "year", "unexpected"])
+    def test_get_subscription_interval_for_order(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture, interval: str
+    ):
+        migrator = MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100)
+        mock_invoice = {"subscription": "sub_id", "id": "in_123"}
+        mock_subscription = {"plan": {"interval": interval}, "id": "sub_id"}
+        mocker.patch.object(
+            migrator.stripe_importer,
+            "get_resource_from_cache",
+            side_effect=[
+                mock_invoice,
+                mock_subscription,
+            ],
+        )
+        assert migrator.get_subscription_interval_for_order("order_id") == (
+            interval if interval in ["month", "year"] else None
+        )
 
-    def test_get_subscription_interval_for_order_when_sub_not_have_plan(self):
-        pass
+    def test_get_subscription_interval_for_order_when_invoice_not_found(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        migrator = MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100)
+        mocker.patch.object(migrator.stripe_importer, "get_resource_from_cache", return_value=None)
+        assert migrator.get_subscription_interval_for_order("order_id") is None
 
-    def test_get_subscription_interval_for_order_when_sub_plan_has_weird_interval(self):
-        pass
+    def test_get_subscription_interval_for_order_when_sub_id_not_found(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        migrator = MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100)
+        mock_invoice = {"id": "in_123"}
+        mocker.patch.object(
+            migrator.stripe_importer,
+            "get_resource_from_cache",
+            return_value=mock_invoice,
+        )
+        assert migrator.get_subscription_interval_for_order("order_id") is None
+
+    def test_get_subscription_interval_for_order_when_sub_not_found(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        migrator = MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100)
+        mock_invoice = {"id": "in_123", "subscription": "sub_id"}
+        mocker.patch.object(
+            migrator.stripe_importer,
+            "get_resource_from_cache",
+            side_effect=[mock_invoice, None],
+        )
+        assert migrator.get_subscription_interval_for_order("order_id") is None
+
+    def test_get_subscription_interval_for_order_when_sub_not_have_plan(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        migrator = MailchimpMigrator(rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100)
+        mock_invoice = {"subscription": "sub_id", "id": "in_123"}
+        mock_subscription = {"id": "sub_id"}
+        mocker.patch.object(
+            migrator.stripe_importer,
+            "get_resource_from_cache",
+            side_effect=[
+                mock_invoice,
+                mock_subscription,
+            ],
+        )
+        assert migrator.get_subscription_interval_for_order("order_id") is None
 
     @pytest.mark.parametrize("interval", ["month", "year"])
     def test_get_update_order_batch_op_happy_path(self, interval: str, mocker: pytest_mock.MockerFixture):

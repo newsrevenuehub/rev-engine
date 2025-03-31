@@ -688,11 +688,105 @@ class TestMailchimpMigrator:
     def test_update_mailchimp_order_line_items_for_rp_when_no_batches(self, mocker: pytest_mock.MockerFixture):
         pass
 
-    def test_monitor_batch_status_happy_path(self):
-        pass
+    def test_monitor_batch_status_happy_path(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        mock_status = {
+            "status": "pending",
+            "finished_operations": 0,
+            "total_operations": 2,
+            "errored_operations": 0,
+        }
+        mocker.patch.object(
+            migrator.mc_client.batches,
+            "status",
+            side_effect=[
+                mock_status,
+                {**mock_status, "status": "finished", "response_body_url": "url"},
+            ],
+        )
+        assert (
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).monitor_batch_status(status_id := "batch_id", interval=1)
+            == "finished"
+        )
+        migrator.mc_client.batches.status.assert_has_calls(
+            [
+                mocker.call(status_id),
+                mocker.call(status_id),
+            ]
+        )
 
-    def test_monitor_batch_status_when_api_error(self):
-        pass
+    def test_monitor_batch_status_when_api_error(self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture):
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        mocker.patch.object(migrator.mc_client.batches, "status", side_effect=ApiClientError("Test error"))
+        assert (
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).monitor_batch_status("batch_id", interval=1)
+            == "error"
+        )
 
-    def test_monitor_batch_status_when_timeout(self):
-        pass
+    def test_monitor_batch_status_when_canceled(self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture):
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        mock_status = {
+            "status": "canceled",
+            "finished_operations": 0,
+            "total_operations": 2,
+            "errored_operations": 0,
+        }
+        mocker.patch.object(
+            migrator.mc_client.batches,
+            "status",
+            return_value=mock_status,
+        )
+        assert (
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).monitor_batch_status("batch_id", interval=1)
+            == "canceled"
+        )
+
+    def test_monitor_batch_status_when_timeout(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        mock_status = {
+            "status": "pending",
+            "finished_operations": 0,
+            "total_operations": 2,
+            "errored_operations": 0,
+        }
+        mocker.patch.object(
+            migrator.mc_client.batches,
+            "status",
+            return_value=mock_status,
+        )
+        assert (
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).monitor_batch_status("batch_id", interval=1, timeout=1)
+            == "timeout"
+        )

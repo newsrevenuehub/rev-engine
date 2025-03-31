@@ -20,7 +20,7 @@ from apps.organizations.management.commands.migrate_mailchimp_integration import
 )
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.organizations.typings import MailchimpProductType
+from apps.organizations.typings import MailchimpProductType, MailchimpSegmentName
 
 
 TEST_LIVE_KEY = "live-key-test"
@@ -489,14 +489,68 @@ class TestMailchimpMigrator:
             migrator.ensure_mailchimp_monthly_and_yearly_products()
         mock_ensure_product.assert_called_once_with(MailchimpProductType.MONTHLY)
 
-    def test_ensure_monthly_and_yearly_mailchimp_segments_happy_path(self):
-        pass
+    def test_ensure_monthly_and_yearly_mailchimp_segments_happy_path(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.get_product",
+            return_value=mocker.MagicMock(),
+        )
+        mock_ensure_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contributor_segment"
+        )
+        MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        ).ensure_monthly_and_yearly_mailchimp_segments()
+        mock_ensure_segment.assert_has_calls(
+            (
+                mocker.call(MailchimpSegmentName.MONTHLY_CONTRIBUTORS),
+                mocker.call(MailchimpSegmentName.YEARLY_CONTRIBUTORS),
+            )
+        )
 
-    def test_ensure_monthly_and_yearly_mailchimp_segments_when_missing_product(self):
-        pass
+    def test_ensure_monthly_and_yearly_mailchimp_segments_when_missing_product(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.get_product",
+            return_value=None,
+        )
+        mock_ensure_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contributor_segment"
+        )
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match=f"Revenue program with ID {mc_ready_rp.id} does not have monthly and yearly Mailchimp product types",
+        ):
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id,
+                mc_batch_size=100,
+                mc_results_per_page=100,
+            ).ensure_monthly_and_yearly_mailchimp_segments()
 
-    def test_ensure_monthly_and_yearly_mailchimp_segments_when_already_exist(self):
-        pass
+        mock_ensure_segment.assert_not_called()
+
+    def test_ensure_monthly_and_yearly_mailchimp_segments_when_already_exist(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.get_product", return_value=mocker.Mock()
+        )
+        mc_ready_rp.mailchimp_monthly_contributors_segment_id = "segment_id"
+        mc_ready_rp.mailchimp_yearly_contributors_segment_id = "segment_id"
+        mc_ready_rp.save()
+        mock_ensure_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contributor_segment"
+        )
+        MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        ).ensure_monthly_and_yearly_mailchimp_segments()
+        mock_ensure_segment.assert_not_called()
 
     def test_ensure_mailchimp_recurring_segment_criteria_happy_path(self, mocker: pytest_mock.MockerFixture):
         pass

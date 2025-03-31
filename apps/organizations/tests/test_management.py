@@ -668,8 +668,27 @@ class TestMailchimpMigrator:
     def test__get_all_orders_when_api_error(self, mocker: pytest_mock.MockerFixture):
         pass
 
-    def _get_updateable_orders(self, mocker: pytest_mock.MockerFixture):
-        pass
+    def test__get_updateable_orders(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator._get_all_orders",
+            return_value=[
+                (
+                    found := {
+                        "id": "in_1",
+                        "lines": [
+                            {"product_id": MailchimpProductType.RECURRING.as_mailchimp_product_id(mc_ready_rp.id)}
+                        ],
+                    }
+                ),
+                {"id": "in_2", "lines": []},
+                {"id": "in_3", "lines": [{"product_id": "unexpected"}]},
+            ],
+        )
+        assert MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )._get_updateable_orders() == [found]
 
     def test_get_update_mailchimp_order_line_item_batches_happy_path(
         self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram

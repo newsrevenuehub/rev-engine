@@ -18,7 +18,7 @@ export function DonationPageHeader({ page }: DonationPageHeaderProps) {
   const backgroundSource = useImageSource(page.header_bg_image);
 
   // If the logo is linked, we need the logo to have *some* alt text for it to
-  // be interactible. As a fallback, we set it to "Logo" (though this is far
+  // be interactable. As a fallback, we set it to "Logo" (though this is far
   // from ideal). If the image is unlinked, it's fine for it to have blank alt
   // text.
 

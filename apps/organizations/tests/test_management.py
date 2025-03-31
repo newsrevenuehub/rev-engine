@@ -682,11 +682,24 @@ class TestMailchimpMigrator:
     def test_get_update_mailchimp_order_line_item_batches_when_batch_is_none(self, mocker: pytest_mock.MockerFixture):
         pass
 
-    def test_update_mailchimp_order_line_items_for_rp_happy_path(self, mocker: pytest_mock.MockerFixture):
-        pass
-
-    def test_update_mailchimp_order_line_items_for_rp_when_no_batches(self, mocker: pytest_mock.MockerFixture):
-        pass
+    @pytest.mark.parametrize("num_batches", [0, 1, 2])
+    def test_update_mailchimp_order_line_items_for_rp_happy_path(
+        self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram, num_batches: int
+    ):
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator.monitor_batch_status"
+        )
+        mocker.patch(
+            "apps.organizations.management.commands.migrate_mailchimp_integration.MailchimpMigrator.get_update_mailchimp_order_line_item_batches",
+            return_value=[mocker.Mock() for _ in range(num_batches)],
+        )
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=1,
+            mc_results_per_page=100,
+        )
+        mocker.patch.object(migrator.mc_client.batches, "start", return_value={"id": "batch_id"})
+        migrator.update_mailchimp_order_line_items_for_rp(sleep_time=0)
 
     def test_monitor_batch_status_happy_path(self, mocker: pytest_mock.MockerFixture, mc_ready_rp: RevenueProgram):
         migrator = MailchimpMigrator(

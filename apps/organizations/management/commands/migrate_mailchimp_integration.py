@@ -344,7 +344,7 @@ class MailchimpMigrator:
 
         return batches
 
-    def update_mailchimp_order_line_items_for_rp(self) -> None:
+    def update_mailchimp_order_line_items_for_rp(self, sleep_time: int = 6) -> None:
         """Update Mailchimp order line items for the revenue program."""
         batches = self.get_update_mailchimp_order_line_item_batches()
         if not batches:
@@ -360,7 +360,7 @@ class MailchimpMigrator:
             # if batches remain, and if current pacing would put us on track to exceed 10 requests per minute
             if i < len(batches) - 1 and end_time - start_time < 6:
                 logger.info("Waiting 6 seconds before next batch submission...")
-                time.sleep(6)
+                time.sleep(sleep_time)
 
     def monitor_batch_status(
         self, batch_id, timeout=600, interval=10

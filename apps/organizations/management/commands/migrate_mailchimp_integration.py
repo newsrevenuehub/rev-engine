@@ -37,6 +37,9 @@ class MailchimpOrderLineItem(TypedDict):
     id: str
     product_id: str
     product_variant_id: str
+
+    # remove these -- i think they might not be needed anymore
+
     quantity: int
     price: float
     discount: float
@@ -155,7 +158,7 @@ class MailchimpMigrator:
                 logger.warning("Invalid interval for subscription %s for invoice with ID %s", sub["id"], order_id)
                 return None
 
-    def get_udpate_order_batch_op(
+    def get_update_order_batch_op(
         self, interval: Literal["month", "year"], order: PartialMailchimpRecurringOrder
     ) -> BatchOperation | None:
         """Get a batch operation to update an order line item to the new product type."""
@@ -336,7 +339,7 @@ class MailchimpMigrator:
             if not (interval := self.get_subscription_interval_for_order(x["id"])):
                 logger.warning("Failed to get subscription interval for order with ID %s. Skipping", x["id"])
                 continue
-            if batch := self.get_udpate_order_batch_op(interval, x):
+            if batch := self.get_update_order_batch_op(interval, x):
                 batches.append(batch)
 
         return batches

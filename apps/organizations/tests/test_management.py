@@ -1,4 +1,6 @@
+import json
 from io import StringIO
+from typing import Literal
 from unittest.mock import MagicMock
 
 from django.core.management import call_command
@@ -9,12 +11,16 @@ import pytest_mock
 from stripe.error import StripeError
 
 from apps.organizations.management.commands.migrate_mailchimp_integration import (
+    BatchOperation,
     Dev5586MailchimpMigrationerror,
     MailchimpMigrator,
+    MailchimpOrderLineItem,
+    PartialMailchimpRecurringOrder,
     migrate_rp_mailchimp_integration,
 )
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.organizations.typings import MailchimpProductType
 
 
 TEST_LIVE_KEY = "live-key-test"
@@ -226,15 +232,18 @@ class TestMailchimpMigrator:
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_integration_ready", return_value=mc_connected_rp
         )
-        # this approach is needed to avodi
-        # AttributeError: can't delete attribute 'stripe_account_id'
         mocker.patch(
             "apps.organizations.models.RevenueProgram.stripe_account_id",
             new_callable=mocker.PropertyMock,
             return_value="acct_id",
         )
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_client", new_callable=mocker.PropertyMock)
-        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", new_callable=mocker.PropertyMock)
+        mock_store = mocker.MagicMock(id="mc_store_id")
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_store",
+            new_callable=mocker.PropertyMock,
+            return_value=mock_store,
+        )
         return mc_connected_rp
 
     @pytest.fixture
@@ -333,20 +342,152 @@ class TestMailchimpMigrator:
         assert migrator.get_subscription_interval_for_order("order_id") is None
 
     @pytest.mark.parametrize("interval", ["month", "year"])
-    def test_get_update_order_batch_op_happy_path(self, interval: str, mocker: pytest_mock.MockerFixture):
-        pass
+    def test_get_update_order_batch_op_happy_path(
+        self,
+        mc_ready_rp: RevenueProgram,
+        interval: Literal["month", "year"],
+    ):
+        order = PartialMailchimpRecurringOrder(
+            id="order_id",
+            lines=[
+                MailchimpOrderLineItem(
+                    id="line_id",
+                    product_id="product_id",
+                    product_variant_id="variant_id",
+                    quantity=1,
+                    price=10,
+                    discount=0,
+                )
+            ],
+        )
+        batch_op = MailchimpMigrator(
+            rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100
+        ).get_update_order_batch_op(interval=interval, order=order)
+        product = MailchimpProductType.MONTHLY if interval == "month" else MailchimpProductType.YEARLY
+        new_id = product.as_mailchimp_product_id(mc_ready_rp.id)
+        assert batch_op == BatchOperation(
+            method="PATCH",
+            path=f"/ecommerce/stores/{mc_ready_rp.mailchimp_store.id}/orders/{order['id']}/lines/{order['lines'][0]['id']}",
+            body=json.dumps({"product_id": new_id, "product_variant_id": new_id}),
+        )
 
-    def test_get_update_order_batch_op_when_order_not_have_1_line(self):
-        pass
+    @pytest.mark.parametrize("num_lines", [0, 2])
+    def test_get_update_order_batch_op_when_order_not_have_1_line(self, mc_ready_rp: RevenueProgram, num_lines: int):
+        lines = [
+            MailchimpOrderLineItem(
+                id=f"line_id_{i}",
+                product_id=f"product_id_{i}",
+                product_variant_id=f"variant_id_{i}",
+                quantity=1,
+                price=10,
+                discount=0,
+            )
+            for i in range(num_lines)
+        ]
+        order = PartialMailchimpRecurringOrder(
+            id="order_id",
+            lines=lines,
+        )
+        assert (
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100
+            ).get_update_order_batch_op(interval="month", order=order)
+            is None
+        )
 
-    def test_ensure_mailchimp_monthly_and_yearly_products_happy_path(self):
-        pass
+    def test_get_update_order_batch_op_when_already_migrated(
+        self,
+        mc_ready_rp: RevenueProgram,
+    ):
+        new_id = MailchimpProductType.MONTHLY.as_mailchimp_product_id(mc_ready_rp.id)
+        order = PartialMailchimpRecurringOrder(
+            id="order_id",
+            lines=[
+                MailchimpOrderLineItem(
+                    id="line_id",
+                    product_id=new_id,
+                    product_variant_id=new_id,
+                    quantity=1,
+                    price=10,
+                    discount=0,
+                )
+            ],
+        )
+        assert (
+            MailchimpMigrator(
+                rp_id=mc_ready_rp.id, mc_batch_size=100, mc_results_per_page=100
+            ).get_update_order_batch_op(interval="month", order=order)
+            is None
+        )
 
-    def test_ensure_mailchimp_monthly_and_yearly_products_already_exist(self):
-        pass
+    def test_ensure_mailchimp_monthly_and_yearly_products_happy_path(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mock_ensure_product = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contribution_product"
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.get_product",
+            # first two calls are for monthly and yearly products before created, second two are for calls after
+            side_effect=[None, None, mocker.MagicMock(), mocker.MagicMock()],
+        )
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        migrator.ensure_mailchimp_monthly_and_yearly_products()
+        mock_ensure_product.assert_has_calls(
+            [
+                mocker.call(MailchimpProductType.MONTHLY),
+                mocker.call(MailchimpProductType.YEARLY),
+            ]
+        )
 
-    def test_ensure_mailchimp_monthly_and_yearly_products_not_exist_after_creation(self):
-        pass
+    def test_ensure_mailchimp_monthly_and_yearly_products_already_exist(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mock_ensure_product = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contribution_product"
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.get_product",
+            return_value=mocker.MagicMock(),
+        )
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        migrator.ensure_mailchimp_monthly_and_yearly_products()
+        mock_ensure_product.assert_not_called()
+
+    def test_ensure_mailchimp_monthly_and_yearly_products_when_not_exist_after_creation(
+        self, mc_ready_rp: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        mock_ensure_product = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contribution_product"
+        )
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_client.get_product",
+            # first two calls are for monthly and yearly products before created, third call is for monthly product after
+            # created, simulating edge case where for some reason it's not found.
+            side_effect=[None, None, None],
+        )
+        migrator = MailchimpMigrator(
+            rp_id=mc_ready_rp.id,
+            mc_batch_size=100,
+            mc_results_per_page=100,
+        )
+        with pytest.raises(
+            Dev5586MailchimpMigrationerror,
+            match=(
+                f"Failed to create Mailchimp product type {MailchimpProductType.MONTHLY} for revenue program ID "
+                f"{mc_ready_rp.id}"
+            ),
+        ):
+            migrator.ensure_mailchimp_monthly_and_yearly_products()
+        mock_ensure_product.assert_called_once_with(MailchimpProductType.MONTHLY)
 
     def test_ensure_monthly_and_yearly_mailchimp_segments_happy_path(self):
         pass

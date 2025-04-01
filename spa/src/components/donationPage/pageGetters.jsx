@@ -8,10 +8,6 @@ export const getPageHeadingElement = () => {
   return <staticElements.SPageHeading />;
 };
 
-export const getGraphicElement = () => {
-  return <staticElements.SGraphic />;
-};
-
 export const getDynamicElement = (element, live) => {
   return getComponentForElement(element, live);
 };

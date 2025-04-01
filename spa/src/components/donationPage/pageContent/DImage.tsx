@@ -13,7 +13,7 @@ export interface DImageProps extends InferProps<typeof DImagePropTypes> {
 }
 
 export function DImage({ element, ...props }: DImageProps) {
-  const src = useImageSource(element.content instanceof File ? element.content : element.content.url);
+  const src = useImageSource(element.content instanceof File ? element.content : element.content?.url);
 
   if (!src) {
     return null;

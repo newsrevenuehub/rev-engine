@@ -180,11 +180,15 @@ export interface FrequencyElement extends ContributionPageElement {
 
 export interface ImageElement extends ContributionPageElement {
   /**
+   * If the element has been newly created, content is undefined, unlike other
+   * elements.
+   *
    * If the element has been saved, this is an object with a string property
-   * containing the URL to the uploaded file. If it's been edited but not saved yet,
-   * it is the uploaded file with no object wrapper.
+   * containing the URL to the uploaded file. If it's been edited but not saved
+   * yet, it is the uploaded file with no object wrapper.
    */
   content:
+    | undefined
     | File
     | {
         url: string;

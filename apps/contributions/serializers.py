@@ -758,11 +758,10 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
             and obj.interval != ContributionInterval.ONE_TIME
             and (metadata := obj.contribution_metadata)
             and metadata.get("schema_version") == "1.3"
-            and (sub := obj.stripe_subscription)
-            and sub.status == "active"
-            and (period_end := sub.current_period_end)
+            and (date := obj.next_payment_date)
         ):
-            return period_end
+            return date
+        return None
 
     def to_representation(self, instance):
         return super().to_representation(instance)

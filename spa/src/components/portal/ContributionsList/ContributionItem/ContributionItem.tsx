@@ -71,7 +71,9 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
           <IntervalIcon aria-label={getFrequencyAdjective(contribution.interval)} />
         </IntervalIconContainer>
         <DateContainer>
-          <CreatedDate data-testid="first-payment-date">{formatDate(contribution.first_payment_date)}</CreatedDate>
+          <CreatedDate data-testid="first-payment-date">
+            {contribution.first_payment_date ? formatDate(contribution.first_payment_date) : '---'}
+          </CreatedDate>
           <NextContributionDate $status={contribution.status} data-testid="next-payment-date">
             {contribution.next_payment_date ? (
               <>

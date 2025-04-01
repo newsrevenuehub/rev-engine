@@ -82,6 +82,9 @@ class StripeWebhookProcessor:
                     return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
                 case "charge":
                     return Contribution.objects.get(provider_payment_id=self.obj_data["payment_intent"])
+                # NB: Conspicously absent is "payment_method". Although we handle payment_method.attached events
+                # which have this object type, we potentially will have > 1 contributions with the same provider_customer_id,
+                # which is the contribution field that we match to the customer ID in the event.
                 case _:
                     return None
 
@@ -145,12 +148,39 @@ class StripeWebhookProcessor:
             return False
         return True
 
+    @staticmethod
+    def ignore_for_metadata_schema_version_1_6(contribution: Contribution | None) -> bool:
+        """Return if we can determine that the event is for a contribution with metadata schema version 1.6.
+
+        We ignore these contributions because we want webhooks related to them to be exclusively handled by
+        Switchboard in order to avoid race conditions.
+
+        NB: This method will return False if self.contribution is None, and we expect that to be the case when dealing
+        with payment_method.attached event, as match that event by its customer ID field, and that's non-unique on Contributions.
+        At present, the only action for payment_method.attached events is to update the contribution with the payment method ID and details,
+        and our self._handle_pm_update_event() knows to ignoree schema version 1.6 contributions.
+        """
+        if contribution and (metadata := contribution.contribution_metadata):
+            return metadata.get("schema_version") == "1.6"
+        return False
+
     def process(self):
         if not self.webhook_live_mode_agrees_with_environment:
             logger.warning("Received webhook in wrong mode; ignoring")
             return
+        # For charge.succeeded and payment_method.attached, there is not necessarily a single contribution associated with the event,
+        # and that's not an indication of a data integrity issue. In the case of payment_method.attached, in particular, it's logically
+        # possible for there to be > 1 contribution with the customer ID on the event in the system, and we need to update all of them
+        # (unless they are on metadata schema version 1.6, which is ignored), whereas self.contribution is meant to return a single
+        # contribution. On the other hand, we expect to receive webhooks for charge.succeeded events for which we don't have contributions,
+        # and we need to ignore those.
         if self.event_type not in ("charge.succeeded", "payment_method.attached") and not self.contribution:
             raise Contribution.DoesNotExist("No contribution found")
+        # We ignore any events that have a single contribution whose metadata schema version is 1.6, as these will be handled by
+        # Switchboard.
+        if self.ignore_for_metadata_schema_version_1_6(self.contribution):
+            logger.debug("Ingoring event %s with schema version 1.6")
+            return
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)
 
@@ -213,7 +243,7 @@ class StripeWebhookProcessor:
         # TODO @BW: Make this a .get() instead of .filter() once provider_payment_id is unique
         # DEV-5661
         details = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.event.account)
-        for x in Contribution.objects.filter(**query):
+        for x in Contribution.objects.filter(**query).exclude(contribution_metadata__schema_version="1.6"):
             x.provider_payment_method_id = pm_id
             x.provider_payment_method_details = details
             with reversion.create_revision():
@@ -252,6 +282,11 @@ class StripeWebhookProcessor:
         """
         logger.info("Handling charge succeeded event for payment intent %s", self.obj_data["payment_intent"])
         if pi_id := self.obj_data["payment_intent"]:
+            # NB: The _handle_pm_update_event method tries to update any/all contributions that meet the query and does not assume
+            # a single contribution. `provider_payment_id` used to be non-unique on contribution model, so we needed to potentially
+            # update more than one contribution on handle_charge_succeeded events. `provider_payment_id` is now unique, but we still
+            # use this method because it provides a generic way to update the provider_payment_method_id and provider_payment_method_details
+            # fields, even though we'll only update at most one contribution here.
             self._handle_pm_update_event(
                 query={"provider_payment_id": pi_id},
                 pm_id=self.obj_data["payment_method"],

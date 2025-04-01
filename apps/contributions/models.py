@@ -1588,7 +1588,7 @@ class Payment(IndexedTimeStampedModel):
 
     @classmethod
     @ensure_stripe_event(["charge.refunded"])
-    def from_stripe_charge_refunded_event(cls, event: StripeEventData) -> Payment:
+    def from_stripe_charge_refunded_event(cls, event: StripeEventData) -> Payment | None:
         pi = (
             stripe.PaymentIntent.retrieve(
                 event.data["object"]["payment_intent"], stripe_account=event.account, expand=["invoice"]
@@ -1624,7 +1624,13 @@ class Payment(IndexedTimeStampedModel):
         except (Contribution.MultipleObjectsReturned, Contribution.DoesNotExist):
             logger.exception("Cannot find contribution for event (no match) %s", event.id)
             raise ValueError("Could not find a contribution for this event (no match)") from None
-
+        # NB: We ignore refunds for contributions with metadata schema version 1.6 because we want Switchboard to exclusively
+        # handle to avoid any race conditions.
+        if (_md := contribution.contribution_metadata) and _md.get("schema_version") == "1.6":
+            logger.info(
+                "Contribution %s has metadata schema version 1.6 so event %s will be ignored", contribution.id, event.id
+            )
+            return None
         return Payment.objects.create(
             contribution=contribution,
             stripe_balance_transaction_id=bt.id,

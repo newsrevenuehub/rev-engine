@@ -179,7 +179,7 @@ class StripeWebhookProcessor:
         # We ignore any events that have a single contribution whose metadata schema version is 1.6, as these will be handled by
         # Switchboard.
         if self.ignore_for_metadata_schema_version_1_6(self.contribution):
-            logger.debug("Ingoring event %s with schema version 1.6")
+            logger.info("Ingoring event %s with schema version 1.6")
             return
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)

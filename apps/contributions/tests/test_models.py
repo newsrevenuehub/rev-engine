@@ -2560,6 +2560,52 @@ class TestPayment:
             assert payment.amount_refunded == event.data.object.refunds.data[0].amount
             assert payment.stripe_balance_transaction_id == event.data.object.refunds.data[0].balance_transaction
 
+    def test_from_stripe_charge_refunded_event_when_v1_6_metadata(
+        self,
+        charge_refunded_one_time_event,
+        payment_intent_for_one_time_contribution,
+        balance_transaction_for_refund_of_one_time_charge,
+        mocker,
+        valid_metadata,
+    ):
+        balance_transaction_for_refund_of_one_time_charge.amount = payment_intent_for_one_time_contribution.amount
+        balance_transaction_for_refund_of_one_time_charge.source.amount_refunded = (
+            payment_intent_for_one_time_contribution.amount
+        )
+        balance_transaction_for_refund_of_one_time_charge.source.payment_intent = (
+            payment_intent_for_one_time_contribution.id
+        )
+        charge_refunded_one_time_event.data.object.payment_intent = payment_intent_for_one_time_contribution.id
+        charge_refunded_one_time_event.data.object.amount_refunded = (
+            balance_transaction_for_refund_of_one_time_charge.source.amount_refunded
+        )
+        charge_refunded_one_time_event.data.object.refunds.data[0].balance_transaction = (
+            balance_transaction_for_refund_of_one_time_charge.id
+        )
+        charge_refunded_one_time_event.data.object.refunds.data[0].amount = (
+            balance_transaction_for_refund_of_one_time_charge.source.amount_refunded
+        )
+
+        mocker.patch(
+            "stripe.BalanceTransaction.retrieve",
+            return_value=balance_transaction_for_refund_of_one_time_charge,
+        )
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=payment_intent_for_one_time_contribution,
+        )
+        mock_logger = mocker.patch("apps.contributions.models.logger.info")
+        contribution = ContributionFactory(
+            interval=ContributionInterval.ONE_TIME,
+            provider_payment_id=charge_refunded_one_time_event.data.object.payment_intent,
+            contribution_metadata={**valid_metadata, "schema_version": "1.6"},
+        )
+        event = StripeEventData(**charge_refunded_one_time_event)
+        assert Payment.from_stripe_charge_refunded_event(event=event) is None
+        mock_logger.assert_called_once_with(
+            "Contribution %s has metadata schema version 1.6 so event %s will be ignored", contribution.id, event.id
+        )
+
     @pytest.fixture
     def invoice_payment_succeeded_recurring_charge_event(self):
         with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:

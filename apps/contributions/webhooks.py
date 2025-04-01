@@ -158,7 +158,7 @@ class StripeWebhookProcessor:
         NB: This method will return False if self.contribution is None, and we expect that to be the case when dealing
         with payment_method.attached event, as match that event by its customer ID field, and that's non-unique on Contributions.
         At present, the only action for payment_method.attached events is to update the contribution with the payment method ID and details,
-        and our self._handle_pm_update_event() knows to ignoree schema version 1.6 contributions.
+        and our self._handle_pm_update_event() knows to ignore schema version 1.6 contributions.
         """
         if contribution and (metadata := contribution.contribution_metadata):
             return metadata.get("schema_version") == "1.6"

@@ -9,6 +9,7 @@ class MailchimpProductType(StrEnum):
     """
 
     ONE_TIME = "one_time"
+    RECURRING = "recurring"
     YEARLY = "yearly"
     MONTHLY = "monthly"
 

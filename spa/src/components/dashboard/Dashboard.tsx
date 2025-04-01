@@ -5,7 +5,6 @@ import * as S from './Dashboard.styled';
 // Routing
 import {
   CONTENT_SLUG,
-  CUSTOMIZE_SLUG,
   CONTRIBUTOR_PORTAL_SLUG,
   DASHBOARD_SLUG,
   DONATIONS_SLUG,
@@ -14,7 +13,9 @@ import {
   EDITOR_ROUTE_PAGE_REDIRECT,
   MAILCHIMP_OAUTH_SUCCESS_ROUTE,
   PROFILE,
-  SETTINGS
+  SETTINGS,
+  EMAILS_SLUG,
+  CUSTOMIZE_SLUG
 } from 'routes';
 
 // Children
@@ -22,7 +23,6 @@ import Profile from 'components/account/Profile';
 import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
 import PageError from 'components/common/PageError/PageError';
 import Content from 'components/content/Content';
-import CustomizeRoute from 'components/content/CustomizeRoute';
 import ContributorPortalRoute from 'components/content/ContributorPortalRoute';
 import ConnectStripe from 'components/dashboard/connectStripe/ConnectStripe';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
@@ -34,7 +34,7 @@ import Organization from 'components/settings/Organization';
 import MailchimpConnectionStatus from './MailchimpConnectionStatus';
 
 // Feature flag-related
-import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME, EMAILS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import Subscription from 'components/settings/Subscription/Subscription';
@@ -45,10 +45,13 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 import AnalyticsSetup from 'components/common/AnalyticsSetup/AnalyticsSetup';
+import { EmailsRoute } from 'components/content/emails';
+import CustomizeRoute from 'components/content/CustomizeRoute';
 
 function Dashboard() {
   const { user } = useUser();
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, user);
+  const hasEmailSectionAccess = user?.role_type && flagIsActiveForUser(EMAILS_SECTION_ACCESS_FLAG_NAME, user);
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
     : user && hasContributionsSectionAccess(user)
@@ -79,6 +82,13 @@ function Dashboard() {
                   <Donations />
                 </SentryRoute>
               ) : null}
+              {hasEmailSectionAccess ? (
+                <SentryRoute path={EMAILS_SLUG}>
+                  <SingleOrgUserOnlyRoute>
+                    <EmailsRoute />
+                  </SingleOrgUserOnlyRoute>
+                </SentryRoute>
+              ) : null}
               {hasContentSectionAccess ? (
                 <SentryRoute path={CONTENT_SLUG}>
                   <Content />
@@ -89,7 +99,7 @@ function Dashboard() {
                   <ContributorPortalRoute />
                 </SentryRoute>
               ) : null}
-              {hasContentSectionAccess ? (
+              {!hasEmailSectionAccess && hasContentSectionAccess ? (
                 <SentryRoute path={CUSTOMIZE_SLUG}>
                   <CustomizeRoute />
                 </SentryRoute>

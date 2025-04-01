@@ -211,7 +211,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
 
     # Page id is a nice shortcut for getting the page, instead of page_slug + rp_slug
     page_id = serializers.IntegerField(required=False)
-    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
     def convert_amount_to_cents(self, amount):
         """Stripe stores payment amounts in cents."""
@@ -276,7 +275,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         max_length=80, write_only=True, required=False, allow_blank=True, default=""
     )
     agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
-    phone = serializers.CharField(max_length=40, required=False, allow_blank=True, write_only=True, default="")
+    # This must be 20 characters (or fewer) because of Stripe requirements.
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True, write_only=True, default="")
     reason_for_giving = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
@@ -900,8 +900,10 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-
     revenue_program_source = serializers.SerializerMethodField(read_only=True)
+    # TODO @BW: Remove this once Contribution.contributor is non-nullable
+    # DEV-5953
+    contributor = serializers.PrimaryKeyRelatedField(queryset=Contributor.objects.all(), allow_null=False)
 
     class Meta:
         model = Contribution
@@ -965,6 +967,8 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             )
         return value
 
+    # TODO @BW: Add validation to ensure provider_customer_id is set if send_receipt is true in request context
+    # DEV-5961
     def validate(self, data):
         """Ensure that either a revenue program or a donation page is set on the contribution, but not both."""
         data = super().validate(data)

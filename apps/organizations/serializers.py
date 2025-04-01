@@ -1,8 +1,10 @@
 import logging
 from dataclasses import asdict
+from typing import TypedDict
 
 from django.conf import settings
 
+import requests
 import reversion
 from rest_framework import serializers
 
@@ -196,10 +198,8 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
     mailchimp_monthly_contribution_product = serializers.SerializerMethodField()
     mailchimp_yearly_contribution_product = serializers.SerializerMethodField()
-    # NB: This is a vestigial field that we're keeping around in short term so SB won't break.
-    # TODO @BW: Remove this field
-    # DEV-5588
-    mailchimp_recurring_contribution_product = serializers.ReadOnlyField(default=None)
+    # Add todo here.
+    mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
     stripe_account_id = serializers.ReadOnlyField(allow_null=True)
     id = serializers.ReadOnlyField()
     name = serializers.ReadOnlyField()
@@ -238,6 +238,9 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     def get_mailchimp_yearly_contribution_product(self, obj) -> dict | None:
         return self._get_mc_product(MailchimpProductType.YEARLY.as_rp_field(), obj)
 
+    def get_mailchimp_recurring_contribution_product(self, obj) -> dict | None:
+        return self._get_mc_product(MailchimpProductType.RECURRING.as_rp_field(), obj)
+
 
 class BaseActiveCampaignRevenueProgram(serializers.ModelSerializer):
     """Base serializer for ActiveCampaignRevenueProgram."""
@@ -259,11 +262,18 @@ class BaseActiveCampaignRevenueProgram(serializers.ModelSerializer):
         ]
 
 
+class ActiveCampaignRevenueProgramForSpaSerializerData(TypedDict):
+    """TypedDict for ActiveCampaignRevenueProgramForSpaSerializer."""
+
+    activecampaign_access_token: str
+    activecampaign_server_url: str
+
+
 class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProgram, UpdateFieldsBaseSerializer):
     """A serializer that allows PATCHing of additional fields."""
 
-    activecampaign_access_token = serializers.CharField(max_length=100, write_only=True, required=False)
-    activecampaign_server_url = serializers.URLField(required=False)
+    activecampaign_access_token = serializers.CharField(max_length=100, write_only=True)
+    activecampaign_server_url = serializers.URLField(write_only=True)
 
     class Meta(BaseActiveCampaignRevenueProgram.Meta):
         fields = [
@@ -272,10 +282,45 @@ class ActiveCampaignRevenueProgramForSpaSerializer(BaseActiveCampaignRevenueProg
             "activecampaign_server_url",
         ]
 
+    def _confirm_activecampaign_url_and_token(self, url: str, token: str) -> bool:
+        """Confirm the ActiveCampaign URL and token are valid."""
+        logger.info("Confirming ActiveCampaign URL and token for rp %s", self.instance)
+        try:
+            response = requests.get(
+                url=f"{url}/api/3/users/me/",
+                headers={"Api-Token": token},
+                timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
+            )
+            if response.status_code != 200:
+                logger.info("ActiveCampaign URL and token are invalid for rp %s", self.instance)
+                return False
+        except requests.exceptions.RequestException:
+            logger.exception("Unexpected error confirming ActiveCampaign URL and token")
+            return False
+        else:
+            return True
+
+    def validate(
+        self, data: ActiveCampaignRevenueProgramForSpaSerializerData
+    ) -> ActiveCampaignRevenueProgramForSpaSerializerData:
+        """Validate the ActiveCampaign URL and token by attempting a GET request to ActiveCampaign."""
+        data = super().validate(data)
+        if not self._confirm_activecampaign_url_and_token(
+            data["activecampaign_server_url"], data["activecampaign_access_token"]
+        ):
+            raise serializers.ValidationError("Invalid ActiveCampaign URL or token")
+        return data
+
     def update(self, instance: RevenueProgram, validated_data: dict) -> RevenueProgram:
-        """Override `.update` so we can call custom .update_with_update_fields_and_revision` and set secret."""
-        if "activecampaign_access_token" in validated_data:
-            instance.activecampaign_access_token = validated_data.pop("activecampaign_access_token")
+        """Override `.update` so we set secret ahead normal update behavior.
+
+        Note that "normal" here includes behavior introduced by the `UpdateFieldsBaseSerializer`.
+        """
+        # This field is guaranteed to be here because implied required=True on the field.
+        # Note that this field gets saved in GC Secret Manager and not directly in the DB, which is why
+        # we pop it from validated data. .activecampaign_access_token uses a descriptor that handles
+        # the save to GC Secret Manager.
+        instance.activecampaign_access_token = validated_data.pop("activecampaign_access_token")
         return super().update(instance, validated_data)
 
 

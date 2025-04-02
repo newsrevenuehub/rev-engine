@@ -763,9 +763,6 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
             return date
         return None
 
-    def to_representation(self, instance):
-        return super().to_representation(instance)
-
 
 PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
     "id",

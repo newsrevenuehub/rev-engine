@@ -72,7 +72,7 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
         </IntervalIconContainer>
         <DateContainer>
           <CreatedDate data-testid="first-payment-date">
-            {contribution.first_payment_date ? formatDate(contribution.first_payment_date) : '---'}
+            {contribution.first_payment_date ? formatDate(contribution.first_payment_date) : '—'}
           </CreatedDate>
           <NextContributionDate $status={contribution.status} data-testid="next-payment-date">
             {contribution.next_payment_date ? (

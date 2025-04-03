@@ -26,6 +26,7 @@ import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
 import { getDefaultAmountForFreq } from './amountUtils';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { useAmountAuditing } from './useAmountAuditing';
+import { Graphic } from './pageContent/static/Graphic';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 export const DonationPageContext = createContext({});
@@ -212,7 +213,7 @@ function DonationPage({ page, live = false }, ref) {
             <S.SideInner>
               {getters.getPageHeadingElement()}
               <S.DonationContent>
-                {getters.getGraphicElement()}
+                <Graphic />
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
                 ) : (

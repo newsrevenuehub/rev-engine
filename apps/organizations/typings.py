@@ -1,3 +1,7 @@
+from typing import Literal, TypedDict
+
+from typing_extensions import NotRequired
+
 from apps.common import StrEnum
 
 
@@ -32,6 +36,33 @@ class MailchimpProductType(StrEnum):
         return f"rp-{revenue_program_id}-{self}-contribution-product".replace("_", "-")
 
 
+class MailchimpSegmentConditionSchema(TypedDict):
+    """Schema for a condition in a Mailchimp segment.
+
+    Note that at present we only use EcommPurchased and EcommProd in our segment
+    condition schemas. Some SegmentConditionSchemas (for instance IPGeoIn) require
+    additional fields, which are not yet implemented here.
+
+    See https://mailchimp.com/developer/marketing/docs/alternative-schemas/#segment-condition-schemas
+    for more information.
+    """
+
+    condition_type: Literal["EcommCategory", "EcommPurchased"]
+    field: str
+    op: str
+    value: NotRequired[str]
+
+
+class MailchimpSegmentOptions(TypedDict):
+    """Schema for a Mailchimp segment option.
+
+    This schema is used when creating a segment in Mailchimp.
+    """
+
+    match: Literal["any", "all"]
+    conditions: list[MailchimpSegmentConditionSchema]
+
+
 class MailchimpSegmentName(StrEnum):
     """Names of segments we create in Mailchimp.
 
@@ -58,53 +89,74 @@ class MailchimpSegmentName(StrEnum):
         """
         return f"mailchimp_{self._machine_cased()}_segment_id"
 
-    def get_segment_creation_config(self):
+    def get_segment_options(self) -> MailchimpSegmentOptions:
         """Return the configuration for creating a segment in Mailchimp."""
-        is_condition = {"field": "ecomm_prod", "op": "is"}
         match self:
             case MailchimpSegmentName.ALL_CONTRIBUTORS:
-                return {
-                    "match": "all",
-                    "conditions": [{"field": "ecomm_purchased", "op": "member"}],
-                }
-
+                return MailchimpSegmentOptions(
+                    match="all",
+                    conditions=[
+                        MailchimpSegmentConditionSchema(
+                            condition_type="EcommPurchased", field="ecomm_purchased", op="member"
+                        )
+                    ],
+                )
             case MailchimpSegmentName.ONE_TIME_CONTRIBUTORS:
-                return {
-                    "match": "all",
-                    "conditions": [
-                        {**is_condition, "value": MailchimpProductType.ONE_TIME.as_mailchimp_product_name()},
+                return MailchimpSegmentOptions(
+                    match="all",
+                    conditions=[
+                        MailchimpSegmentConditionSchema(
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.ONE_TIME.as_mailchimp_product_name(),
+                        ),
                     ],
-                }
-
+                )
             case MailchimpSegmentName.RECURRING_CONTRIBUTORS:
-                return {
-                    "match": "any",
-                    "conditions": [
-                        {
-                            **is_condition,
-                            "value": MailchimpProductType.YEARLY.as_mailchimp_product_name(),
-                        },
-                        {
-                            **is_condition,
-                            "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
-                        },
+                return MailchimpSegmentOptions(
+                    match="any",
+                    conditions=[
+                        MailchimpSegmentConditionSchema(
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.YEARLY.as_mailchimp_product_name(),
+                        ),
+                        MailchimpSegmentConditionSchema(
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
+                        ),
                     ],
-                }
+                )
 
             case MailchimpSegmentName.MONTHLY_CONTRIBUTORS:
-                return {
-                    "match": "all",
-                    "conditions": [
-                        {**is_condition, "value": MailchimpProductType.MONTHLY.as_mailchimp_product_name()},
+                return MailchimpSegmentOptions(
+                    match="all",
+                    conditions=[
+                        MailchimpSegmentConditionSchema(
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.MONTHLY.as_mailchimp_product_name(),
+                        ),
                     ],
-                }
+                )
+
             # pragma added here because the non-match case is not covered by the test. That's okay because in reality
             # we will never hit this case because if you were to do MailchimpSegmentName("unexpected") it would raise
             # a ValueError. Without the pragma, pytest-cov reports that this line is only partially covered.
             case MailchimpSegmentName.YEARLY_CONTRIBUTORS:  # pragma: no branch
-                return {
-                    "match": "all",
-                    "conditions": [
-                        {**is_condition, "value": MailchimpProductType.YEARLY.as_mailchimp_product_name()},
+                return MailchimpSegmentOptions(
+                    match="all",
+                    conditions=[
+                        MailchimpSegmentConditionSchema(
+                            field="ecomm_prod",
+                            op="is",
+                            condition_type="EcommCategory",
+                            value=MailchimpProductType.YEARLY.as_mailchimp_product_name(),
+                        ),
                     ],
-                }
+                )

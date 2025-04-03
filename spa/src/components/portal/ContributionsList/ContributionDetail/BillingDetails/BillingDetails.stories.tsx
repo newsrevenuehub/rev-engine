@@ -22,6 +22,16 @@ Default.args = {
   } as any
 };
 
+export const NoFirstPaymentDate: Story = {};
+NoFirstPaymentDate.args = {
+  contribution: {
+    amount: 12345,
+    first_payment_date: null,
+    interval: 'one_time',
+    paid_fees: true
+  } as any
+};
+
 export const IsEditable: Story = {};
 IsEditable.args = {
   enableEditMode: true,

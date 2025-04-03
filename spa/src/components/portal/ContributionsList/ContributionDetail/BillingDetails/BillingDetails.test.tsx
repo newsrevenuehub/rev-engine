@@ -92,6 +92,11 @@ describe('BillingDetails', () => {
       expect(screen.getByTestId('first-billing-date')).toHaveTextContent('January 23, 2045');
     });
 
+    it('shows an em dash if the date of the contribution is null', () => {
+      tree({ contribution: { ...mockContribution, first_payment_date: null } });
+      expect(screen.getByTestId('first-billing-date')).toHaveTextContent('—');
+    });
+
     it.each(Object.entries(INTERVAL_NAMES))('shows a %s interval as "%s" frequency', (interval, intervalLabel) => {
       tree({ contribution: { ...mockContribution, interval } as any });
       expect(screen.getByTestId('frequency')).toHaveTextContent(intervalLabel);

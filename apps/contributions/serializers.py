@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Literal
 
@@ -728,7 +728,7 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     card_brand = serializers.CharField(read_only=True, allow_blank=True)
     card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
     card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
-    first_payment_date = serializers.DateTimeField()
+    first_payment_date = serializers.SerializerMethodField(read_only=True, allow_null=True)
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
     next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -749,6 +749,19 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         logger.info("update called but not supported. this will be a no-op")
         raise NotImplementedError("update is not supported on this serializer")
+
+    def get_first_payment_date(self, obj: Contribution) -> datetime | None:
+        if (date := obj.first_payment_date) is not None:
+            return date
+        if (
+            obj.status == ContributionStatus.PAID
+            and obj.interval != ContributionInterval.ONE_TIME
+            and (metadata := obj.contribution_metadata)
+            and metadata.get("schema_version") == "1.3"
+            and (date := obj.next_payment_date)
+        ):
+            return date
+        return None
 
 
 PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [

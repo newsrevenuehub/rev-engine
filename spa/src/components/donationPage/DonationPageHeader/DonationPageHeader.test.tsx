@@ -1,11 +1,8 @@
 import { axe } from 'jest-axe';
-import { render, screen, waitFor } from 'test-utils';
+import { render, screen } from 'test-utils';
 import DonationPageHeader, { DonationPageHeaderProps } from './DonationPageHeader';
-import fileToDataUrl from 'utilities/fileToDataUrl';
 
-jest.mock('utilities/fileToDataUrl');
-
-const mockFile = new File([], 'test.jpeg');
+jest.mock('hooks/useImageSource');
 
 const mockPage = {
   header_bg_image: 'mock-header-bg-img',
@@ -19,12 +16,6 @@ function tree(props?: Partial<DonationPageHeaderProps>) {
 }
 
 describe('DonationPageHeader', () => {
-  const fileToDataUrlMock = jest.mocked(fileToDataUrl);
-
-  beforeEach(() => {
-    fileToDataUrlMock.mockResolvedValue('mock-converted-file');
-  });
-
   describe('When no link or logo are set', () => {
     it('is accessible', async () => {
       const { container } = tree({
@@ -44,13 +35,7 @@ describe('DonationPageHeader', () => {
       const logo = screen.getByRole('img');
 
       expect(logo).toBeVisible();
-      expect(logo).toHaveAttribute('src', 'mock-header-logo');
-    });
-
-    it("converts the logo to a data URI if it's a file", async () => {
-      tree({ page: { ...page, header_logo: mockFile } });
-      await waitFor(() => expect(fileToDataUrlMock).toBeCalled());
-      expect(screen.getByRole('img')).toHaveAttribute('src', 'mock-converted-file');
+      expect(logo).toHaveAttribute('src', 'mock-use-image-source-mock-header-logo');
     });
 
     it('sets alt text on the logo', () => {

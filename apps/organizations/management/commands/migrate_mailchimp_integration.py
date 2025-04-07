@@ -38,12 +38,6 @@ class MailchimpOrderLineItem(TypedDict):
     product_id: str
     product_variant_id: str
 
-    # remove these -- i think they might not be needed anymore
-
-    quantity: int
-    price: float
-    discount: float
-
 
 class PartialMailchimpRecurringOrder(TypedDict):
     """Type definition for Mailchimp order for a recurring contribution.
@@ -413,7 +407,7 @@ def migrate_rp_mailchimp_integration(rp_id: int, mc_batch_size: int, mc_results_
     )
 
     migrator.get_stripe_data()
-    # at this point we have Stripe data in Redis cache. Note that we wont' be able to update orders
+    # at this point we have Stripe data in Redis cache. Note that we won't be able to update orders
     # if we haven't called .get_stripe_data first.
     try:
         migrator.ensure_mailchimp_monthly_and_yearly_products()

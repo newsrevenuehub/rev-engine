@@ -132,6 +132,7 @@ def test_show_expected_fields_on_organization_pages(admin_client):
     assert soup.find("input", {"name": "show_connected_to_google_analytics"}) is not None
     assert soup.find("input", {"name": "show_connected_to_digestbuilder"}) is not None
     assert soup.find("input", {"name": "show_connected_to_newspack"}) is not None
+    assert soup.find("input", {"name": "disable_reminder_emails"})
 
 
 def test_revenue_program_tax_id_available_in_admin_page(admin_client):
@@ -171,7 +172,6 @@ def test_show_expected_fields_on_rp_pages(admin_client):
         assert soup.find("input", {"name": "twitter_handle"})
         assert soup.find("input", {"name": "website_url"})
         assert soup.find("input", {"name": "allow_offer_nyt_comp"})
-        assert soup.find("input", {"name": "disable_reminder_emails"})
 
 
 @pytest.mark.django_db

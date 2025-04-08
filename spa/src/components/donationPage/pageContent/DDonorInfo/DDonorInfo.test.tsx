@@ -58,6 +58,11 @@ describe('DDonorInfo', () => {
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorInfo.phone' })).toHaveAttribute('name', 'phone');
     });
 
+    it('sets a max length on the phone field of 20 characters', () => {
+      tree({ element: { ...mockElement, content: { ...mockElement.content, askPhone: true } } });
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorInfo.phone' })).toHaveAttribute('maxlength', '20');
+    });
+
     it('makes the field editable', () => {
       tree({ element: { ...mockElement, content: { ...mockElement.content, askPhone: true } } });
       fireEvent.change(screen.getByRole('textbox', { name: 'donationPage.dDonorInfo.phone' }), {

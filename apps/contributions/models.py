@@ -779,6 +779,16 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
+        if (org := self.revenue_program.organization).disable_reminder_emails:
+            logger.info(
+                "Contribution.send_recurring_contribution_email_reminder: Org (%s) recurring contribution email disabled",
+                org.id,
+            )
+            return
+        logger.info(
+            "Contribution.handle_receipt_email called on contribution %s the parent org of which does not send email with NRE",
+            self.id,
+        )
         self.send_recurring_contribution_change_email(
             f"Reminder: {self.revenue_program.name} scheduled contribution",
             "recurring-contribution-email-reminder",

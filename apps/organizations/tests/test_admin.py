@@ -171,6 +171,7 @@ def test_show_expected_fields_on_rp_pages(admin_client):
         assert soup.find("input", {"name": "twitter_handle"})
         assert soup.find("input", {"name": "website_url"})
         assert soup.find("input", {"name": "allow_offer_nyt_comp"})
+        assert soup.find("input", {"name": "disable_reminder_emails"})
 
 
 @pytest.mark.django_db

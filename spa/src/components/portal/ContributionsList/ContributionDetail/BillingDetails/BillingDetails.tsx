@@ -50,9 +50,11 @@ export function BillingDetails({
   const originalAmountInDollars = useMemo(() => contribution.amount / 100, [contribution.amount]);
   const [editedAmount, setEditedAmount] = useState(originalAmountInDollars.toString());
 
-  const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
-    new Date(contribution.first_payment_date)
-  );
+  const formattedDate = contribution.first_payment_date
+    ? Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
+        new Date(contribution.first_payment_date)
+      )
+    : '—';
 
   const disableSave = useMemo(() => {
     const parsedValue = parseFloatStrictly(editedAmount);

@@ -20,13 +20,14 @@ from apps.organizations.tests.factories import (
 from apps.pages.tests.factories import DonationPageFactory
 
 
+@pytest.fixture
+def authed_client(superuser, client):
+    client.force_login(superuser)
+    return client
+
+
 @pytest.mark.django_db
 class TestBenefitAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     @pytest.fixture
     def rps(self):
         rp1 = RevenueProgramFactory(name="Alpha")
@@ -51,11 +52,6 @@ class TestBenefitAdmin:
 
 @pytest.mark.django_db
 class TestBenefitLevelAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     def test_change_list_existing_benefit_levels(self, authed_client):
         my_revenue_program = RevenueProgramFactory()
         my_benefit_level = BenefitLevelFactory(revenue_program=my_revenue_program)
@@ -81,11 +77,6 @@ class TestBenefitLevelAdmin:
 
 @pytest.mark.django_db
 class TestOrganizationAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     @pytest.fixture
     def model_admin(self):
         return OrganizationAdmin(Organization, AdminSite())
@@ -178,11 +169,6 @@ class TestOrganizationAdmin:
 
 @pytest.mark.django_db
 class TestPaymentProviderAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     def test_revenue_program_list_payment_provider_url_exists(self, authed_client):
         """Payment Provider column exists in Revenue Program list display with link to the Payment Provider admin page."""
         revenue_program = RevenueProgramFactory()
@@ -206,11 +192,6 @@ class TestPaymentProviderAdmin:
 
 @pytest.mark.django_db
 class TestRevenueProgramAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     def test_default_donation_page_options_limited(self, authed_client):
         my_revenue_program = RevenueProgramFactory(onboarded=True)
         some_other_rp = RevenueProgramFactory(onboarded=True)

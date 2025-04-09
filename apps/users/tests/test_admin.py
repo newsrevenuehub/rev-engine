@@ -13,13 +13,14 @@ from apps.users.tests.factories import RoleAssignmentFactory
 user_model = get_user_model()
 
 
+@pytest.fixture
+def authed_client(superuser, client):
+    client.force_login(superuser)
+    return client
+
+
 @pytest.mark.django_db
 class TestRoleAssignmentAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     @pytest.fixture
     def orgs(self):
         org1 = OrganizationFactory(name="Alpha")
@@ -44,11 +45,6 @@ class TestRoleAssignmentAdmin:
 
 @pytest.mark.django_db
 class TestUsersAdmin:
-    @pytest.fixture
-    def authed_client(self, superuser, client):
-        client.force_login(superuser)
-        return client
-
     def test_views_stand_up(self, authed_client):
         authed_client.get("/nrhadmin/users/user/")
         authed_client.get("/nrhadmin/users/user/add/")

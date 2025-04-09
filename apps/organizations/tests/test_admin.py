@@ -235,14 +235,16 @@ class TestRevenueProgramAdmin:
         assert soup.find("input", {"name": "tax_id"}) is not None
 
         my_revenue_program = RevenueProgramFactory()
-        response = authed_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+        response = authed_client.get(
+            reverse("admin:organizations_revenueprogram_change", args=(my_revenue_program.pk,))
+        )
         soup = bs4(response.content)
         assert soup.find("input", {"name": "tax_id"}) is not None
 
     def test_show_expected_fields_on_rp_pages(self, authed_client):
         for response in [
             authed_client.get(reverse("admin:organizations_revenueprogram_add")),
-            authed_client.get(f"/nrhadmin/organizations/revenueprogram/{RevenueProgramFactory().id}/change/"),
+            authed_client.get(reverse("admin:organizations_revenueprogram_change", args=[RevenueProgramFactory().pk])),
         ]:
             soup = BeautifulSoup(response.content)
             assert soup.select_one(".field-name") is not None

@@ -36,7 +36,7 @@ class TestRoleAssignmentAdmin:
         assert Organization.objects.all().values_list("name") != Organization.objects.all().order_by(
             "name"
         ).values_list("name")
-        response = authed_client.get(f"/nrhadmin/users/roleassignment/{ra.id}/change/")
+        response = authed_client.get(reverse("admin:users_roleassignment_change", args=(ra.id,)))
         soup = BeautifulSoup(response.content)
         select = soup.find("select", {"name": "organization"})
         org_options = [opt.text for opt in select.find_all("option") if opt.attrs.get("value")]
@@ -46,10 +46,10 @@ class TestRoleAssignmentAdmin:
 @pytest.mark.django_db
 class TestUsersAdmin:
     def test_views_stand_up(self, authed_client):
-        authed_client.get("/nrhadmin/users/user/")
-        authed_client.get("/nrhadmin/users/user/add/")
-        authed_client.get("/nrhadmin/users/roleassignment/")
-        authed_client.get("/nrhadmin/users/roleassignment/add/")
+        authed_client.get(reverse("admin:users_user_changelist"))
+        authed_client.get(reverse("admin:users_user_add"))
+        authed_client.get(reverse("admin:users_roleassignment_changelist"))
+        authed_client.get(reverse("admin:users_roleassignment_add"))
 
     def test_get_readonly_fields(self, superuser):
         t = apps.users.admin.RoleAssignmentAdmin(apps.users.models.RoleAssignment, "")
@@ -58,7 +58,7 @@ class TestUsersAdmin:
         ]
 
     def test_columns_in_user_list(self, authed_client):
-        response = authed_client.get("/nrhadmin/users/user/")
+        response = authed_client.get(reverse("admin:users_user_changelist"))
         soup = BeautifulSoup(response.content)
         assert soup.find("th", {"class": "column-email"}) is not None
         assert soup.find("th", {"class": "column-is_superuser"}) is not None
@@ -68,7 +68,7 @@ class TestUsersAdmin:
 
     def test_user_fields_in_admin(self, authed_client):
         user_id = user_model.objects.all()[0].id
-        response = authed_client.get(f"/nrhadmin/users/user/{user_id}/change/")
+        response = authed_client.get(reverse("admin:users_user_change", args=(user_id,)))
         soup = BeautifulSoup(response.content)
         assert soup.find("input", {"name": "email"}) is not None
         assert soup.find("input", {"name": "first_name"}) is not None
@@ -81,7 +81,7 @@ class TestUsersAdmin:
         assert len(soup.select(".field-last_login .readonly")) > 0
 
     def test_user_fields_in_add(self, authed_client):
-        response = authed_client.get("/nrhadmin/users/user/add/")
+        response = authed_client.get(reverse("admin:users_user_add"))
         soup = BeautifulSoup(response.content)
         assert soup.find("input", {"name": "email"}) is not None
         assert soup.find("input", {"name": "password1"}) is not None

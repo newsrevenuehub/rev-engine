@@ -179,8 +179,8 @@ class BenefitAdmin(RevEngineBaseAdmin):
         form = super().get_form(request, obj, **kwargs)
 
         # Alphabetize the revenue program list
-        if rp_field := form.base_fields.get("revenue_program"):
-            rp_field.queryset = rp_field.queryset.order_by("name")
+        rp_field = form.base_fields.get("revenue_program")
+        rp_field.queryset = rp_field.queryset.order_by("name")
 
         return form
 

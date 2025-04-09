@@ -92,8 +92,8 @@ class RoleAssignmentAdmin(RevEngineBaseAdmin):
             user_field.limit_choices_to = Q(roleassignment__isnull=True)
 
         # Alphabetize the organization list
-        if org_field := form.base_fields.get("organization"):
-            org_field.queryset = org_field.queryset.order_by("name")
+        org_field = form.base_fields.get("organization")
+        org_field.queryset = org_field.queryset.order_by("name")
 
         # Do not allow inline create/update/delete for these relations
         immutable_relations = (

@@ -406,6 +406,9 @@ class Contribution(IndexedTimeStampedModel):
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
+        # TODO @BW: As part of Stripe upgrade, this will need to be sourced from subscription.items.data[0].current_period_end
+        # as it is not part of the contemporary API spec.
+        # https://news-revenue-hub.atlassian.net/browse/DEV-3856
         next_date = self.stripe_subscription.current_period_end
         return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 

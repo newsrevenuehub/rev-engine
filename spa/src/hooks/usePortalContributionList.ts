@@ -33,9 +33,10 @@ export interface PortalContribution {
    */
   created: string;
   /**
-   * Timestamp of when the first related payment occurred.
+   * Timestamp of when the first related payment occurred. Migrated
+   * contributions might have a null date.
    */
-  first_payment_date: string;
+  first_payment_date: string | null;
   /**
    * Internal ID of the contribution.
    */

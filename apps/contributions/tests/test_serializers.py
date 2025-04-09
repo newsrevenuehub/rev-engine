@@ -1,11 +1,14 @@
+import datetime
 from datetime import timedelta
 from unittest.mock import Mock
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.utils import timezone
 
 import pydantic
 import pytest
+import pytest_mock
 import stripe
 from addict import Dict as AttrDict
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
@@ -1456,6 +1459,64 @@ class TestPortalContributionBaseSerializer:
     def test_unsupported_methods(self, method, kwargs):
         with pytest.raises(NotImplementedError):
             getattr(PortalContributionBaseSerializer(), method)(**kwargs)
+
+    @pytest.fixture
+    def one_time_contribution_with_payment(self, one_time_contribution: Contribution) -> Contribution:
+        PaymentFactory(contribution=one_time_contribution)
+        return one_time_contribution
+
+    @pytest.fixture
+    def v1_3_contribution_with_next_payment_date_and_no_payment(
+        self,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+        stripe_subscription: stripe.Subscription,
+    ) -> Contribution:
+        monthly_contribution.contribution_metadata["schema_version"] = "1.3"
+        monthly_contribution.save()
+        mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
+        return monthly_contribution
+
+    @pytest.fixture
+    def v1_3_contribution_with_no_payment_no_next_payment(
+        self,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+        stripe_subscription: stripe.Subscription,
+    ) -> Contribution:
+        monthly_contribution.contribution_metadata["schema_version"] = "1.3"
+        monthly_contribution.save()
+        stripe_subscription.current_period_end = None
+        mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
+        return monthly_contribution
+
+    @pytest.mark.parametrize(
+        ("fixture", "expect_date_from_payment", "expect_date_from_subscription"),
+        [
+            ("one_time_contribution_with_payment", True, False),
+            ("v1_3_contribution_with_next_payment_date_and_no_payment", False, True),
+            ("v1_3_contribution_with_no_payment_no_next_payment", False, False),
+        ],
+    )
+    def test_get_first_payment_date(
+        self,
+        request: pytest.FixtureRequest,
+        fixture: str,
+        expect_date_from_payment: bool,
+        expect_date_from_subscription: bool,
+    ):
+        _contribution = request.getfixturevalue(fixture)
+        contribution = Contribution.objects.with_first_payment_date().get(id=_contribution.id)
+        serializer = PortalContributionBaseSerializer(instance=contribution)
+        first_payment_date = serializer.get_first_payment_date(contribution)
+        if expect_date_from_payment:
+            assert first_payment_date == contribution.payment_set.first().transaction_time
+        elif expect_date_from_subscription:
+            assert first_payment_date == datetime.datetime.fromtimestamp(
+                contribution.stripe_subscription.current_period_end, tz=ZoneInfo("UTC")
+            )
+        else:
+            assert first_payment_date is None
 
 
 @pytest.mark.django_db

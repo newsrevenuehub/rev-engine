@@ -679,7 +679,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             logger.info("Segment already exists for RP %s", self.id)
         else:
             try:
-                segment = self.mailchimp_client.create_segment(segment_name, segment_name.get_segment_creation_config())
+                segment = self.mailchimp_client.create_segment(segment_name, segment_name.get_segment_options())
             except MailchimpIntegrationError:
                 logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_name, self.id)
             else:

@@ -89,6 +89,11 @@ describe('ContributionItem', () => {
     expect(screen.getByTestId('first-payment-date')).toHaveTextContent('January 23, 2045');
   });
 
+  it('shows an em dash if the date of the contribution is null', () => {
+    tree({ contribution: { ...mockContribution, first_payment_date: null } });
+    expect(screen.getByTestId('first-payment-date')).toHaveTextContent('—');
+  });
+
   it("shows the date of the next contribution's payment if set", () => {
     const next_payment_date = new Date('1/23/45').toISOString();
 

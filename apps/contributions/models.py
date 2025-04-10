@@ -786,7 +786,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
         logger.info(
-            "Contribution.handle_receipt_email called on contribution %s the parent org of which does not send email with NRE",
+            "Contribution.send_recurring_contribution_email_reminder called on contribution %s the parent org of which does not send email with NRE",  # noqa: E501
             self.id,
         )
         self.send_recurring_contribution_change_email(

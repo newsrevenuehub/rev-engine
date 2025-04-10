@@ -280,6 +280,10 @@ class TestSwitchboardContributionsViewSet:
                     assert retrieved._revenue_program == RevenueProgram.objects.get(pk=data["revenue_program"])
                 case _:
                     assert getattr(retrieved, k) == v
+        # Verify reversion comment was recorded
+        versions = reversion.models.Version.objects.get_for_object(retrieved)
+        assert versions.count() == 1
+        assert versions[0].revision.comment == "Contribution created by Switchboard"
 
     @pytest.mark.parametrize(
         "data_fixture",
@@ -459,6 +463,10 @@ class TestSwitchboardContributionsViewSet:
                     assert contribution._revenue_program == RevenueProgram.objects.get(pk=data["revenue_program"])
                 case _:
                     assert getattr(contribution, k) == v
+        # Verify reversion comment was recorded
+        versions = reversion.models.Version.objects.get_for_object(contribution)
+        assert versions.count() == 1
+        assert versions[0].revision.comment == "Contribution updated by Switchboard"
 
     @pytest.fixture
     def invalid_update_data_both_rp_and_page(self, update_data_recurring_with_page):

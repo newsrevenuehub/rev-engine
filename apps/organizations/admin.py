@@ -110,7 +110,7 @@ class OrganizationAdmin(RevEngineBaseAdmin):
         ),
         (
             "Email Templates",
-            {"fields": ("send_receipt_email_via_nre",)},
+            {"fields": ("send_receipt_email_via_nre", "disable_reminder_emails")},
         ),
         (
             "Integrations",

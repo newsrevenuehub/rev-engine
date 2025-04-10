@@ -212,8 +212,8 @@ class Organization(IndexedTimeStampedModel):
     disable_reminder_emails = models.BooleanField(
         default=False,
         help_text=(
-            "If True, annual contribution receipt email assumed is not sent through RevEngine. Other emails, e.g. magic_link,"
-            " are always sent via NRE regardless of this setting"
+            "If True, annual contribution reminder emails will not be sent through RevEngine. "
+            "This does not impact other transactional emails."
         ),
     )
     stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)

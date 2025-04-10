@@ -781,7 +781,7 @@ class Contribution(IndexedTimeStampedModel):
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
         if (org := self.revenue_program.organization).disable_reminder_emails:
             logger.info(
-                "Contribution.send_recurring_contribution_email_reminder: Org (%s) recurring contribution email disabled",
+                "Org (%s) recurring contribution email disabled",
                 org.id,
             )
             return

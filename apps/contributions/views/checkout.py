@@ -57,10 +57,15 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
 
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
-        if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
+        if contribution.status not in (
+            ContributionStatus.FAILED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.FLAGGED,
+        ):
             logger.warning(
-                "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s."
+                "`PaymentViewset.destroy` was called on a contribution with status other than %s, %s, or %s."
                 " contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s",
+                ContributionStatus.FAILED.label,
                 ContributionStatus.PROCESSING.label,
                 ContributionStatus.FLAGGED.label,
                 contribution.id,

@@ -600,6 +600,7 @@ class TestContributionModel:
     @pytest.mark.parametrize(
         "status",
         [
+            ContributionStatus.FAILED,
             ContributionStatus.PROCESSING,
             ContributionStatus.FLAGGED,
         ],
@@ -627,6 +628,11 @@ class TestContributionModel:
             (ContributionStatus.PROCESSING, "annual_subscription", False),
             (ContributionStatus.FLAGGED, "monthly_subscription", False),
             (ContributionStatus.FLAGGED, "annual_subscription", False),
+            # Failed contributions can never have a payment method attached,
+            # because they become failed by a payment method failing to attach
+            # (e.g. the card has expired).
+            (ContributionStatus.FAILED, "monthly_subscription", False),
+            (ContributionStatus.FAILED, "annual_subscription", False),
         ],
     )
     def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch, mocker):
@@ -692,7 +698,6 @@ class TestContributionModel:
         "status",
         [
             ContributionStatus.CANCELED,
-            ContributionStatus.FAILED,
             ContributionStatus.PAID,
             ContributionStatus.REFUNDED,
             ContributionStatus.REJECTED,

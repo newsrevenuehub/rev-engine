@@ -667,7 +667,7 @@ class Contribution(IndexedTimeStampedModel):
         # this is specifically used when a user clicks "back" on the second payment form in checkout flow. it's not
         # necessarily intended to be a general-purpose cancellation method (i.e., it is not appropriate for the `.destroy` method
         # on the API endpoint)
-        if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
+        if self.status not in (ContributionStatus.FAILED, ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
                 self.id,

@@ -778,7 +778,6 @@ class TestPaymentViewset:
         [
             ContributionStatus.PAID,
             ContributionStatus.CANCELED,
-            ContributionStatus.FAILED,
             ContributionStatus.REJECTED,
             ContributionStatus.REFUNDED,
         ],

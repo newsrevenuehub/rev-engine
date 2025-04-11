@@ -47,7 +47,7 @@ def preview_contribution_email_template(request, template_name: str):
         "contributor_name": "Contributor Name",
         "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
         "contributor_email": "nobody@fundjournalism.org",
-        "magic_link": "https://magic-link",
+        "portal_url": "https://portal-url",
         "rp_name": rp.name,
         "style": rp_style,
         "default_contribution_page_url": rp.default_donation_page.page_url if rp.default_donation_page else None,

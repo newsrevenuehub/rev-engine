@@ -61,7 +61,9 @@ class SwitchboardContributionsViewSet(
         """
         # TODO @BW: Make this transaction rollback if the email fails
         # DEV-5961
-        contribution: Contribution = serializer.save()
+        with reversion.create_revision():
+            contribution: Contribution = serializer.save()
+            reversion.set_comment("Contribution created by Switchboard")
         if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
             # send_thank_you_email() handles conditionality around whether
             # receipt emails for the revenue program are sent by rev-engine.
@@ -71,6 +73,11 @@ class SwitchboardContributionsViewSet(
                 contribution.id,
             )
             contribution.handle_receipt_email()
+
+    def perform_update(self, serializer):
+        with reversion.create_revision():
+            serializer.save()
+            reversion.set_comment("Contribution updated by Switchboard")
 
     def handle_exception(self, exc):
         """Ensure select uniqueness constraint errors receive a 409.

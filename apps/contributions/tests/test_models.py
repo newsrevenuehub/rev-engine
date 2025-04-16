@@ -16,6 +16,7 @@ import reversion
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
+from pytest_mock import MockerFixture
 
 from apps.common.utils import CREATED, LEFT_UNCHANGED
 from apps.contributions.exceptions import InvalidMetadataError
@@ -1039,6 +1040,28 @@ class TestContributionModel:
     def test_send_recurring_contribution_email_reminder_timestamp_override(self, annual_contribution):
         annual_contribution.send_recurring_contribution_email_reminder("test-timestamp")
         assert "Scheduled: test-timestamp" in mail.outbox[0].body
+
+    @pytest.mark.usefixtures("_mock_contributor_refresh_token", "_synchronous_email_send_task", "_mock_stripe_customer")
+    @pytest.mark.parametrize("disable_reminder_emails", [True, False])
+    def test_send_recurring_contribution_email_reminder_org_disabled(
+        self, disable_reminder_emails: bool, mocker: MockerFixture
+    ):
+        mock_send_recurring_contribution_change_email = mocker.patch(
+            "apps.contributions.models.Contribution.send_recurring_contribution_change_email"
+        )
+        page = DonationPageFactory(
+            published=True,
+            revenue_program=RevenueProgramFactory(
+                onboarded=True,
+                organization=OrganizationFactory(free_plan=True, disable_reminder_emails=disable_reminder_emails),
+            ),
+        )
+        c = ContributionFactory(donation_page=page, annual_subscription=True)
+        c.send_recurring_contribution_email_reminder()
+        if disable_reminder_emails:
+            assert not mock_send_recurring_contribution_change_email.called
+        else:
+            assert mock_send_recurring_contribution_change_email.called
 
     @pytest.mark.usefixtures(
         "_synchronous_email_send_task",

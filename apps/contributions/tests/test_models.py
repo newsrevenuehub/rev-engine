@@ -628,9 +628,6 @@ class TestContributionModel:
             (ContributionStatus.PROCESSING, "annual_subscription", False),
             (ContributionStatus.FLAGGED, "monthly_subscription", False),
             (ContributionStatus.FLAGGED, "annual_subscription", False),
-            # Failed contributions can never have a payment method attached,
-            # because they become failed by a payment method failing to attach
-            # (e.g. the card has expired).
             (ContributionStatus.FAILED, "monthly_subscription", False),
             (ContributionStatus.FAILED, "annual_subscription", False),
         ],

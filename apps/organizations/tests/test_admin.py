@@ -129,6 +129,7 @@ class TestOrganizationAdmin:
         assert soup.find("input", {"name": "show_connected_to_google_analytics"}) is not None
         assert soup.find("input", {"name": "show_connected_to_digestbuilder"}) is not None
         assert soup.find("input", {"name": "show_connected_to_newspack"}) is not None
+        assert soup.find("input", {"name": "disable_reminder_emails"}) is not None
         # change page
         org = OrganizationFactory()
         response = authed_client.get(f"/nrhadmin/organizations/organization/{org.id}/change/")
@@ -140,6 +141,7 @@ class TestOrganizationAdmin:
         assert soup.find("input", {"name": "show_connected_to_google_analytics"}) is not None
         assert soup.find("input", {"name": "show_connected_to_digestbuilder"}) is not None
         assert soup.find("input", {"name": "show_connected_to_newspack"}) is not None
+        assert soup.find("input", {"name": "disable_reminder_emails"}) is not None
 
     def test_save_model(
         self,

@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
@@ -828,6 +829,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
         },
         write_only=True,
     )
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, required=False)
 
     class Meta:
         model = Contribution
@@ -836,30 +838,53 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
             "donor_selected_amount",
             "provider_payment_method_id",
         ]
-        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+        read_only_fields = [
+            _ for _ in PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS if _ not in ["amount", "interval"]
+        ]
 
     def update(self, instance: Contribution, validated_data) -> Contribution:
         if validated_data:
+            update_fields = {"modified"}
+
             if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
-                instance.update_payment_method_for_subscription(
-                    provider_payment_method_id=provider_payment_method_id,
-                )
-            # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
-            donor_selected_amount = validated_data.pop("donor_selected_amount", None)
+                instance.update_payment_method_for_subscription(provider_payment_method_id=provider_payment_method_id)
+
+            # Need to pop donor_selected_amount from validated_data so it doesn't get sent when saving changes.
+            # We want to set the donor-selected amount in metadata if the schema supports it.
+            if donor_selected_amount := validated_data.pop("donor_selected_amount", None):
+                with contextlib.suppress(InvalidMetadataError):
+                    instance.set_metadata_field("donor_selected_amount", donor_selected_amount)
+                    update_fields.add("contribution_metadata")
+
+            # Now that we've popped donor_selected_amount, we can safely add
+            # the rest of the update fields.
+            update_fields.update(validated_data.keys())
 
             if amount := validated_data.get("amount", None):
-                if not donor_selected_amount:
+                if donor_selected_amount is None:
                     # amount and donor_selected_amount should always be set in tandem in real life thanks to validate(),
                     # but we want to be certain.
                     raise serializers.ValidationError(
-                        "If amount is updated, donor_selected_amount must be set as well."
+                        "If amount is updated, donor_selected_amount must be updated as well."
                     )
-                instance.update_subscription_amount(amount=amount, donor_selected_amount=donor_selected_amount)
+                # We might also be changing interval as well. The two should be changed simultaneously.
+                instance.update_subscription_price(
+                    amount=amount,
+                    donor_selected_amount=donor_selected_amount,
+                    interval=validated_data.get("interval", None),
+                )
+            elif interval := validated_data.get("interval", None):
+                # Handle an interval change without an amount change.
+                instance.update_subscription_price(interval=interval)
             for key, value in validated_data.items():
                 setattr(instance, key, value)
             with reversion.create_revision():
-                instance.save(update_fields={*validated_data.keys(), "modified"})
+                instance.save(update_fields=update_fields)
                 reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
+            if "amount" in update_fields:
+                instance.send_recurring_contribution_amount_updated_email()
+            # TODO @nrh-cklimas: send email if interval changed
+            # DEV-5691
         return instance
 
     def validate(self, data):

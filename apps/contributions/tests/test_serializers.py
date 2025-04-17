@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 import pydantic
@@ -37,6 +38,7 @@ from apps.contributions.tests.factories import ContributionFactory, ContributorF
 from apps.contributions.tests.test_models import MockSubscription
 from apps.contributions.typings import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
+from apps.emails.tasks import generate_email_data
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -1521,6 +1523,10 @@ class TestPortalContributionBaseSerializer:
 
 @pytest.mark.django_db
 class TestPortalContributionDetailSerializer:
+    @pytest.fixture
+    def _mock_stripe_customer(self, mocker: pytest_mock.MockerFixture):
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
+
     def test_update_amount_monthly_contribution(self, mocker, monthly_contribution):
         monthly_contribution.stripe_subscription = MockSubscription("active")
         mocker.patch(
@@ -1551,13 +1557,15 @@ class TestPortalContributionDetailSerializer:
     def test_update_amount_one_time_contribution(self, one_time_contribution):
         one_time_contribution.stripe_subscription = MockSubscription("active")
         serializer = PortalContributionDetailSerializer(instance=one_time_contribution)
-        with pytest.raises(ValueError, match="Cannot update amount for one-time contribution"):
+        with pytest.raises(ValueError, match="One-time contributions are not valid for subscription update"):
             serializer.update(one_time_contribution, {"amount": 12345, "donor_selected_amount": 123.45})
 
-    def test_update_raises_if_donor_selected_amount_omitted(self, mocker, monthly_contribution):
+    def test_update_raises_if_donor_selected_amount_omitted(self, monthly_contribution):
         monthly_contribution.stripe_subscription = MockSubscription("active")
         serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
-        with pytest.raises(ValidationError, match="If amount is updated, donor_selected_amount must be set as well."):
+        with pytest.raises(
+            ValidationError, match="If amount is updated, donor_selected_amount must be updated as well."
+        ):
             serializer.update(monthly_contribution, {"amount": 12345})
 
     def test_amount_donor_selected_amount_validation(self, monthly_contribution):
@@ -1578,6 +1586,70 @@ class TestPortalContributionDetailSerializer:
         serializer = PortalContributionDetailSerializer(data={"amount": 100000000, "donor_selected_amount": 1000000})
         with pytest.raises(ValidationError, match="We can only accept contributions less than or equal to 999,999.99"):
             serializer.is_valid(raise_exception=True)
+
+    @pytest.mark.usefixtures("_mock_stripe_customer")
+    def test_amount_update_sends_email(self, monthly_contribution: Contribution, mocker: pytest_mock.MockerFixture):
+        mocker.patch("apps.contributions.models.Contribution.update_subscription_price")
+        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="mock-magic-link")
+        send_email_spy = mocker.patch("apps.emails.tasks.send_templated_email.delay")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        serializer.update(monthly_contribution, {"amount": 123, "donor_selected_amount": 1.23})
+        data = generate_email_data(
+            monthly_contribution,
+            custom_timestamp=(datetime.datetime.now(datetime.timezone.utc).strftime("%m/%d/%Y")),
+        )
+        currency = monthly_contribution.get_currency_dict()
+        formatted_amount = monthly_contribution.format_amount(
+            amount=123, symbol=currency["symbol"], code=currency["code"]
+        )
+        assert send_email_spy.call_count == 1
+        assert send_email_spy.call_args[0][1] == "New change to your contribution"
+        assert send_email_spy.call_args[0][2] == render_to_string("recurring-contribution-amount-updated.txt", data)
+        assert send_email_spy.call_args[0][3] == render_to_string("recurring-contribution-amount-updated.html", data)
+        assert "New Amount:" in send_email_spy.call_args[0][2]
+        assert f"{formatted_amount}/month" in send_email_spy.call_args[0][2]
+        assert "New Amount:" in send_email_spy.call_args[0][3]
+        assert f"{formatted_amount}/month" in send_email_spy.call_args[0][3]
+
+    def test_unrelated_update_doesnt_send_email(
+        self, monthly_contribution: Contribution, mocker: pytest_mock.MockerFixture
+    ):
+        mocker.patch("apps.contributions.models.Contribution.update_subscription_price")
+        send_email_spy = mocker.patch("apps.emails.tasks.send_templated_email.delay")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        serializer.update(monthly_contribution, {"interval": ContributionInterval.YEARLY})
+        send_email_spy.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "interval",
+        ["invalid", ContributionInterval.ONE_TIME],
+    )
+    def test_interval_invalid(self, interval, monthly_contribution: Contribution):
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        with pytest.raises(ValueError, match="Invalid interval"):
+            serializer.update(monthly_contribution, {"interval": interval})
+
+    def test_update_interval(self, monthly_contribution: Contribution, mocker: pytest_mock.MockerFixture):
+        mocker.patch("apps.contributions.models.Contribution.update_subscription_price")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        serializer.update(monthly_contribution, {"interval": ContributionInterval.YEARLY})
+        assert monthly_contribution.interval == ContributionInterval.YEARLY
+
+    def test_update_amount_and_interval(self, monthly_contribution: Contribution, mocker: pytest_mock.MockerFixture):
+        mocker.patch("apps.contributions.models.Contribution.update_subscription_price")
+        monthly_contribution.stripe_subscription = MockSubscription("active")
+        serializer = PortalContributionDetailSerializer(instance=monthly_contribution)
+        serializer.update(
+            monthly_contribution,
+            {"amount": 123, "donor_selected_amount": 1.23, "interval": ContributionInterval.YEARLY},
+        )
+        assert monthly_contribution.interval == ContributionInterval.YEARLY
+        assert monthly_contribution.amount == 123
+        assert monthly_contribution.contribution_metadata["donor_selected_amount"] == 1.23
 
 
 @pytest.mark.django_db

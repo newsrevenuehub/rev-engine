@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import datetime
 import json
 import logging
@@ -1290,8 +1289,18 @@ class Contribution(IndexedTimeStampedModel):
 
             raise
 
-    def update_subscription_amount(self, amount: int, donor_selected_amount: float) -> None:
-        """Update the item amount and donor-selected amount (in metadata) of the Stripe subscription of this contribution.
+    def update_subscription_price(
+        self,
+        amount: int | None = None,
+        donor_selected_amount: float | None = None,
+        interval: ContributionInterval | None = None,
+    ) -> None:
+        """Update the price attached to the Stripe subscription of this contribution.
+
+        All args are typed optional, but this method should be called with one of these sets:
+            - amount and donor_selected_amount
+            - interval
+            - amount, donor_selected_amount and interval
 
         **amount is in cents, but donor_selected_amount is in dollars.** This
         difference is because amount is tracked in Stripe natively as cents,
@@ -1299,66 +1308,60 @@ class Contribution(IndexedTimeStampedModel):
         dollars. This field is persisted in Stripe as a string.
 
         This doesn't prorate the change (e.g. paying difference of existing
-        month next time).
+        installment next time).
+
+        This also does not change anything in the model itself, or perform any
+        side effects like emailing a receipt. It only changes Stripe data.
 
         TODO in DEV-5465: improved validation of donor_selected_amount in Pydantic
         """
-        # vs circular import
-        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
-
-        if amount < REVENGINE_MIN_AMOUNT:
-            raise ValueError("Amount value must be greater than $0.99")
-        if amount > STRIPE_MAX_AMOUNT:
-            raise ValueError("Amount value must be smaller than $999,999.99")
-        if getattr(self.stripe_subscription, "status", None) not in self.ACTIVE_SUBSCRIPTION_STATUSES:
-            raise ValueError("Cannot update amount for inactive subscription")
-        if self.interval == ContributionInterval.ONE_TIME:
-            raise ValueError("Cannot update amount for one-time contribution")
-        if not (sub_id := self.provider_subscription_id):
-            raise ValueError("Cannot update amount for contribution without a subscription ID")
-
-        logger.info(
+        self.update_subscription_price_validate_args(amount, donor_selected_amount, interval)
+        logger.debug(
             "fetching subscription items from sub %s",
-            sub_id,
+            self.provider_subscription_id,
         )
         try:
-            items = stripe.SubscriptionItem.list(subscription=sub_id, stripe_account=self.stripe_account_id)
+            items = stripe.SubscriptionItem.list(
+                subscription=self.provider_subscription_id, stripe_account=self.stripe_account_id
+            )
         except StripeError:
             logger.exception(
                 "Encountered a Stripe error while trying to fetch subscription items on sub_id: %s",
-                sub_id,
+                self.provider_subscription_id,
             )
             raise
-
         if len(items["data"]) != 1:
             raise ValueError("Subscription should have only one item")
-
         item = items["data"][0]
 
-        # Set the donor-selected amount in metadata if the schema supports it.
-        with contextlib.suppress(InvalidMetadataError):
-            self.set_metadata_field("donor_selected_amount", donor_selected_amount)
-
-        self.amount = amount
-
         logger.info(
-            "Updating Stripe Subscription's %s (item %s), amount to %s",
-            sub_id,
+            "Updating Stripe Subscription ID %s, item %s: amount will be %s, interval will be %s",
+            self.provider_subscription_id,
             item["id"],
-            amount,
+            amount or self.amount,
+            interval or self.interval,
         )
         try:
+            # We don't need to adjust the anchor date of this subscription if we
+            # are changing interval. Stripe will do that for us, setting it to
+            # now and billing the contributor with a new invoice.
+            #
+            # Regardless of the scenario, we never want to prorate changes. We
+            # want to treat the subscription as an entirely new entity, and not
+            # apply previously-contributed money toward a changed amount.
+            #
+            # https://docs.stripe.com/api/subscriptions/update
             stripe.Subscription.modify(
-                sub_id,
+                self.provider_subscription_id,
                 items=[
                     {
                         "id": item["id"],
                         "price_data": {
-                            "unit_amount": amount,
+                            "unit_amount": amount or item["price"]["unit_amount"],
                             "currency": item["price"]["currency"],
                             "product": item["price"]["product"],
                             "recurring": {
-                                "interval": item["price"]["recurring"]["interval"],
+                                "interval": interval or item["price"]["recurring"]["interval"],
                             },
                         },
                     }
@@ -1369,19 +1372,51 @@ class Contribution(IndexedTimeStampedModel):
             )
         except StripeError:
             logger.exception(
-                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                "Encountered a Stripe error while trying to update subscription price on contribution %s",
                 self.id,
             )
             raise
 
-        with reversion.create_revision():
-            self.save(update_fields={"contribution_metadata", "modified"})
-            reversion.set_comment(
-                f"`Contribution.update_subscription_amount` saved changes to contribution with ID {self.id}"
-            )
+        # TODO @nrh-cklimas: send interval updated email to contributor
+        # DEV-5691
 
-        # Send amount updated email to contributor
-        self.send_recurring_contribution_amount_updated_email()
+    def update_subscription_price_validate_args(
+        self,
+        amount: int | None = None,
+        donor_selected_amount: float | None = None,
+        interval: ContributionInterval | None = None,
+    ) -> bool:
+        """Validate a call to update_subscription_price.
+
+        This raises an exception if something is wrong.
+
+        This is a separate method to lower the ruff complexity of update_subscription_price().
+        """
+        # vs circular import
+        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
+
+        if amount is None and donor_selected_amount is None and interval is None:
+            raise ValueError("No updates requested")
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("One-time contributions are not valid for subscription updates")
+        if self.provider_subscription_id is None:
+            raise ValueError("Cannot update contribution with no subscription ID")
+        if getattr(self.stripe_subscription, "status", None) not in Contribution.ACTIVE_SUBSCRIPTION_STATUSES:
+            raise ValueError("Cannot update inactive subscription")
+        if amount is not None:
+            if donor_selected_amount is None:
+                raise ValueError("If amount is updated, donor_selected_amount must also be updated")
+            if amount < REVENGINE_MIN_AMOUNT:
+                raise ValueError("Amount value must be greater than $0.99")
+            if amount > STRIPE_MAX_AMOUNT:
+                raise ValueError("Amount value must be smaller than $999,999.99")
+        if donor_selected_amount is not None and amount is None:
+            raise ValueError("If donor_selected_amount is updated, amount must also be updated")
+        if interval is not None and interval not in (
+            ContributionInterval.MONTHLY.value,
+            ContributionInterval.YEARLY.value,
+        ):
+            raise ValueError("Invalid interval")
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

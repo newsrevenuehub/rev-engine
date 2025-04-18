@@ -8,11 +8,10 @@ from django.utils.html import format_html
 from django.utils.text import Truncator
 
 from apps.activity_log.models import ActivityLog
-from apps.common.admin import RevEngineBaseAdmin
 
 
 @admin.register(ActivityLog)
-class ActivityLogAdmin(RevEngineBaseAdmin):
+class ActivityLogAdmin:
     """Admin interface for ActivityLog model."""
 
     list_display = ("linked_actor_object", "action", "linked_object_object", "created")

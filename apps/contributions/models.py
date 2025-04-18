@@ -27,6 +27,8 @@ from pydantic import ValidationError
 from reversion.models import Version
 from stripe.error import StripeError
 
+from apps.activity_log.models import ActivityLog
+from apps.activity_log.typings import ActivityLogAction
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
@@ -1382,6 +1384,19 @@ class Contribution(IndexedTimeStampedModel):
 
         # Send amount updated email to contributor
         self.send_recurring_contribution_amount_updated_email()
+
+    def create_contributor_canceled_contribution_activity_log(self) -> ActivityLog:
+        """Create an activity log entry for a contributor-canceled contribution.
+
+        This is used to track the cancellation of a contribution by the contributor.
+        """
+        if not (contributor := self.contributor):
+            raise ValueError("Cannot create activity log for canceled contribution without a contributor")
+        return ActivityLog.objects.create(
+            actor_content_object=contributor,
+            activity_object_content_object=self,
+            action=ActivityLogAction.CANCELED,
+        )
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

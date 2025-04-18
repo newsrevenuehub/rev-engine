@@ -664,12 +664,15 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def cancel(self):
-        # This is used when a user clicks "back" on the second payment form in
-        # checkout flow. We allow failed contributions to be canceled because if
-        # the user tries to attach an invalid payment method to a contribution
-        # in the second payment form, the contribution goes into that state due
-        # to Stripe emitting a `payment_intent.payment_failed` webhook event.
+        """Cancel a contribution that either hasn't been completed yet, or has been flagged for review.
 
+        This method is used when a user clicks "back" on the second payment form
+        in checkout flow. We allow failed contributions to be canceled because
+        if the user tries to attach an invalid payment method to a
+        contribution in the second payment form, the contribution goes into
+        that state due to Stripe emitting a `payment_intent.payment_failed`
+        webhook event.
+        """
         if self.status not in (ContributionStatus.FAILED, ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",

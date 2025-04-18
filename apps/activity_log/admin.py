@@ -11,11 +11,10 @@ from apps.activity_log.models import ActivityLog
 
 
 @admin.register(ActivityLog)
-class ActivityLogAdmin:
+class ActivityLogAdmin(admin.ModelAdmin):
     """Admin interface for ActivityLog model."""
 
-    list_display = ("linked_actor_object", "action", "linked_object_object", "created")
-    ordering = ("-created",)
+    list_display = ("linked_actor_object", "action", "linked_object_object", "get_on")
     actions = None
 
     # Add a description text below the title
@@ -62,6 +61,13 @@ class ActivityLogAdmin:
 
     linked_actor_object.short_description = "Actor"
     linked_object_object.short_description = "Object"
+
+    def get_on(self, obj: "ActivityLogAdmin") -> str:
+        """Return the created date of the activity log."""
+        return obj.created.strftime("%Y-%m-%d at %H:%M")
+
+    get_on.short_description = "On"
+    get_on.admin_order_field = "-created"
 
     # activity_log | actor | object | created
     # method to generate actor link

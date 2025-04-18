@@ -18,7 +18,7 @@ from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 from pytest_mock import MockerFixture
 
-from apps.activity_log.typings import ActivityLogAction
+from apps.activity_log.models import ActivityLog
 from apps.common.utils import CREATED, LEFT_UNCHANGED
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
@@ -2134,7 +2134,7 @@ class TestContributionModel:
     def test_create_contributor_canceled_contribution_activity_log_happy_path(self, contribution: Contribution) -> None:
         activity_log = contribution.create_contributor_canceled_contribution_activity_log()
         assert activity_log.actor_content_object == contribution.contributor
-        assert activity_log.action == ActivityLogAction.CANCELED
+        assert activity_log.action == ActivityLog.CANCEL
         assert activity_log.activity_object_content_object == contribution
         assert activity_log.pk
         assert activity_log.created

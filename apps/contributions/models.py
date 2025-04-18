@@ -28,7 +28,6 @@ from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.activity_log.models import ActivityLog
-from apps.activity_log.typings import ActivityLogAction
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
@@ -1395,7 +1394,7 @@ class Contribution(IndexedTimeStampedModel):
         return ActivityLog.objects.create(
             actor_content_object=contributor,
             activity_object_content_object=self,
-            action=ActivityLogAction.CANCELED,
+            action=ActivityLog.CANCEL,
         )
 
 

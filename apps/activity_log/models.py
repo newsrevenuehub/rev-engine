@@ -4,8 +4,6 @@ from django.db import models
 
 from apps.common.models import IndexedTimeStampedModel
 
-from .typings import ActivityLogAction
-
 
 class ActivityLog(IndexedTimeStampedModel):
     """Represent an activity log entry.
@@ -23,6 +21,11 @@ class ActivityLog(IndexedTimeStampedModel):
     The action is a string that describes the action taken.
     """
 
+    CANCEL = "cancel"
+    ACTIVITY_ACTION_CHOICES = [
+        (CANCEL, "canceled"),
+    ]
+
     actor_content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE, related_name="actor", null=True, blank=True
     )
@@ -36,7 +39,7 @@ class ActivityLog(IndexedTimeStampedModel):
     activity_object_content_object = GenericForeignKey("activity_object_content_type", "activity_object_object_id")
     """The object that was acted upon."""
 
-    action = models.CharField(max_length=255, choices=ActivityLogAction.choices())
+    action = models.CharField(max_length=255, choices=ACTIVITY_ACTION_CHOICES)
 
     def __str__(self):
         actor_string = (
@@ -47,10 +50,7 @@ class ActivityLog(IndexedTimeStampedModel):
         object_string = (
             f"{self.activity_object_content_object.__class__.__name__} #{self.activity_object_content_object.pk}"
         )
-
-        return (
-            f"{actor_string} {self.action.lower()} {object_string} on {self.created.strftime('%Y-%m-%d at %H:%M:%S')}"
-        )
+        return f"{actor_string} {self.get_action_display()} {object_string} on {self.created.strftime('%Y-%m-%d at %H:%M:%S')}"
 
     class Meta:
         indexes = [

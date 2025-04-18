@@ -35,8 +35,6 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     def _get_admin_url_for_linked_object(self, obj: Model) -> str:
         """Generate the admin URL for the linked object."""
-        # Get the content type of the linked object
-        # Get app label and model name from the object
         app_label = obj._meta.app_label
         model_name = obj._meta.model_name
         # Construct the URL pattern name
@@ -68,8 +66,3 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     get_on.short_description = "On"
     get_on.admin_order_field = "-created"
-
-    # activity_log | actor | object | created
-    # method to generate actor link
-    # method to generate activity_object link
-    # method to generate

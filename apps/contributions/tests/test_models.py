@@ -2146,10 +2146,7 @@ class TestContributionModel:
     ) -> None:
         contribution.contributor = None
         contribution.save()
-        with pytest.raises(
-            ValueError, match="Cannot create activity log for canceled contribution without a contributor"
-        ):
-            contribution.create_contributor_canceled_contribution_activity_log()
+        assert contribution.create_contributor_canceled_contribution_activity_log() is None
 
     def test_create_contributor_canceled_contribution_activity_log_unexpected_error(
         self, contribution: Contribution, mocker: pytest_mock.MockerFixture

@@ -1402,8 +1402,7 @@ class Contribution(IndexedTimeStampedModel):
         # creating an activity log.
         except Exception:
             logger.exception(
-                "create_contributor_canceled_contribution_activity_log returned an exception trying to create activity log for "
-                "contribution %s",
+                "Unexpected error creating activity log for contribution %s. Returning None.",
                 self.pk,
             )
 

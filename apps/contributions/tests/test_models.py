@@ -12,6 +12,7 @@ from django.db import IntegrityError
 from django.template.loader import render_to_string
 
 import pytest
+import pytest_mock
 import reversion
 import stripe
 from addict import Dict as AttrDict
@@ -2149,6 +2150,12 @@ class TestContributionModel:
             ValueError, match="Cannot create activity log for canceled contribution without a contributor"
         ):
             contribution.create_contributor_canceled_contribution_activity_log()
+
+    def test_create_contributor_canceled_contribution_activity_log_unexpected_error(
+        self, contribution: Contribution, mocker: pytest_mock.MockerFixture
+    ) -> None:
+        mocker.patch("apps.activity_log.models.ActivityLog.objects.create", side_effect=Exception("unexpected error"))
+        assert contribution.create_contributor_canceled_contribution_activity_log() is None
 
 
 @pytest.mark.django_db

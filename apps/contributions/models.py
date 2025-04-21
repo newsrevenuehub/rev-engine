@@ -1384,18 +1384,28 @@ class Contribution(IndexedTimeStampedModel):
         # Send amount updated email to contributor
         self.send_recurring_contribution_amount_updated_email()
 
-    def create_contributor_canceled_contribution_activity_log(self) -> ActivityLog:
+    def create_contributor_canceled_contribution_activity_log(self) -> ActivityLog | None:
         """Create an activity log entry for a contributor-canceled contribution.
 
         This is used to track the cancellation of a contribution by the contributor.
         """
-        if not (contributor := self.contributor):
-            raise ValueError("Cannot create activity log for canceled contribution without a contributor")
-        return ActivityLog.objects.create(
-            actor_content_object=contributor,
-            activity_object_content_object=self,
-            action=ActivityLog.CANCEL,
-        )
+        try:
+            if not (contributor := self.contributor):
+                logger.warning("Cannot create activity log for contribution %s because it has no contributor", self.pk)
+                return None
+            return ActivityLog.objects.create(
+                actor_content_object=contributor,
+                activity_object_content_object=self,
+                action=ActivityLog.CANCEL,
+            )
+        # We're generically catching on Exception here because we don't want callers to fail if something goes wrong
+        # creating an activity log.
+        except Exception:
+            logger.exception(
+                "create_contributor_canceled_contribution_activity_log returned an exception trying to create activity log for "
+                "contribution %s",
+                self.pk,
+            )
 
 
 def ensure_stripe_event(event_types: list[str] = None) -> Callable:

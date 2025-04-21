@@ -195,18 +195,10 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
                 contribution.id,
             )
             return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        try:
-            # Note that we optimistically create an activity log. Transaction finality is not guaranteed and the contribution only gets
-            # marked as canceled after the Stripe webhook is processed. If the webhook fails, we could end up with an activity log
-            # entry for a contribution that is not actually canceled. This should not happen frequently. The alternative would be to create
-            # the activity log entry in the webhook handler, but that would require a more complex implementation and we want to keep this
-            # simple.
-            contribution.create_contributor_canceled_contribution_activity_log()
-        # We're generically catching on Exception here because we don't want to fail the request if the activity log creation fails.
-        except Exception:
-            logger.exception(
-                "create_contributor_canceled_contribution_activity_log returned an exception trying to create activity log for "
-                "contribution %s",
-                contribution.pk,
-            )
+        # Note that we optimistically create an activity log. Transaction finality is not guaranteed and the contribution only gets
+        # marked as canceled after the Stripe webhook is processed. If the webhook fails, we could end up with an activity log
+        # entry for a contribution that is not actually canceled. This should not happen frequently. The alternative would be to create
+        # the activity log entry in the webhook handler, but that would require a more complex implementation and we want to keep this
+        # simple.
+        contribution.create_contributor_canceled_contribution_activity_log()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -70,16 +70,14 @@ class ActivityLogAdmin(admin.ModelAdmin):
         related_obj = obj.actor_content_object
         if related_obj:
             obj_text = Truncator(str(related_obj)).chars(70)
-            url = self._get_admin_url_for_linked_object(related_obj)
-            if url:
+            if url := self._get_admin_url_for_linked_object(related_obj):
                 return format_html(f"<a href='{url}' class='{LINKED_ACTOR_CLASSNAME}'>{obj_text}</a>")
         return "-"
 
     def linked_object_object(self, obj: "ActivityLogAdmin") -> str:
         related_obj = obj.activity_object_content_object
         obj_text = f"{related_obj.__class__.__name__} #{related_obj.pk}"
-        url = self._get_admin_url_for_linked_object(related_obj)
-        if url:
+        if url := self._get_admin_url_for_linked_object(related_obj):
             return format_html(f"<a href='{url}' class='{LINKED_OBJECT_CLASSNAME}'>{obj_text}</a>")
         return "-"
 

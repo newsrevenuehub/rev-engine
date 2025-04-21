@@ -58,7 +58,7 @@ class ActivityLogAdmin(admin.ModelAdmin):
         try:
             return reverse(url_name, args=[obj.pk])
         except NoReverseMatch:
-            logger.info(
+            logger.warning(
                 "No reverse match for url name `%s` detail view for %s with pk %s",
                 url_name,
                 model_name,

@@ -1,5 +1,5 @@
 from django.test import Client
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 import pytest
 import pytest_mock
@@ -70,3 +70,42 @@ class TestActivityLogAdmin:
         mocker.patch("apps.activity_log.admin.ActivityLogAdmin._get_admin_url_for_linked_object", return_value=None)
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         assert admin.linked_object_object(activity_log) == "-"
+
+    @pytest.fixture
+    def no_reverse_match(self, mocker: pytest_mock.MockerFixture) -> None:
+        """Fixture to mock the reverse function to raise NoReverseMatch."""
+        mocker.patch("apps.activity_log.admin.reverse", side_effect=NoReverseMatch)
+
+    @pytest.mark.usefixtures("no_reverse_match")
+    def test_linked_object_object_when_no_reverse_match(
+        self, activity_log: ActivityLog, mocker: pytest_mock.MockerFixture
+    ) -> None:
+        mock_logger = mocker.patch("apps.activity_log.admin.logger.warning")
+        admin = ActivityLogAdmin(ActivityLog, admin_site=None)
+        assert admin.linked_object_object(activity_log) == "-"
+        mock_logger.assert_called_once_with(
+            "No reverse match for url name `%s` detail view for %s with pk %s",
+            mocker.ANY,
+            "contribution",
+            activity_log.activity_object_content_object.pk,
+        )
+
+    @pytest.mark.usefixtures("no_reverse_match")
+    def test_linked_actor_object_when_no_reverse_match(
+        self, activity_log: ActivityLog, mocker: pytest_mock.MockerFixture
+    ) -> None:
+        mock_logger = mocker.patch("apps.activity_log.admin.logger.warning")
+        admin = ActivityLogAdmin(ActivityLog, admin_site=None)
+        assert admin.linked_actor_object(activity_log) == "-"
+        mock_logger.assert_called_once_with(
+            "No reverse match for url name `%s` detail view for %s with pk %s",
+            mocker.ANY,
+            "contributor",
+            activity_log.actor_content_object.pk,
+        )
+
+    def test_linked_actor_object_when_no_contributor(self, activity_log: ActivityLog) -> None:
+        """Test the linked_actor_object method when the contributor is None."""
+        activity_log.actor_content_object = None
+        admin = ActivityLogAdmin(ActivityLog, admin_site=None)
+        assert admin.linked_actor_object(activity_log) == "-"

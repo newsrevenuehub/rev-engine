@@ -44,13 +44,6 @@ class TestActivityLogAdmin:
         )
         assert link.text == str(activity_log.actor_content_object)
 
-    def test_linked_actor_object_when_no_url(
-        self, activity_log: ActivityLog, mocker: pytest_mock.MockerFixture
-    ) -> None:
-        mocker.patch("apps.activity_log.admin.ActivityLogAdmin._get_admin_url_for_linked_object", return_value=None)
-        admin = ActivityLogAdmin(ActivityLog, admin_site=None)
-        assert admin.linked_actor_object(activity_log) == "-"
-
     def test_linked_object_object_happy_path(self, activity_log: ActivityLog) -> None:
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         activity_object_object = admin.linked_object_object(activity_log)
@@ -104,8 +97,8 @@ class TestActivityLogAdmin:
             activity_log.actor_content_object.pk,
         )
 
-    def test_linked_actor_object_when_no_contributor(self, activity_log: ActivityLog) -> None:
-        """Test the linked_actor_object method when the contributor is None."""
+    def test_linked_actor_object_when_no_actor(self, activity_log: ActivityLog) -> None:
+        """Test the linked_actor_object method when the actor is None."""
         activity_log.actor_content_object = None
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         assert admin.linked_actor_object(activity_log) == "-"

@@ -79,6 +79,22 @@ describe('EmailsRoute', () => {
       ).toBeDisabled();
     });
 
+    if (block.previewUrl) {
+      it('shows a preview link', () => {
+        tree();
+        expect(
+          within(screen.getByTestId(`email-block-${block.name}`)).getByRole('link', { name: 'See Preview' })
+        ).toHaveAttribute('href', block.previewUrl);
+      });
+    } else {
+      it("doesn't show a preview link", () => {
+        tree();
+        expect(
+          within(screen.getByTestId(`email-block-${block.name}`)).queryByRole('link', { name: 'See Preview' })
+        ).not.toBeInTheDocument();
+      });
+    }
+
     if (block.testEmailName) {
       it(`shows a button to send a ${block.testEmailName} test email`, () => {
         const sendTestEmail = jest.fn();

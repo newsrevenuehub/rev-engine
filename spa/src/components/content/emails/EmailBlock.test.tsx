@@ -17,6 +17,20 @@ describe('EmailBlock', () => {
     expect(screen.getByText('test-description')).toBeVisible();
   });
 
+  it('shows a link to the preview URL that opens in a new tab if the prop is set', () => {
+    tree({ previewUrl: 'test-preview-url' });
+
+    const link = screen.queryByRole('link', { name: 'See Preview' });
+
+    expect(link).toHaveAttribute('href', 'test-preview-url');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it("doesn't show a preview link if the URL isn'\t set", () => {
+    tree();
+    expect(screen.queryByRole('link', { name: 'See Preview' })).not.toBeInTheDocument();
+  });
+
   it('shows a button to send a test email if onSendTest is set', () => {
     const onSendTest = jest.fn();
 

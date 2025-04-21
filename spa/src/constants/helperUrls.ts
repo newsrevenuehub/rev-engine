@@ -3,6 +3,12 @@ export const HOME_PAGE_URL = 'https://fundjournalism.org/';
 export const CORE_UPGRADE_URL = 'https://fundjournalism.org/i-want-revengine-core/';
 export const FAQ_URL = 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496';
 export const EMAIL_KB_URL = 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2672656386';
+export const EMAIL_CANCELLATION_KB_URL =
+  'https://news-revenue-hub.atlassian.net/wiki/spaces/REVENGINE/pages/2411986966/How+are+receipts+and+transactional+communications+sent#Cancellation-emails';
+export const EMAIL_PAYMENT_CHANGE_KB_URL =
+  'https://news-revenue-hub.atlassian.net/wiki/spaces/REVENGINE/pages/2411986966/How+are+receipts+and+transactional+communications+sent#Subscription-updates-emails';
+export const EMAIL_SCHEDULED_PAYMENT_KB_URL =
+  'https://news-revenue-hub.atlassian.net/wiki/spaces/REVENGINE/pages/2411986966/How+are+receipts+and+transactional+communications+sent#Scheduled-payment-reminders';
 export const HELP_URL = 'https://fundjournalism.org/news-revenue-engine-help/';
 export const KNOWLEDGE_BASE_URL =
   'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496';

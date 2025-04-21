@@ -4,12 +4,7 @@ import EmailBlock, { EmailBlockProps } from './EmailBlock';
 import { Blocks } from './EmailsRoute.styled';
 import PageTitle from 'elements/PageTitle';
 import { TestEmailName, useTestEmails } from 'hooks/useTestEmails';
-import {
-  EMAIL_CANCELLATION_KB_URL,
-  EMAIL_KB_URL,
-  EMAIL_PAYMENT_CHANGE_KB_URL,
-  EMAIL_SCHEDULED_PAYMENT_KB_URL
-} from 'constants/helperUrls';
+import { EMAIL_CANCELATION_KB_URL, EMAIL_KB_URL, EMAIL_PAYMENT_CHANGE_KB_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import { useMemo } from 'react';
 
@@ -28,17 +23,24 @@ export const blocks: EmailBlock[] = [
   },
   {
     editable: true,
-    description:
-      'A canceled contribution email is sent when a contribution is canceled for any reason; this includes the contributor or the organization canceling, or RevEngine’s payment processor canceling due to an expired or failed payment method.',
-    name: 'Canceled',
-    previewUrl: EMAIL_CANCELLATION_KB_URL
+    description: (
+      <>
+        A canceled contribution email is sent when a contribution is canceled for any reason; this includes the
+        contributor or the organization canceling, or RevEngine’s payment processor canceling due to an expired or
+        failed payment method.{' '}
+        <Link href={EMAIL_CANCELATION_KB_URL} target="_blank">
+          Show Preview
+        </Link>
+      </>
+    ),
+    hideActions: true,
+    name: 'Canceled'
   },
   {
     editable: true,
     description:
       'For contributors with recurring annual contributions, a payment reminder is sent 7 days before their contribution renews. This time period can be configured within your organization’s Stripe account.',
     name: 'Payment Reminders',
-    previewUrl: EMAIL_SCHEDULED_PAYMENT_KB_URL,
     testEmailName: 'reminder'
   },
   {
@@ -48,10 +50,17 @@ export const blocks: EmailBlock[] = [
     name: 'Failed'
   },
   {
-    description:
-      'A payment change confirmation email is sent when a contributor successfully makes changes to an active recurring contribution, like changing the payment method, amount, and/or frequency.',
-    name: 'Payment Changes Confirmation',
-    previewUrl: EMAIL_PAYMENT_CHANGE_KB_URL
+    description: (
+      <>
+        A payment change confirmation email is sent when a contributor successfully makes changes to an active recurring
+        contribution, like changing the payment method, amount, and/or frequency.{' '}
+        <Link href={EMAIL_PAYMENT_CHANGE_KB_URL} target="_blank">
+          Show Preview
+        </Link>
+      </>
+    ),
+    hideActions: true,
+    name: 'Payment Changes Confirmation'
   },
   {
     description:
@@ -99,9 +108,9 @@ export function EmailsRoute() {
           <EmailBlock
             description={block.description}
             editable={block.editable}
+            hideActions={block.hideActions}
             key={block.name}
             name={block.name}
-            previewUrl={block.previewUrl}
             onSendTest={
               block.testEmailName && firstRevenueProgramId ? () => handleSendTest(block.testEmailName!) : undefined
             }

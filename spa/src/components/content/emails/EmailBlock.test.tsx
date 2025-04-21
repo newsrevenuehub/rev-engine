@@ -17,45 +17,46 @@ describe('EmailBlock', () => {
     expect(screen.getByText('test-description')).toBeVisible();
   });
 
-  it('shows a link to the preview URL that opens in a new tab if the prop is set', () => {
-    tree({ previewUrl: 'test-preview-url' });
+  describe('When the hideActions prop is true', () => {
+    it('shows no buttons', () => {
+      tree({ hideActions: true });
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
 
-    const link = screen.queryByRole('link', { name: 'See Preview' });
+    it('is accessible', async () => {
+      const { container } = tree({ hideActions: true });
 
-    expect(link).toHaveAttribute('href', 'test-preview-url');
-    expect(link).toHaveAttribute('target', '_blank');
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 
-  it("doesn't show a preview link if the URL isn'\t set", () => {
-    tree();
-    expect(screen.queryByRole('link', { name: 'See Preview' })).not.toBeInTheDocument();
-  });
+  describe('When the hideActions prop is falsy', () => {
+    it('shows a button to send a test email if onSendTest is set', () => {
+      const onSendTest = jest.fn();
 
-  it('shows a button to send a test email if onSendTest is set', () => {
-    const onSendTest = jest.fn();
+      tree({ onSendTest });
+      expect(onSendTest).not.toBeCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Send Test Email' }));
+      expect(onSendTest).toBeCalledTimes(1);
+    });
 
-    tree({ onSendTest });
-    expect(onSendTest).not.toBeCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Send Test Email' }));
-    expect(onSendTest).toBeCalledTimes(1);
-  });
+    it('disables the send test email button if onSendTest is undefined', () => {
+      tree();
+      expect(screen.getByRole('button', { name: 'Send Test Email' })).toBeDisabled();
+    });
 
-  it('disables the send test email button if onSendTest is undefined', () => {
-    tree();
-    expect(screen.getByRole('button', { name: 'Send Test Email' })).toBeDisabled();
-  });
+    it.each([
+      ['View', false],
+      ['View & Edit', true]
+    ])('shows a disabled %s button if the editable prop is %s', (name, editable) => {
+      tree({ editable });
+      expect(screen.getByRole('button', { name })).toBeDisabled();
+    });
 
-  it.each([
-    ['View', false],
-    ['View & Edit', true]
-  ])('shows a disabled %s button if the editable prop is %s', (name, editable) => {
-    tree({ editable });
-    expect(screen.getByRole('button', { name })).toBeDisabled();
-  });
+    it('is accessible', async () => {
+      const { container } = tree();
 
-  it('is accessible', async () => {
-    const { container } = tree();
-
-    expect(await axe(container)).toHaveNoViolations();
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });

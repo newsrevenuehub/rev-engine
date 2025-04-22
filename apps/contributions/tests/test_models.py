@@ -3,7 +3,6 @@ import json
 import re
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -148,16 +147,6 @@ class TestContributorModel:
     def test_is_superuser(self, contributor_user):
         assert contributor_user.is_superuser is False
 
-    def test_create_magic_link(self, one_time_contribution):
-        assert isinstance(one_time_contribution, Contribution)
-        parsed = urlparse(Contributor.create_magic_link(one_time_contribution))
-        assert parsed.scheme == "https"
-        expected_domain = urlparse(settings.SITE_URL).netloc
-        assert parsed.netloc == f"{one_time_contribution.revenue_program.slug}.{expected_domain}"
-        params = parse_qs(parsed.query)
-        assert params["token"][0]
-        assert params["email"][0] == one_time_contribution.contributor.email
-
     def test_get_impact(self, contribution, contributor_user):
         total_paid = 0
         total_refunded = 0
@@ -212,23 +201,6 @@ class TestContributorModel:
             "total_paid": total_paid,
             "total_refunded": total_refunded,
         }
-
-    @pytest.mark.parametrize(
-        "value",
-        [
-            None,
-            "",
-            "Something",
-            1,
-            True,
-            False,
-            {},
-            lambda x: None,
-        ],
-    )
-    def test_create_magic_link_with_invalid_values(self, value):
-        with pytest.raises(ValueError, match="Invalid value provided for `contribution`"):
-            Contributor.create_magic_link(value)
 
     @pytest.mark.parametrize("pre_exists", [True, False])
     def test_get_or_create_contributor_by_email_case_insensitivity(self, pre_exists):
@@ -562,7 +534,6 @@ class TestContributionModel:
         org.save()
         send_receipt_email_spy = mocker.spy(send_receipt_email, "delay")
 
-        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_receipt_email(show_billing_history=show_billing_history)
         expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
@@ -601,6 +572,7 @@ class TestContributionModel:
     @pytest.mark.parametrize(
         "status",
         [
+            ContributionStatus.FAILED,
             ContributionStatus.PROCESSING,
             ContributionStatus.FLAGGED,
         ],
@@ -628,6 +600,8 @@ class TestContributionModel:
             (ContributionStatus.PROCESSING, "annual_subscription", False),
             (ContributionStatus.FLAGGED, "monthly_subscription", False),
             (ContributionStatus.FLAGGED, "annual_subscription", False),
+            (ContributionStatus.FAILED, "monthly_subscription", False),
+            (ContributionStatus.FAILED, "annual_subscription", False),
         ],
     )
     def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch, mocker):
@@ -693,7 +667,6 @@ class TestContributionModel:
         "status",
         [
             ContributionStatus.CANCELED,
-            ContributionStatus.FAILED,
             ContributionStatus.PAID,
             ContributionStatus.REFUNDED,
             ContributionStatus.REJECTED,
@@ -1024,17 +997,11 @@ class TestContributionModel:
         getattr(annual_contribution, email_method_name)()
 
         assert len(mail.outbox) == 1
-        soup_text = (soup := BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")).get_text(
-            separator=" ", strip=True
-        )
+        soup_text = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser").get_text(separator=" ", strip=True)
         text_email = mail.outbox[0].body
         for x in email_expectations:
             assert x in text_email
             assert x in soup_text
-
-        magic_link = Contributor.create_magic_link(annual_contribution)
-        assert soup.find("a", href=magic_link, text=re.compile("Manage contributions here"))
-        assert magic_link in text_email
 
     @pytest.mark.usefixtures("_mock_contributor_refresh_token", "_synchronous_email_send_task", "_mock_stripe_customer")
     def test_send_recurring_contribution_email_reminder_timestamp_override(self, annual_contribution):
@@ -2003,7 +1970,6 @@ class TestContributionModel:
         mocker.patch("stripe.Subscription.modify")
         monthly_contribution.stripe_subscription = MockSubscription("active")
         new_amount = monthly_contribution.amount * 2
-        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="http://magic-link.com")
         send_email_spy = mocker.patch("apps.emails.tasks.send_templated_email.delay")
         monthly_contribution.update_subscription_amount(amount=new_amount, donor_selected_amount=new_amount / 100)
 

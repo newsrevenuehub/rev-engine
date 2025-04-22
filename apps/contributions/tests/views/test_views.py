@@ -778,7 +778,6 @@ class TestPaymentViewset:
         [
             ContributionStatus.PAID,
             ContributionStatus.CANCELED,
-            ContributionStatus.FAILED,
             ContributionStatus.REJECTED,
             ContributionStatus.REFUNDED,
         ],
@@ -798,7 +797,7 @@ class TestPaymentViewset:
         contribution = ContributionFactory(one_time=True, interval=interval, status=ContributionStatus.PROCESSING)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_409_CONFLICT
 
     @pytest.fixture
     def _stripe_error_state(self, mocker):

@@ -41,11 +41,7 @@ class ActivityLog(IndexedTimeStampedModel):
     action = models.CharField(max_length=255, choices=ACTIVITY_ACTION_CHOICES)
 
     def __str__(self):
-        actor_string = (
-            f"{self.actor_content_object.__class__.__name__} #{self.actor_content_object.pk}"
-            if self.actor_content_object
-            else "System"
-        )
+        actor_string = f"{self.actor_content_object.__class__.__name__} #{self.actor_content_object.pk}"
         object_string = (
             f"{self.activity_object_content_object.__class__.__name__} #{self.activity_object_content_object.pk}"
         )

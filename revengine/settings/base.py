@@ -399,6 +399,8 @@ CSP_SCRIPT_SRC = (
     "https://cdnjs.cloudflare.com",
     "https://dash.parsely.com",
     "https://cdn.parsely.com",
+    "https://browser.sentry-cdn.com",
+    "https://js.sentry-cdn.com",
     "https://use.typekit.net",
 )
 CSP_STYLE_SRC = (
@@ -434,7 +436,7 @@ CSP_CONNECT_SRC = (
     "'self'",
     "https://www.google-analytics.com",
     "https://maps.googleapis.com",
-    "https://*.ingest.sentry.io",
+    "https://*.sentry.io",
     "https://risk.clearbit.com",
     "https://static.cloudflareinsights.com",
     "https://p1.parsely.com",

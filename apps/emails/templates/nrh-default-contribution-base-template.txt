@@ -26,4 +26,4 @@ All contributions or gifts to {{ rp_name }} are tax deductible through our fisca
 Contributions to {{ rp_name }} are not deductible as charitable donations.
 {% endif %}{% endblock contribution_footer %}
 
-Need to make changes to your contribution? {% autoescape off %}{{ magic_link }}{% endautoescape %}
+Need to make changes to your contribution? {% autoescape off %}{{ portal_url }}{% endautoescape %}

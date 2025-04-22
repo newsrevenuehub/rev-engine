@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 import stripe
 from celery import shared_task
@@ -86,7 +87,7 @@ class SendContributionEmailData(TypedDict):
     non_profit: bool
     fiscal_status: Literal[FiscalStatuses.FISCALLY_SPONSORED, FiscalStatuses.FOR_PROFIT, FiscalStatuses.NON_PROFIT]
     fiscal_sponsor_name: str | None
-    magic_link: str
+    portal_url: str
     style: TransactionalEmailStyle
     timestamp: str
     contributor_email: str
@@ -124,9 +125,6 @@ def generate_email_data(
     """
     logger.info("called with contribution id %s", contribution.id)
 
-    # vs circular import
-    from apps.contributions.models import Contributor
-
     if not contribution.provider_customer_id:
         logger.error("No Stripe customer id for contribution with id %s", contribution.id)
         raise EmailTaskException("Cannot get required data from Stripe")
@@ -160,8 +158,8 @@ def generate_email_data(
         copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
-        magic_link=Contributor.create_magic_link(contribution),
         non_profit=contribution.revenue_program.non_profit,
+        portal_url=mark_safe(contribution.revenue_program.contributor_portal_url),
         rp_name=contribution.revenue_program.name,
         style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
@@ -196,8 +194,8 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
         copyright_year=now.year,
         fiscal_sponsor_name=revenue_program.fiscal_sponsor_name,
         fiscal_status=revenue_program.fiscal_status,
-        magic_link=get_test_magic_link(user, revenue_program),
         non_profit=revenue_program.non_profit,
+        portal_url=mark_safe(revenue_program.contributor_portal_url),
         rp_name=revenue_program.name,
         style=asdict(revenue_program.transactional_email_style),
         tax_id=revenue_program.tax_id,

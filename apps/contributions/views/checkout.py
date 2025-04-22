@@ -16,7 +16,6 @@ from apps.contributions.models import (
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
-    ContributionStatus,
     ContributionStatusError,
 )
 
@@ -57,30 +56,18 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
 
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
-        if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
-            logger.warning(
-                "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s."
-                " contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s",
-                ContributionStatus.PROCESSING.label,
-                ContributionStatus.FLAGGED.label,
-                contribution.id,
-                contribution.get_status_display(),
-                contribution.contributor.id,
-                contribution.donation_page.id,
-            )
-            return Response(status=status.HTTP_409_CONFLICT)
         try:
             contribution.cancel()
         except ContributionIntervalError:
             logger.exception(
                 "`PaymentViewset.destroy` called for contribution with unexpected interval %s", contribution.interval
             )
-            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_409_CONFLICT)
         except ContributionStatusError:
             logger.exception(
                 "`PaymentViewset.destroy` called for contribution with unexpected status %s", contribution.status
             )
-            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_409_CONFLICT)
         except StripeError:
             logger.exception(
                 "Something went wrong with Stripe while attempting to cancel payment with UUID %s",

@@ -9,7 +9,6 @@ from collections.abc import Callable, Generator
 from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Literal, TypedDict
-from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -18,7 +17,6 @@ from django.db import models
 from django.db.models import Min, Q, Sum
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.utils.safestring import SafeString, mark_safe
 
 import reversion
 import stripe
@@ -27,7 +25,6 @@ from pydantic import ValidationError
 from reversion.models import Version
 from stripe.error import StripeError
 
-from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
@@ -128,20 +125,6 @@ class Contributor(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
-
-    @staticmethod
-    def create_magic_link(contribution: Contribution) -> SafeString:
-        """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)."""
-        from apps.api.views import construct_rp_domain  # vs. circular import
-
-        if not isinstance(contribution, Contribution):
-            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
-            raise ValueError("Invalid value provided for `contribution`")  # noqa: TRY004 TODO @njh: change to TypeError
-        token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
-        return mark_safe(
-            f"https://{construct_rp_domain(contribution.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-        )
 
     def get_contributor_contributions_queryset(self) -> models.QuerySet[Contribution]:
         """Get all relevant contributions for contributor.
@@ -664,10 +647,16 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def cancel(self):
-        # this is specifically used when a user clicks "back" on the second payment form in checkout flow. it's not
-        # necessarily intended to be a general-purpose cancellation method (i.e., it is not appropriate for the `.destroy` method
-        # on the API endpoint)
-        if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
+        """Cancel a contribution that either hasn't been completed yet, or has been flagged for review.
+
+        This method is used when a user clicks "back" on the second payment form
+        in checkout flow. We allow failed contributions to be canceled because
+        if the user tries to attach an invalid payment method to a
+        contribution in the second payment form, the contribution goes into
+        that state due to Stripe emitting a `payment_intent.payment_failed`
+        webhook event.
+        """
+        if self.status not in (ContributionStatus.FAILED, ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
                 self.id,

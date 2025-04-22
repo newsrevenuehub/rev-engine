@@ -36,9 +36,8 @@ class ActivityLog(IndexedTimeStampedModel):
         ContentType, on_delete=models.CASCADE, related_name="activity_object"
     )
     activity_object_object_id = models.PositiveIntegerField(null=False, blank=False)
+    # The object that was acted upon.
     activity_object_content_object = GenericForeignKey("activity_object_content_type", "activity_object_object_id")
-    """The object that was acted upon."""
-
     action = models.CharField(max_length=255, choices=ACTIVITY_ACTION_CHOICES)
 
     def __str__(self):

@@ -18,36 +18,35 @@ export const blocks: EmailBlock[] = [
     editable: true,
     description:
       'Receipts are sent for all contributions after a successful payment. The receipts thank the contributor for their contribution, confirm payment, and provide tax information. Contributors can also resend receipts to themselves in the contributor portal.',
-    name: 'Receipts',
+    name: 'Receipt',
     testEmailName: 'receipt'
   },
   {
     editable: true,
     description: (
       <>
-        A canceled contribution email is sent when a contribution is canceled for any reason; this includes the
-        contributor or the organization canceling, or RevEngine’s payment processor canceling due to an expired or
-        failed payment method.{' '}
+        These emails are sent when a contribution is canceled for any reason—by the contributor, by the org, or by the
+        payment processor (when a payment method fails).{' '}
         <Link href={EMAIL_CANCELATION_KB_URL} target="_blank">
           Show Preview
         </Link>
       </>
     ),
     hideActions: true,
-    name: 'Canceled'
+    name: 'Cancelation'
   },
   {
     editable: true,
     description:
       'For contributors with recurring annual contributions, a payment reminder is sent 7 days before their contribution renews. This time period can be configured within your organization’s Stripe account.',
-    name: 'Payment Reminders',
+    name: 'Payment Reminder',
     testEmailName: 'reminder'
   },
   {
     editable: false,
     description:
       "A failed payment notification email is sent when RevEngine's payment processor cannot charge the payment method of a contribution, which could be due to incorrect payment information or expired cards.",
-    name: 'Failed'
+    name: 'Payment Failed'
   },
   {
     description: (
@@ -60,7 +59,7 @@ export const blocks: EmailBlock[] = [
       </>
     ),
     hideActions: true,
-    name: 'Payment Changes Confirmation'
+    name: 'Payment Change Confirmation'
   },
   {
     description:

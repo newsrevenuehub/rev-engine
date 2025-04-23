@@ -84,8 +84,10 @@ class TestGenerateEmailData:
         mocker,
     ):
         mocker.patch("stripe.Customer.retrieve", return_value=customer)
-        mock_get_magic_link = mocker.patch(
-            "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
+        mock_contributor_portal_url = mocker.patch(
+            "apps.organizations.models.RevenueProgram.contributor_portal_url",
+            return_value="contributor_portal_url",
+            new_callable=mocker.PropertyMock,
         )
         if has_donation_page:
             contribution.revenue_program.default_donation_page = DonationPageFactory()
@@ -103,8 +105,8 @@ class TestGenerateEmailData:
             copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
-            magic_link=mock_get_magic_link.return_value,
             non_profit=contribution.revenue_program.non_profit,
+            portal_url=mock_contributor_portal_url.return_value,
             rp_name=contribution.revenue_program.name,
             style=asdict(contribution.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
@@ -147,7 +149,11 @@ class TestSendReceiptEmail:
     @pytest.mark.parametrize("show_billing_history", [False, True])
     @pytest.mark.parametrize("contributor_name", ["John Doe", None])
     def test_happy_path(self, make_contribution_fn, show_billing_history, contributor_name, mocker):
-        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.contributor_portal_url",
+            return_value="contributor_portal_url",
+            new_callable=mocker.PropertyMock,
+        )
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name=contributor_name))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
         contribution = make_contribution_fn()

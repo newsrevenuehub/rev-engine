@@ -27,7 +27,7 @@ from stripe.error import StripeError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
-from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
+from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus, QuarantineStatus
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.typings import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
@@ -336,6 +336,7 @@ class Contribution(IndexedTimeStampedModel):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+    quarantine_status = models.CharField(max_length=255, null=True, blank=True, choices=QuarantineStatus.choices)
     # This is used in the `BaseCreatePaymentSerializer` and provides a way for the SPA
     # to signal to the server that a contribution has been canceled, without relying on easy-to-guess,
     # integer ID value.

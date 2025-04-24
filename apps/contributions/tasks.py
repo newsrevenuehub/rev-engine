@@ -156,7 +156,22 @@ def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, tra
 )
 def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
     logger.info("Processing Stripe webhook event with ID %s", raw_event_data["id"])
-    processor = StripeWebhookProcessor(event=(event := StripeEventData(**raw_event_data)))
+    processor = StripeWebhookProcessor(
+        event=(
+            event := StripeEventData(
+                id=raw_event_data.get("id"),
+                object=raw_event_data.get("object"),
+                account=raw_event_data.get("account"),
+                api_version=raw_event_data.get("api_version"),
+                created=raw_event_data.get("created"),
+                data=raw_event_data.get("data"),
+                request=raw_event_data.get("request"),
+                livemode=raw_event_data.get("livemode"),
+                pending_webhooks=raw_event_data.get("pending_webhooks"),
+                type=raw_event_data.get("type"),
+            )
+        )
+    )
     try:
         processor.process()
     except Contribution.DoesNotExist:

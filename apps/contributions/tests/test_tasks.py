@@ -15,6 +15,7 @@ from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.typings import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
+from apps.contributions.webhooks import StripeWebhookProcessor
 
 
 @pytest.fixture
@@ -263,6 +264,25 @@ class TestProcessStripeWebhookTask:
             assert mock_logger.call_args == mocker.call(
                 "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
             )
+
+    def test_event_properties_passed_to_processor(self, payment_intent_succeeded, mocker):
+        mock_processor = mocker.patch.object(StripeWebhookProcessor, "__new__")
+        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
+        mock_processor.assert_called_once_with(
+            mocker.ANY,
+            event=StripeEventData(
+                id=payment_intent_succeeded.get("id"),
+                object=payment_intent_succeeded.get("object"),
+                account=payment_intent_succeeded.get("account"),
+                api_version=payment_intent_succeeded.get("api_version"),
+                created=payment_intent_succeeded.get("created"),
+                data=payment_intent_succeeded.get("data"),
+                request=payment_intent_succeeded.get("request"),
+                livemode=payment_intent_succeeded.get("livemode"),
+                pending_webhooks=payment_intent_succeeded.get("pending_webhooks"),
+                type=payment_intent_succeeded.get("type"),
+            ),
+        )
 
     def test_extraneous_properties_on_event(self, payment_intent_succeeded, mocker):
         mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")

@@ -44,13 +44,13 @@ repos:
         language_version: python3.10
   # Ruff code linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.5
+    rev: v0.11.7
     hooks:
       - id: ruff
         args: [ --fix ]
   # Check Python dependencies against p0wned package database.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.4.0
+    rev: v1.4.2
     hooks:
       - id: python-safety-dependencies-check
         files: pyproject.toml
@@ -59,7 +59,7 @@ repos:
         ]
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman
-    rev: v1.34.0
+    rev: v1.36.0
     hooks:
       - id: talisman-commit
   # JS formater.

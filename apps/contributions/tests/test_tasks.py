@@ -285,10 +285,11 @@ class TestProcessStripeWebhookTask:
         )
 
     def test_extraneous_properties_on_event(self, payment_intent_succeeded, mocker):
-        mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
+        mock_processor = mocker.Mock()
+        mocker.patch.object(StripeWebhookProcessor, "__new__", return_value=mock_processor)
         payment_intent_succeeded["unexpected_property"] = "value"
         contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
-        mock_process.assert_called_once()
+        mock_processor.process.assert_called_once()
 
 
 def test_on_process_stripe_webhook_task_failure(mocker):

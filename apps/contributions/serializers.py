@@ -847,7 +847,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
                     )
                 except CardError as exc:
                     logger.info("Encountered a card error for contribution with ID %s: %s", instance.pk, exc)
-                    raise serializers.ValidationError(f"Something went wrong: {exc.user_message}") from exc
+                    raise serializers.ValidationError(exc.user_message) from exc
             # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
             donor_selected_amount = validated_data.pop("donor_selected_amount", None)
 

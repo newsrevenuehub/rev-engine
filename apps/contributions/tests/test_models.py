@@ -1708,11 +1708,25 @@ class TestContributionModel:
         with pytest.raises(ValueError, match="Cannot update payment method for contribution without a subscription ID"):
             monthly_contribution.update_payment_method_for_subscription("something")
 
-    def test_update_payment_method_for_subscription_when_error_on_pm_attach(self, monthly_contribution, mocker):
+    def test_update_payment_method_for_subscription_when_generic_stripe_error_on_pm_attach(
+        self, monthly_contribution, mocker
+    ):
         mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("something"))
         monthly_contribution.provider_customer_id = (cus_id := "cus_123")
         monthly_contribution.provider_subscription_id = "sub_123"
         with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription(pm_id := "pm_123")
+        mock_pm_attach.assert_called_once_with(
+            pm_id, customer=cus_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_payment_method_for_subscription_when_card_error_on_pm_attach(self, monthly_contribution, mocker):
+        mock_pm_attach = mocker.patch(
+            "stripe.PaymentMethod.attach", side_effect=stripe.error.CardError("card error", "cvc", "some-code")
+        )
+        monthly_contribution.provider_customer_id = (cus_id := "cus_123")
+        monthly_contribution.provider_subscription_id = "sub_123"
+        with pytest.raises(stripe.error.CardError):
             monthly_contribution.update_payment_method_for_subscription(pm_id := "pm_123")
         mock_pm_attach.assert_called_once_with(
             pm_id, customer=cus_id, stripe_account=monthly_contribution.stripe_account_id

@@ -23,7 +23,7 @@ import stripe
 from addict import Dict as AttrDict
 from pydantic import ValidationError
 from reversion.models import Version
-from stripe.error import CardError, StripeError
+from stripe.error import StripeError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
@@ -1260,9 +1260,6 @@ class Contribution(IndexedTimeStampedModel):
             stripe.PaymentMethod.attach(
                 provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
             )
-        except CardError as card_error:
-            raise ValueError(f"Card declined: {card_error.user_message}") from card_error
-
         except StripeError:
             logger.exception("Unexpected Stripe error while trying to attach payment method")
             raise

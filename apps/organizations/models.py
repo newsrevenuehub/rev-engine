@@ -892,7 +892,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         logger.info("Disabling ActiveCampaign integration for RP ID %s", self.id)
         logger.info(
             "Attempting to delete secret %s for RP ID %s",
-            self.activecampaign_access_token_secret_name_access_token_secret_name,
+            self.activecampaign_access_token_secret_name,
             self.id,
         )
         del self.activecampaign_access_token

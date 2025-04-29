@@ -113,6 +113,7 @@ GS_CREDENTIALS = __ensure_gs_credentials(
 # Application definition
 INSTALLED_APPS = [
     "apps.common",
+    "apps.activity_log",
     "apps.api",
     "apps.users",
     "apps.organizations",

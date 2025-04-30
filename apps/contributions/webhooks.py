@@ -267,7 +267,7 @@ class StripeWebhookProcessor:
     def handle_payment_intent_canceled(self):
         self._handle_contribution_update(
             {
-                "status": ContributionStatus.REJECTED if self.rejected else ContributionStatus.CANCELED,
+                "status": ContributionStatus.REJECTED if self.rejected else ContributionStatus.FAILED,
             },
             "`StripeWebhookProcessor.handle_payment_intent_canceled` updated contribution",
         )

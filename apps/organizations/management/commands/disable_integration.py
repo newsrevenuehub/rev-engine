@@ -4,10 +4,7 @@ from apps.organizations.models import RevenueProgram
 
 
 class Command(BaseCommand):
-    """Command to disable select integrations for a revenue program.
-
-    By default will disable both Mailchimp and ActiveCampaign integrations.
-    """
+    """Command to disable select integrations for a revenue program."""
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument("--slug", type=str, help="Slug of the revenue program to disable", required=True)

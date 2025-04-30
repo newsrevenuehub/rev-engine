@@ -12,6 +12,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
+from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
 from apps.contributions.payment_managers import PaymentProviderError
 
@@ -341,8 +342,13 @@ class QuarantineQueue(admin.ModelAdmin):
 
     _reason.short_description = "Reason"
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(status=ContributionStatus.FLAGGED)
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Contribution]:
+        return (
+            super()
+            .get_queryset(request)
+            .filter(quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR)
+            .exclude(status=ContributionStatus.ABANDONED)
+        )
 
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):

@@ -3,6 +3,7 @@ import {
   DonorAddressElement,
   DonorInfoElement,
   FrequencyElement,
+  ImageElement,
   PaymentElement,
   ReasonElement,
   SwagElement
@@ -14,6 +15,7 @@ import {
   AmountEditor,
   DonorAddressEditor,
   FrequencyEditor,
+  ImageEditor,
   PaymentEditor,
   ReasonEditor,
   SwagEditor
@@ -34,6 +36,7 @@ const editorComponents = {
   DDonorAddress: DonorAddressEditor,
   DDonorInfo: ContributorInfoEditor,
   DFrequency: FrequencyEditor,
+  DImage: ImageEditor,
   DPayment: PaymentEditor,
   DReason: ReasonEditor,
   DSwag: SwagEditor
@@ -50,6 +53,7 @@ const editorHeaders = {
   DDonorAddress: 'Contributor Address',
   DDonorInfo: 'Contributor Info',
   DFrequency: 'Contribution Frequency',
+  DImage: 'Image',
   DPayment: 'Agree to Pay Fees',
   DReason: 'Reason for Giving',
   DSwag: 'Swag'
@@ -70,6 +74,7 @@ type ElementContent =
   | DonorAddressElement['content']
   | DonorInfoElement['content']
   | FrequencyElement['content']
+  | ImageElement['content']
   | PaymentElement['content']
   | ReasonElement['content']
   | SwagElement['content'];

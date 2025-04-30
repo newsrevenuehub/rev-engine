@@ -94,7 +94,7 @@ class TestDisableIntegrationCommand:
     def mock_gcs_provider(self, mocker: pytest_mock.MockerFixture):
         mocker.patch("apps.organizations.models.GoogleCloudSecretProvider")
 
-    @pytest.mark.usefixtures("mock_secret_manager")
+    @pytest.mark.usefixtures("mock_gcs_provider")
     @pytest.mark.parametrize(
         "integrations",
         [

@@ -14,6 +14,7 @@ from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
 from stripe.error import RateLimitError
 
+from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_import import StripeTransactionsImporter
@@ -76,7 +77,9 @@ def auto_accept_flagged_contributions():
     for contribution in eligible_flagged_contributions:
         manager = contribution.get_payment_manager_instance()
         try:
-            manager.complete_payment(reject=False)
+            manager.complete_payment(
+                new_quarantine_status=QuarantineStatus.APPROVED_BY_MACHINE_AFTER_WAIT, reject=False
+            )
             successful_captures += 1
         except PaymentProviderError:
             failed_captures += 1

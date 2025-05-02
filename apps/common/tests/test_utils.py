@@ -1,7 +1,10 @@
+import logging
+
 from django.http import HttpRequest
 from django.test import RequestFactory
 
 import pytest
+import pytest_mock
 
 from apps.common.utils import (
     booleanize_string,
@@ -12,6 +15,7 @@ from apps.common.utils import (
     get_original_ip_from_request,
     get_subdomain_from_request,
     google_cloud_pub_sub_is_configured,
+    hide_sentry_environment,
     logger,
     normalize_slug,
     upsert_cloudflare_cnames,
@@ -74,6 +78,43 @@ def test_extract_ticket_id_from_branch_name(branch_name: str, expected: str, moc
         logger_spy.assert_called_once_with("Could not extract ticket id from branch name: %s", branch_name)
     else:
         logger_spy.assert_not_called()
+
+
+def test_hide_sentry_environment_happy_path(mocker: pytest_mock.MockerFixture, monkeypatch):
+    mock_put = mocker.patch("requests.put", return_value=mocker.MagicMock(status_code=200))
+    for env_variable in ("SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"):
+        monkeypatch.setenv(env_variable, f"test_{env_variable}")
+    hide_sentry_environment("TEST-123")
+    mock_put.assert_called_once_with(
+        "https://sentry.io/api/0/projects/test_SENTRY_ORGANIZATION_SLUG/test_SENTRY_PROJECT_SLUG/environments/test-123/",
+        headers={"Authorization": "Bearer test_SENTRY_AUTH_TOKEN"},
+        json={"isHidden": True},
+        timeout=5,
+    )
+
+
+def test_hide_sentry_environment_errors_if_put_fails(mocker: pytest_mock.MockerFixture, monkeypatch, caplog):
+    mock_put = mocker.patch("requests.put", return_value=mocker.MagicMock(status_code=404))
+    for env_variable in ("SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"):
+        monkeypatch.setenv(env_variable, f"test_{env_variable}")
+    caplog.set_level(logging.WARNING)
+    hide_sentry_environment("TEST-123")
+    mock_put.assert_called_once()
+    assert "Failed to hide Sentry environment test-123" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "missing_env_variable", ["SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"]
+)
+def test_hide_sentry_environment_noop_without_env_variable(
+    missing_env_variable: str, mocker: pytest_mock.MockerFixture, monkeypatch
+):
+    mock_put = mocker.patch("requests.put")
+    for env_variable in ("SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"):
+        monkeypatch.setenv(env_variable, "test")
+    monkeypatch.delenv(missing_env_variable)
+    hide_sentry_environment("test-123")
+    assert not mock_put.called
 
 
 def test_upsert_cloudflare_cnames(mocker, settings):

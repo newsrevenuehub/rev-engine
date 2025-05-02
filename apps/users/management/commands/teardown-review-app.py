@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from apps.common.hookdeck import tear_down as tear_down_hookdeck
-from apps.common.utils import delete_cloudflare_cnames, extract_ticket_id_from_branch_name
+from apps.common.utils import delete_cloudflare_cnames, extract_ticket_id_from_branch_name, hide_sentry_environment
 
 
 class Command(BaseCommand):  # pragma: no cover low ROI for test of command line tool with all cloudfare mocked out.
@@ -19,3 +19,4 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
 
         delete_cloudflare_cnames(ticket_id)
         tear_down_hookdeck(ticket_id)
+        hide_sentry_environment(ticket_id)

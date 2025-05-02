@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 
 from django.conf import settings
@@ -6,6 +7,7 @@ from django.db.models import Model
 from django.utils.text import slugify
 
 import CloudFlare
+import requests
 import reversion
 import stripe
 
@@ -15,6 +17,35 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 CREATED = "created"
 UPDATED = "updated"
 LEFT_UNCHANGED = "left unchanged"
+
+
+def hide_sentry_environment(ticket_id: str):
+    """Hides a Sentry environment for a ticket.
+
+    Requires SENTRY_ORGANIZARTION_SLUG, SENTRY_PROJECT_SLUG, and SENTRY_AUTH_TOKEN
+    environment variables, but if they're not present, doesn't raise an
+    exception.
+    """
+    org_slug = os.getenv("SENTRY_ORGANIZATION_SLUG")
+    project_slug = os.getenv("SENTRY_PROJECT_SLUG")
+    auth_token = os.getenv("SENTRY_AUTH_TOKEN")
+    if not org_slug or not project_slug or not auth_token:
+        logger.warning(
+            "SENTRY_ORGANIZATION_SLUG, SENTRY_PROJECT_SLUG, or SENTRY_API_KEY unset; skipping Sentry environment cleanup"
+        )
+        return
+    env_name = ticket_id.lower()
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    hide_request = requests.put(
+        f"https://sentry.io/api/0/projects/{org_slug}/{project_slug}/environments/{env_name}/",
+        headers=headers,
+        json={"isHidden": True},
+        timeout=5,
+    )
+    if hide_request.status_code != 200:
+        logger.error("Failed to hide Sentry environment %s: %s", env_name, hide_request)
+    else:
+        logger.info("Successfully hid Sentry environment %s", env_name)
 
 
 def delete_stripe_webhook(webhook_url, api_key):

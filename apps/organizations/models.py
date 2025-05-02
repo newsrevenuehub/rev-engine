@@ -295,8 +295,7 @@ class Organization(IndexedTimeStampedModel):
         self.stripe_subscription_id = None
         self.plan_name = FreePlan.name
         for rp in self.revenueprogram_set.all():
-            # TODO @bw: Disable active campaign integration on downgrade
-            # DEV-5505
+            rp.disable_activecampaign_integration()
             rp.disable_mailchimp_integration()
         with reversion.create_revision():
             self.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
@@ -884,6 +883,24 @@ class RevenueProgram(IndexedTimeStampedModel):
                     self.name,
                 )
                 raise
+
+    def disable_activecampaign_integration(self):
+        """Disable ActiveCampaign integration for this revenue program.
+
+        This clears the relevant fields, which causes the RP's activecampaign_integration_connected property to become False.
+        """
+        logger.info("Disabling ActiveCampaign integration for RP ID %s", self.id)
+        logger.info(
+            "Attempting to delete secret %s for RP ID %s",
+            self.activecampaign_access_token_secret_name,
+            self.id,
+        )
+        del self.activecampaign_access_token
+        logger.info("Setting activecampaign_server_url to None for RP %s", self.id)
+        with reversion.create_revision():
+            self.activecampaign_server_url = None
+            self.save(update_fields={"activecampaign_server_url", "modified"})
+            reversion.set_comment("disable_activecampaign_integration updated this RP")
 
     def disable_mailchimp_integration(self):
         """Disable mailchimp integration for this revenue program.

@@ -246,6 +246,9 @@ class TestOrganization:
         mock_disable_mailchimp_integration = mocker.patch(
             "apps.organizations.models.RevenueProgram.disable_mailchimp_integration"
         )
+        mock_disable_activecampaign_integration = mocker.patch(
+            "apps.organizations.models.RevenueProgram.disable_activecampaign_integration"
+        )
         organization_on_core_plan_with_mailchimp_set_up.downgrade_to_free_plan()
         organization_on_core_plan_with_mailchimp_set_up.refresh_from_db()
         assert organization_on_core_plan_with_mailchimp_set_up.plan_name == Plans.FREE.name
@@ -258,6 +261,7 @@ class TestOrganization:
             "`handle_customer_subscription_deleted_event` downgraded this org"
         )
         assert mock_disable_mailchimp_integration.call_count == rp_count
+        assert mock_disable_activecampaign_integration.call_count == rp_count
 
     def test_downgrade_to_free_plan_when_already_downgraded(self, mocker):
         org = OrganizationFactory(plan_name=Plans.FREE.name, stripe_subscription_id=None)
@@ -924,6 +928,21 @@ class TestRevenueProgram:
         )
         mock_reversion_set_comment.assert_called_once_with("disable_mailchimp_integration updated this RP")
         mock_delete_secret.assert_called_once()
+
+    def test_disable_active_campaign_integration(
+        self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture
+    ):
+        revenue_program.activecampaign_server_url = "something"
+        revenue_program.save()
+        mock_delete_sec = mocker.patch("apps.common.secret_manager.GoogleCloudSecretProvider.__delete__")
+        save_spy = mocker.spy(RevenueProgram, "save")
+        mock_reversion_set_comment = mocker.patch("reversion.set_comment")
+        revenue_program.disable_activecampaign_integration()
+        revenue_program.refresh_from_db()
+        assert revenue_program.activecampaign_server_url is None
+        save_spy.assert_called_once_with(revenue_program, update_fields={"activecampaign_server_url", "modified"})
+        mock_reversion_set_comment.assert_called_once_with("disable_activecampaign_integration updated this RP")
+        mock_delete_sec.assert_called_once()
 
     def test_contributor_portal_url(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
         mocker.patch("apps.api.views.construct_rp_domain", return_value="mock-rp-domain")

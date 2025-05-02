@@ -4,8 +4,7 @@ import styled from 'styled-components';
 
 export const Root = styled.div<{ $disabled: boolean; $isStatic: boolean }>`
   align-items: center;
-  background-color: ${(props) =>
-    props.$disabled ? props.theme.basePalette.greyscale.grey4 : props.theme.basePalette.greyscale.white};
+  background-color: ${(props) => (props.$disabled ? '#f9f9f9' : props.theme.basePalette.greyscale.white)};
   border: 1px solid ${({ theme }) => theme.basePalette.primary.purple};
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   cursor: ${(props) => (props.$disabled ? 'not-allowed' : props.$isStatic ? 'pointer' : 'grab')};
@@ -23,11 +22,11 @@ export const Root = styled.div<{ $disabled: boolean; $isStatic: boolean }>`
 `;
 
 export const Description = styled.p<{ $disabled: boolean }>`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   /* Cheat the gap tighter. */
   margin-top: -8px;
   padding-bottom: 18px;
-  ${(props) => props.$disabled && `color: ${props.theme.basePalette.greyscale.grey2}`}
+  ${(props) => props.$disabled && `color: ${props.theme.basePalette.greyscale['30']}`}
 `;
 
 export const DragIndicator = styled(DragIndicatorOutlined)`
@@ -49,7 +48,7 @@ export const Header = styled.h5<{ $disabled: boolean }>`
   margin: 0;
   padding: 16px 16px 16px 0;
 
-  ${(props) => props.$disabled && `color: ${props.theme.basePalette.greyscale.grey2}`}
+  ${(props) => props.$disabled && `color: ${props.theme.basePalette.greyscale['30']}`}
 `;
 
 export const Controls = styled.div`
@@ -58,7 +57,7 @@ export const Controls = styled.div`
 
 export const ControlIconButton = styled(IconButton)<{ $delete?: boolean; $rounding: 'left' | 'right' | 'both' }>`
   && {
-    border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+    border: 1px solid ${({ theme }) => theme.basePalette.greyscale['30']};
     height: 38px;
     width: 38px;
 
@@ -84,7 +83,7 @@ export const ControlIconButton = styled(IconButton)<{ $delete?: boolean; $roundi
     }
 
     &:hover {
-      background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+      background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
     }
 
     ${(props) =>

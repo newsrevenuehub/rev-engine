@@ -9,7 +9,7 @@ export const EndInputAdornment = styled(MuiInputAdornment)`
   }
 
   span {
-    color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+    color: ${({ theme }) => theme.basePalette.greyscale['70']};
     font-weight: 600;
   }
 `;
@@ -31,7 +31,7 @@ export const StartInputAdornment = styled(MuiInputAdornment)`
   }
 
   span {
-    color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+    color: ${({ theme }) => theme.basePalette.greyscale['70']};
     font-weight: 600;
   }
 `;

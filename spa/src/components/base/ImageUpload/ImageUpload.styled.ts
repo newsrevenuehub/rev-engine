@@ -15,7 +15,7 @@ export const Label = styled.label`
 export const Root = styled.div`
   position: relative;
   height: 76px;
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
 `;
 
@@ -58,7 +58,7 @@ export const Preview = styled.button`
 
 export const FileName = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
 `;
 
 export const IconButton = styled(MuiIconButton)`
@@ -72,7 +72,7 @@ export const IconButton = styled(MuiIconButton)`
     width: 50px;
 
     svg {
-      fill: ${(props) => props.theme.basePalette.greyscale.grey1};
+      fill: ${(props) => props.theme.basePalette.greyscale['70']};
       width: 24px;
       height: 24px;
     }

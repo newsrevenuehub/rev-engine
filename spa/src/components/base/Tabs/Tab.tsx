@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 export const Tab = styled(MuiTab)`
   && {
-    color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+    color: ${({ theme }) => theme.basePalette.greyscale['70']};
     font:
       14px Roboto,
       sans-serif;

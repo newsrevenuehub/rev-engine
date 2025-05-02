@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 
 from django.conf import settings
@@ -6,6 +7,7 @@ from django.db.models import Model
 from django.utils.text import slugify
 
 import CloudFlare
+import requests
 import reversion
 import stripe
 
@@ -15,6 +17,45 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 CREATED = "created"
 UPDATED = "updated"
 LEFT_UNCHANGED = "left unchanged"
+
+
+def hide_sentry_environment(ticket_id: str):
+    """Hides a Sentry environment for a ticket.
+
+    Requires SENTRY_ORGANIZARTION_SLUG, SENTRY_PROJECT_SLUG, and SENTRY_AUTH_TOKEN
+    environment variables, but if they're not present, doesn't raise an
+    exception.
+    """
+    org_slug = os.getenv("SENTRY_ORGANIZATION_SLUG")
+    project_slug = os.getenv("SENTRY_PROJECT_SLUG")
+    auth_token = os.getenv("SENTRY_AUTH_TOKEN")
+    if not org_slug or not project_slug or not auth_token:
+        logger.warning(
+            "SENTRY_ORGANIZATION_SLUG, SENTRY_PROJECT_SLUG, or SENTRY_API_KEY unset; skipping Sentry environment cleanup"
+        )
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    # See https://docs.sentry.io/api/environments/list-a-projects-environments/
+    env_list_request = requests.get(
+        f"https://sentry.io/api/0/projects/{org_slug}/{project_slug}/environments/", headers=headers, timeout=5
+    )
+    if env_list_request.status_code != 200:
+        logger.error("Failed to fetch Sentry environments: %s", env_list_request.json()["detail"])
+        return
+    for env in env_list_request.json():
+        if env["name"] == ticket_id.lower():
+            logger.info("Hiding Sentry environment ID %s", env["id"])
+            hide_request = requests.put(
+                f"https://sentry.io/api/0/projects/{org_slug}/{project_slug}/environments/{env['id']}",
+                data={"isHidden": True},
+                headers=headers,
+                timeout=5,
+            )
+            if hide_request.status_code != 200:
+                logger.error("Failed to update Sentry environment ID %s: %s", env["id"], hide_request.json()["detail"])
+            else:
+                logger.info("Successfully hid Sentry environment ID %s", env["id"])
+            return
+    logger.warning("Couldn't find a Sentry environment named '%s'", ticket_id.lower())
 
 
 def delete_stripe_webhook(webhook_url, api_key):

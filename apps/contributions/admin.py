@@ -305,6 +305,11 @@ class QuarantineQueue(admin.ModelAdmin):
         "interval",
     ]
 
+    ordering = (
+        "contributor.email_future",
+        "created",
+    )
+
     class Media:
         css = {"all": ("admin/css/quarantine-admin.css",)}
 

@@ -925,6 +925,10 @@ class TestRevenueProgram:
         mock_reversion_set_comment.assert_called_once_with("disable_mailchimp_integration updated this RP")
         mock_delete_secret.assert_called_once()
 
+    def test_contributor_portal_url(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
+        mocker.patch("apps.api.views.construct_rp_domain", return_value="mock-rp-domain")
+        assert revenue_program.contributor_portal_url == "https://mock-rp-domain/portal/"
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
@@ -1074,9 +1078,7 @@ class TestRevenueProgramMailchimpSegments:
         patched_client.return_value.create_segment.return_value = mocker.MagicMock(id="test-new-id")
         setattr(mc_connected_rp, segment_name.as_rp_id_field(), None)
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_name)
-        patched_client.return_value.create_segment.assert_called_with(
-            segment_name, segment_name.get_segment_creation_config()
-        )
+        patched_client.return_value.create_segment.assert_called_with(segment_name, segment_name.get_segment_options())
 
     def test_ensure_mailchimp_contributor_segment_handles_error(
         self, segment_name: MailchimpSegmentName, mc_connected_rp: RevenueProgram, mocker: pytest_mock.MockerFixture

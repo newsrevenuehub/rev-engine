@@ -110,7 +110,7 @@ class OrganizationAdmin(RevEngineBaseAdmin):
         ),
         (
             "Email Templates",
-            {"fields": ("send_receipt_email_via_nre",)},
+            {"fields": ("send_receipt_email_via_nre", "disable_reminder_emails")},
         ),
         (
             "Integrations",
@@ -174,6 +174,15 @@ class BenefitAdmin(RevEngineBaseAdmin):
     list_filter = ["revenue_program"]
 
     fieldsets = ((None, {"fields": ("name", "description", "revenue_program")}),)
+
+    def get_form(self, request, obj, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+
+        # Alphabetize the revenue program list
+        rp_field = form.base_fields.get("revenue_program")
+        rp_field.queryset = rp_field.queryset.order_by("name")
+
+        return form
 
 
 @admin.register(BenefitLevel)

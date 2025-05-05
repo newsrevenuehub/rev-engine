@@ -209,6 +209,13 @@ class Organization(IndexedTimeStampedModel):
             " are always sent via NRE regardless of this setting"
         ),
     )
+    disable_reminder_emails = models.BooleanField(
+        default=False,
+        help_text=(
+            "If True, annual contribution reminder emails will not be sent through RevEngine. "
+            "This does not impact other transactional emails."
+        ),
+    )
     stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
 
     objects = OrganizationManager.from_queryset(OrganizationQuerySet)()
@@ -517,6 +524,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     @property
+    def contributor_portal_url(self):
+        from apps.api.views import construct_rp_domain  # vs. circular import
+
+        return f"https://{construct_rp_domain(self.slug)}/{settings.CONTRIBUTOR_PORTAL_URL}"
+
+    @property
     def activecampaign_integration_connected(self):
         """Determine ActiveCampaign connection state for the revenue program."""
         return all([self.activecampaign_access_token, self.activecampaign_server_url])
@@ -672,7 +685,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             logger.info("Segment already exists for RP %s", self.id)
         else:
             try:
-                segment = self.mailchimp_client.create_segment(segment_name, segment_name.get_segment_creation_config())
+                segment = self.mailchimp_client.create_segment(segment_name, segment_name.get_segment_options())
             except MailchimpIntegrationError:
                 logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_name, self.id)
             else:

@@ -113,6 +113,7 @@ GS_CREDENTIALS = __ensure_gs_credentials(
 # Application definition
 INSTALLED_APPS = [
     "apps.common",
+    "apps.activity_log",
     "apps.api",
     "apps.users",
     "apps.organizations",
@@ -399,6 +400,8 @@ CSP_SCRIPT_SRC = (
     "https://cdnjs.cloudflare.com",
     "https://dash.parsely.com",
     "https://cdn.parsely.com",
+    "https://browser.sentry-cdn.com",
+    "https://js.sentry-cdn.com",
     "https://use.typekit.net",
 )
 CSP_STYLE_SRC = (
@@ -434,7 +437,7 @@ CSP_CONNECT_SRC = (
     "'self'",
     "https://www.google-analytics.com",
     "https://maps.googleapis.com",
-    "https://*.ingest.sentry.io",
+    "https://*.sentry.io",
     "https://risk.clearbit.com",
     "https://static.cloudflareinsights.com",
     "https://p1.parsely.com",
@@ -552,8 +555,9 @@ METADATA_MAX_SWAG_CHOICES_LENGTH = 255
 FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = 3
 
 ## Contributor page / auth Settings.
+CONTRIBUTOR_PORTAL_URL = "portal/"
 # Magic Link URL
-CONTRIBUTOR_VERIFY_URL = "portal/verification/"
+CONTRIBUTOR_VERIFY_URL = f"{CONTRIBUTOR_PORTAL_URL}verification/"
 # In format num/[second, minute, hour, day]
 # https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")

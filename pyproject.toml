@@ -79,7 +79,7 @@ drf-yasg = "*" # Swagger generator
 factory_boy = "*"
 ipython = "*"
 pre-commit = "*"
-pytest = "^7"  # temporarily pinned due to pytest-asyncio not support pytest 8 https://github.com/pytest-dev/pytest-asyncio/issues/737
+pytest = "*"
 pytest-celery = "^0"
 pytest-cov = "*"
 pytest-django = "*"
@@ -173,7 +173,7 @@ ignore = [
   "TRY003", # Avoid long messages outside exception class (no)
   "COM812", # Conflicts with black feature (black always splits lines with trailing comma)
   # @njh we should enforce these rules
-  "ANN", "RUF012", "RUF013", # TODO @njh: type annotations
+  "ANN", "RUF012", "RUF013", # TODO @njh: type annotations (https://news-revenue-hub.atlassian.net/browse/DEV-6034)
   "DJ001", # TODO @njh: charfields should not be nullable
   "PLW1508", # TODO @njh: DEV-4779 invalid type for env var
   "S308",  # TODO @njh: DEV-4778 use of mark_safe may expose cross-site scripting vulnerabilities

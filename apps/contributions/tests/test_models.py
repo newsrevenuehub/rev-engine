@@ -3,7 +3,6 @@ import json
 import re
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -12,11 +11,14 @@ from django.db import IntegrityError
 from django.template.loader import render_to_string
 
 import pytest
+import pytest_mock
 import reversion
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
+from pytest_mock import MockerFixture
 
+from apps.activity_log.models import ActivityLog
 from apps.common.utils import CREATED, LEFT_UNCHANGED
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
@@ -147,16 +149,6 @@ class TestContributorModel:
     def test_is_superuser(self, contributor_user):
         assert contributor_user.is_superuser is False
 
-    def test_create_magic_link(self, one_time_contribution):
-        assert isinstance(one_time_contribution, Contribution)
-        parsed = urlparse(Contributor.create_magic_link(one_time_contribution))
-        assert parsed.scheme == "https"
-        expected_domain = urlparse(settings.SITE_URL).netloc
-        assert parsed.netloc == f"{one_time_contribution.revenue_program.slug}.{expected_domain}"
-        params = parse_qs(parsed.query)
-        assert params["token"][0]
-        assert params["email"][0] == one_time_contribution.contributor.email
-
     def test_get_impact(self, contribution, contributor_user):
         total_paid = 0
         total_refunded = 0
@@ -211,23 +203,6 @@ class TestContributorModel:
             "total_paid": total_paid,
             "total_refunded": total_refunded,
         }
-
-    @pytest.mark.parametrize(
-        "value",
-        [
-            None,
-            "",
-            "Something",
-            1,
-            True,
-            False,
-            {},
-            lambda x: None,
-        ],
-    )
-    def test_create_magic_link_with_invalid_values(self, value):
-        with pytest.raises(ValueError, match="Invalid value provided for `contribution`"):
-            Contributor.create_magic_link(value)
 
     @pytest.mark.parametrize("pre_exists", [True, False])
     def test_get_or_create_contributor_by_email_case_insensitivity(self, pre_exists):
@@ -561,7 +536,6 @@ class TestContributionModel:
         org.save()
         send_receipt_email_spy = mocker.spy(send_receipt_email, "delay")
 
-        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_receipt_email(show_billing_history=show_billing_history)
         expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
 
@@ -600,6 +574,7 @@ class TestContributionModel:
     @pytest.mark.parametrize(
         "status",
         [
+            ContributionStatus.FAILED,
             ContributionStatus.PROCESSING,
             ContributionStatus.FLAGGED,
         ],
@@ -627,6 +602,8 @@ class TestContributionModel:
             (ContributionStatus.PROCESSING, "annual_subscription", False),
             (ContributionStatus.FLAGGED, "monthly_subscription", False),
             (ContributionStatus.FLAGGED, "annual_subscription", False),
+            (ContributionStatus.FAILED, "monthly_subscription", False),
+            (ContributionStatus.FAILED, "annual_subscription", False),
         ],
     )
     def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch, mocker):
@@ -692,7 +669,6 @@ class TestContributionModel:
         "status",
         [
             ContributionStatus.CANCELED,
-            ContributionStatus.FAILED,
             ContributionStatus.PAID,
             ContributionStatus.REFUNDED,
             ContributionStatus.REJECTED,
@@ -1023,22 +999,38 @@ class TestContributionModel:
         getattr(annual_contribution, email_method_name)()
 
         assert len(mail.outbox) == 1
-        soup_text = (soup := BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")).get_text(
-            separator=" ", strip=True
-        )
+        soup_text = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser").get_text(separator=" ", strip=True)
         text_email = mail.outbox[0].body
         for x in email_expectations:
             assert x in text_email
             assert x in soup_text
 
-        magic_link = Contributor.create_magic_link(annual_contribution)
-        assert soup.find("a", href=magic_link, text=re.compile("Manage contributions here"))
-        assert magic_link in text_email
-
     @pytest.mark.usefixtures("_mock_contributor_refresh_token", "_synchronous_email_send_task", "_mock_stripe_customer")
     def test_send_recurring_contribution_email_reminder_timestamp_override(self, annual_contribution):
         annual_contribution.send_recurring_contribution_email_reminder("test-timestamp")
         assert "Scheduled: test-timestamp" in mail.outbox[0].body
+
+    @pytest.mark.usefixtures("_mock_contributor_refresh_token", "_synchronous_email_send_task", "_mock_stripe_customer")
+    @pytest.mark.parametrize("disable_reminder_emails", [True, False])
+    def test_send_recurring_contribution_email_reminder_org_disabled(
+        self, disable_reminder_emails: bool, mocker: MockerFixture
+    ):
+        mock_send_recurring_contribution_change_email = mocker.patch(
+            "apps.contributions.models.Contribution.send_recurring_contribution_change_email"
+        )
+        page = DonationPageFactory(
+            published=True,
+            revenue_program=RevenueProgramFactory(
+                onboarded=True,
+                organization=OrganizationFactory(free_plan=True, disable_reminder_emails=disable_reminder_emails),
+            ),
+        )
+        c = ContributionFactory(donation_page=page, annual_subscription=True)
+        c.send_recurring_contribution_email_reminder()
+        if disable_reminder_emails:
+            assert not mock_send_recurring_contribution_change_email.called
+        else:
+            assert mock_send_recurring_contribution_change_email.called
 
     @pytest.mark.usefixtures(
         "_synchronous_email_send_task",
@@ -1980,7 +1972,6 @@ class TestContributionModel:
         mocker.patch("stripe.Subscription.modify")
         monthly_contribution.stripe_subscription = MockSubscription("active")
         new_amount = monthly_contribution.amount * 2
-        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="http://magic-link.com")
         send_email_spy = mocker.patch("apps.emails.tasks.send_templated_email.delay")
         monthly_contribution.update_subscription_amount(amount=new_amount, donor_selected_amount=new_amount / 100)
 
@@ -2106,6 +2097,28 @@ class TestContributionModel:
         assert contribution.status == ContributionStatus.CANCELED
         assert contribution.payment_set.count() == 0
         assert Contribution.objects.exclude_paymentless_canceled().count() == 0
+
+    def test_create_contributor_canceled_contribution_activity_log_happy_path(self, contribution: Contribution) -> None:
+        activity_log = contribution.create_contributor_canceled_contribution_activity_log()
+        assert activity_log.actor_content_object == contribution.contributor
+        assert activity_log.action == ActivityLog.CANCEL
+        assert activity_log.activity_object_content_object == contribution
+        assert activity_log.pk
+        assert activity_log.created
+        assert activity_log.modified
+
+    def test_create_contributor_canceled_contribution_activity_log_no_contributor(
+        self, contribution: Contribution
+    ) -> None:
+        contribution.contributor = None
+        contribution.save()
+        assert contribution.create_contributor_canceled_contribution_activity_log() is None
+
+    def test_create_contributor_canceled_contribution_activity_log_unexpected_error(
+        self, contribution: Contribution, mocker: pytest_mock.MockerFixture
+    ) -> None:
+        mocker.patch("apps.activity_log.models.ActivityLog.objects.create", side_effect=Exception("unexpected error"))
+        assert contribution.create_contributor_canceled_contribution_activity_log() is None
 
 
 @pytest.mark.django_db

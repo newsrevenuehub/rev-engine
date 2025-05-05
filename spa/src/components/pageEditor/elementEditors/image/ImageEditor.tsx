@@ -1,3 +1,4 @@
+import { OffscreenText } from 'components/base';
 import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import { ElementDetailEditorProps } from 'components/pageEditor/editInterface/ElementEditor.types';
 import { ImageElement } from 'hooks/useContributionPage';
@@ -54,7 +55,11 @@ function ImageEditor({ elementContent, onChangeElementContent, setUpdateDisabled
   return (
     <>
       <ImageUpload
-        label={<label htmlFor="image-editor-image-upload">Select an image to display</label>}
+        label={
+          <OffscreenText>
+            <label htmlFor="image-editor-image-upload">Select an image to display</label>
+          </OffscreenText>
+        }
         value={value}
         id="image-editor-image-upload"
         onChange={handleChange}

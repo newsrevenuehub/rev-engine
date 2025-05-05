@@ -4,7 +4,8 @@ import styled from 'styled-components';
 
 export const Root = styled.div<{ $disabled: boolean; $isStatic: boolean }>`
   align-items: center;
-  background-color: ${(props) => (props.$disabled ? '#f9f9f9' : props.theme.basePalette.greyscale.white)};
+  background-color: ${(props) =>
+    props.$disabled ? props.theme.basePalette.greyscale['10'] : props.theme.basePalette.greyscale.white};
   border: 1px solid ${({ theme }) => theme.basePalette.primary.purple};
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   cursor: ${(props) => (props.$disabled ? 'not-allowed' : props.$isStatic ? 'pointer' : 'grab')};

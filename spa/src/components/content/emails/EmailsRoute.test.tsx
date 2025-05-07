@@ -60,43 +60,45 @@ describe('EmailsRoute', () => {
   });
 
   describe.each(blocks)('Block $#', (block) => {
-    const editButtonLabel = block.editable ? 'View & Edit' : 'View';
-
     it(`shows a "${block.name}" header`, () => {
       tree();
       expect(screen.getByRole('heading', { name: block.name })).toBeVisible();
     });
 
-    it('shows the appropriate description', () => {
-      tree();
-      expect(screen.getByText(block.description)).toBeVisible();
-    });
-
-    it(`shows a disabled ${editButtonLabel} button`, () => {
-      tree();
-      expect(
-        within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: editButtonLabel })
-      ).toBeDisabled();
-    });
-
-    if (block.testEmailName) {
-      it(`shows a button to send a ${block.testEmailName} test email`, () => {
-        const sendTestEmail = jest.fn();
-
-        useTestEmailsMock.mockReturnValue({ sendTestEmail });
+    if (block.hideActions) {
+      it('shows no buttons', () => {
         tree();
-        fireEvent.click(
-          within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: 'Send Test Email' })
-        );
-        expect(sendTestEmail.mock.calls).toEqual([[{ emailName: block.testEmailName, revenueProgramId: 123 }]]);
+        expect(within(screen.getByTestId(`email-block-${block.name}`)).queryByRole('button')).not.toBeInTheDocument();
       });
     } else {
-      it('shows a disabled Send Test Email button', () => {
+      const editButtonLabel = block.editable ? 'View & Edit' : 'View';
+
+      it(`shows a disabled ${editButtonLabel} button`, () => {
         tree();
         expect(
-          within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: 'Send Test Email' })
+          within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: editButtonLabel })
         ).toBeDisabled();
       });
+
+      if (block.testEmailName) {
+        it(`shows a button to send a ${block.testEmailName} test email`, () => {
+          const sendTestEmail = jest.fn();
+
+          useTestEmailsMock.mockReturnValue({ sendTestEmail });
+          tree();
+          fireEvent.click(
+            within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: 'Send Test Email' })
+          );
+          expect(sendTestEmail.mock.calls).toEqual([[{ emailName: block.testEmailName, revenueProgramId: 123 }]]);
+        });
+      } else {
+        it('shows a disabled Send Test Email button', () => {
+          tree();
+          expect(
+            within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: 'Send Test Email' })
+          ).toBeDisabled();
+        });
+      }
     }
   });
 

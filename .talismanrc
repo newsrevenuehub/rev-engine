@@ -15,3 +15,6 @@ fileignoreconfig:
 # exposing a secret in the test file.
 - filename: apps/contributions/tests/test_tasks.py
   checksum: e59bc640891f89cc6f1f4c5eebfd3e91a76ea19a107e5c681c259d9a8fc10e59
+# Complaints about SHAS
+- filename: spa/package-lock.json
+  checksum: af669d3cfb22592a95e98053d6ffce684c9bcbe6b8b9dcd4370f7fb481533668

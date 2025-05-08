@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { Helmet } from 'react-helmet';
 import { useParams } from 'react-router-dom';
-import { GRECAPTCHA_SITE_KEY, HUB_GA_V3_ID } from 'appSettings';
+import { HUB_RECAPTCHA_API_KEY, HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { usePublishedPage } from 'hooks/usePublishedPage';
 import useWebFonts from 'hooks/useWebFonts';
@@ -173,7 +173,7 @@ describe('PublishedDonationPage', () => {
 
       const recaptchaProvider = screen.getByTestId('mock-google-recaptcha-provider');
 
-      expect(recaptchaProvider.dataset.key).toBe(GRECAPTCHA_SITE_KEY);
+      expect(recaptchaProvider.dataset.key).toBe(HUB_RECAPTCHA_API_KEY);
       expect(recaptchaProvider.dataset.scriptProps).toBe(JSON.stringify({ nonce: 'mock-nonce' }));
     });
 

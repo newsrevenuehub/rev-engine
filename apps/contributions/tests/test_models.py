@@ -1710,11 +1710,25 @@ class TestContributionModel:
         with pytest.raises(ValueError, match="Cannot update payment method for contribution without a subscription ID"):
             monthly_contribution.update_payment_method_for_subscription("something")
 
-    def test_update_payment_method_for_subscription_when_error_on_pm_attach(self, monthly_contribution, mocker):
+    def test_update_payment_method_for_subscription_when_generic_stripe_error_on_pm_attach(
+        self, monthly_contribution, mocker
+    ):
         mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("something"))
         monthly_contribution.provider_customer_id = (cus_id := "cus_123")
         monthly_contribution.provider_subscription_id = "sub_123"
         with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription(pm_id := "pm_123")
+        mock_pm_attach.assert_called_once_with(
+            pm_id, customer=cus_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_payment_method_for_subscription_when_card_error_on_pm_attach(self, monthly_contribution, mocker):
+        mock_pm_attach = mocker.patch(
+            "stripe.PaymentMethod.attach", side_effect=stripe.error.CardError("card error", "cvc", "some-code")
+        )
+        monthly_contribution.provider_customer_id = (cus_id := "cus_123")
+        monthly_contribution.provider_subscription_id = "sub_123"
+        with pytest.raises(stripe.error.CardError):
             monthly_contribution.update_payment_method_for_subscription(pm_id := "pm_123")
         mock_pm_attach.assert_called_once_with(
             pm_id, customer=cus_id, stripe_account=monthly_contribution.stripe_account_id
@@ -1732,24 +1746,6 @@ class TestContributionModel:
         mock_sub_modify.assert_called_once_with(
             sub_id, default_payment_method=pm_id, stripe_account=monthly_contribution.stripe_account_id
         )
-
-    def test_update_payment_method_for_subscription_card_declined_error_does_not_send_sentry_alert(
-        self, monthly_contribution, mocker
-    ):
-        logger_spy = mocker.spy(logger, "exception")
-        mocker.patch("stripe.PaymentMethod.attach")
-        mock_sub_modify = mocker.patch(
-            "stripe.Subscription.modify", side_effect=stripe.error.StripeError(code="card_declined")
-        )
-        monthly_contribution.provider_customer_id = "cus_123"
-        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
-        with pytest.raises(stripe.error.StripeError):
-            monthly_contribution.update_payment_method_for_subscription(pm_id := "pm_123")
-        mock_sub_modify.assert_called_once_with(
-            sub_id, default_payment_method=pm_id, stripe_account=monthly_contribution.stripe_account_id
-        )
-        # Ensure that the exception is raised but not logged/sent to Sentry
-        assert logger_spy.call_count == 0
 
     def test_update_subscription_amount_when_one_time(self, one_time_contribution: Contribution):
         one_time_contribution.stripe_subscription = MockSubscription("active")

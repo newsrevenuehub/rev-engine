@@ -44,7 +44,7 @@ repos:
         language_version: python3.10
   # Ruff code linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.7
+    rev: v0.11.8
     hooks:
       - id: ruff
         args: [ --fix ]
@@ -59,7 +59,7 @@ repos:
         ]
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman
-    rev: v1.36.0
+    rev: v1.37.0
     hooks:
       - id: talisman-commit
   # JS formater.

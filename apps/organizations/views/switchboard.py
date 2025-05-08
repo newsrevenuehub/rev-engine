@@ -27,6 +27,12 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = serializers.OrganizationSwitchboardSerializer(organization)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"], url_path=r"name/(?P<name>[-\w\s]+)")
+    def get_by_name(self, _, name=None):
+        organizations = Organization.objects.filter(name__icontains=name)
+        serializer = serializers.OrganizationSwitchboardSerializer(organizations, many=True)
+        return Response(serializer.data)
+
 
 @api_view(["GET"])
 @permission_classes([IsSwitchboardAccount])

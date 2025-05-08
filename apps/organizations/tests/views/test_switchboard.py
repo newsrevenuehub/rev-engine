@@ -103,6 +103,38 @@ class TestOrganizationViewSetSwitchboard:
         response = api_client.get(url)
         assert response.status_code == 404
 
+    @pytest.mark.parametrize(
+        ("search_term", "expected_count"),
+        [
+            ("existing", 2),
+            ("nonexistent-organization", 0),
+        ],
+    )
+    def test_get_organizations_by_name(
+        self, api_client: APIClient, switchboard_user: User, organization: Organization, search_term, expected_count
+    ):
+        org2 = Organization.objects.create(
+            name=f"{organization.name} Inc",
+            slug=f"{organization.slug}-inc",
+        )
+
+        organization.name = "existing organization"
+        organization.save()
+        org2.name = "another existing org"
+        org2.save()
+
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse("switchboard-organization-get-by-name", kwargs={"name": search_term})
+        response = api_client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data) == expected_count
+
+        if expected_count > 0:
+            org_ids = [org["id"] for org in response.data]
+            assert organization.id in org_ids
+            assert org2.id in org_ids
+
     def test_unauthorized_access_denied(self, api_client: APIClient, organization: Organization):
         url = reverse("switchboard-organization-detail", kwargs={"pk": organization.id})
         response = api_client.get(url)

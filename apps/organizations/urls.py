@@ -29,7 +29,7 @@ urlpatterns = [
     ),
     path(
         "switchboard/revenue-programs/<int:pk>/activecampaign/",
-        switchboard_views.switchboard_,
+        switchboard_views.get_revenue_program_activecampaign_detail,
         name="switchboard-revenue-program-activecampaign-detail",
     ),
 ]

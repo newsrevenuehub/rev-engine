@@ -11,7 +11,7 @@ from apps.organizations.models import RevenueProgram
 
 @api_view(["GET"])
 @permission_classes([IsSwitchboardAccount])
-def switchboard_(request: HttpRequest, pk: int) -> Response:
+def get_revenue_program_activecampaign_detail(request: HttpRequest, pk: int) -> Response:
     """Return the ActiveCampaign data for the revenue program with the given ID."""
     revenue_program = get_object_or_404(RevenueProgram, pk=pk)
     return Response(serializers.ActiveCampaignRevenueProgramForSwitchboardSerializer(revenue_program).data)

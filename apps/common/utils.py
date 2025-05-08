@@ -20,7 +20,7 @@ LEFT_UNCHANGED = "left unchanged"
 
 
 def hide_sentry_environment(ticket_id: str):
-    """Hides a Sentry environment for a ticket.
+    """Hide a Sentry environment for a ticket.
 
     Requires SENTRY_ORGANIZARTION_SLUG, SENTRY_PROJECT_SLUG, and SENTRY_AUTH_TOKEN
     environment variables, but if they're not present, doesn't raise an
@@ -29,7 +29,7 @@ def hide_sentry_environment(ticket_id: str):
     org_slug = os.getenv("SENTRY_ORGANIZATION_SLUG")
     project_slug = os.getenv("SENTRY_PROJECT_SLUG")
     auth_token = os.getenv("SENTRY_AUTH_TOKEN")
-    if not org_slug or not project_slug or not auth_token:
+    if not all((org_slug, project_slug, auth_token)):
         logger.warning(
             "SENTRY_ORGANIZATION_SLUG, SENTRY_PROJECT_SLUG, or SENTRY_API_KEY unset; skipping Sentry environment cleanup"
         )
@@ -43,7 +43,12 @@ def hide_sentry_environment(ticket_id: str):
         timeout=5,
     )
     if hide_request.status_code != 200:
-        logger.error("Failed to hide Sentry environment %s: %s", env_name, hide_request)
+        logger.error(
+            "Failed to hide Sentry environment %s: status code %s, response %s",
+            env_name,
+            hide_request.status_code,
+            hide_request.text,
+        )
     else:
         logger.info("Successfully hid Sentry environment %s", env_name)
 

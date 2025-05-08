@@ -10,6 +10,11 @@ router = routers.DefaultRouter()
 router.register(r"organizations", revengine_views.OrganizationViewSet, basename="organization")
 router.register(r"revenue-programs", revengine_views.RevenueProgramViewSet, basename="revenue-program")
 
+switchboard_router = routers.DefaultRouter()
+switchboard_router.register(
+    r"organizations", switchboard_views.OrganizationViewSet, basename="switchboard-organization"
+)
+
 urlpatterns = [
     path("", include(router.urls)),
     path(
@@ -32,4 +37,5 @@ urlpatterns = [
         switchboard_views.get_revenue_program_activecampaign_detail,
         name="switchboard-revenue-program-activecampaign-detail",
     ),
+    path("switchboard/", include(switchboard_router.urls)),
 ]

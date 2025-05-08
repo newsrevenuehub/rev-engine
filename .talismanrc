@@ -18,3 +18,6 @@ fileignoreconfig:
 # Complaints about SHAS
 - filename: spa/package-lock.json
   checksum: af669d3cfb22592a95e98053d6ffce684c9bcbe6b8b9dcd4370f7fb481533668
+# Complaints about a potential secret pattern, false positive in DEV-5663
+- filename: apps/organizations/tests/test_serializers.py
+  checksum: 2400d0360e505ee87116cf9c54dcf48299ea35ae9a4107eeef99a1581b95064c

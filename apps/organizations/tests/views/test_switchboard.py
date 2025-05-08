@@ -2,6 +2,10 @@ from django.urls import reverse
 
 import pytest
 from rest_framework import status
+from rest_framework.test import APIClient
+
+from apps.organizations.models import Organization
+from apps.users.models import User
 
 
 @pytest.mark.django_db
@@ -38,3 +42,68 @@ def test_switchboard_rp_activecampaign_detail(request, user_fixture, permitted, 
             "activecampaign_integration_connected": is_connected,
             "activecampaign_server_url": revenue_program.activecampaign_server_url,
         }
+
+
+@pytest.mark.django_db
+class TestOrganizationViewSetSwitchboard:
+    def test_get_organization_by_id(self, api_client: APIClient, switchboard_user: User, organization: Organization):
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse("switchboard-organization-detail", kwargs={"pk": organization.id})
+        response = api_client.get(url)
+        assert response.status_code == 200
+        assert response.data["id"] == organization.id
+        assert response.data["name"] == organization.name
+        assert response.data["plan_name"] == organization.plan_name
+        assert response.data["slug"] == organization.slug
+        assert response.data["stripe_subscription_id"] == organization.stripe_subscription_id
+
+    def test_get_organization_by_slug(self, api_client: APIClient, switchboard_user: User, organization: Organization):
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse("switchboard-organization-get-by-slug", kwargs={"slug": organization.slug})
+        response = api_client.get(url)
+        assert response.status_code == 200
+        assert response.data["id"] == organization.id
+        assert response.data["name"] == organization.name
+        assert response.data["slug"] == organization.slug
+
+    def test_get_organization_by_subscription_id(
+        self, api_client: APIClient, switchboard_user: User, organization: Organization
+    ):
+        organization.stripe_subscription_id = "sub_123456789"
+        organization.save()
+
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse(
+            "switchboard-organization-get-by-subscription-id",
+            kwargs={"subscription_id": organization.stripe_subscription_id},
+        )
+        response = api_client.get(url)
+        assert response.status_code == 200
+        assert response.data["id"] == organization.id
+        assert response.data["name"] == organization.name
+        assert response.data["stripe_subscription_id"] == organization.stripe_subscription_id
+
+    def test_get_non_existent_organization_returns_404(self, api_client: APIClient, switchboard_user: User):
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse("switchboard-organization-detail", kwargs={"pk": 999999})
+        response = api_client.get(url)
+        assert response.status_code == 404
+
+    def test_get_organization_by_non_existent_slug_returns_404(self, api_client: APIClient, switchboard_user: User):
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse("switchboard-organization-get-by-slug", kwargs={"slug": "non-existent-slug"})
+        response = api_client.get(url)
+        assert response.status_code == 404
+
+    def test_get_organization_by_non_existent_subscription_id_returns_404(
+        self, api_client: APIClient, switchboard_user: User
+    ):
+        api_client.force_authenticate(user=switchboard_user)
+        url = reverse("switchboard-organization-get-by-subscription-id", kwargs={"subscription_id": "sub_nonexistent"})
+        response = api_client.get(url)
+        assert response.status_code == 404
+
+    def test_unauthorized_access_denied(self, api_client: APIClient, organization: Organization):
+        url = reverse("switchboard-organization-detail", kwargs={"pk": organization.id})
+        response = api_client.get(url)
+        assert response.status_code == 401

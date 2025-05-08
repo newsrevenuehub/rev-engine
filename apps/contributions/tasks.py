@@ -185,6 +185,7 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # TODO @BW: Add some sort of analytics / telemetry to track how often this happens
         # DEV-4151
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
+    ping_healthchecks("process_stripe_webhook_task", settings.HEALTHCHECK_URL_PROCESS_STRIPE_WEBHOOK_TASK)
 
 
 @shared_task(bind=True)

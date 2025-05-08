@@ -145,6 +145,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
             {
                 "fields": (
                     "status",
+                    "quarantine_status",
                     "payment_provider_used",
                     "provider_payment_link",
                     "provider_subscription_link",
@@ -168,6 +169,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "donation_page",
         "interval",
         "status",
+        "quarantine_status",
         "bad_actor_score",
         "first_payment_date_display",
         "modified",
@@ -177,6 +179,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "interval",
         "donation_page__name",
         "status",
+        "quarantine_status",
         "bad_actor_score",
         "modified",
         FirstPaymentDateFilter,
@@ -213,6 +216,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "provider_payment_method_id",
         "provider_setup_intent_id",
         "provider_subscription_link",
+        "quarantine_status",
         "reason",
         "_revenue_program",
         "revenue_program",

@@ -6,8 +6,8 @@ fileignoreconfig:
 # This is Talisman complaining about the activity log model migration referencing an ID field.
 - filename: apps/activity_log/migrations/0001_DEV-5825_initial.py
   checksum: 6a3573c9864555ca5b931094e4fc6f0b2139b400843655147aebc4a9bc574200
-- filename: poetry.lock  # complaint about SHAs. DEV-6043
-  checksum: c651d5103a1fd90e872a40c6e27dcd5952b6d36ca39d2294f9f962c8bc2955b9
+- filename: poetry.lock  # complaint about SHAs. DEV-6088
+  checksum: 8a792e56989a9ba13e4ece5d9778f166230f35ab663b7eb955adc343b3a2b7bd
 # Complaint about SHAS in DEV-5825
 - filename: poetry.lock
   checksum: c651d5103a1fd90e872a40c6e27dcd5952b6d36ca39d2294f9f962c8bc2955b9
@@ -15,3 +15,6 @@ fileignoreconfig:
 # exposing a secret in the test file.
 - filename: apps/contributions/tests/test_tasks.py
   checksum: e59bc640891f89cc6f1f4c5eebfd3e91a76ea19a107e5c681c259d9a8fc10e59
+# Complaints about SHAS
+- filename: spa/package-lock.json
+  checksum: af669d3cfb22592a95e98053d6ffce684c9bcbe6b8b9dcd4370f7fb481533668

@@ -17,31 +17,46 @@ describe('EmailBlock', () => {
     expect(screen.getByText('test-description')).toBeVisible();
   });
 
-  it('shows a button to send a test email if onSendTest is set', () => {
-    const onSendTest = jest.fn();
+  describe('When the hideActions prop is true', () => {
+    it('shows no buttons', () => {
+      tree({ hideActions: true });
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
 
-    tree({ onSendTest });
-    expect(onSendTest).not.toBeCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Send Test Email' }));
-    expect(onSendTest).toBeCalledTimes(1);
+    it('is accessible', async () => {
+      const { container } = tree({ hideActions: true });
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 
-  it('disables the send test email button if onSendTest is undefined', () => {
-    tree();
-    expect(screen.getByRole('button', { name: 'Send Test Email' })).toBeDisabled();
-  });
+  describe('When the hideActions prop is falsy', () => {
+    it('shows a button to send a test email if onSendTest is set', () => {
+      const onSendTest = jest.fn();
 
-  it.each([
-    ['View', false],
-    ['View & Edit', true]
-  ])('shows a disabled %s button if the editable prop is %s', (name, editable) => {
-    tree({ editable });
-    expect(screen.getByRole('button', { name })).toBeDisabled();
-  });
+      tree({ onSendTest });
+      expect(onSendTest).not.toBeCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Send Test Email' }));
+      expect(onSendTest).toBeCalledTimes(1);
+    });
 
-  it('is accessible', async () => {
-    const { container } = tree();
+    it('disables the send test email button if onSendTest is undefined', () => {
+      tree();
+      expect(screen.getByRole('button', { name: 'Send Test Email' })).toBeDisabled();
+    });
 
-    expect(await axe(container)).toHaveNoViolations();
+    it.each([
+      ['View', false],
+      ['View & Edit', true]
+    ])('shows a disabled %s button if the editable prop is %s', (name, editable) => {
+      tree({ editable });
+      expect(screen.getByRole('button', { name })).toBeDisabled();
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree();
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });

@@ -288,6 +288,12 @@ class Quarantine(Contribution):
 @admin.register(Quarantine)
 class QuarantineQueue(admin.ModelAdmin):
 
+    actions = [
+        "approve_quarantined_contribution_action",
+        "reject_for_duplicate",
+        "reject_for_fraud",
+        "reject_for_other",
+    ]
     list_display = [
         "contribution",
         "resolve_field",
@@ -306,7 +312,7 @@ class QuarantineQueue(admin.ModelAdmin):
     ]
 
     ordering = (
-        "contributor.email_future",
+        "contributor__email_future",
         "created",
     )
 
@@ -321,6 +327,42 @@ class QuarantineQueue(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+    @admin.action(description="Approve")
+    def approve_quarantined_contribution_action(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        for obj in queryset:
+            obj.process_flagged_payment(
+                reject=False,
+                new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN,
+            )
+        self.message_user(request, "Successfully approved quarantined contributions", messages.SUCCESS)
+
+    @admin.action(description="Reject - Duplicate")
+    def reject_for_duplicate(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        for obj in queryset:
+            obj.process_flagged_payment(
+                reject=True,
+                new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+            )
+        self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
+
+    @admin.action(description="Reject - Fraud")
+    def reject_for_fraud(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        for obj in queryset:
+            obj.process_flagged_payment(
+                reject=True,
+                new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+            )
+        self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
+
+    @admin.action(description="Reject - Other")
+    def reject_for_other(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        for obj in queryset:
+            obj.process_flagged_payment(
+                reject=True,
+                new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+            )
+        self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
 
     def get_urls(self) -> list[URLPattern]:
         urls = super().get_urls()
@@ -341,12 +383,12 @@ class QuarantineQueue(admin.ModelAdmin):
     def resolve_field(self, obj: Contribution):
         mapping = [
             {
-                "label": "Approve",
+                "label": "✅ appr",
                 "url": reverse("admin:approve_quarantined_contribution", args=[obj.id]),
                 "class": "approve",
             },
             {
-                "label": "Reject - Duplicate",
+                "label": "❌ dupe",
                 "url": reverse(
                     "admin:reject_quarantined_contribution",
                     args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_DUPE.value],
@@ -354,7 +396,7 @@ class QuarantineQueue(admin.ModelAdmin):
                 "class": "reject",
             },
             {
-                "label": "Reject - Fraud",
+                "label": "❌ fraud",
                 "url": reverse(
                     "admin:reject_quarantined_contribution",
                     args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_FRAUD.value],
@@ -362,7 +404,7 @@ class QuarantineQueue(admin.ModelAdmin):
                 "class": "reject",
             },
             {
-                "label": "Reject - Other",
+                "label": "❌ other",
                 "url": reverse(
                     "admin:reject_quarantined_contribution",
                     args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_OTHER.value],
@@ -370,8 +412,10 @@ class QuarantineQueue(admin.ModelAdmin):
                 "class": "reject",
             },
         ]
+
+        actions = [f"""<a class="button {x['class']}" href="{x['url']}">{x['label']}</a>""" for x in mapping]
         return format_html(
-            "".join([f"""<a class="button {x['class']}" href="{x['url']}">{x['label']}</a>""" for x in mapping])
+            f"""<div class="quarantine-item-button-group">{"".join(actions)}</div>""",
         )
 
     resolve_field.short_description = "Resolve"

@@ -229,7 +229,6 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "name",
             "slug",
             "mailchimp_server_prefix",
-            "mailchimp_integration_connected",
             "mailchimp_integration_ready",
             "stripe_account_id",
             "mailchimp_store",
@@ -244,7 +243,6 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "name",
             "slug",
             "mailchimp_server_prefix",
-            "mailchimp_integration_connected",
             "mailchimp_integration_ready",
             "stripe_account_id",
         ):

@@ -10,7 +10,7 @@ from django.utils import timezone
 import reversion
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, PermissionDenied
-from stripe.error import StripeError
+from stripe.error import CardError, StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
@@ -841,9 +841,13 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     def update(self, instance: Contribution, validated_data) -> Contribution:
         if validated_data:
             if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
-                instance.update_payment_method_for_subscription(
-                    provider_payment_method_id=provider_payment_method_id,
-                )
+                try:
+                    instance.update_payment_method_for_subscription(
+                        provider_payment_method_id=provider_payment_method_id,
+                    )
+                except CardError as exc:
+                    logger.info("Encountered a card error for contribution with ID %s: %s", instance.pk, exc)
+                    raise serializers.ValidationError(exc.user_message) from exc
             # Need to pop donor_selected_amount so it doesn't get sent when saving changes.
             donor_selected_amount = validated_data.pop("donor_selected_amount", None)
 

@@ -81,23 +81,66 @@ class TestAppleDomainVerifyCommandTest:
 
 
 @pytest.mark.django_db
-class TestDisableMailchimpIntegrationCommand:
-    def test_happy_path(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
-        mock_disable = mocker.patch("apps.organizations.models.RevenueProgram.disable_mailchimp_integration")
-        call_command("disable_mailchimp_integration", slug=revenue_program.slug)
-        mock_disable.assert_called_once()
+class TestDisableIntegrationCommand:
 
-    def test_nonexistent_rp(self, mocker: pytest_mock.MockerFixture):
-        mock_disable = mocker.patch("apps.organizations.models.RevenueProgram.disable_mailchimp_integration")
-        with pytest.raises(RevenueProgram.DoesNotExist):
-            call_command("disable_mailchimp_integration", slug="nonexistent")
-        mock_disable.assert_not_called()
+    @pytest.fixture
+    def revenue_program(self, revenue_program: RevenueProgram) -> RevenueProgram:
+        revenue_program.activecampaign_server_url = "test.api.com"
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.save()
+        return revenue_program
 
-    def test_requires_slug(self, mocker: pytest_mock.MockerFixture):
-        mock_disable = mocker.patch("apps.organizations.models.RevenueProgram.disable_mailchimp_integration")
-        with pytest.raises(CommandError):
-            call_command("disable_mailchimp_integration")
-        mock_disable.assert_not_called()
+    @pytest.fixture
+    def mock_gcs_provider(self, mocker: pytest_mock.MockerFixture):
+        mocker.patch("apps.organizations.models.GoogleCloudSecretProvider")
+
+    @pytest.mark.usefixtures("mock_gcs_provider")
+    @pytest.mark.parametrize(
+        "integrations",
+        [
+            ("mailchimp",),
+            ("activecampaign",),
+            (
+                "mailchimp",
+                "activecampaign",
+            ),
+        ],
+    )
+    def test_happy_path(
+        self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture, integrations: tuple[str]
+    ):
+        disable_mc_spy = mocker.spy(revenue_program, "disable_mailchimp_integration")
+        disable_ac_spy = mocker.spy(revenue_program, "disable_activecampaign_integration")
+        mocker.patch(
+            "apps.organizations.management.commands.disable_integration.RevenueProgram.objects.get",
+            return_value=revenue_program,
+        )
+        call_command("disable_integration", slug=revenue_program.slug, integrations=integrations)
+        revenue_program.refresh_from_db()
+        if "mailchimp" in integrations:
+            assert revenue_program.mailchimp_server_prefix is None
+            assert disable_mc_spy.call_count == 1
+        else:
+            assert revenue_program.mailchimp_server_prefix == "us1"
+            assert disable_mc_spy.call_count == 0
+        if "activecampaign" in integrations:
+            assert revenue_program.activecampaign_server_url is None
+            assert disable_ac_spy.call_count == 1
+        else:
+            assert revenue_program.activecampaign_server_url == "test.api.com"
+            assert disable_ac_spy.call_count == 0
+
+    def test_nonexistent_rp(self):
+        with pytest.raises(RevenueProgram.DoesNotExist, match="RevenueProgram matching query does not exist."):
+            call_command("disable_integration", slug="nonexistent", integrations=["mailchimp", "activecampaign"])
+
+    def test_requires_slug(self):
+        with pytest.raises(CommandError, match="Error: the following arguments are required: --slug"):
+            call_command("disable_integration", integrations=["mailchimp", "activecampaign"])
+
+    def test_requires_integrations(self, revenue_program: RevenueProgram):
+        with pytest.raises(CommandError, match="Error: the following arguments are required: --integrations"):
+            call_command("disable_integration", slug=revenue_program.slug)
 
 
 def test_migrate_mailchimp_integration_management_command(mocker):

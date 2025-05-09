@@ -398,15 +398,6 @@ class SendTestEmailSerializer(serializers.Serializer):
     revenue_program = serializers.IntegerField()
 
 
-class SwitchboardUserSerializer(serializers.ModelSerializer):
-    """Serializer for user data provided to switchboard service."""
-
-    class Meta:
-        model = Organization
-        fields = ["id", "name", "plan_name", "slug", "stripe_subscription_id"]
-        read_only_fields = fields
-
-
 class OrganizationSwitchboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization

@@ -18,3 +18,6 @@ fileignoreconfig:
 # Complaints about SHAS
 - filename: spa/package-lock.json
   checksum: af669d3cfb22592a95e98053d6ffce684c9bcbe6b8b9dcd4370f7fb481533668
+# Complaints about fake IDs in subscription JSON
+- filename: apps/contributions/tests/fixtures/subscription-expand-invoice-pi.json
+  checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f

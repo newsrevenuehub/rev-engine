@@ -9,12 +9,13 @@ from django.utils import timezone
 
 import pytest
 import pytest_mock
+import stripe
 from bs4 import BeautifulSoup as bs4
 from rest_framework.test import APIClient
 from reversion_compare.admin import CompareVersionAdmin
 
 import apps
-from apps.contributions.admin import ContributionAdmin
+from apps.contributions.admin import ContributionAdmin, Quarantine, QuarantineQueue
 from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import (
@@ -64,9 +65,12 @@ class TestQuarantineAdmin:
         mocker.patch("stripe.Customer.retrieve", return_value=mocker.Mock(address=mocker.Mock(postal_code="12345")))
 
     @pytest.fixture
-    def _stubbed_stripe(self, mocker: pytest_mock.MockerFixture):
+    def _stubbed_stripe(self, mocker: pytest_mock.MockerFixture, stripe_subscription_expanded: stripe.Subscription):
         mocker.patch("stripe.SetupIntent.retrieve", return_value=mocker.Mock(metadata={}))
-        mocker.patch("stripe.Subscription.create", return_value=mocker.Mock(id="sub_id_123"))
+        mocker.patch(
+            "stripe.Subscription.create",
+            return_value=stripe_subscription_expanded,
+        )
         mocker.patch("stripe.PaymentMethod.retrieve")
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=mocker.Mock(metadata={}, id="pi_id2"))
 
@@ -168,6 +172,71 @@ class TestQuarantineAdmin:
         assert response.status_code == 200
         for x in [flagged_one_time_contribution, flagged_recurring_contribution]:
             assert x.contribution_metadata["reason_for_giving"] in response.content.decode()
+
+    @pytest.mark.usefixtures("_stubbed_stripe")
+    def test_single_item_approve(
+        self,
+        client: Client,
+        admin_user: User,
+        flagged_one_time_contribution: Contribution,
+    ):
+        client.force_login(admin_user)
+        response = client.get(
+            reverse("admin:approve_quarantined_contribution", args=[flagged_one_time_contribution.id]),
+            follow=True,
+        )
+        assert response.status_code == 200
+        flagged_one_time_contribution.refresh_from_db()
+        assert flagged_one_time_contribution.quarantine_status == QuarantineStatus.APPROVED_BY_HUMAN
+
+    @pytest.mark.usefixtures("_stubbed_stripe")
+    @pytest.mark.parametrize(
+        "quarantine_status",
+        [
+            QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+            QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+            QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+        ],
+    )
+    def test_single_item_reject(
+        self,
+        client: Client,
+        admin_user: User,
+        flagged_one_time_contribution: Contribution,
+        quarantine_status: QuarantineStatus,
+    ):
+        client.force_login(admin_user)
+        response = client.get(
+            reverse(
+                "admin:reject_quarantined_contribution", args=[flagged_one_time_contribution.id, quarantine_status]
+            ),
+            follow=True,
+        )
+        assert response.status_code == 200
+        flagged_one_time_contribution.refresh_from_db()
+        assert flagged_one_time_contribution.quarantine_status == quarantine_status
+
+    def test_name_when_no_bad_actor_response(self, one_time_contribution: Contribution):
+        one_time_contribution.bad_actor_response = None
+        one_time_contribution.save()
+        admin = QuarantineQueue(Quarantine, admin_site=None)
+        assert admin.name(one_time_contribution) is None
+
+    def test_email_when_no_contributor(self, one_time_contribution: Contribution):
+        one_time_contribution.contributor = None
+        one_time_contribution.save()
+        admin = QuarantineQueue(Quarantine, admin_site=None)
+        assert admin.email(one_time_contribution) is None
+
+    def test_address_when_no_bad_actor_response(self, one_time_contribution: Contribution):
+        one_time_contribution.bad_actor_response = None
+        one_time_contribution.save()
+        admin = QuarantineQueue(Quarantine, admin_site=None)
+        assert admin.address(one_time_contribution) is None
+
+    def test_complete_flagged_contribution_when_contribution_not_found(self, mocker: pytest_mock.MockerFixture):
+        admin = QuarantineQueue(Quarantine, admin_site=None)
+        admin.complete_flagged_contribution(mocker.Mock(), 9999, None)
 
 
 @pytest.mark.django_db

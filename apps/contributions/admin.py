@@ -496,24 +496,12 @@ class QuarantineQueue(admin.ModelAdmin):
         except Contribution.DoesNotExist:
             self.message_user(request, "Contribution not found", messages.ERROR)
             return HttpResponseRedirect(reverse("admin:contributions_quarantine_changelist"))
-
-        if con.quarantine_status == QuarantineStatus.FLAGGED_BY_BAD_ACTOR:
-
-            try:
-                con.process_flagged_payment(
-                    reject=quarantine_status != QuarantineStatus.APPROVED_BY_HUMAN.value,
-                    new_quarantine_status=quarantine_status,
-                )
-            except PaymentProviderError as exc:
-                self.message_user(
-                    request,
-                    f"Could not complete action for contributions: {exc}",
-                    messages.ERROR,
-                )
-            else:
-                self.message_user(
-                    request,
-                    f"Successfully resolved flagged contribution {con.id} with status {quarantine_status}",
-                    messages.SUCCESS,
-                )
+        if quarantine_status == QuarantineStatus.APPROVED_BY_HUMAN.value:
+            self.approve_quarantined_contribution_action(request, [con])
+        else:
+            self._reject(
+                request,
+                [con],
+                quarantine_status=QuarantineStatus(quarantine_status),
+            )
         return HttpResponseRedirect(reverse("admin:contributions_quarantine_changelist"))

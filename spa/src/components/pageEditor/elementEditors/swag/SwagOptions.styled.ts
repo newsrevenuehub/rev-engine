@@ -12,7 +12,7 @@ export const Controls = styled.div`
 `;
 
 export const Legend = styled.legend`
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   border-top-left-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   border-top-right-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   color: ${({ theme }) => theme.basePalette.greyscale.black};
@@ -27,7 +27,7 @@ export const Legend = styled.legend`
 `;
 
 export const Option = styled.div`
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   display: flex;
   justify-content: space-between;
@@ -50,7 +50,7 @@ export const NewOptionButton = styled(ButtonBase)`
 `;
 
 export const NewOptionContainer = styled.form`
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   padding: 8px 10px;
 `;
@@ -74,7 +74,7 @@ export const RemoveOptionButton = styled(ButtonBase)`
 
 export const Root = styled.fieldset`
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
-  border-color: ${({ theme }) => theme.basePalette.greyscale.grey2};
+  border-color: ${({ theme }) => theme.basePalette.greyscale['30']};
   border-style: solid;
   padding: 6px;
 `;

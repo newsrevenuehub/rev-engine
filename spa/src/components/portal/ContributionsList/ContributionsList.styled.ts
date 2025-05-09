@@ -29,7 +29,7 @@ export const StyledPortalPage = styled(PortalPage)`
 `;
 
 export const Root = styled.div`
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey4};
+  background-color: #f9f9f9;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     background-color: ${({ theme }) => theme.basePalette.greyscale.white};

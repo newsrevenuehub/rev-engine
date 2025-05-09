@@ -3,7 +3,7 @@ import { TextField as BaseTextField } from 'components/base';
 import styled from 'styled-components';
 
 export const Prompt = styled.span`
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   color: ${({ theme }) => theme.basePalette.greyscale.black};
   display: inline-flex;
   flex-wrap: wrap;

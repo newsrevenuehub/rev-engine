@@ -9,7 +9,7 @@ export const Root = styled.div`
   row-gap: 7px;
   padding: 12px;
   border-radius: 6px;
-  background: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background: ${({ theme }) => theme.basePalette.greyscale['10']};
   margin: 0 40px 14px 40px;
 
   @media (${({ theme }) => theme.breakpoints.tabletLandscapeDown}) {

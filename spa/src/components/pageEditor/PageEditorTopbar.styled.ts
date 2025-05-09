@@ -25,6 +25,6 @@ export const Root = styled.div`
 
 export const SvgLogo = styled.img`
   height: 29px;
-  border-right: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey4};
+  border-right: 1px solid ${({ theme }) => theme.basePalette.greyscale.white};
   padding-right: 16px;
 `;

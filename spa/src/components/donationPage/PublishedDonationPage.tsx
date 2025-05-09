@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
-import { GRECAPTCHA_SITE_KEY, HUB_GA_V3_ID } from 'appSettings';
+import { HUB_RECAPTCHA_API_KEY, HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { GlobalLoading } from 'components/common/GlobalLoading';
 import PageError from 'components/common/PageError/PageError';
@@ -74,7 +74,7 @@ function PublishedDonationPage() {
   return (
     <SegregatedStyles page={page}>
       <PageTitle title={t('common.joinRevenueProgram', { name: page.revenue_program.name })} hideRevEngine />
-      <GoogleReCaptchaProvider reCaptchaKey={GRECAPTCHA_SITE_KEY} scriptProps={{ nonce: (window as any).csp_nonce }}>
+      <GoogleReCaptchaProvider reCaptchaKey={HUB_RECAPTCHA_API_KEY} scriptProps={{ nonce: (window as any).csp_nonce }}>
         <ContributionPage18nProvider page={page}>
           <DonationPage live page={page} />
         </ContributionPage18nProvider>

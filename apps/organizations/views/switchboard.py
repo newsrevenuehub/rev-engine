@@ -14,6 +14,7 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsSwitchboardAccount]
     queryset = Organization.objects.all()
     serializer_class = serializers.OrganizationSwitchboardSerializer
+    http_method_names = ["get"]
 
     @action(detail=False, methods=["get"], url_path=r"slug/(?P<slug>[-\w]+)")
     def get_by_slug(self, _, slug=None):

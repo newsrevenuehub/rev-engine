@@ -7,6 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 import pytest
+from bs4 import BeautifulSoup as bs4
+from rest_framework.test import APIClient
 from reversion_compare.admin import CompareVersionAdmin
 
 import apps
@@ -17,6 +19,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.users.models import User
 
 
 @pytest.mark.django_db
@@ -224,6 +227,14 @@ class TestContributionAdmin:
             ).status_code
             == 200
         )
+
+    @pytest.mark.usefixtures("monthly_contribution")
+    def test_list_view_has_quarantine_status_field(self, client: APIClient, admin_user: User):
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:contributions_contribution_changelist"), follow=True)
+        assert response.status_code == 200
+        soup = bs4(response.content, "html.parser")
+        assert soup.find("th", {"class": "column-quarantine_status"}) is not None
 
     @pytest.fixture
     def admin(self):

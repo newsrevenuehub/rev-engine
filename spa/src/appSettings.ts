@@ -41,7 +41,10 @@ export const USE_CLOUDFLARE_IMAGE_TRANSFORMATIONS = resolveConstantFromEnv(
 );
 
 // Google reCAPTCHA
-export const GRECAPTCHA_SITE_KEY = '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri';
+export const HUB_RECAPTCHA_API_KEY = resolveConstantFromEnv(
+  'HUB_RECAPTCHA_API_KEY',
+  '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri'
+);
 
 // Google Maps
 export const HUB_GOOGLE_MAPS_API_KEY = resolveConstantFromEnv('HUB_GOOGLE_MAPS_API_KEY');

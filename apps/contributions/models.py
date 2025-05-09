@@ -23,7 +23,7 @@ import stripe
 from addict import Dict as AttrDict
 from pydantic import ValidationError
 from reversion.models import Version
-from stripe.error import StripeError
+from stripe.error import CardError, StripeError
 
 from apps.activity_log.models import ActivityLog
 from apps.common.models import IndexedTimeStampedModel
@@ -1254,32 +1254,39 @@ class Contribution(IndexedTimeStampedModel):
         if not (sub_id := self.provider_subscription_id):
             raise ValueError("Cannot update payment method for contribution without a subscription ID")
 
+        logger.info(
+            "attaching payment method %s to customer %s",
+            provider_payment_method_id,
+            cust_id,
+        )
         try:
-            logger.info(
-                "attaching payment method %s to customer %s",
-                provider_payment_method_id,
-                cust_id,
-            )
             stripe.PaymentMethod.attach(
                 provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
             )
-
+        except CardError as exc:
             logger.info(
-                "updating Stripe subscription %s's default payment method to %s",
-                sub_id,
-                provider_payment_method_id,
+                "Card error while trying to attach payment method to contribution %s: %s", self.id, exc.user_message
             )
+            raise
+        except StripeError:
+            logger.exception("Unexpected Stripe error while trying to attach payment method")
+            raise
+
+        logger.info(
+            "updating Stripe subscription %s's default payment method to %s",
+            sub_id,
+            provider_payment_method_id,
+        )
+
+        try:
             stripe.Subscription.modify(
                 sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
             )
-        except StripeError as stripe_error:
-            # Don't log/send Sentry alert if stripe error is "declined card"
-            if stripe_error.code != "card_declined":
-                logger.exception(
-                    "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
-                    self.id,
-                )
-
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                self.id,
+            )
             raise
 
     def update_subscription_amount(self, amount: int, donor_selected_amount: float) -> None:

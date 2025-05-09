@@ -513,7 +513,6 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def process_flagged_payment(self, new_quarantine_status: QuarantineStatus, reject: bool = False):
-        # confirm value is in QuarantineStatus values
         logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
         payment_manager = self.get_payment_manager_instance()
         payment_manager.complete_payment(reject=reject, new_quarantine_status=new_quarantine_status)

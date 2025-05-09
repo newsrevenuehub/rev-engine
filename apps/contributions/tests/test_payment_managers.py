@@ -1,4 +1,7 @@
+from collections.abc import Callable
+
 import pytest
+import pytest_mock
 import stripe
 from addict import Dict as AttrDict
 
@@ -17,7 +20,12 @@ class TestStripePaymentManager:
         ],
     )
     @pytest.mark.parametrize("reject", [True, False])
-    def test_complete_payment(self, make_contribution_fn, reject, mocker):
+    def test_complete_payment(
+        self,
+        make_contribution_fn: Callable,
+        reject: bool,
+        mocker: pytest_mock.MockerFixture,
+    ):
         spm = StripePaymentManager(contribution=(contribution := make_contribution_fn()))
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
         mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict({"id": "si_id_123"}))

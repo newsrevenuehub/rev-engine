@@ -331,38 +331,59 @@ class QuarantineQueue(admin.ModelAdmin):
     @admin.action(description="Approve")
     def approve_quarantined_contribution_action(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
         for obj in queryset:
-            obj.process_flagged_payment(
-                reject=False,
-                new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN,
-            )
-        self.message_user(request, "Successfully approved quarantined contributions", messages.SUCCESS)
+            try:
+                obj.process_flagged_payment(
+                    reject=False,
+                    new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN,
+                )
+            except PaymentProviderError as exc:
+                self.message_user(
+                    request,
+                    f"Could not complete action for contributions: {exc}",
+                    messages.ERROR,
+                )
+            else:
+                self.message_user(request, "Successfully approved quarantined contributions", messages.SUCCESS)
+
+    def _reject(self, request: HttpRequest, queryset: QuerySet[Contribution], quarantine_status: QuarantineStatus):
+        for obj in queryset:
+            try:
+                obj.process_flagged_payment(
+                    reject=True,
+                    new_quarantine_status=quarantine_status,
+                )
+            except PaymentProviderError as exc:
+                self.message_user(
+                    request,
+                    f"Could not complete action for contributions: {exc}",
+                    messages.ERROR,
+                )
+            else:
+                self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
 
     @admin.action(description="Reject - Duplicate")
     def reject_for_duplicate(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
-        for obj in queryset:
-            obj.process_flagged_payment(
-                reject=True,
-                new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
-            )
-        self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
+        self._reject(
+            request,
+            queryset,
+            quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+        )
 
     @admin.action(description="Reject - Fraud")
     def reject_for_fraud(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
-        for obj in queryset:
-            obj.process_flagged_payment(
-                reject=True,
-                new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
-            )
-        self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
+        self._reject(
+            request,
+            queryset,
+            quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+        )
 
     @admin.action(description="Reject - Other")
     def reject_for_other(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
-        for obj in queryset:
-            obj.process_flagged_payment(
-                reject=True,
-                new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
-            )
-        self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
+        self._reject(
+            request,
+            queryset,
+            quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+        )
 
     def get_urls(self) -> list[URLPattern]:
         urls = super().get_urls()

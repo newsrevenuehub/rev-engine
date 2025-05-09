@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 
 from django.conf import settings
@@ -19,21 +18,8 @@ UPDATED = "updated"
 LEFT_UNCHANGED = "left unchanged"
 
 
-def hide_sentry_environment(ticket_id: str):
-    """Hide a Sentry environment for a ticket.
-
-    Requires SENTRY_ORGANIZARTION_SLUG, SENTRY_PROJECT_SLUG, and SENTRY_AUTH_TOKEN
-    environment variables, but if they're not present, doesn't raise an
-    exception.
-    """
-    org_slug = os.getenv("SENTRY_ORGANIZATION_SLUG")
-    project_slug = os.getenv("SENTRY_PROJECT_SLUG")
-    auth_token = os.getenv("SENTRY_AUTH_TOKEN")
-    if not all((org_slug, project_slug, auth_token)):
-        logger.warning(
-            "SENTRY_ORGANIZATION_SLUG, SENTRY_PROJECT_SLUG, or SENTRY_API_KEY unset; skipping Sentry environment cleanup"
-        )
-        return
+def hide_sentry_environment(ticket_id: str, org_slug: str, project_slug: str, auth_token: str):
+    """Hide a Sentry environment for a ticket."""
     env_name = ticket_id.lower()
     headers = {"Authorization": f"Bearer {auth_token}"}
     hide_request = requests.put(

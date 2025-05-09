@@ -80,41 +80,35 @@ def test_extract_ticket_id_from_branch_name(branch_name: str, expected: str, moc
         logger_spy.assert_not_called()
 
 
-def test_hide_sentry_environment_happy_path(mocker: pytest_mock.MockerFixture, monkeypatch):
+def test_hide_sentry_environment_happy_path(mocker: pytest_mock.MockerFixture):
     mock_put = mocker.patch("requests.put", return_value=mocker.MagicMock(status_code=200))
-    for env_variable in ("SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"):
-        monkeypatch.setenv(env_variable, f"test_{env_variable}")
-    hide_sentry_environment("TEST-123")
+    test_ticket_name = "TEST-123"
+    hide_sentry_environment(
+        ticket_id=test_ticket_name,
+        org_slug="test_org_slug",
+        project_slug="test_project_slug",
+        auth_token="test_auth_token",
+    )
     mock_put.assert_called_once_with(
-        "https://sentry.io/api/0/projects/test_SENTRY_ORGANIZATION_SLUG/test_SENTRY_PROJECT_SLUG/environments/test-123/",
-        headers={"Authorization": "Bearer test_SENTRY_AUTH_TOKEN"},
+        f"https://sentry.io/api/0/projects/test_org_slug/test_project_slug/environments/{test_ticket_name.lower()}/",
+        headers={"Authorization": "Bearer test_auth_token"},
         json={"isHidden": True},
         timeout=5,
     )
 
 
-def test_hide_sentry_environment_errors_if_put_fails(mocker: pytest_mock.MockerFixture, monkeypatch, caplog):
+def test_hide_sentry_environment_errors_if_put_fails(mocker: pytest_mock.MockerFixture, caplog):
     mock_put = mocker.patch("requests.put", return_value=mocker.MagicMock(status_code=404))
-    for env_variable in ("SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"):
-        monkeypatch.setenv(env_variable, f"test_{env_variable}")
+    test_ticket_name = "TEST-123"
     caplog.set_level(logging.WARNING)
-    hide_sentry_environment("TEST-123")
+    hide_sentry_environment(
+        ticket_id=test_ticket_name,
+        org_slug="test_org_slug",
+        project_slug="test_project_slug",
+        auth_token="test_auth_token",
+    )
     mock_put.assert_called_once()
-    assert "Failed to hide Sentry environment test-123" in caplog.text
-
-
-@pytest.mark.parametrize(
-    "missing_env_variable", ["SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"]
-)
-def test_hide_sentry_environment_noop_without_env_variable(
-    missing_env_variable: str, mocker: pytest_mock.MockerFixture, monkeypatch
-):
-    mock_put = mocker.patch("requests.put")
-    for env_variable in ("SENTRY_ORGANIZATION_SLUG", "SENTRY_PROJECT_SLUG", "SENTRY_AUTH_TOKEN"):
-        monkeypatch.setenv(env_variable, "test")
-    monkeypatch.delenv(missing_env_variable)
-    hide_sentry_environment("test-123")
-    assert not mock_put.called
+    assert f"Failed to hide Sentry environment {test_ticket_name.lower()}" in caplog.text
 
 
 def test_upsert_cloudflare_cnames(mocker, settings):

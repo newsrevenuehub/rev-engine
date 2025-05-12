@@ -27,6 +27,11 @@ django-health-check = "^3.16.4"
 django-json-widget = "^2.0.1"
 django-migration-linter = "^4.1.0"
 django-model-utils = "^4.3.1"
+# TODO @BW: Spike: determine why django-redis 5 broke SSL connections
+# DEV-6153
+# this is pinned because django-redis installed v6 which broke
+# SSL connections to Redis in Heroku
+redis = "^5"
 django-redis = "^5"
 django-request-id = "^1.0.0"
 django-rest-passwordreset = "^1.2.1"

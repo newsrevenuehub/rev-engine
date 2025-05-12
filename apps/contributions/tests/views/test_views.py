@@ -1724,6 +1724,30 @@ class TestPortalContributorsViewSet:
         assert response.json() == {"detail": "Problem updating contribution"}
         mock_pm_attach.assert_called_once()
 
+    def test_contribution_detail_patch_when_card_error(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        mock_pm_attach = mocker.patch(
+            "stripe.PaymentMethod.attach",
+            side_effect=stripe.error.CardError((message := "ruh roh"), "some-param", "some-code"),
+        )
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contribution.id,
+                ),
+            ),
+            data={"provider_payment_method_id": "pm_888"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == [message]
+        mock_pm_attach.assert_called_once()
+
     def test_contribution_detail_delete_happy_path(
         self, api_client, portal_contributor_with_multiple_contributions, mocker
     ):

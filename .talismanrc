@@ -21,3 +21,6 @@ fileignoreconfig:
 # Complaint about on_delete set to protect
 - filename: apps/contributions/models.py
   checksum: e76c33fd6388ebab6a4fbc9147a0a531bff863c2012d9fad5831709e0e1c3f2c
+# Complaint about on_delete set to protect
+- filename: apps/contributions/migrations/0019_DEV-5953_alter_contribution_contributor.py
+  checksum: 0a9da3b685bda96632d845d178e6c2550bf6dcbfcd70760e1cfb4aa001b96214

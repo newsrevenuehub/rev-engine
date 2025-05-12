@@ -254,14 +254,13 @@ REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:637
 
 CACHE_HOST = REDIS_URL
 CONNECTION_POOL_KWARGS = {}
-# if CACHE_HOST.startswith("rediss"):
-#     import ssl
+if CACHE_HOST.startswith("rediss"):
+    import ssl
 
-#     # See: https://github.com/mirumee/saleor/issues/6926
-#     CONNECTION_POOL_KWARGS = {
-#         "ssl_check_hostname": False,
-#         "ssl_cert_reqs": ssl.CERT_NONE,
-#     }
+    # See: https://github.com/mirumee/saleor/issues/6926
+    CONNECTION_POOL_KWARGS = {
+        "ssl_cert_reqs": ssl.CERT_NONE,
+    }
 
 
 base_cache_config = {

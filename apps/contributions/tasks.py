@@ -67,7 +67,7 @@ def auto_accept_flagged_contributions():
     failed_captures = 0
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
-        status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+        quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         flagged_date__lte=now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA),
     )
     logger.info(

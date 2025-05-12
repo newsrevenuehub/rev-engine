@@ -1829,24 +1829,6 @@ class TestPortalContributorsViewSet:
 
     @pytest.mark.parametrize(
         ("method", "kwargs"),
-        [("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})],
-    )
-    def test_views_when_contributor_not_found(
-        self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
-    ):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        contribution_id = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).last().id + 10000
-        contributor_id = contributor.id
-        api_client.force_authenticate(contributor)
-        response = getattr(api_client, method)(
-            reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),
-            **kwargs,
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json() == {"detail": "Contribution not found"}
-
-    @pytest.mark.parametrize(
-        ("method", "kwargs"),
         [("get", {}), ("patch", {"data": {"provider_payment_method_id": "something"}}), ("delete", {})],
     )
     def test_views_when_contribution_not_found(

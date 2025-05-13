@@ -8,7 +8,7 @@ export const Button = styled(ButtonBase)`
     padding: 4px;
 
     &:hover {
-      background: ${({ theme }) => theme.basePalette.greyscale.grey3};
+      background: ${({ theme }) => theme.basePalette.greyscale['10']};
       box-shadow: none;
     }
 

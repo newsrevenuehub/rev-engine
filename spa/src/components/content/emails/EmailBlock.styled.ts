@@ -15,13 +15,13 @@ export const Description = styled.div`
 `;
 
 export const Name = styled.h2`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   font-weight: 400;
   grid-area: name;
 `;
 
 export const Root = styled.div`
-  border: ${({ theme }) => `1px solid ${theme.basePalette.greyscale.grey3}`};
+  border: ${({ theme }) => `1px solid ${theme.basePalette.greyscale['10']}`};
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
   display: grid;
   grid-template:

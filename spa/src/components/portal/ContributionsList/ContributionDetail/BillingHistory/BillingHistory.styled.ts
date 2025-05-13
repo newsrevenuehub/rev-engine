@@ -32,7 +32,7 @@ export const TableRow = styled(BaseTableRow)`
 `;
 
 export const EmptyBillingHistory = styled.p`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
   font-weight: 400;
   margin: 0;

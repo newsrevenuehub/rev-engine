@@ -2,7 +2,7 @@ import CoreUpgradeIcon from 'assets/icons/upgrade-core.svg?react';
 import styled from 'styled-components';
 
 export const Root = styled.div`
-  border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+  border: 1px solid ${({ theme }) => theme.basePalette.greyscale['30']};
   border-radius: 10px;
   display: grid;
   position: relative;

@@ -49,6 +49,8 @@ class SwitchboardContributionsViewSet(
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["provider_subscription_id", "provider_payment_id"]
 
+    # TODO @BW: Make calling _handle_receipt_email fault tolerant
+    # DEV-6162
     def _handle_receipt_email(self, contribution: Contribution) -> None:
         if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
             # send_thank_you_email() handles conditionality around whether

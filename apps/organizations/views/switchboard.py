@@ -1,6 +1,7 @@
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
+from knox.auth import TokenAuthentication
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from apps.organizations.models import Organization, RevenueProgram
 
 
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsSwitchboardAccount]
     queryset = Organization.objects.all()
     serializer_class = serializers.OrganizationSwitchboardSerializer

@@ -13,7 +13,7 @@ export const TableRow = styled(MuiTableRow)`
   }
 
   &&:nth-child(odd) {
-    background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+    background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   }
 `;
 

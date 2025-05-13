@@ -22,10 +22,15 @@ declare module 'styled-components' {
     };
     greyscale: {
       black: '#282828';
-      grey1: '#707070';
-      grey2: '#c4c4c4';
-      grey3: '#f1f1f1';
-      grey4: '#f9f9f9';
+      '90': '#3d3d3d';
+      '80': '#535353';
+      '70': '#707070';
+      '60': '#808080';
+      '50': '#989898';
+      '40': '#b1b1b1';
+      '30': '#c4c4c4';
+      '20': '#e4e4e4';
+      '10': '#f1f1f1';
       white: '#ffffff';
     };
     chartreuse: {

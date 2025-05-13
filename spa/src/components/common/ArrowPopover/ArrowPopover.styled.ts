@@ -29,7 +29,7 @@ export const Arrow = styled.div`
       left: 0;
       border-left: 15px solid transparent;
       border-right: 15px solid transparent;
-      border-bottom: 20px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
+      border-bottom: 20px solid ${({ theme }) => theme.basePalette.greyscale['10']};
     }
 
     &::after {
@@ -51,7 +51,7 @@ export const Arrow = styled.div`
       left: 0;
       border-left: 15px solid transparent;
       border-right: 15px solid transparent;
-      border-top: 20px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
+      border-top: 20px solid ${({ theme }) => theme.basePalette.greyscale['10']};
     }
 
     &::after {
@@ -78,14 +78,14 @@ export const CloseButton = styled(IconButton)`
     }
 
     svg {
-      fill: ${({ theme }) => theme.basePalette.greyscale.grey2};
+      fill: ${({ theme }) => theme.basePalette.greyscale['30']};
     }
   }
 `;
 
 export const Content = styled.div`
   background-color: ${({ theme }) => theme.basePalette.greyscale.white};
-  border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
+  border: 1px solid ${({ theme }) => theme.basePalette.greyscale['10']};
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
   box-shadow: 0px 11px 20px 0px rgba(40, 40, 40, 0.1);
   // Additional padding on the right for the close button.

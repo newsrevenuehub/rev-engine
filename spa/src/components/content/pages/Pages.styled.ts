@@ -15,7 +15,7 @@ export const CustomizeContent = styled.div`
 
 export const SectionWrapper = styled.div`
   border-radius: 10px;
-  border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
+  border: 1px solid ${({ theme }) => theme.basePalette.greyscale['10']};
   padding: 20px 25px;
   margin-right: -26px;
   margin-left: -26px;

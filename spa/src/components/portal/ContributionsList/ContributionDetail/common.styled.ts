@@ -38,7 +38,7 @@ export const SectionControlButton = styled(Button)<{ $cursorNotAllowed?: boolean
 
     .NreButtonLabel {
       ${({ $cursorNotAllowed }) => $cursorNotAllowed && 'cursor: not-allowed;'}
-      color: ${({ theme }) => theme.basePalette.greyscale.grey2};
+      color: ${({ theme }) => theme.basePalette.greyscale['30']};
     }
   }
 `;

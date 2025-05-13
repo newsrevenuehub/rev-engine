@@ -18,7 +18,7 @@ export interface ModalHeaderProps extends InferProps<typeof ModalHeaderPropTypes
 
 const CloseButton = styled(IconButton)`
   align-self: baseline;
-  color: ${({ theme }) => theme.basePalette.greyscale.grey2};
+  color: ${({ theme }) => theme.basePalette.greyscale['30']};
   height: 24px;
   width: 24px;
 
@@ -35,7 +35,7 @@ const Content = styled('div')`
 
 const Root = styled('div')`
   align-items: center;
-  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
+  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale['10']};
   display: flex;
   font:
     18px Roboto,

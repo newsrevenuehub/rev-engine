@@ -5,7 +5,7 @@ import { revEngineTheme } from 'styles/themes';
 export const buttonColors = {
   error: {
     active: { bg: '#8c162c', fg: '' },
-    disabled: { bg: '#e86f85', fg: revEngineTheme.basePalette.greyscale.grey4 },
+    disabled: { bg: '#e86f85', fg: '#f9f9f9' },
     hover: { bg: '#a01a32', fg: '' },
     normal: { bg: revEngineTheme.basePalette.secondary.error, fg: revEngineTheme.basePalette.greyscale.white }
   },
@@ -24,21 +24,21 @@ export const buttonColors = {
   },
   primaryLight: {
     active: { bg: '#edff14', fg: '' },
-    disabled: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: revEngineTheme.basePalette.greyscale.grey1 },
+    disabled: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: revEngineTheme.basePalette.greyscale['70'] },
     hover: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: '' },
     normal: { bg: revEngineTheme.basePalette.primary.chartreuse, fg: revEngineTheme.basePalette.greyscale.black }
   },
   secondary: {
-    active: { bg: revEngineTheme.basePalette.greyscale.grey1, fg: '' },
-    disabled: { bg: revEngineTheme.basePalette.greyscale.grey4, fg: revEngineTheme.basePalette.greyscale.grey2 },
-    hover: { bg: revEngineTheme.basePalette.greyscale.grey2, fg: '' },
-    normal: { bg: revEngineTheme.basePalette.greyscale.grey3, fg: revEngineTheme.basePalette.greyscale.black }
+    active: { bg: revEngineTheme.basePalette.greyscale['70'], fg: '' },
+    disabled: { bg: '#f9f9f9', fg: revEngineTheme.basePalette.greyscale['30'] },
+    hover: { bg: revEngineTheme.basePalette.greyscale['30'], fg: '' },
+    normal: { bg: revEngineTheme.basePalette.greyscale['10'], fg: revEngineTheme.basePalette.greyscale.black }
   },
   text: {
     active: { bg: 'rgba(40, 40, 40, 0.06)', fg: revEngineTheme.basePalette.primary.indigo },
-    disabled: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.grey2 },
+    disabled: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale['30'] },
     hover: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.black },
-    normal: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.grey1 }
+    normal: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale['70'] }
   }
 };
 

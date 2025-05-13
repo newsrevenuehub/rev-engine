@@ -30,3 +30,14 @@ class BadActorScores(IntegerChoices):
     SUSPECT = 3, "3 - Suspect"
     BAD = 4, "4 - Bad"
     SUPERBAD = 5, "5 - Very Bad"
+
+
+class QuarantineStatus(TextChoices):
+    FLAGGED_BY_BAD_ACTOR = "flagged_by_bad_actor", "Flagged by bad actor"
+    REJECTED_BY_HUMAN_FRAUD = "rejected_by_human_for_fraud", "Rejected by human for being fraudulent"
+    REJECTED_BY_HUMAN_DUPE = "rejected_by_human_for_dupe", "Rejected by human for being a duplicate"
+    REJECTED_BY_HUMAN_OTHER = "rejected_by_human_for_other", "Rejected by human for some other reason"
+    REJECTED_BY_MACHINE_FOR_BAD_ACTOR = "rejected_by_machine_for_bad_actor", "Rejected by machine for being a bad actor"
+    APPROVED_BY_MACHINE_AFTER_WAIT = "approved_by_machine_after_wait", "Approved by machine after waiting"
+    APPROVED_BY_HUMAN = "approved_by_human", "Approved by human"
+    REJECTED_BY_STRIPE_FOR_FRAUD = "rejected_by_stripe_for_fraud", "Rejected by Stripe for being fraudulent"

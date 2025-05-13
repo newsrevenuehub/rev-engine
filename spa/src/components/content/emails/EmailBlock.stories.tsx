@@ -27,3 +27,9 @@ TestEmailDisabled.args = {
   ...Default.args,
   onSendTest: undefined
 };
+
+export const NoActions: Story = {};
+NoActions.args = {
+  ...Default.args,
+  hideActions: true
+};

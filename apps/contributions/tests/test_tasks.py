@@ -1,12 +1,15 @@
 from csv import DictReader
 from datetime import timedelta
+from typing import Any
 
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 import pytest
+import pytest_mock
 import stripe.error
+from pytest_django.fixtures import SettingsWrapper
 from requests.exceptions import RequestException
 
 from apps.contributions import tasks as contribution_tasks
@@ -290,6 +293,17 @@ class TestProcessStripeWebhookTask:
         payment_intent_succeeded["unexpected_property"] = "value"
         contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
         mock_processor.process.assert_called_once()
+
+    def test_calls_healthchecks(
+        self, mocker: pytest_mock.MockerFixture, payment_intent_succeeded: dict[str, Any], settings: SettingsWrapper
+    ):
+        settings.HEALTHCHECK_URL_PROCESS_STRIPE_WEBHOOK_TASK = "https://foo"
+        mocker.patch.object(StripeWebhookProcessor, "__new__")
+        mock_ping_healthchecks = mocker.patch("apps.contributions.tasks.ping_healthchecks")
+        contribution_tasks.process_stripe_webhook_task(payment_intent_succeeded)
+        mock_ping_healthchecks.assert_called_once_with(
+            "process_stripe_webhook_task", settings.HEALTHCHECK_URL_PROCESS_STRIPE_WEBHOOK_TASK
+        )
 
 
 def test_on_process_stripe_webhook_task_failure(mocker):

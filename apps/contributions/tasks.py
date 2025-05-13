@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from types import TracebackType
 
 from django.conf import settings
+from django.db.utils import OperationalError
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -12,7 +13,7 @@ import stripe
 from celery import Task, shared_task
 from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
-from stripe.error import RateLimitError
+from stripe.error import APIConnectionError, RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
@@ -152,6 +153,9 @@ def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, tra
 
 @shared_task(
     bind=True,
+    autoretry_for=(APIConnectionError, OperationalError),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
     link_error=on_process_stripe_webhook_task_failure.s(),
 )
 def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
@@ -181,6 +185,7 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # TODO @BW: Add some sort of analytics / telemetry to track how often this happens
         # DEV-4151
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
+    ping_healthchecks("process_stripe_webhook_task", settings.HEALTHCHECK_URL_PROCESS_STRIPE_WEBHOOK_TASK)
 
 
 @shared_task(bind=True)

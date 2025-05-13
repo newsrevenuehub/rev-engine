@@ -12,7 +12,7 @@ export const Card = styled.div`
 `;
 
 export const CardHeader = styled.h3`
-  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
+  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale['10']};
   font-family: 'DM Mono', monospace;
   font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
   font-weight: 500;

@@ -7,7 +7,7 @@ export const Wrapper = styled.main`
   align-items: center;
   justify-content: space-between;
   height: 100%;
-  background: ${(props) => props.theme.basePalette.greyscale.grey4};
+  background: #f9f9f9;
 `;
 
 export const Button = styled(BaseButton)<{ $renderCustomStyles: boolean }>`
@@ -54,7 +54,7 @@ export const Subtitle = styled.p`
   font-family: ${(props) => props.theme.systemFont};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  color: ${(props) => props.theme.basePalette.greyscale['70']};
 `;
 
 export const Form = styled.form`
@@ -69,7 +69,7 @@ export const Confirmation = styled.div`
   max-width: 633px;
   box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.xl};
-  border: 0.5px solid ${(props) => props.theme.basePalette.greyscale.grey2};
+  border: 0.5px solid ${(props) => props.theme.basePalette.greyscale['30']};
   background-color: ${(props) => props.theme.basePalette.greyscale.white};
   padding: 22px 28px;
   display: flex;

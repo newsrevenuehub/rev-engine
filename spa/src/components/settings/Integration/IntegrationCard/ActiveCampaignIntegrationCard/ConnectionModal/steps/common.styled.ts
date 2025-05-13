@@ -16,7 +16,7 @@ export const StepHeading = styled.h3`
 `;
 
 export const StepSubheading = styled.h4`
-  color: #535353; /* TODO in DEV-5933: put into theme palette */
+  color: ${({ theme }) => theme.basePalette.greyscale['80']};
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
   font-weight: 400;
   margin-bottom: 8px;

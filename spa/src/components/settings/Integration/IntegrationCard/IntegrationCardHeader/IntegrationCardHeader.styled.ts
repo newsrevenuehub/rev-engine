@@ -39,18 +39,18 @@ export const Site = styled.a`
   align-items: center;
   text-decoration: none;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  color: ${(props) => props.theme.basePalette.greyscale['70']};
   cursor: pointer;
 
   &:hover {
-    color: ${(props) => props.theme.basePalette.greyscale.grey1};
+    color: ${(props) => props.theme.basePalette.greyscale['70']};
     text-decoration: none;
   }
 `;
 
 export const LaunchIcon = styled(LaunchMui)`
   && {
-    color: ${(props) => props.theme.basePalette.greyscale.grey1};
+    color: ${(props) => props.theme.basePalette.greyscale['70']};
     margin-left: 5px;
     height: 16px;
     width: 16px;

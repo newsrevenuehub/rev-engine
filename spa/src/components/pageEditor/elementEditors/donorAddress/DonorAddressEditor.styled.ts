@@ -16,7 +16,7 @@ export const Header = styled.h4`
 `;
 
 export const Tip = styled.p`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   margin-bottom: 18px;
 `;
 
@@ -37,5 +37,5 @@ export const StyledFormControlLabel = styled(FormControlLabel)`
 export const Disclaimer = styled.p`
   margin-top: 20px;
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
 `;

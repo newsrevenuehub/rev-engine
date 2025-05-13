@@ -12,7 +12,7 @@ fileignoreconfig:
   checksum: e59bc640891f89cc6f1f4c5eebfd3e91a76ea19a107e5c681c259d9a8fc10e59
 # Complaints about SHAS
 - filename: spa/package-lock.json
-  checksum: af669d3cfb22592a95e98053d6ffce684c9bcbe6b8b9dcd4370f7fb481533668
+  checksum: 11d8c00a60d0de86701e966d84db59b4cdfa9c4212bdeb538462915a5cb289a1
 # Complaints about SHAS
 - filename: poetry.lock
   checksum: 41bebad3ce7c6955e36322c5dbf67bb7bacdf2a8a60ad9a022dd786804154251

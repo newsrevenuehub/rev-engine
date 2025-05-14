@@ -9,7 +9,7 @@ export const FormWrapper = styled.form`
 export const Label = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
   font-weight: 400;
-  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  color: ${(props) => props.theme.basePalette.greyscale['70']};
   margin-bottom: 20px;
   line-height: normal;
 `;
@@ -22,7 +22,7 @@ export const Description = styled.p`
   line-height: 21px;
 
   & span {
-    color: ${(props) => props.theme.basePalette.greyscale.grey1};
+    color: ${(props) => props.theme.basePalette.greyscale['70']};
     font-weight: 600;
   }
 `;

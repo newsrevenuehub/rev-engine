@@ -28,7 +28,7 @@ export const IconWrapper = styled.span`
     display: flex;
     margin-right: 6px;
     min-width: unset;
-    fill: ${(props) => props.theme.basePalette.greyscale.grey3};
+    fill: ${(props) => props.theme.basePalette.greyscale['10']};
 
     svg {
       width: 16px;

@@ -16,7 +16,7 @@ export const Root = styled.div`
 
 export const Box = styled.div`
   background: ${({ theme }) => theme.basePalette.greyscale.white};
-  border: 0.5px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+  border: 0.5px solid ${({ theme }) => theme.basePalette.greyscale['30']};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
   max-width: 700px;
@@ -31,7 +31,7 @@ export const Box = styled.div`
 `;
 
 export const Footer = styled.p`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
   margin-top: 24px;
 `;

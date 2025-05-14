@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const Root = styled.div`
-  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale['30']};
   display: none;
   font-family: ${({ theme }) => theme.systemFont};
   justify-content: space-between;

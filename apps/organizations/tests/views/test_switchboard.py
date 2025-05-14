@@ -113,10 +113,7 @@ class TestOrganizationViewSetSwitchboard:
 
     @pytest.mark.parametrize(
         ("search_term", "expected_count"),
-        [
-            ("existing", 2),
-            ("nonexistent-organization", 0),
-        ],
+        [("existing", 2), ("nonexistent-organization", 0), ("another", 1)],
     )
     def test_get_organizations_by_name(
         self, api_client: APIClient, switchboard_user: User, organization: Organization, search_term, expected_count
@@ -140,8 +137,8 @@ class TestOrganizationViewSetSwitchboard:
 
         if expected_count > 0:
             org_ids = [org["id"] for org in response.data]
-            assert organization.id in org_ids
-            assert org2.id in org_ids
+            assert organization.id in org_ids if "existing" in search_term else organization.id not in org_ids
+            assert org2.id in org_ids if search_term in ("another", "existing") else org2.id not in org_ids
 
     @pytest.mark.parametrize("authenticated", [True, False])
     @pytest.mark.parametrize(

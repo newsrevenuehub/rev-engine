@@ -21,8 +21,8 @@ export const CurrentDot = styled.div<{ $final: boolean }>`
 `;
 
 export const Dot = styled.div<{ $active: boolean }>`
-  // TODO in DEV-5933: add #b1b1b1 to theme
-  background-color: ${({ $active, theme }) => ($active ? theme.basePalette.primary.purple : '#b1b1b1')};
+  background-color: ${({ $active, theme }) =>
+    $active ? theme.basePalette.primary.purple : theme.basePalette.greyscale['40']};
   border-radius: 8px;
   height: 16px;
   width: 16px;

@@ -13,7 +13,7 @@ export type PhoneTextFieldProps = Omit<TextFieldProps, 'onChange'> & {
 const StyledSelect = styled(Select)`
   && {
     .NreSelectNotchedOutline {
-      border: 1.5px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+      border: 1.5px solid ${({ theme }) => theme.basePalette.greyscale['30']};
     }
 
     .NreTextFieldInput {

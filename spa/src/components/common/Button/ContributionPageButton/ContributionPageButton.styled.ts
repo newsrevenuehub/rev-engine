@@ -56,8 +56,8 @@ export const PreviewImage = styled.div`
 
 export const PreviewPlaceholder = styled.div`
   align-items: center;
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   display: flex;
   justify-content: center;
 `;

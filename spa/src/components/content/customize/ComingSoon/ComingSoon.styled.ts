@@ -28,7 +28,7 @@ export const Root = styled.div`
   align-items: center;
   gap: 20px;
   width: 100%;
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+  background-color: ${({ theme }) => theme.basePalette.greyscale['10']};
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
   padding: 30px;
   position: relative;

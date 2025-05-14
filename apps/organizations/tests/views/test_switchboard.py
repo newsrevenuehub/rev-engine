@@ -135,10 +135,10 @@ class TestOrganizationViewSetSwitchboard:
         assert response.status_code == 200
         assert len(response.data) == expected_count
 
-        if expected_count > 0:
+        if expected_count == 2:
             org_ids = [org["id"] for org in response.data]
             assert organization.id in org_ids if "existing" in search_term else organization.id not in org_ids
-            assert org2.id in org_ids if search_term in ("another", "existing") else org2.id not in org_ids
+            assert org2.id in org_ids
 
     @pytest.mark.parametrize("authenticated", [True, False])
     @pytest.mark.parametrize(

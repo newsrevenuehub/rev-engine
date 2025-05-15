@@ -79,6 +79,11 @@ export interface PortalContributionUpdate {
   donor_selected_amount?: number;
 }
 
+// If errors occur when updating a contribution, they're currently returned as
+// an array of strings in the response. Undefined here is because we may not get
+// this array in all cases when an error occurs.
+export type UpdateContributionErrors = string[] | undefined;
+
 // This interface can be altered to include other errors that may be returned from the API.
 export interface CancelContributionValidationErrors {
   detail?: string;
@@ -86,7 +91,6 @@ export interface CancelContributionValidationErrors {
 
 /**
  * Possible types of updates: used to display a success message to the user.
- * For now, only payment method is possible.
  */
 export type PortalContributionUpdateType = 'paymentMethod' | 'billingDetails';
 
@@ -156,8 +160,10 @@ export function usePortalContribution(contributorId: number, contributionId: num
       return axios.patch(getContributionDetailEndpoint(contributorId, contributionId), update.data);
     },
     {
-      onError: () => {
-        enqueueSnackbar('Billing details failed to save changes. Please try again.', {
+      onError: (error: AxiosError<UpdateContributionErrors>) => {
+        const message = Array.isArray(error.response?.data) ? error.response?.data[0] : 'Please try again.';
+
+        enqueueSnackbar(`Billing details failed to save changes. ${message}`, {
           persist: true,
           content: (key: string, message: string) => (
             <SystemNotification id={key} message={message} header="Billing Update Not Saved" type="error" />

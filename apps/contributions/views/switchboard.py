@@ -52,7 +52,7 @@ class SwitchboardContributionsViewSet(
     # TODO @BW: Make calling _handle_receipt_email fault tolerant
     # DEV-6162
     def _handle_receipt_email(self, contribution: Contribution) -> None:
-        if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
+        if booleanize_string(self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM, "")):
             contribution.handle_receipt_email()
 
     def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):

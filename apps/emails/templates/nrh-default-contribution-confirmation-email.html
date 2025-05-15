@@ -104,9 +104,13 @@
     <p class="user-info inner-center">
       Dear {{ contributor_name }},
     </p>
-    <p class="user-info user-info-second-line inner-center">
-      Thank you for supporting {{ rp_name }}.
-    </p>
+    {% if customizations.contribution_receipt and customizations.contribution_receipt.message %}
+      {{ customizations.contribution_receipt.message.content_html | safe }}
+    {% else %}
+      <p class="user-info user-info-second-line inner-center">
+        Thank you for supporting {{ rp_name }}.
+      </p>
+    {% endif %}
   </td>
 </tr>
 {% endblock header %}

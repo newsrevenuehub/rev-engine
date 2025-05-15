@@ -53,13 +53,6 @@ class SwitchboardContributionsViewSet(
     # DEV-6162
     def _handle_receipt_email(self, contribution: Contribution) -> None:
         if (qp := self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM)) and booleanize_string(qp):
-            # handle_receipt_email() handles conditionality around whether
-            # receipt emails for the revenue program are sent by rev-engine.
-            logger.info(
-                "Sending receipt email for revenue program ID, %s contribution ID %s as requested by query param",
-                contribution.revenue_program.id,
-                contribution.id,
-            )
             contribution.handle_receipt_email()
 
     def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):

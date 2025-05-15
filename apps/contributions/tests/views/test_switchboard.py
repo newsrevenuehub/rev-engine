@@ -362,7 +362,7 @@ class TestSwitchboardContributionsViewSet:
             ("", False),
         ],
     )
-    def test_create_receipt_behavior(
+    def test_create_send_receipt_query_param(
         self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
     ):
         mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
@@ -480,7 +480,7 @@ class TestSwitchboardContributionsViewSet:
             ("", False),
         ],
     )
-    def test_update_receipt_email_behavior(
+    def test_update_send_receipt_query_param(
         self,
         api_client: Client,
         contribution: Contribution,

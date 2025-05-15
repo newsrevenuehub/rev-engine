@@ -40,6 +40,6 @@ export const Title = styled.h1`
 `;
 
 export const Explanation = styled.p`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
 `;

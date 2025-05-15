@@ -46,14 +46,6 @@ def test_switchboard_rp_activecampaign_detail(request, user_fixture, permitted, 
 
 @pytest.mark.django_db
 class TestOrganizationViewSetSwitchboard:
-    def test_get_all_organizations(self, api_client: APIClient, switchboard_user: User, organization: Organization):
-        api_client.force_authenticate(user=switchboard_user)
-        url = reverse("switchboard-organization-list")
-        response = api_client.get(url)
-        assert response.status_code == 200
-        assert response.data["count"] == 1
-        assert response.data["results"][0]["id"] == organization.id
-
     def test_get_organization_by_id(self, api_client: APIClient, switchboard_user: User, organization: Organization):
         api_client.force_authenticate(user=switchboard_user)
         url = reverse("switchboard-organization-detail", kwargs={"pk": organization.id})
@@ -144,7 +136,6 @@ class TestOrganizationViewSetSwitchboard:
     @pytest.mark.parametrize(
         "url",
         [
-            reverse("switchboard-organization-list"),
             reverse("switchboard-organization-detail", kwargs={"pk": 1}),
             reverse("switchboard-organization-get-by-slug", kwargs={"slug": "foo"}),
             reverse("switchboard-organization-get-by-subscription-id", kwargs={"subscription_id": "sub_123456789"}),

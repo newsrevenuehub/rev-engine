@@ -26,7 +26,7 @@ export const Root = styled.div<{ $hideBottomDivider: boolean; $orientation: 'hor
     !props.$hideBottomDivider &&
     `
     padding-bottom: 25px;
-    border-bottom: 1px solid ${props.theme.basePalette.greyscale.grey3};
+    border-bottom: 1px solid ${props.theme.basePalette.greyscale['10']};
   `}
 
   h2,
@@ -44,7 +44,7 @@ export const H3 = styled.h3`
 
 export const Subtitle = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   margin: 0;
 `;
 

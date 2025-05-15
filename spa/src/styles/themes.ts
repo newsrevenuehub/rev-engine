@@ -18,11 +18,16 @@ const basePalette = {
   },
   greyscale: {
     black: '#282828',
-    grey1: '#707070',
-    grey2: '#c4c4c4',
-    grey3: '#f1f1f1',
-    grey4: '#f9f9f9',
-    white: '#ffffff'
+    white: '#ffffff',
+    '90': '#3d3d3d',
+    '80': '#535353',
+    '70': '#707070',
+    '60': '#808080',
+    '50': '#989898',
+    '40': '#b1b1b1',
+    '30': '#c4c4c4',
+    '20': '#e4e4e4',
+    '10': '#f1f1f1'
   },
   chartreuse: {
     '-10': '#f3ff6a',
@@ -117,14 +122,14 @@ export const revEngineTheme: DefaultTheme = {
     },
 
     muiGrey: {
-      50: basePalette.greyscale.grey4 as '#f9f9f9',
-      100: basePalette.greyscale.grey3 as '#f1f1f1',
+      50: '#f9f9f9',
+      100: basePalette.greyscale['10'],
       200: '#e3e3e3',
       300: '#D9D9D9',
-      400: basePalette.greyscale.grey2 as '#c4c4c4',
+      400: basePalette.greyscale['30'],
       450: '#a7a7a7',
       500: '#969696',
-      600: basePalette.greyscale.grey1 as '#707070',
+      600: basePalette.greyscale['70'],
       700: '#666666',
       800: '#3c3c3c',
       900: basePalette.greyscale.black as '#282828'

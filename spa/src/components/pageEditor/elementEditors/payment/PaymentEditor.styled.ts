@@ -21,7 +21,7 @@ export const AlignedFormControlLabel = styled(FormControlLabel)`
 `;
 
 export const Tip = styled.p`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
   margin-bottom: 45px;
 `;
 

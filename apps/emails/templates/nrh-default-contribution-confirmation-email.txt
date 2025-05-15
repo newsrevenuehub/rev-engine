@@ -4,7 +4,15 @@
 Thank you for your contribution!
 
 Dear {{ contributor_name }},
-Thank you for supporting {{ rp_name }}.
+
+{% if customizations.contribution_receipt and customizations.contribution_receipt.message %}
+{{ customizations.contribution_receipt.message.content_plain_text }}
+{% else %}
+  <p class="user-info user-info-second-line inner-center">
+    Thank you for supporting {{ rp_name }}.
+  </p>
+{% endif %}
+
 {% endblock header %}
 
 {% block timestamp_label %}

@@ -14,3 +14,13 @@ def convert_to_timezone_formatted(
         # DEV-2904
         localtz = dt.astimezone(timezone.get_current_timezone())
     return localtz.strftime(date_format)
+
+
+def make_customizations_dict(customizations):
+    """Transform a queryset of email customizations into a nested dict."""
+    result = {}
+    for customization in customizations:
+        if not result.get(customization.email_type):
+            result[customization.email_type] = {}
+        result[customization.email_type][customization.email_block] = customization
+    return result

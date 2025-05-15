@@ -6,6 +6,8 @@ from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
 from apps.contributions.models import BillingHistoryItem, Contribution
+from apps.emails.helpers import make_customizations_dict
+from apps.emails.models import EmailCustomization
 from apps.organizations.models import RevenueProgram
 
 
@@ -47,6 +49,7 @@ def preview_contribution_email_template(request, template_name: str):
         "contributor_name": "Contributor Name",
         "copyright_year": datetime.datetime.now(datetime.timezone.utc).year,
         "contributor_email": "nobody@fundjournalism.org",
+        "customizations": make_customizations_dict(EmailCustomization.objects.filter(revenue_program=rp)),
         "portal_url": "https://portal-url",
         "rp_name": rp.name,
         "style": rp_style,

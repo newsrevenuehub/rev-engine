@@ -84,6 +84,8 @@ class TestGenerateEmailData:
         mocker,
     ):
         mocker.patch("stripe.Customer.retrieve", return_value=customer)
+        mock_customizations = {}
+        mocker.patch("apps.emails.helpers.make_customizations_dict", return_value=mock_customizations)
         mock_contributor_portal_url = mocker.patch(
             "apps.organizations.models.RevenueProgram.contributor_portal_url",
             return_value="contributor_portal_url",
@@ -103,6 +105,7 @@ class TestGenerateEmailData:
             contributor_email=contribution.contributor.email,
             contributor_name=expected_name,
             copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
+            customizations=mock_customizations,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
             non_profit=contribution.revenue_program.non_profit,

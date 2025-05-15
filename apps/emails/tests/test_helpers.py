@@ -3,7 +3,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from apps.emails.helpers import convert_to_timezone_formatted
+from apps.emails.helpers import convert_to_timezone_formatted, make_customizations_dict
+from apps.emails.models import EmailCustomization
 
 
 @pytest.mark.parametrize(
@@ -28,3 +29,12 @@ def test_convert_to_timezone_formatted(timezone, fmt, is_UTC, expect):
         else convert_to_timezone_formatted(test_date, timezone)
     )
     assert tz_date == expect
+
+
+class TestMakeCustomizations:
+    def test_creates_nested_dict(self):
+        customization = EmailCustomization(email_type="contribution_receipt", email_block="message")
+        assert make_customizations_dict([customization]) == {"contribution_receipt": {"message": customization}}
+
+    def test_handles_empty_queryset(self):
+        assert make_customizations_dict(EmailCustomization.objects.none()) == {}

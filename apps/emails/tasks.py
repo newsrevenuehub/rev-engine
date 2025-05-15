@@ -22,7 +22,8 @@ from sentry_sdk import configure_scope
 from stripe.error import StripeError
 
 from apps.contributions.choices import ContributionInterval
-from apps.emails.helpers import convert_to_timezone_formatted
+from apps.emails.helpers import convert_to_timezone_formatted, make_customizations_dict
+from apps.emails.models import EmailCustomization
 from apps.organizations.models import FiscalStatusChoices, FreePlan, TransactionalEmailStyle
 
 
@@ -82,6 +83,7 @@ class SendContributionEmailData(TypedDict):
     ]
     contribution_interval_display_value: str
     copyright_year: int
+    customizations: dict[str, dict[str, str]]
     rp_name: str
     contributor_name: str
     non_profit: bool
@@ -156,6 +158,9 @@ def generate_email_data(
         # both cases.
         contributor_name=getattr(customer, "name", CONTRIBUTOR_DEFAULT_VALUE) or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
+        customizations=make_customizations_dict(
+            EmailCustomization.objects.filter(revenue_program=contribution.revenue_program)
+        ),
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
         non_profit=contribution.revenue_program.non_profit,
@@ -192,6 +197,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
         contributor_email=user.email,
         contributor_name=name or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=now.year,
+        customizations=make_customizations_dict(EmailCustomization.objects.filter(revenue_program=revenue_program)),
         fiscal_sponsor_name=revenue_program.fiscal_sponsor_name,
         fiscal_status=revenue_program.fiscal_status,
         non_profit=revenue_program.non_profit,

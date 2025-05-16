@@ -18,7 +18,7 @@ from rest_framework.test import APIRequestFactory
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
-from apps.contributions.choices import BadActorAction
+from apps.contributions.choices import BadActorAction, QuarantineStatus
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -681,6 +681,7 @@ class TestBaseCreatePaymentSerializer:
             "bad_actor_score": bad_actor_good_response.return_value.overall_judgment,
             "bad_actor_response": bad_actor_good_response.return_value.dict(),
             "flagged_date": None,
+            "quarantine_status": None,
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
@@ -706,6 +707,7 @@ class TestBaseCreatePaymentSerializer:
             "payment_provider_used": "Stripe",
             "bad_actor_score": bad_actor_bad_score.overall_judgment,
             "bad_actor_response": bad_actor_bad_score.dict(),
+            "quarantine_status": QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
@@ -733,6 +735,7 @@ class TestBaseCreatePaymentSerializer:
             "bad_actor_score": bad_actor_super_bad_score.overall_judgment,
             "bad_actor_response": bad_actor_super_bad_score.dict(),
             "flagged_date": None,
+            "quarantine_status": QuarantineStatus.REJECTED_BY_MACHINE_FOR_BAD_ACTOR,
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val

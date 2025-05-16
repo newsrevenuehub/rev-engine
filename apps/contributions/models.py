@@ -316,9 +316,7 @@ class Contribution(IndexedTimeStampedModel):
     # TODO @BW: Remove Contribution.last_payment_date in favor of derivation from payments
     # DEV-4333
     last_payment_date = models.DateTimeField(null=True)
-    # TODO @BW: Make Contribution.contributor non-nullable
-    # DEV-5953
-    contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
+    contributor = models.ForeignKey("contributions.Contributor", on_delete=models.PROTECT)
 
     # Further down, we add a constraint that requires that either donation page or _revenue_program
     # be set but not both. This is to allow importing legacy contribution data that cannot be attributed

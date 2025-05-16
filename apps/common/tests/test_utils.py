@@ -276,10 +276,6 @@ class Test_upsert_with_diff_check:
         return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
 
     @pytest.fixture
-    def instance_is_none(self):
-        return None
-
-    @pytest.fixture
     def update_data(self):
         return {"amount": self.UPDATE_AMOUNT, "donation_page": DonationPageFactory()}
 

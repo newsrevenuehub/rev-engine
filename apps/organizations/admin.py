@@ -4,6 +4,7 @@ from pathlib import Path
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.forms import ModelForm
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -180,7 +181,7 @@ class BenefitAdmin(RevEngineBaseAdmin):
 
         # Alphabetize the revenue program list
         rp_field = form.base_fields.get("revenue_program")
-        rp_field.queryset = rp_field.queryset.order_by("name")
+        rp_field.queryset = rp_field.queryset.order_by(Lower("name"))
 
         return form
 

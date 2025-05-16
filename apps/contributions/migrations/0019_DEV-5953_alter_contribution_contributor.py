@@ -16,4 +16,24 @@ class Migration(migrations.Migration):
             name="contributor",
             field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="contributions.contributor"),
         ),
+        # Step 1: Add CHECK constraint with NOT VALID (non-blocking)
+        migrations.RunSQL(
+            sql="ALTER TABLE contributions_contribution ADD CONSTRAINT contributor_id_not_null CHECK (contributor_id IS NOT NULL) NOT VALID;",
+            reverse_sql="ALTER TABLE contributions_contribution DROP CONSTRAINT contributor_id_not_null;",
+        ),
+        # Step 2: Validate the constraint (reads table but doesn't block writes)
+        migrations.RunSQL(
+            sql="ALTER TABLE contributions_contribution VALIDATE CONSTRAINT contributor_id_not_null;",
+            reverse_sql="",
+        ),
+        # Step 3: Convert to proper NOT NULL constraint (quick operation since data is validated)
+        migrations.RunSQL(
+            sql="ALTER TABLE contributions_contribution ALTER COLUMN contributor_id SET NOT NULL;",
+            reverse_sql="ALTER TABLE contributions_contribution ALTER COLUMN contributor_id DROP NOT NULL;",
+        ),
+        # Step 4: Clean up the check constraint (no longer needed)
+        migrations.RunSQL(
+            sql="ALTER TABLE contributions_contribution DROP CONSTRAINT contributor_id_not_null;",
+            reverse_sql="ALTER TABLE contributions_contribution ADD CONSTRAINT contributor_id_not_null CHECK (contributor_id IS NOT NULL);",
+        ),
     ]

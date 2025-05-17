@@ -11,6 +11,7 @@ from apps.organizations.models import (
     MailchimpProduct,
     MailchimpSegment,
     MailchimpStore,
+    Organization,
     RevenueProgram,
 )
 from apps.organizations.serializers import (
@@ -18,6 +19,7 @@ from apps.organizations.serializers import (
     MailchimpRevenueProgramForSpaConfiguration,
     MailchimpRevenueProgramForSwitchboard,
     OrganizationInlineSerializer,
+    OrganizationSwitchboardSerializer,
     RevenueProgramSerializer,
 )
 from conftest import make_mock_mailchimp_email_list
@@ -313,3 +315,13 @@ class TestActiveCampaignRevenueProgramForSpaSerializer:
         serializer = ActiveCampaignRevenueProgramForSpaSerializer(instance=revenue_program)
         assert serializer._confirm_activecampaign_url_and_token("http://example.com", "token") is False
         mock_logger.assert_called_once_with("Unexpected error confirming ActiveCampaign URL and token")
+
+
+@pytest.mark.django_db
+class TestOrganizationSwitchboardSerializer:
+    def test_has_right_fields(self, organization: Organization):
+        expected_fields = {"id", "name", "plan_name", "slug", "stripe_subscription_id"}
+        serialized = OrganizationSwitchboardSerializer(organization).data
+        assert set(serialized.keys()) == expected_fields
+        for field in expected_fields:
+            assert serialized[field] == getattr(organization, field)

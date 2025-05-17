@@ -470,6 +470,8 @@ REVERSION_COMPARE_IGNORE_NOT_REGISTERED = True
 # https://stripe.com/docs/upgrades#api-changelog
 STRIPE_API_VERSION = "2020-08-27"  # Stripe API Target Version
 DEFAULT_CURRENCY = "usd"
+
+# If this product name changes, we have to coordinate the change with SB as it is used in the DigestBuilder integration
 GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 WEBHOOK_URL = r"^revengine-stripe-webhook/"
 # THE ID of the Stripe product that is used for subscriptions to the Core org plan

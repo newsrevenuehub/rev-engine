@@ -130,7 +130,7 @@
                         "amount": 36500,
                         "amount_excluding_tax": 36500,
                         "currency": "usd",
-                        "description": "1 \u00d7 Donation via RevEngine (at $365.00 / month)",
+                        "description": "1 \u00d7 Contribution via RevEngine (at $365.00 / month)",
                         "discount_amounts": [],
                         "discountable": true,
                         "discounts": [],

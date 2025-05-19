@@ -17,6 +17,7 @@ from apps.contributions.views.switchboard import (
     SwitchboardPaymentsViewSet,
 )
 from apps.organizations.urls import urlpatterns as organizations_urlpatterns
+from apps.organizations.views.switchboard import OrganizationViewSet as SwitchboardOrganizationViewSet
 from apps.pages.urls import urlpatterns as pages_urlpatterns
 from apps.public.urls import urlpatterns as public_urlpatterns
 from apps.users.urls import api_urlpatterns as users_urlpatterns
@@ -30,6 +31,7 @@ switchboard_router.register(r"contributions", SwitchboardContributionsViewSet, b
 switchboard_router.register(r"contributors", SwitchboardContributorsViewSet, basename="switchboard-contributor")
 switchboard_router.register(r"payments", SwitchboardPaymentsViewSet, basename="switchboard-payment")
 switchboard_router.register(r"users", SwitchboardUsersViewSet, basename="switchboard-user")
+switchboard_router.register(r"organizations", SwitchboardOrganizationViewSet, basename="switchboard-organization")
 switchboard_urlpatterns = [
     path("switchboard/login/", SwitchboardLoginView.as_view(), name="switchboard-login"),
     path("switchboard/", include(switchboard_router.urls)),

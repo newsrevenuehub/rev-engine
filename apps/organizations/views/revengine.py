@@ -25,7 +25,6 @@ from apps.api.permissions import (
     IsOrgAdmin,
     IsPatchRequest,
     IsRpAdmin,
-    IsSwitchboardAccount,
 )
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.emails.tasks import (
@@ -286,14 +285,6 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
             serializer.save()
             revenue_program.refresh_from_db()
         return Response(self.serializer_class(revenue_program).data)
-
-
-@api_view(["GET"])
-@permission_classes([IsSwitchboardAccount])
-def switchboard_rp_activecampaign_detail(request: HttpRequest, pk: int) -> Response:
-    """Return the ActiveCampaign data for the revenue program with the given ID."""
-    revenue_program = get_object_or_404(RevenueProgram, pk=pk)
-    return Response(serializers.ActiveCampaignRevenueProgramForSwitchboardSerializer(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

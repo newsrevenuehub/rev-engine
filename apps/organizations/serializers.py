@@ -392,3 +392,10 @@ class MailchimpOauthSuccessSerializer(serializers.Serializer):
 class SendTestEmailSerializer(serializers.Serializer):
     email_name = serializers.CharField()
     revenue_program = serializers.IntegerField()
+
+
+class OrganizationSwitchboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["id", "name", "plan_name", "slug", "stripe_subscription_id"]
+        read_only_fields = fields

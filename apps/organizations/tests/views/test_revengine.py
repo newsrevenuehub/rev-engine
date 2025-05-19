@@ -39,7 +39,7 @@ from apps.organizations.serializers import (
     MailchimpRevenueProgramForSwitchboard,
 )
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.organizations.views import (
+from apps.organizations.views.revengine import (
     FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT,
     OrganizationViewSet,
     RevenueProgramViewSet,
@@ -373,7 +373,7 @@ class TestOrganizationViewSet:
         self, mocker, organization, settings
     ):
         mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.generate_integrations_management_url",
+            "apps.organizations.views.revengine.OrganizationViewSet.generate_integrations_management_url",
             return_value=(mailchimp_url := fake.url()),
         )
         settings.UPGRADE_DAYS_WAIT = 3
@@ -441,7 +441,7 @@ class TestOrganizationViewSet:
         mock_sub["items"].data = [mock_item]
         mocker.patch("stripe.Subscription.retrieve", return_value=mock_sub)
         mock_is_upgrade_from_free_to_core = mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=True
+            "apps.organizations.views.revengine.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=True
         )
         upgrade_from_free_to_core_spy = mocker.spy(OrganizationViewSet, "upgrade_from_free_to_core")
         headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
@@ -509,7 +509,9 @@ class TestOrganizationViewSet:
     def test_handle_checkout_session_completed_event_when_not_upgrade_from_free_to_core(
         self, mocker, api_client, organization, stripe_checkout_process_completed
     ):
-        mocker.patch("apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=False)
+        mocker.patch(
+            "apps.organizations.views.revengine.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=False
+        )
         save_spy = mocker.spy(Organization, "save")
         logger_spy = mocker.spy(logger, "info")
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
@@ -537,9 +539,9 @@ class TestOrganizationViewSet:
         ],
     )
     def test_handle_stripe_webhook_when_handled_event_type(self, event_type, handler, mocker, api_client):
-        mock_handler = mocker.patch(f"apps.organizations.views.OrganizationViewSet.{handler}")
+        mock_handler = mocker.patch(f"apps.organizations.views.revengine.OrganizationViewSet.{handler}")
         mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
+            "apps.organizations.views.revengine.OrganizationViewSet.construct_stripe_event",
             return_value=(event := {"type": event_type}),
         )
         assert (
@@ -554,7 +556,7 @@ class TestOrganizationViewSet:
 
     def test_handle_stripe_webhook_when_unhandled_event_type(self, mocker, api_client):
         mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
+            "apps.organizations.views.revengine.OrganizationViewSet.construct_stripe_event",
             return_value=(event := {"type": (event_type := "some-other-event")}),
         )
         logger_spy = mocker.spy(logger, "debug")
@@ -1296,42 +1298,6 @@ class TestHandleStripeAccountLink:
         api_client.force_authenticate(user=ra.user)
         response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    ("user_fixture", "permitted"),
-    [
-        ("switchboard_user", True),
-        ("org_user_free_plan", False),
-        ("hub_admin_user", False),
-        ("superuser", False),
-    ],
-)
-def test_switchboard_rp_activecampaign_detail(request, user_fixture, permitted, api_client, revenue_program, mocker):
-    mocker.patch(
-        "apps.organizations.models.RevenueProgram.publish_revenue_program_activecampaign_configuration_complete"
-    )
-    revenue_program.activecampaign_server_url = "https://foo.bar"
-    revenue_program.save()
-    mocker.patch(
-        "apps.organizations.models.RevenueProgram.activecampaign_integration_connected",
-        return_value=(is_connnected := True),
-        new_callable=mocker.PropertyMock,
-    )
-    user = request.getfixturevalue(user_fixture)
-    api_client.force_authenticate(user)
-    response = api_client.get(reverse("switchboard-revenue-program-activecampaign-detail", args=(revenue_program.pk,)))
-    assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_403_FORBIDDEN)
-    if permitted:
-        assert response.json() == {
-            "id": revenue_program.id,
-            "name": revenue_program.name,
-            "slug": revenue_program.slug,
-            "stripe_account_id": revenue_program.payment_provider.stripe_account_id,
-            "activecampaign_integration_connected": is_connnected,
-            "activecampaign_server_url": revenue_program.activecampaign_server_url,
-        }
 
 
 def test_get_stripe_account_link_return_url_when_env_var_set(settings):

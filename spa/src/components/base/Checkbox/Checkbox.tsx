@@ -14,7 +14,7 @@ export const Checkbox = styled(MuiCheckbox)`
       color: ${({ theme }) => theme.basePalette.primary.engineBlue};
 
       &.Mui-disabled {
-        color: ${({ theme }) => theme.basePalette.greyscale.grey2};
+        color: ${({ theme }) => theme.basePalette.greyscale['30']};
       }
     }
 

@@ -289,29 +289,33 @@ describe('usePortalContribution', () => {
       }
     );
 
-    it.each([
-      [
-        'paymentMethod',
-        {
-          provider_payment_method_id: 'new-id'
-        }
-      ],
-      [
-        'billingDetails',
-        {
-          amount: 123
-        }
-      ]
-    ] as const)('rejects and shows an error notification if the PATCH fails. Type: %s', async (type, data) => {
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const { result } = hook(123, 1);
+    describe.each([
+      ['paymentMethod', { provider_payment_method_id: 'new-id' }],
+      ['billingDetails', { amount: 123 }]
+    ] as const)('When updating %s fails', (updateType, updateData) => {
+      it('rejects with a generic error notification if the PATCH fails', async () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { result } = hook(123, 1);
 
-      axiosMock.onPatch('contributors/123/contributions/1/').networkError();
-      await expect(result.current.updateContribution(data, type)).rejects.toThrow();
-      expect(enqueueSnackbar.mock.calls).toEqual([
-        ['Billing details failed to save changes. Please try again.', expect.objectContaining({ persist: true })]
-      ]);
-      errorSpy.mockRestore();
+        axiosMock.onPatch('contributors/123/contributions/1/').networkError();
+        await expect(result.current.updateContribution(updateData, updateType)).rejects.toThrow();
+        expect(enqueueSnackbar.mock.calls).toEqual([
+          ['Billing details failed to save changes. Please try again.', expect.objectContaining({ persist: true })]
+        ]);
+        errorSpy.mockRestore();
+      });
+
+      it('shows the first error message if one is returned', async () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { result } = hook(123, 1);
+
+        axiosMock.onPatch('contributors/123/contributions/1/').reply(401, ['test-error']);
+        await expect(result.current.updateContribution(updateData, updateType)).rejects.toThrow();
+        expect(enqueueSnackbar.mock.calls).toEqual([
+          ['Billing details failed to save changes. test-error', expect.objectContaining({ persist: true })]
+        ]);
+        errorSpy.mockRestore();
+      });
     });
   });
 

@@ -8,7 +8,7 @@ export type CircularProgressProps = MuiCircularProgressProps;
 
 const StyledMuiCircularProgress = styled(MuiCircularProgress)`
   && .NreCircle {
-    color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+    color: ${({ theme }) => theme.basePalette.greyscale['70']};
   }
 `;
 

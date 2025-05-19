@@ -6,7 +6,7 @@ export const Root = styled(TextField)`
 
   && {
     .NreTextFieldInputRoot {
-      border: 1.5px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+      border: 1.5px solid ${({ theme }) => theme.basePalette.greyscale['30']};
       border-radius: ${({ theme }) => theme.muiBorderRadius.md};
     }
 

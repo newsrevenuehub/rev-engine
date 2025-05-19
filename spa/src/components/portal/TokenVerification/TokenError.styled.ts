@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 export const Root = styled.div`
   align-self: stretch;
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey4};
+  background-color: #f9f9f9;
   padding: 50px;
 `;
 

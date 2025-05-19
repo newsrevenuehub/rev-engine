@@ -6,6 +6,7 @@ from django.db.models import Model
 from django.utils.text import slugify
 
 import CloudFlare
+import requests
 import reversion
 import stripe
 
@@ -15,6 +16,27 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 CREATED = "created"
 UPDATED = "updated"
 LEFT_UNCHANGED = "left unchanged"
+
+
+def hide_sentry_environment(ticket_id: str, org_slug: str, project_slug: str, auth_token: str):
+    """Hide a Sentry environment for a ticket."""
+    env_name = ticket_id.lower()
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    hide_request = requests.put(
+        f"https://sentry.io/api/0/projects/{org_slug}/{project_slug}/environments/{env_name}/",
+        headers=headers,
+        json={"isHidden": True},
+        timeout=5,
+    )
+    if hide_request.status_code != 200:
+        logger.error(
+            "Failed to hide Sentry environment %s: status code %s, response %s",
+            env_name,
+            hide_request.status_code,
+            hide_request.text,
+        )
+    else:
+        logger.info("Successfully hid Sentry environment %s", env_name)
 
 
 def delete_stripe_webhook(webhook_url, api_key):

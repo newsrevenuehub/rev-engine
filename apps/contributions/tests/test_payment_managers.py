@@ -1,7 +1,11 @@
+from collections.abc import Callable
+
 import pytest
+import pytest_mock
 import stripe
 from addict import Dict as AttrDict
 
+from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError, StripePaymentManager
 from apps.contributions.tests.factories import ContributionFactory
@@ -16,8 +20,12 @@ class TestStripePaymentManager:
             lambda: ContributionFactory(monthly_subscription=True, flagged=True),
         ],
     )
-    @pytest.mark.parametrize("reject", [True, False])
-    def test_complete_payment(self, make_contribution_fn, reject, mocker):
+    def test_complete_payment_when_approving(
+        self,
+        make_contribution_fn: Callable,
+        mocker: pytest_mock.MockerFixture,
+        stripe_subscription_expanded: stripe.Subscription,
+    ):
         spm = StripePaymentManager(contribution=(contribution := make_contribution_fn()))
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
         mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict({"id": "si_id_123"}))
@@ -31,32 +39,23 @@ class TestStripePaymentManager:
         mock_pm_retrieve.return_value.detach = mocker.Mock()
         mock_sub_create = mocker.patch(
             "stripe.Subscription.create",
-            return_value=stripe.Subscription.construct_from(
-                {"id": "sub_id_123", "latest_invoice": {"payment_intent": {"id": "pi_test"}}}, key="test"
-            ),
+            return_value=stripe_subscription_expanded,
         )
         save_spy = mocker.spy(Contribution, "save")
         mock_create_revision = mocker.patch("reversion.create_revision")
         mock_create_revision.return_value.__enter__.return_value = mocker.Mock()
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
-        spm.complete_payment(reject=reject)
+        spm.complete_payment(new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN, reject=False)
         contribution.refresh_from_db()
         if contribution.interval == ContributionInterval.ONE_TIME:
             mock_pi_retrieve.assert_called_once_with(
                 contribution.provider_payment_id,
                 stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
-            if reject:
-                mock_pi_retrieve.return_value.cancel.assert_called_once_with(
-                    contribution.provider_payment_id,
-                    stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
-                    cancellation_reason="fraudulent",
-                )
-            else:
-                mock_pi_retrieve.return_value.capture.assert_called_once_with(
-                    contribution.provider_payment_id,
-                    stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
-                )
+            mock_pi_retrieve.return_value.capture.assert_called_once_with(
+                contribution.provider_payment_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
+            )
 
         else:
             mock_si_retrieve.assert_called_once_with(
@@ -67,14 +66,11 @@ class TestStripePaymentManager:
                 contribution.provider_payment_method_id,
                 stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
-            if reject:
-                mock_pm_retrieve.return_value.detach.assert_called_once()
-            else:
-                mock_sub_create.assert_called_once()
-                assert contribution.provider_subscription_id == mock_sub_create.return_value.id
-                assert contribution.provider_payment_id == mock_sub_create.return_value.latest_invoice.payment_intent.id
-        expected_update_fields = {"status", "modified"}
-        if not reject and contribution.interval != ContributionInterval.ONE_TIME:
+            mock_sub_create.assert_called_once()
+            assert contribution.provider_subscription_id == mock_sub_create.return_value.id
+            assert contribution.provider_payment_id == mock_sub_create.return_value.latest_invoice.payment_intent.id
+        expected_update_fields = {"status", "modified", "quarantine_status"}
+        if contribution.interval != ContributionInterval.ONE_TIME:
             expected_update_fields.update({"provider_subscription_id", "provider_payment_id"})
         save_spy.assert_called_once_with(
             contribution,
@@ -82,13 +78,74 @@ class TestStripePaymentManager:
         )
         mock_create_revision.assert_called_once()
         mock_set_revision_comment.assert_called_once()
-        assert contribution.status == ContributionStatus.REJECTED if reject else ContributionStatus.PAID
+        assert contribution.quarantine_status == QuarantineStatus.APPROVED_BY_HUMAN
+        assert contribution.status == ContributionStatus.PAID
+
+    @pytest.mark.parametrize(
+        "make_contribution_fn,",
+        [
+            lambda: ContributionFactory(one_time=True, flagged=True),
+            lambda: ContributionFactory(monthly_subscription=True, flagged=True),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "quarantine_status",
+        [
+            QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+            QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+            QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+        ],
+    )
+    def test_complete_payment_when_rejecting(
+        self,
+        make_contribution_fn: Callable,
+        mocker: pytest_mock.MockerFixture,
+        quarantine_status: QuarantineStatus,
+    ):
+        spm = StripePaymentManager(contribution=(contribution := make_contribution_fn()))
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
+        mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict({"id": "si_id_123"}))
+        mocker.patch("stripe.Subscription.list")
+        mock_si_retrieve.return_value.payment_method = "pm_id_123"
+        mock_si_retrieve.return_value.metadata = {"meta": "data"}
+        mock_pm_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
+        mock_pm_retrieve.return_value = AttrDict(
+            {"id": "pm_id_123", "card": AttrDict({"brand": "visa", "last4": "1234"})}
+        )
+        mock_pm_retrieve.return_value.detach = mocker.Mock()
+
+        save_spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value = mocker.Mock()
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        spm.complete_payment(new_quarantine_status=quarantine_status, reject=True)
+        contribution.refresh_from_db()
+        if contribution.interval == ContributionInterval.ONE_TIME:
+            mock_pi_retrieve.assert_called_once_with(
+                contribution.provider_payment_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
+            )
+
+        else:
+            mock_pm_retrieve.assert_called_once_with(
+                contribution.provider_payment_method_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
+            )
+        expected_update_fields = {"status", "modified", "quarantine_status"}
+        save_spy.assert_called_once_with(
+            contribution,
+            update_fields=expected_update_fields,
+        )
+        mock_create_revision.assert_called_once()
+        mock_set_revision_comment.assert_called_once()
+        assert contribution.quarantine_status == quarantine_status
+        assert contribution.status == ContributionStatus.REJECTED
 
     def test_complete_payment_when_one_time_and_no_provider_payment_id(self, mocker):
         contribution = ContributionFactory(one_time=True, flagged=True, provider_payment_id=None)
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError) as exc:
-            spm.complete_payment()
+            spm.complete_payment(new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN, reject=False)
         assert str(exc.value) == "Cannot retrieve payment data"
 
     def test_complete_payment_when_one_time_and_no_pi(self, mocker):
@@ -97,7 +154,7 @@ class TestStripePaymentManager:
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
-            spm.complete_payment()
+            spm.complete_payment(new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN, reject=False)
         save_spy.assert_not_called()
 
     def test_complete_payment_when_one_time_and_cancel_fails(self, mocker):
@@ -107,7 +164,7 @@ class TestStripePaymentManager:
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
-            spm.complete_payment(reject=True)
+            spm.complete_payment(reject=True, new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD)
         save_spy.assert_not_called()
 
     def test_complete_payment_when_one_time_and_capture_fails(self, mocker):
@@ -117,7 +174,7 @@ class TestStripePaymentManager:
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
-            spm.complete_payment(reject=False)
+            spm.complete_payment(reject=False, new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN)
         save_spy.assert_not_called()
 
     def test_complete_payment_when_recurring_and_reject_and_no_pm(self, mocker):
@@ -126,7 +183,7 @@ class TestStripePaymentManager:
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=None)
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
-        spm.complete_payment(reject=True)
+        spm.complete_payment(reject=True, new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD)
         save_spy.assert_called_once()
 
     def test_complete_payment_when_recurring_and_reject_and_detach_fails(self, mocker):
@@ -137,7 +194,7 @@ class TestStripePaymentManager:
         mock_pm.return_value.detach.side_effect = stripe.error.StripeError("uh oh")
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
-        spm.complete_payment(reject=True)
+        spm.complete_payment(reject=True, new_quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD)
         save_spy.assert_called_once()
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.REJECTED
@@ -148,7 +205,7 @@ class TestStripePaymentManager:
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
-            spm.complete_payment(reject=False)
+            spm.complete_payment(reject=False, new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN)
         save_spy.assert_not_called()
 
     def test_complete_payment_when_recurring_and_not_reject_and_subscription_create_fails(self, mocker):
@@ -161,7 +218,7 @@ class TestStripePaymentManager:
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
-            spm.complete_payment(reject=False)
+            spm.complete_payment(reject=False, new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN)
         model_create_sub_spy.assert_called_once()
         save_spy.assert_not_called()
 
@@ -184,10 +241,12 @@ class TestStripePaymentManager:
         ContributionFactory(monthly_subscription=True, flagged=True, provider_subscription_id=sub_id)
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError) as exc:
-            spm.complete_payment(reject=False)
+            spm.complete_payment(reject=False, new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN)
         assert f"Subscription {sub_id} already exists on contribution" in str(exc.value)
 
-    def test_complete_payment_when_recurring_and_accept_and_existing_subscription_with_si_pm(self, mocker):
+    def test_complete_payment_when_recurring_and_accept_and_existing_subscription_with_si_pm(
+        self, mocker: pytest_mock.MockerFixture
+    ):
         mocker.patch(
             "stripe.SetupIntent.retrieve", return_value=(si := mocker.Mock(payment_method="pm_123", id="si_123"))
         )
@@ -202,7 +261,7 @@ class TestStripePaymentManager:
         ]
         contribution = ContributionFactory(monthly_subscription=True, flagged=True)
         spm = StripePaymentManager(contribution=contribution)
-        spm.complete_payment(reject=False)
+        spm.complete_payment(reject=False, new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN)
         contribution.refresh_from_db()
         assert contribution.provider_subscription_id == sub_id
         assert contribution.provider_payment_id == pi.id

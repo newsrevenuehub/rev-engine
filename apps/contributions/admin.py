@@ -5,13 +5,15 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin import ModelAdmin
 from django.db.models import Min, QuerySet
-from django.http import HttpRequest
-from django.urls import reverse
+from django.http import HttpRequest, HttpResponseRedirect
+from django.urls import re_path, reverse
+from django.urls.resolvers import URLPattern
 from django.utils.html import format_html
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
+from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
 from apps.contributions.payment_managers import PaymentProviderError
 
@@ -285,13 +287,16 @@ class Quarantine(Contribution):
 
 @admin.register(Quarantine)
 class QuarantineQueue(admin.ModelAdmin):
-    actions = (
-        "accept_flagged_contribution",
-        "reject_flagged_contribution",
-    )
 
+    actions = [
+        "approve_quarantined_contribution_action",
+        "reject_for_duplicate",
+        "reject_for_fraud",
+        "reject_for_other",
+    ]
     list_display = [
         "contribution",
+        "resolve_field",
         "flagged_date",
         "amount",
         "interval",
@@ -306,6 +311,14 @@ class QuarantineQueue(admin.ModelAdmin):
         "interval",
     ]
 
+    ordering = (
+        "contributor__email_future",
+        "created",
+    )
+
+    class Media:
+        css = {"all": ("admin/css/quarantine-admin.css",)}
+
     def has_delete_permission(self, request):
         return False
 
@@ -315,6 +328,126 @@ class QuarantineQueue(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
+    @admin.action(description="Approve")
+    def approve_quarantined_contribution_action(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        for obj in queryset:
+            try:
+                obj.process_flagged_payment(
+                    reject=False,
+                    new_quarantine_status=QuarantineStatus.APPROVED_BY_HUMAN,
+                )
+            except PaymentProviderError as exc:
+                self.message_user(
+                    request,
+                    f"Could not complete action for contributions: {exc}",
+                    messages.ERROR,
+                )
+            else:
+                self.message_user(request, "Successfully approved quarantined contributions", messages.SUCCESS)
+
+    def _reject(self, request: HttpRequest, queryset: QuerySet[Contribution], quarantine_status: QuarantineStatus):
+        for obj in queryset:
+            try:
+                obj.process_flagged_payment(
+                    reject=True,
+                    new_quarantine_status=quarantine_status,
+                )
+            except PaymentProviderError as exc:
+                self.message_user(
+                    request,
+                    f"Could not complete action for contributions: {exc}",
+                    messages.ERROR,
+                )
+            else:
+                self.message_user(request, "Successfully rejected quarantined contributions", messages.SUCCESS)
+
+    @admin.action(description="Reject - Duplicate")
+    def reject_for_duplicate(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        self._reject(
+            request,
+            queryset,
+            quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+        )
+
+    @admin.action(description="Reject - Fraud")
+    def reject_for_fraud(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        self._reject(
+            request,
+            queryset,
+            quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+        )
+
+    @admin.action(description="Reject - Other")
+    def reject_for_other(self, request: HttpRequest, queryset: QuerySet[Contribution]) -> None:
+        self._reject(
+            request,
+            queryset,
+            quarantine_status=QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+        )
+
+    def get_urls(self) -> list[URLPattern]:
+        urls = super().get_urls()
+        custom_urls = [
+            re_path(
+                r"^approve_quarantined_contribution/(?P<contribution_id>.+)/$",
+                self.admin_site.admin_view(self.approve_quarantined_contribution),
+                name="approve_quarantined_contribution",
+            ),
+            re_path(
+                r"^reject_quarantined_contribution/(?P<contribution_id>.+)/(?P<status>.+)/$",
+                self.admin_site.admin_view(self.reject_quarantined_contribution),
+                name="reject_quarantined_contribution",
+            ),
+        ]
+        return custom_urls + urls
+
+    def resolve_field(self, obj: Contribution):
+        mapping = [
+            {
+                "label": "✅ appr",
+                "url": reverse("admin:approve_quarantined_contribution", args=[obj.id]),
+                "class": "approve",
+            },
+            {
+                "label": "❌ dupe",
+                "url": reverse(
+                    "admin:reject_quarantined_contribution",
+                    args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_DUPE.value],
+                ),
+                "class": "reject",
+            },
+            {
+                "label": "❌ fraud",
+                "url": reverse(
+                    "admin:reject_quarantined_contribution",
+                    args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_FRAUD.value],
+                ),
+                "class": "reject",
+            },
+            {
+                "label": "❌ other",
+                "url": reverse(
+                    "admin:reject_quarantined_contribution",
+                    args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_OTHER.value],
+                ),
+                "class": "reject",
+            },
+        ]
+
+        actions = [f"""<a class="button {x['class']}" href="{x['url']}">{x['label']}</a>""" for x in mapping]
+        return format_html(
+            f"""<div class="quarantine-item-button-group">{"".join(actions)}</div>""",
+        )
+
+    resolve_field.short_description = "Resolve"
+    resolve_field.allow_tags = True
+
+    def approve_quarantined_contribution(self, request, contribution_id):
+        return self.complete_flagged_contribution(request, contribution_id, QuarantineStatus.APPROVED_BY_HUMAN)
+
+    def reject_quarantined_contribution(self, request, contribution_id, status):
+        return self.complete_flagged_contribution(request, contribution_id, status)
+
     def contribution(self, obj):
         url = reverse("admin:contributions_contribution_change", args=[obj.id])
         return format_html('<a href="{}">{}</a>', url, obj.id)
@@ -323,8 +456,12 @@ class QuarantineQueue(admin.ModelAdmin):
         if obj.bad_actor_response:
             return next((x for x in obj.bad_actor_response["items"] if x["label"] == "name"), {}).get("value")
 
-    def email(self, obj):
-        return obj.contributor.email if obj.contributor else None
+    def email(self, obj: Contribution) -> str | None:
+        # TODO @BW: Remove conditionality around contributor with DEV-5393
+        # DEV-5393
+        if contributor := getattr(obj, "contributor", None):
+            return contributor.email_future or contributor.email
+        return None
 
     def address(self, obj):
         if obj.bad_actor_response:
@@ -341,43 +478,26 @@ class QuarantineQueue(admin.ModelAdmin):
 
     _reason.short_description = "Reason"
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(status=ContributionStatus.FLAGGED)
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Contribution]:
+        return (
+            super()
+            .get_queryset(request)
+            .filter(quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR)
+            .exclude(status=ContributionStatus.ABANDONED)
+        )
 
-    @admin.action(description="Accept flagged contributions")
-    def accept_flagged_contribution(self, request, queryset):
-        self._process_flagged_payment(request, queryset, reject=False)
-
-    @admin.action(description="Reject flagged contributions")
-    def reject_flagged_contribution(self, request, queryset):
-        self._process_flagged_payment(request, queryset, reject=True)
-
-    def _process_flagged_payment(self, request, queryset, reject=False):
-
-        action = "reject" if reject else "accept"
-        succeeded = 0
-        failed = {}
-        for contribution in queryset:
-            contribution.refresh_from_db()
-            if contribution.status == ContributionStatus.FLAGGED:
-                try:
-                    contribution.process_flagged_payment(reject=reject)
-                except PaymentProviderError as exc:
-                    failed[contribution.id] = str(exc)
-                else:
-                    succeeded += 1
-
-        if succeeded:
-            self.message_user(
+    def complete_flagged_contribution(self, request: HttpRequest, contribution_id: str, quarantine_status: str):
+        try:
+            con = Contribution.objects.get(id=contribution_id)
+        except Contribution.DoesNotExist:
+            self.message_user(request, "Contribution not found", messages.ERROR)
+            return HttpResponseRedirect(reverse("admin:contributions_quarantine_changelist"))
+        if quarantine_status == QuarantineStatus.APPROVED_BY_HUMAN.value:
+            self.approve_quarantined_contribution_action(request, [con])
+        else:
+            self._reject(
                 request,
-                f"Successfully {action}ed {succeeded} payments. Payment state may not immediately reflect change of payment status.",
-                messages.SUCCESS,
+                [con],
+                quarantine_status=QuarantineStatus(quarantine_status),
             )
-
-        if failed:
-            error_message = ", ".join(f"{k}: {v}" for k, v in failed.items())
-            self.message_user(
-                request,
-                f"Could not complete action for contributions: {error_message}",
-                messages.ERROR,
-            )
+        return HttpResponseRedirect(reverse("admin:contributions_quarantine_changelist"))

@@ -13,6 +13,7 @@ from pytest_django.fixtures import SettingsWrapper
 from requests.exceptions import RequestException
 
 from apps.contributions import tasks as contribution_tasks
+from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory
@@ -22,7 +23,7 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 
 
 @pytest.fixture
-def now():
+def now() -> timezone.datetime:
     return timezone.now()
 
 
@@ -36,38 +37,6 @@ def expiring_flagged_contributions(now):
 def non_expiring_flagged_contributions(now):
     flagged_date = now - timedelta(days=1)
     return ContributionFactory.create_batch(2, status=ContributionStatus.FLAGGED, flagged_date=flagged_date)
-
-
-@pytest.mark.django_db
-class AutoAcceptFlaggedContributionsTaskTest:
-    def test_successful_captures(self, non_expiring_flagged_contributions, expiring_flagged_contributions, mocker):
-        expected_update_count = len(expiring_flagged_contributions)
-        mock_complete_payment = mocker.patch(
-            "apps.contributions.payment_managers.StripePaymentManager.complete_payment"
-        )
-        succeeded, failed = contribution_tasks.auto_accept_flagged_contributions()
-        mock_complete_payment.assert_called_n_times(expected_update_count)
-        assert succeeded == expected_update_count
-        assert failed == 0
-
-    def test_unsuccessful_captures(self, mocker, expiring_flagged_contributions, non_expiring_flagged_contributions):
-        mock_complete_payment = mocker.patch(
-            "apps.contributions.payment_managers.StripePaymentManager.complete_payment"
-        )
-        succeeded, failed = contribution_tasks.auto_accept_flagged_contributions()
-        mock_complete_payment.side_effect = PaymentProviderError
-        mock_complete_payment.assert_called_n_times(expected_len := len(expiring_flagged_contributions))
-        assert failed == expected_len
-        assert succeeded == 0
-
-    def test_only_acts_on_flagged(self, mocker, non_expiring_flagged_contributions):
-        mock_complete_payment = mocker.patch(
-            "apps.contributions.payment_managers.StripePaymentManager.complete_payment"
-        )
-        succeeded, failed = contribution_tasks.auto_accept_flagged_contributions()
-        mock_complete_payment.assert_not_called()
-        assert succeeded == 0
-        assert failed == 0
 
 
 @pytest.mark.django_db
@@ -362,12 +331,34 @@ def test_mark_abandoned_carts_as_abandoned(abandoned_exists, unmarked_abandoned_
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("payment_provider_error", [True, False])
-def test_auto_accept_flagged_contributions(payment_provider_error, mocker):
-    ContributionFactory(flagged=True)
-    mock_ping_healthchecks = mocker.patch("apps.contributions.tasks.ping_healthchecks")
-    mock_complete_payment = mocker.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
-    if payment_provider_error:
-        mock_complete_payment.side_effect = PaymentProviderError("Uh oh")
-    contribution_tasks.auto_accept_flagged_contributions()
-    assert mock_ping_healthchecks.called
+class Test_auto_accept_flagged_contributions:
+
+    @pytest.fixture
+    def eligible_contributions(self, now: timezone.datetime) -> list[Contribution]:
+        return ContributionFactory.create_batch(
+            size=2,
+            quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+            flagged_date=now - timedelta(days=settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA),
+        )
+
+    def test_happy_path(self, mocker: pytest_mock.MockerFixture, eligible_contributions: list[Contribution]) -> None:
+        mock_ping_healthchecks = mocker.patch("apps.contributions.tasks.ping_healthchecks")
+        mock_complete_payment = mocker.patch(
+            "apps.contributions.payment_managers.StripePaymentManager.complete_payment"
+        )
+        success_count, fail_count = contribution_tasks.auto_accept_flagged_contributions()
+        mock_ping_healthchecks.assert_called_once()
+        assert mock_complete_payment.call_count == len(eligible_contributions)
+        assert success_count == len(eligible_contributions)
+        assert fail_count == 0
+
+    def test_when_payment_provider_error(
+        self, mocker: pytest_mock.MockerFixture, eligible_contributions: list[Contribution]
+    ) -> None:
+        mocker.patch(
+            "apps.contributions.payment_managers.StripePaymentManager.complete_payment",
+            side_effect=[None, PaymentProviderError("Uh oh")],
+        )
+        success_count, fail_count = contribution_tasks.auto_accept_flagged_contributions()
+        assert success_count == 1
+        assert fail_count == 1

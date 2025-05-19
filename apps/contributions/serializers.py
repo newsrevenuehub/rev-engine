@@ -15,7 +15,7 @@ from stripe.error import CardError, StripeError
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorOverallScore
-from apps.contributions.choices import BadActorAction
+from apps.contributions.choices import BadActorAction, QuarantineStatus
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.models import (
     Contribution,
@@ -417,9 +417,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             contribution_data["bad_actor_response"] = bad_actor_response.dict()
             if self.should_reject(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.REJECTED
+                contribution_data["quarantine_status"] = QuarantineStatus.REJECTED_BY_MACHINE_FOR_BAD_ACTOR
             elif self.should_flag(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
+                contribution_data["quarantine_status"] = QuarantineStatus.FLAGGED_BY_BAD_ACTOR
         return Contribution(**contribution_data)
 
     def generate_stripe_metadata(self, contribution: Contribution) -> StripePaymentMetadataSchemaV1_4:

@@ -910,6 +910,12 @@ def stripe_subscription():
         return stripe.Subscription.construct_from(json.load(f), key="test")
 
 
+@pytest.fixture
+def stripe_subscription_expanded():
+    with Path("apps/contributions/tests/fixtures/subscription-expand-invoice-pi.json").open() as f:
+        return stripe.Subscription.construct_from(json.load(f), key="test")
+
+
 def payment_intent_for_recurring_charge_expanded():
     with Path("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json").open() as f:
         return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)

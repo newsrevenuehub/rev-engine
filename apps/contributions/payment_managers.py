@@ -5,6 +5,7 @@ from django.conf import settings
 import reversion
 import stripe
 
+from apps.contributions.choices import QuarantineStatus
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
     StripeOneTimePaymentSerializer,
@@ -67,11 +68,11 @@ class StripePaymentManager(PaymentManager):
             return StripeOneTimePaymentSerializer
         return StripeRecurringPaymentSerializer
 
-    def complete_payment(self, reject=False):
+    def complete_payment(self, new_quarantine_status: QuarantineStatus, reject: bool = False):
         if self.contribution.interval == ContributionInterval.ONE_TIME:
-            self.complete_one_time_payment(reject)
+            self.complete_one_time_payment(new_quarantine_status, reject)
         else:
-            self.complete_recurring_payment(reject)
+            self.complete_recurring_payment(new_quarantine_status, reject)
 
     def _handle_one_time_acceptance(self, pi, update_data) -> dict:
         """Capture the payment intent and update the contribution status to PAID."""
@@ -98,14 +99,14 @@ class StripePaymentManager(PaymentManager):
         update_data["status"] = ContributionStatus.REJECTED
         return update_data
 
-    def complete_one_time_payment(self, reject=False) -> None:
+    def complete_one_time_payment(self, new_quarantine_status: QuarantineStatus, reject: bool = False) -> None:
         """Attempt to complete a one-time payment.
 
         If we're approving and we can't get the payment intent we raise an error.
         If we're approving and we can get the payment intent, we capture the payment intent and update contribution status to paid.
         If we're rejecting, we cancel the payment intent.
         """
-        update_data = {}
+        update_data = {"quarantine_status": new_quarantine_status}
         if not self.contribution.provider_payment_id or not (pi := self.contribution.stripe_payment_intent):
             logger.error(
                 "`StripePaymentManager.complete_one_time_payment` error retrieving payment intent for contribution"
@@ -233,7 +234,7 @@ class StripePaymentManager(PaymentManager):
                 )
         return update_data
 
-    def complete_recurring_payment(self, reject=False) -> None:
+    def complete_recurring_payment(self, new_quarantine_status: QuarantineStatus, reject: bool = False) -> None:
         """Attempt to complete a recurring payment.
 
         If we're rejecting, we try to detach the payment method and update the contribution status to REJECTED. If detachment fails,
@@ -250,7 +251,7 @@ class StripePaymentManager(PaymentManager):
         If we're accepting and it's the happy path, we create a stripe subscription using the payment method from the setup intent,
         save back data and status on the contribution.
         """
-        update_data = {}
+        update_data = {"quarantine_status": new_quarantine_status}
         si = self.contribution.stripe_setup_intent
         pm = self.contribution.fetch_stripe_payment_method(self.contribution.provider_payment_method_id)
         if reject:

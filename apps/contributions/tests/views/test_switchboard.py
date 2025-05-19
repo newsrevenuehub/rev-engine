@@ -1,9 +1,12 @@
 from datetime import timedelta
 
+from django.http import HttpRequest
+from django.test import Client
 from django.utils import timezone
 from django.utils.timezone import now
 
 import pytest
+import pytest_mock
 import reversion
 from knox.models import AuthToken
 from rest_framework import status
@@ -359,7 +362,7 @@ class TestSwitchboardContributionsViewSet:
             ("", False),
         ],
     )
-    def test_create_receipt_behavior(
+    def test_create_send_receipt_query_param(
         self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
     ):
         mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
@@ -467,6 +470,34 @@ class TestSwitchboardContributionsViewSet:
         versions = reversion.models.Version.objects.get_for_object(contribution)
         assert versions.count() == 1
         assert versions[0].revision.comment == "Contribution updated by Switchboard"
+
+    @pytest.mark.parametrize(
+        ("querystring", "send_receipt"),
+        [
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=yes", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=y", True),
+            (f"?{SEND_RECEIPT_QUERY_PARAM}=true", True),
+            ("", False),
+        ],
+    )
+    def test_update_send_receipt_query_param(
+        self,
+        api_client: Client,
+        contribution: Contribution,
+        request: HttpRequest,
+        switchboard_api_token: str,
+        querystring: str,
+        send_receipt: bool,
+        mocker: pytest_mock.MockerFixture,
+    ) -> None:
+        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        response = api_client.patch(
+            reverse("switchboard-contribution-detail", args=(contribution.id,)) + querystring,
+            data={"amount": contribution.amount + 1000},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_handle_receipt_email.called is send_receipt
 
     @pytest.fixture
     def invalid_update_data_both_rp_and_page(self, update_data_recurring_with_page):

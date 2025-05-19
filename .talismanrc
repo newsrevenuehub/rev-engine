@@ -16,6 +16,11 @@ fileignoreconfig:
 # Complaints about a potential secret pattern, false positive in DEV-5663
 - filename: apps/organizations/tests/test_serializers.py
   checksum: 2400d0360e505ee87116cf9c54dcf48299ea35ae9a4107eeef99a1581b95064c
+# Complaints about fake IDs in subscription JSON
+- filename: apps/contributions/tests/fixtures/subscription-expand-invoice-pi.json
+  checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f
 # Complaints about SHAS
 - filename: poetry.lock
   checksum: 41bebad3ce7c6955e36322c5dbf67bb7bacdf2a8a60ad9a022dd786804154251
+- filename: apps/organizations/tests/test_admin.py
+  checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523

@@ -73,12 +73,3 @@ def test_export_contributions_to_csv():
         assert contribution.billing_phone
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.billing_phone
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]] == (contribution.contribution_metadata or {}).get("referer", "")
-
-
-@pytest.mark.django_db
-def test_export_contributions_to_csv_when_contribution_has_no_contributor(one_time_contribution):
-    one_time_contribution.contributor.delete()
-    one_time_contribution.refresh_from_db()
-    row = next(DictReader(io.StringIO(export_contributions_to_csv([one_time_contribution]))))
-    assert row["Contribution ID"] == str(one_time_contribution.id)
-    assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == ""

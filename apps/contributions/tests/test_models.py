@@ -851,10 +851,6 @@ class TestContributionModel:
                 lambda trait: ContributionFactory(contributor=ContributorFactory(email="something"), **{trait: True}),
                 "something",
             ),
-            (
-                lambda trait: ContributionFactory(contributor=None, **{trait: True}),
-                "",
-            ),
         ],
     )
     def test_billing_email(
@@ -2102,13 +2098,6 @@ class TestContributionModel:
         assert activity_log.pk
         assert activity_log.created
         assert activity_log.modified
-
-    def test_create_contributor_canceled_contribution_activity_log_no_contributor(
-        self, contribution: Contribution
-    ) -> None:
-        contribution.contributor = None
-        contribution.save()
-        assert contribution.create_contributor_canceled_contribution_activity_log() is None
 
     def test_create_contributor_canceled_contribution_activity_log_unexpected_error(
         self, contribution: Contribution, mocker: pytest_mock.MockerFixture

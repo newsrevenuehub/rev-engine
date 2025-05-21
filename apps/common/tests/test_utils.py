@@ -311,10 +311,6 @@ class Test_upsert_with_diff_check:
         return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
 
     @pytest.fixture
-    def instance_is_none(self):
-        return None
-
-    @pytest.fixture
     def update_data(self):
         return {"amount": self.UPDATE_AMOUNT, "donation_page": DonationPageFactory()}
 
@@ -343,12 +339,10 @@ class Test_upsert_with_diff_check:
 
     @pytest.fixture(
         params=[
-            {"instance": "instance_is_none", "dont_update": [], "action": "created"},
             {"instance": "instance_needs_update", "dont_update": [], "action": "updated"},
             {"instance": "instance_not_need_update", "dont_update": [], "action": "left unchanged"},
             {"instance": "instance_only_needs_amount_update", "dont_update": [], "action": "updated"},
             {"instance": "instance_only_needs_amount_update", "dont_update": ["amount"], "action": "left unchanged"},
-            {"instance": "instance_is_none", "dont_update": ["amount"], "action": "created"},
         ]
     )
     def upsert_with_diff_check_case(self, request):
@@ -362,7 +356,6 @@ class Test_upsert_with_diff_check:
         instance, expected_action, dont_update = upsert_with_diff_check_case
         mock_set_comment = mocker.patch("reversion.set_comment")
         create_revision_mock = mocker.patch("reversion.create_revision")
-
         result, action = upsert_with_diff_check(
             model=self.model,
             unique_identifier=unique_identifier,

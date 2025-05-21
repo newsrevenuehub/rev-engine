@@ -1,7 +1,10 @@
+import logging
+
 from django.http import HttpRequest
 from django.test import RequestFactory
 
 import pytest
+import pytest_mock
 
 from apps.common.utils import (
     booleanize_string,
@@ -12,6 +15,7 @@ from apps.common.utils import (
     get_original_ip_from_request,
     get_subdomain_from_request,
     google_cloud_pub_sub_is_configured,
+    hide_sentry_environment,
     logger,
     normalize_slug,
     upsert_cloudflare_cnames,
@@ -74,6 +78,37 @@ def test_extract_ticket_id_from_branch_name(branch_name: str, expected: str, moc
         logger_spy.assert_called_once_with("Could not extract ticket id from branch name: %s", branch_name)
     else:
         logger_spy.assert_not_called()
+
+
+def test_hide_sentry_environment_happy_path(mocker: pytest_mock.MockerFixture):
+    mock_put = mocker.patch("requests.put", return_value=mocker.MagicMock(status_code=200))
+    test_ticket_name = "TEST-123"
+    hide_sentry_environment(
+        ticket_id=test_ticket_name,
+        org_slug="test_org_slug",
+        project_slug="test_project_slug",
+        auth_token="test_auth_token",
+    )
+    mock_put.assert_called_once_with(
+        f"https://sentry.io/api/0/projects/test_org_slug/test_project_slug/environments/{test_ticket_name.lower()}/",
+        headers={"Authorization": "Bearer test_auth_token"},
+        json={"isHidden": True},
+        timeout=5,
+    )
+
+
+def test_hide_sentry_environment_errors_if_put_fails(mocker: pytest_mock.MockerFixture, caplog):
+    mock_put = mocker.patch("requests.put", return_value=mocker.MagicMock(status_code=404))
+    test_ticket_name = "TEST-123"
+    caplog.set_level(logging.WARNING)
+    hide_sentry_environment(
+        ticket_id=test_ticket_name,
+        org_slug="test_org_slug",
+        project_slug="test_project_slug",
+        auth_token="test_auth_token",
+    )
+    mock_put.assert_called_once()
+    assert f"Failed to hide Sentry environment {test_ticket_name.lower()}" in caplog.text
 
 
 def test_upsert_cloudflare_cnames(mocker, settings):

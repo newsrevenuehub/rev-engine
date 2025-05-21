@@ -17,7 +17,7 @@ export const EmptyColumn = styled.div`
 `;
 
 export const LastCardDigits = styled.span`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
 
   &::before {
     /* Leading dots */

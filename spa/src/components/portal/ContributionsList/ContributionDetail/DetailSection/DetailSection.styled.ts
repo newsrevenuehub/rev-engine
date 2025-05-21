@@ -8,7 +8,7 @@ export const Controls = styled.div`
 
 export const Header = styled.div`
   align-items: center;
-  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale['30']};
   display: flex;
   justify-content: space-between;
   margin-bottom: 24px;
@@ -26,7 +26,7 @@ export const MobileControls = styled.div`
 
 export const Root = styled.div<{ $disabled?: boolean; $highlighted: boolean }>`
   ${(props) => props.$disabled && 'opacity: 0.5'};
-  ${(props) => props.$highlighted && `background-color: ${props.theme.basePalette.greyscale.grey4}`};
+  ${(props) => props.$highlighted && `background-color: #f9f9f9`};
 
   /* Padding must be here so that there's padding around the highlight. */
   padding: 14px 40px;

@@ -14,8 +14,8 @@ const StyledSelect = styled(TextField)`
       padding: 9px 32px 9px 12px;
       min-width: 92px;
       box-sizing: border-box;
-      color: #707070;
-      background-color: #f9f9f9;
+      color: ${({ theme }) => theme.basePalette.greyscale['70']};
+      background-color: ${({ theme }) => theme.basePalette.greyscale.white};
 
       #menu-label {
         display: none;

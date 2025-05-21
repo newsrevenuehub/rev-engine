@@ -12,14 +12,13 @@ const COMPRESS_COLUMNS_BREAKPOINT = '1200px';
 export const Root = styled(Link)<{ $dimmed: boolean }>`
   && {
     align-items: center;
-    background-color: ${(props) =>
-      props.$dimmed ? props.theme.basePalette.greyscale.grey4 : props.theme.basePalette.greyscale.white};
+    background-color: ${(props) => (props.$dimmed ? '#f9f9f9' : props.theme.basePalette.greyscale.white)};
     border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
     box-shadow:
       0px 3px 4px 0px rgba(0, 0, 0, 0.12),
       -2px 0px 2px 0px rgba(0, 0, 0, 0.08);
     color: ${(props) =>
-      props.$dimmed ? props.theme.basePalette.greyscale.grey1 : props.theme.basePalette.greyscale.black};
+      props.$dimmed ? props.theme.basePalette.greyscale['70'] : props.theme.basePalette.greyscale.black};
     display: grid;
     gap: 0 12px;
     grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [card] 150px [status] 100px [amount] minmax(100px, 1fr);
@@ -30,7 +29,7 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
     transition: background-color 0.3s;
 
     &:hover {
-      background-color: ${({ theme }) => theme.basePalette.greyscale.grey4};
+      background-color: #f9f9f9;
       box-shadow:
         0px 3px 12px 0px rgba(0, 0, 0, 0.12),
         -2px 0px 10px 0px rgba(0, 0, 0, 0.16);
@@ -66,7 +65,7 @@ export const Amount = styled.div<{ $status: PaymentStatus }>`
   grid-area: amount;
   text-align: right;
 
-  ${(props) => props.$status === 'canceled' && `color: ${props.theme.basePalette.greyscale.grey1};`}
+  ${(props) => props.$status === 'canceled' && `color: ${props.theme.basePalette.greyscale['70']};`}
   ${(props) => props.$status === 'failed' && `color: ${props.theme.basePalette.secondary.error};`}
 `;
 
@@ -92,7 +91,7 @@ export const DateContainer = styled.div`
 
 export const IntervalIconContainer = styled.div<{ $status: PaymentStatus }>`
   align-items: center;
-  background-color: ${({ theme }) => theme.basePalette.greyscale.grey4};
+  background-color: #f9f9f9;
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   display: flex;
   grid-area: icon;
@@ -104,7 +103,7 @@ export const IntervalIconContainer = styled.div<{ $status: PaymentStatus }>`
 `;
 
 export const LastCardDigits = styled.span`
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale['70']};
 
   &::before {
     /* Leading dots */
@@ -133,7 +132,7 @@ export const Status = styled.div<{ $status: PaymentStatus }>`
   grid-area: status;
 
   &::before {
-    background-color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+    background-color: ${({ theme }) => theme.basePalette.greyscale['70']};
     border-radius: 7px;
     content: '';
     display: inline-block;

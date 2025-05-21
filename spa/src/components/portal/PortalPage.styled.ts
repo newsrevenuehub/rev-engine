@@ -37,7 +37,7 @@ export const Logo = styled.img`
 `;
 
 export const Root = styled.div`
-  background: ${(props) => props.theme.basePalette.greyscale.grey4};
+  background: #f9f9f9;
   display: grid;
   grid-template-rows: 60px 1fr 145px;
   min-height: 100vh;

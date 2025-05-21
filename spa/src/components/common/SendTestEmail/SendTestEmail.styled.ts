@@ -3,7 +3,7 @@ import styled from 'styled-components';
 export const Label = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
   font-weight: 400;
-  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  color: ${(props) => props.theme.basePalette.greyscale['70']};
   margin-bottom: 20px;
   line-height: normal;
 `;
@@ -11,7 +11,7 @@ export const Label = styled.p`
 export const Description = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   font-weight: 400;
-  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  color: ${(props) => props.theme.basePalette.greyscale['70']};
   margin-bottom: 20px;
   line-height: normal;
 `;

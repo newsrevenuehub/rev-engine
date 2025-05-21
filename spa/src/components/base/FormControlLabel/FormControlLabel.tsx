@@ -21,7 +21,7 @@ const StyledMuiFormControlLabel = styled(MuiFormControlLabel)`
       line-height: 24px;
 
       &.Mui-disabled {
-        color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+        color: ${({ theme }) => theme.basePalette.greyscale['70']};
       }
     }
   }

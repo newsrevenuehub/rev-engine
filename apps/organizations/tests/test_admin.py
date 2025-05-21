@@ -47,7 +47,7 @@ class TestBenefitAdmin:
         soup = BeautifulSoup(response.content)
         select = soup.find("select", {"name": "revenue_program"})
         org_options = [opt.text for opt in select.find_all("option") if opt.attrs.get("value")]
-        assert org_options == sorted(org_options)
+        assert org_options == sorted(org_options, key=lambda x: x.lower())
 
 
 @pytest.mark.django_db

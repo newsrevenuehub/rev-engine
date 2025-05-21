@@ -925,6 +925,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             "provider_payment_method_id",
             "provider_setup_intent_id",
             "provider_subscription_id",
+            "quarantine_status",
             "revenue_program",
             "revenue_program_source",
             "status",
@@ -934,6 +935,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "last_payment_date",
+            "quarantine_status",
         ]
 
     def get_revenue_program_source(

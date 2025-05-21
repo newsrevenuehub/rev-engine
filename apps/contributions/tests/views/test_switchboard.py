@@ -395,6 +395,7 @@ class TestSwitchboardContributionsViewSet:
             "provider_payment_method_details": contribution.provider_payment_method_details,
             "provider_setup_intent_id": contribution.provider_setup_intent_id,
             "provider_subscription_id": contribution.provider_subscription_id,
+            "quarantine_status": contribution.quarantine_status,
             "revenue_program": contribution.revenue_program.id,
             "revenue_program_source": (
                 SwitchboardContributionRevenueProgramSourceValues.DIRECT

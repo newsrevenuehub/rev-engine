@@ -21,6 +21,6 @@ fileignoreconfig:
   checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f
 # Complaints about SHAS
 - filename: poetry.lock
-  checksum: 41bebad3ce7c6955e36322c5dbf67bb7bacdf2a8a60ad9a022dd786804154251
+  checksum: ec60ef608a6647b67a25dde03e711e05ff5d5ad00b4a341d6d9adfc191eb242b
 - filename: apps/organizations/tests/test_admin.py
   checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523

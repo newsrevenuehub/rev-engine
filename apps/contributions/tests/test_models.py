@@ -895,6 +895,31 @@ class TestContributionModel:
             "monthly_subscription",
         ],
     )
+    def test_donor_selected_amount_happy_path(self, trait):
+        kwargs = {trait: True}
+        contribution = ContributionFactory(**kwargs)
+        assert contribution.donor_selected_amount
+        assert contribution.donor_selected_amount == float(contribution.contribution_metadata["donor_selected_amount"])
+
+    @pytest.mark.parametrize(
+        "metadata",
+        [{"donor_selected_amount": "cats"}, {}, None],
+    )
+    def test_donor_selected_amount_when_bad_contribution_metadata(self, metadata, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        contribution = ContributionFactory(contribution_metadata=metadata)
+        contribution.save()
+        assert contribution.donor_selected_amount is None
+        logger_spy.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "trait",
+        [
+            "one_time",
+            "annual_subscription",
+            "monthly_subscription",
+        ],
+    )
     def test_formatted_donor_selected_amount_happy_path(self, trait):
         kwargs = {trait: True}
         contribution = ContributionFactory(**kwargs)

@@ -54,22 +54,31 @@ def test_export_contributions_to_csv():
         assert contribution.billing_name
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[1]] == contribution.billing_name
         assert contribution.formatted_amount
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[2]] == contribution.formatted_amount
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[3]] == f"{contribution.amount / 100:.2f}"
         assert contribution.formatted_donor_selected_amount
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[3]] == contribution.formatted_donor_selected_amount
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[4]] == str(
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[4]] == f"{contribution.donor_selected_amount:.2f}"
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[5]] == str(
             (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", "")
         )
         assert contribution.interval
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[5]] == contribution.interval
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[6]] == contribution.interval
         assert contribution.created
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[6]] == str(contribution.created)
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[7]] == str(contribution.created)
         assert contribution.status
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[7]] == contribution.status
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[8]] == contribution.status
         assert contribution.billing_address
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[8]] == contribution.billing_address
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.billing_address
         assert contribution.billing_email
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.contributor.email
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.contributor.email
         assert contribution.billing_phone
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.billing_phone
-        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]] == (contribution.contribution_metadata or {}).get("referer", "")
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]] == contribution.billing_phone
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[12]] == (contribution.contribution_metadata or {}).get("referer", "")
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[13]] == (
+            (contribution.contribution_metadata or {}).get("reason_for_giving", "") or ""
+        )
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[14]] == (
+            (contribution.contribution_metadata or {}).get("honoree", "") or ""
+        )
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[15]] == (
+            (contribution.contribution_metadata or {}).get("in_memory_of", "") or ""
+        )

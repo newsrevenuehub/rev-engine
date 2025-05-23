@@ -452,24 +452,28 @@ class Contribution(IndexedTimeStampedModel):
         return ",".join([self.billing_details.address[x] or "" for x in order])
 
     @property
-    def formatted_donor_selected_amount(self) -> str:
+    def donor_selected_amount(self) -> float | None:
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(
-                "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s that"
+                "`Contribution.donor_selected_amount` called on contribution with ID %s that"
                 " does not have a value set for `contribution_metadata['donor_selected_amount']`",
                 self.id,
             )
-            return ""
+            return None
         try:
-            return f"{f'{float(amt):.2f}'} {self.currency.upper()}"
+            return float(amt)
         except ValueError:
             logger.warning(
-                "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s whose"
-                " value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to an integer.",
+                "`Contribution.donor_selected_amount` called on contribution with ID %s whose"
+                " value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to a float.",
                 self.id,
                 amt,
             )
-            return ""
+            return None
+
+    @property
+    def formatted_donor_selected_amount(self) -> str:
+        return f"{f'{self.donor_selected_amount:.2f}'} {self.currency.upper()}" if self.donor_selected_amount else ""
 
     BAD_ACTOR_SCORES = (
         (

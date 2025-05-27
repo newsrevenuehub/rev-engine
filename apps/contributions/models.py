@@ -1397,11 +1397,8 @@ class Contribution(IndexedTimeStampedModel):
         This is used to track the cancellation of a contribution by the contributor.
         """
         try:
-            if not (contributor := self.contributor):
-                logger.warning("Cannot create activity log for contribution %s because it has no contributor", self.pk)
-                return None
             return ActivityLog.objects.create(
-                actor_content_object=contributor,
+                actor_content_object=self.contributor,
                 activity_object_content_object=self,
                 action=ActivityLog.CANCEL,
             )

@@ -1,11 +1,11 @@
 import csv
 import hashlib
 import logging
-from collections.abc import Iterable
 from io import StringIO
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from django.db.models import QuerySet
 
 
 if TYPE_CHECKING:
@@ -70,7 +70,7 @@ CONTRIBUTION_EXPORT_CSV_HEADERS = (
 )
 
 
-def export_contributions_to_csv(contributions: Iterable["Contribution"]):
+def export_contributions_to_csv(contributions: QuerySet["Contribution"]):
     data = []
     for contribution in contributions:
         contributor = contribution.contributor

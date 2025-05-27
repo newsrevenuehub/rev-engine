@@ -453,6 +453,10 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def donor_selected_amount(self) -> float | None:
+        """Amount in dollars the contributor selected (e.g. dependent on whether the contributor chose to cover fees).
+
+        If this isn't present in contribution metadata, it is None.
+        """
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(
                 "`Contribution.donor_selected_amount` called on contribution with ID %s that"
@@ -473,6 +477,10 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def formatted_donor_selected_amount(self) -> str:
+        """Human-readable version of the contributor-selected amount, including currency.
+
+        If this data isn't present in contribution metadata, then this is an empty string.
+        """
         return f"{f'{self.donor_selected_amount:.2f}'} {self.currency.upper()}" if self.donor_selected_amount else ""
 
     BAD_ACTOR_SCORES = (

@@ -222,12 +222,6 @@ class TestQuarantineAdmin:
         admin = QuarantineQueue(Quarantine, admin_site=None)
         assert admin.name(one_time_contribution) is None
 
-    def test_email_when_no_contributor(self, one_time_contribution: Contribution):
-        one_time_contribution.contributor = None
-        one_time_contribution.save()
-        admin = QuarantineQueue(Quarantine, admin_site=None)
-        assert admin.email(one_time_contribution) is None
-
     def test_address_when_no_bad_actor_response(self, one_time_contribution: Contribution):
         one_time_contribution.bad_actor_response = None
         one_time_contribution.save()

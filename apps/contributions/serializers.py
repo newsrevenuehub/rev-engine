@@ -932,7 +932,6 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "last_payment_date",
-            "quarantine_status",
         ]
 
     def get_revenue_program_source(

@@ -84,7 +84,7 @@ class TestGenerateEmailData:
         mocker,
     ):
         mocker.patch("stripe.Customer.retrieve", return_value=customer)
-        mock_customizations = {}
+        mock_customizations = {"contribution_receipt": {"message": None}}
         mocker.patch("apps.emails.helpers.make_customizations_dict", return_value=mock_customizations)
         mock_contributor_portal_url = mocker.patch(
             "apps.organizations.models.RevenueProgram.contributor_portal_url",

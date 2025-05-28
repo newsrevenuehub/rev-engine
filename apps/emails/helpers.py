@@ -1,5 +1,6 @@
 import datetime
 import zoneinfo
+from typing import TypedDict
 
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -19,11 +20,17 @@ def convert_to_timezone_formatted(
     return localtz.strftime(date_format)
 
 
-def make_customizations_dict(customizations: QuerySet[EmailCustomization]) -> dict[str, dict[str, str]]:
+class ContributionReceiptEmailCustomizationsDict(TypedDict):
+    message: str | None
+
+
+class EmailCustomizationsDict(TypedDict):
+    contribution_receipt: ContributionReceiptEmailCustomizationsDict
+
+
+def make_customizations_dict(customizations: QuerySet[EmailCustomization]) -> EmailCustomizationsDict:
     """Transform a queryset of email customizations into a nested dict."""
-    result = {}
+    result: EmailCustomizationsDict = {"contribution_receipt": {"message": None}}
     for customization in customizations:
-        if not result.get(customization.email_type):
-            result[customization.email_type] = {}
         result[customization.email_type][customization.email_block] = customization
     return result

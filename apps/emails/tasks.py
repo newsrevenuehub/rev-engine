@@ -22,7 +22,7 @@ from sentry_sdk import configure_scope
 from stripe.error import StripeError
 
 from apps.contributions.choices import ContributionInterval
-from apps.emails.helpers import convert_to_timezone_formatted, make_customizations_dict
+from apps.emails.helpers import EmailCustomizationsDict, convert_to_timezone_formatted, make_customizations_dict
 from apps.emails.models import EmailCustomization
 from apps.organizations.models import FiscalStatusChoices, FreePlan, TransactionalEmailStyle
 
@@ -83,7 +83,7 @@ class SendContributionEmailData(TypedDict):
     ]
     contribution_interval_display_value: str
     copyright_year: int
-    customizations: dict[str, dict[str, str]]
+    customizations: EmailCustomizationsDict
     rp_name: str
     contributor_name: str
     non_profit: bool

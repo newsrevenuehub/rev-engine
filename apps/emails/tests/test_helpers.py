@@ -37,4 +37,6 @@ class TestMakeCustomizations:
         assert make_customizations_dict([customization]) == {"contribution_receipt": {"message": customization}}
 
     def test_handles_empty_queryset(self):
-        assert make_customizations_dict(EmailCustomization.objects.none()) == {}
+        assert make_customizations_dict(EmailCustomization.objects.none()) == {
+            "contribution_receipt": {"message": None}
+        }

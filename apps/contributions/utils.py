@@ -81,6 +81,7 @@ def export_contributions_to_csv(contributions: QuerySet["Contribution"]):
                 contribution.id,
                 CSV_HEADER_EMAIL,
             )
+        metadata = contribution.contribution_metadata or {}
         data.append(
             {
                 CSV_HEADER_CONTRIBUTION_ID: contribution.id,
@@ -90,17 +91,17 @@ def export_contributions_to_csv(contributions: QuerySet["Contribution"]):
                 CSV_HEADER_DONOR_SELECTED_AMOUNT: (
                     f"{contribution.donor_selected_amount:.2f}" if contribution.donor_selected_amount else ""
                 ),
-                CSV_HEADER_AGREED_TO_PAY_FEES: (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", ""),
+                CSV_HEADER_AGREED_TO_PAY_FEES: metadata.get("agreed_to_pay_fees", ""),
                 CSV_HEADER_FREQUENCY: contribution.interval,
                 CSV_HEADER_PAYMENT_DATE: contribution.created,
                 CSV_HEADER_PAYMENT_STATUS: contribution.status,
                 CSV_HEADER_ADDRESS: contribution.billing_address,
                 CSV_HEADER_EMAIL: contributor.email if contributor else None,
                 CSV_HEADER_PHONE: contribution.billing_phone,
-                CSV_HEADER_PAGE_URL: (contribution.contribution_metadata or {}).get("referer"),
-                CSV_HEADER_REASON_FOR_GIVING: (contribution.contribution_metadata or {}).get("reason_for_giving", ""),
-                CSV_HEADER_HONOREE: (contribution.contribution_metadata or {}).get("honoree", ""),
-                CSV_HEADER_IN_MEMORY_OF: (contribution.contribution_metadata or {}).get("in_memory_of", ""),
+                CSV_HEADER_PAGE_URL: metadata.get("referer"),
+                CSV_HEADER_REASON_FOR_GIVING: metadata.get("reason_for_giving", ""),
+                CSV_HEADER_HONOREE: metadata.get("honoree", ""),
+                CSV_HEADER_IN_MEMORY_OF: metadata.get("in_memory_of", ""),
             }
         )
 

@@ -887,6 +887,7 @@ class TestContributionModel:
         order = ("line1", "line2", "city", "state", "postal_code", "country")
         assert contribution.billing_address == ",".join([data["billing_details"]["address"][x] for x in order])
 
+    @pytest.mark.parametrize("amount", [1, 437, 10_000_00])
     @pytest.mark.parametrize(
         "trait",
         [
@@ -895,15 +896,15 @@ class TestContributionModel:
             "monthly_subscription",
         ],
     )
-    def test_donor_selected_amount_happy_path(self, trait):
-        kwargs = {trait: True}
+    def test_donor_selected_amount_happy_path(self, amount, trait):
+        kwargs = {"amount": amount, trait: True}
         contribution = ContributionFactory(**kwargs)
         assert contribution.donor_selected_amount
         assert contribution.donor_selected_amount == float(contribution.contribution_metadata["donor_selected_amount"])
 
     @pytest.mark.parametrize(
         "metadata",
-        [{"donor_selected_amount": "cats"}, {}, None],
+        [{"donor_selected_amount": "cats"}, {"donor_selected_amount": ""}, {"donor_selected_amount": None}, {}, None],
     )
     def test_donor_selected_amount_when_bad_contribution_metadata(self, metadata, mocker):
         logger_spy = mocker.spy(logger, "warning")

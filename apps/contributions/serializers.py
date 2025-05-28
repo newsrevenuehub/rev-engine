@@ -903,9 +903,6 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     revenue_program_source = serializers.SerializerMethodField(read_only=True)
-    # TODO @BW: Remove this once Contribution.contributor is non-nullable
-    # DEV-5953
-    contributor = serializers.PrimaryKeyRelatedField(queryset=Contributor.objects.all(), allow_null=False)
 
     class Meta:
         model = Contribution

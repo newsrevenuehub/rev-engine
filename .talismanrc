@@ -12,15 +12,21 @@ fileignoreconfig:
   checksum: e59bc640891f89cc6f1f4c5eebfd3e91a76ea19a107e5c681c259d9a8fc10e59
 # Complaints about SHAS
 - filename: spa/package-lock.json
-  checksum: af669d3cfb22592a95e98053d6ffce684c9bcbe6b8b9dcd4370f7fb481533668
+  checksum: d89c219ad47aed3046caa1a2200d755458d6f57ca30775090ea9afe85fe70363
+# Complaint about on_delete set to protect
+- filename: apps/contributions/models.py
+  checksum: a8d8ba39452106d15de17d5b6685835289bca9554604ed16ee7034679b9ad337
+# Complaint about on_delete set to protect
+- filename: apps/contributions/migrations/0019_DEV-5953_alter_contribution_contributor.py
+  checksum: 46cfdad2fe32315db8ce1618429588ed65933cbd4566b2ff7dcca4ab6605c70f
 # Complaints about a potential secret pattern, false positive in DEV-5663
 - filename: apps/organizations/tests/test_serializers.py
-  checksum: 2400d0360e505ee87116cf9c54dcf48299ea35ae9a4107eeef99a1581b95064c
+  checksum: dc46de11fc3b2b088f067a4ba25fb9260bd9923873d9da66cd5162380412ac14
 # Complaints about fake IDs in subscription JSON
 - filename: apps/contributions/tests/fixtures/subscription-expand-invoice-pi.json
   checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f
 # Complaints about SHAS
 - filename: poetry.lock
-  checksum: 41bebad3ce7c6955e36322c5dbf67bb7bacdf2a8a60ad9a022dd786804154251
+  checksum: 0665ee216aec10046e7259d69f28634462bf8d2ab5807e565a641b131ea8d7ce
 - filename: apps/organizations/tests/test_admin.py
   checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523

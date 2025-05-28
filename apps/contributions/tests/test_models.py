@@ -912,34 +912,6 @@ class TestContributionModel:
         assert contribution.donor_selected_amount is None
         logger_spy.assert_called_once()
 
-    @pytest.mark.parametrize(
-        "trait",
-        [
-            "one_time",
-            "annual_subscription",
-            "monthly_subscription",
-        ],
-    )
-    def test_formatted_donor_selected_amount_happy_path(self, trait):
-        kwargs = {trait: True}
-        contribution = ContributionFactory(**kwargs)
-        assert contribution.formatted_donor_selected_amount
-        assert (
-            contribution.formatted_donor_selected_amount
-            == f"{'{:.2f}'.format(float(contribution.contribution_metadata['donor_selected_amount']))} {contribution.currency.upper()}"
-        )
-
-    @pytest.mark.parametrize(
-        "metadata",
-        [{"donor_selected_amount": "cats"}, {}, None],
-    )
-    def test_formatted_donor_selected_amount_when_bad_contribution_metadata(self, metadata, mocker):
-        logger_spy = mocker.spy(logger, "warning")
-        contribution = ContributionFactory(contribution_metadata=metadata)
-        contribution.save()
-        assert contribution.formatted_donor_selected_amount == ""
-        logger_spy.assert_called_once()
-
     @pytest.mark.parametrize(("name", "symbol"), settings.CURRENCIES.items())
     def test_get_currency_dict(self, name, symbol):
         contribution = ContributionFactory(currency=name, provider_payment_method_id=None)

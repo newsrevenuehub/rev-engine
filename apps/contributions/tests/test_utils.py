@@ -55,7 +55,7 @@ def test_export_contributions_to_csv():
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[1]] == contribution.billing_name
         assert contribution.formatted_amount
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[3]] == f"{contribution.amount / 100:.2f}"
-        assert contribution.formatted_donor_selected_amount
+        assert contribution.donor_selected_amount
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[4]] == f"{contribution.donor_selected_amount:.2f}"
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[5]] == str(
             (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", "")

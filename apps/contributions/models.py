@@ -475,14 +475,6 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
-    @property
-    def formatted_donor_selected_amount(self) -> str:
-        """Human-readable version of the contributor-selected amount, including currency.
-
-        If this data isn't present in contribution metadata, then this is an empty string.
-        """
-        return f"{f'{self.donor_selected_amount:.2f}'} {self.currency.upper()}" if self.donor_selected_amount else ""
-
     BAD_ACTOR_SCORES = (
         (
             0,

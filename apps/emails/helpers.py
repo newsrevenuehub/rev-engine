@@ -1,7 +1,10 @@
 import datetime
 import zoneinfo
 
+from django.db.models import QuerySet
 from django.utils import timezone
+
+from apps.emails.models import EmailCustomization
 
 
 def convert_to_timezone_formatted(
@@ -16,7 +19,7 @@ def convert_to_timezone_formatted(
     return localtz.strftime(date_format)
 
 
-def make_customizations_dict(customizations):
+def make_customizations_dict(customizations: QuerySet[EmailCustomization]) -> dict[str, dict[str, str]]:
     """Transform a queryset of email customizations into a nested dict."""
     result = {}
     for customization in customizations:

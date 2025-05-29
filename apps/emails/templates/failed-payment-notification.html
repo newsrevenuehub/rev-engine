@@ -1,0 +1,118 @@
+{% extends "nrh-default-contribution-base-template.html" %}
+
+{% block custom_style %}
+<style type="text/css">
+  .header-background {
+    width: 600px;
+    height: 80px;
+    text-align: center;
+    vertical-align: middle;
+    background: #ffffff;
+    {% if style.header_color %}
+    background: {{ style.header_color }} !important;
+    {% endif %}
+  }
+
+  .header-background.default {
+    background: none !important;
+    text-align: left;
+  }
+
+  .header-logo {
+    height: 56px;
+    margin-top: 17px;
+    margin-bottom: 17px;
+    max-width: 100%;
+    width: auto;
+  }
+
+  .header-logo.default {
+    height: 50px;
+    width: auto;
+  }
+
+  .thank-you-title {
+    font-family: Roboto, sans-serif;
+    color: #25192B;
+    font-size: 30px;
+    margin-top: 37px;
+    margin-bottom: 25px;
+  }
+
+  .user-info {
+    font-family: Roboto, sans-serif;
+    color: #282828;
+    font-size: 16px;
+  }
+
+  .user-info-second-line {
+    margin-top: 28px;
+    margin-bottom: 25px;
+  }
+
+  .outer-center {
+    margin-left: 34px;
+    margin-right: 34px;
+  }
+
+  .billing-history-header {
+    font-family: Roboto, sans-serif;
+    font-size: 18px;
+    color: #282828;
+    margin-bottom: 20px;
+  }
+
+  .billing-history-label {
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #282828;
+    margin-bottom: 6px;
+  }
+
+  .billing-history-value {
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #282828;
+    margin-bottom: 12px;
+  }
+</style>
+{% endblock custom_style %}
+
+{% block header %}
+{% if style.is_default_logo == True and style.logo_url %}
+<tr>
+  <td class="header-background default">
+    <img class="header-logo inner-center default" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
+  </td>
+</tr>
+{% elif style.logo_url %}
+<tr>
+  <td class="header-background">
+    <img class="header-logo" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
+  </td>
+</tr>
+{% endif %}
+<tr>
+  <td style="padding-right: 0px;padding-left: 0px;" align="left">
+    <h1 class="thank-you-title inner-center">Failed Payment</h1>
+  </td>
+</tr>
+<tr>
+  <td style="padding-right: 0px;padding-left: 0px;" align="left">
+    <p class="user-info inner-center">
+      Dear {{ contribution.contributor.name }},
+    </p>
+    <p class="user-info user-info-second-line inner-center">
+      We're writing to let you now that there was an issue processing your recent contribution to
+      {{ contribution.revenue_program.name }}. Unfortunately, we were unable to complete the transaction.
+    </p>
+    <p class="user-info inner-center">
+      Please check with your bank or payment provider to ensure that there are no issues with your payment method.
+    </p>
+    <p class="user-info inner-center">
+      Payment details can be updated in <a href="{{ contribution.revenue_program.contributor_portal_url}}">the portal</a>.
+  </td>
+</tr>
+{% endblock header %}

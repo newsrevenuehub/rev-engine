@@ -5,8 +5,8 @@ Thank you for your contribution!
 
 Dear {{ contributor_name }},
 
-{% if customizations.contribution_receipt.message %}
-{{ customizations.contribution_receipt.message.content_plain_text }}
+{% if customizations.message %}
+{{ customizations.message.content_plain_text }}
 {% else %}
 Thank you for supporting {{ rp_name }}.
 {% endif %}

@@ -19,8 +19,17 @@ def convert_to_timezone_formatted(
     return localtz.strftime(date_format)
 
 
+class EmailCustomizationValues(TypedDict):
+    content_html: str
+    content_plain_text: str
+
+
 class ContributionReceiptCustomizations(TypedDict):
-    message: EmailCustomization | None
+    message: EmailCustomizationValues | None
+
+
+def customization_values(customization: EmailCustomization) -> EmailCustomizationValues:
+    return {"content_html": customization.content_html, "content_plain_text": customization.content_plain_text}
 
 
 def get_contribution_receipt_customizations(revenue_program) -> ContributionReceiptCustomizations:
@@ -31,5 +40,5 @@ def get_contribution_receipt_customizations(revenue_program) -> ContributionRece
         # We'll have other email_block values eventually, so it doesn't make
         # sense to move this into the filter() above.
         if customization.email_block == "message":
-            result["message"] = customization
+            result["message"] = customization_values(customization)
     return result

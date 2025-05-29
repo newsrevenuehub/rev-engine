@@ -9,6 +9,8 @@ processor class that are worth unit testing in isolation.
 import json
 
 import pytest
+import pytest_mock
+from stripe.api_resources.event import Event
 
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
@@ -135,6 +137,38 @@ class TestStripeWebhookProcessor:
             with pytest.raises(Contribution.DoesNotExist):
                 StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
 
+    def test_process_when_metadata_schema_version_1_6(
+        self, mocker: pytest_mock.MockerFixture, payment_intent_succeeded_one_time_event: Event, valid_metadata: dict
+    ):
+        ContributionFactory(
+            provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"],
+            contribution_metadata={**valid_metadata, "schema_version": "1.6"},
+        )
+        mock_route_request = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.route_request")
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        processor.process()
+        mock_route_request.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("has_contribution", "has_metadata", "schema_version", "expect"),
+        [
+            (False, False, None, False),
+            (True, False, None, False),
+            (True, True, "1.4", False),
+            (True, True, "1.6", True),
+        ],
+    )
+    def test_ignore_for_metadata_schema_version_1_6(
+        self, has_contribution: bool, has_metadata: bool, schema_version: str | None, expect: bool
+    ):
+        contribution = None
+        if has_contribution:
+            kwargs = {}
+            if has_metadata:
+                kwargs["contribution_metadata"] = {"schema_version": schema_version}
+            contribution = ContributionFactory(**kwargs)
+        assert StripeWebhookProcessor.ignore_for_metadata_schema_version_1_6(contribution) is expect
+
     def test__handle_contribution_update_when_no_contribution(self, mocker, payment_intent_succeeded_one_time_event):
         mocker.patch(
             "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
@@ -188,6 +222,17 @@ class TestStripeWebhookProcessor:
     def test__handle_pm_update_event_when_no_update(self, mocker, payment_intent_succeeded_one_time_event):
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
         mocker.patch.object(processor, "contribution", return_value=None, new_callable=mocker.PropertyMock)
+        processor._add_pm_id_and_payment_method_details(pm_id="pm_id", update_data={})
+
+    def test__handle_pm_update_event_when_v1_6_metadata(
+        self, mocker, payment_intent_succeeded_one_time_event, valid_metadata: dict
+    ):
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        contribution = ContributionFactory(
+            provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"],
+            contribution_metadata={**valid_metadata, "schema_version": "1.6"},
+        )
+        mocker.patch.object(processor, "contribution", return_value=contribution, new_callable=mocker.PropertyMock)
         processor._add_pm_id_and_payment_method_details(pm_id="pm_id", update_data={})
 
     def test_handle_payment_method_attached_when_no_customer_id(self, mocker, payment_method_attached_event):

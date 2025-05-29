@@ -12,7 +12,7 @@ from stripe.error import StripeError
 
 from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
-from apps.emails.helpers import convert_to_timezone_formatted
+from apps.emails.helpers import ContributionReceiptEmailCustomizations, convert_to_timezone_formatted
 from apps.emails.tasks import (
     CONTRIBUTOR_DEFAULT_VALUE,
     EmailTaskException,
@@ -84,8 +84,6 @@ class TestGenerateEmailData:
         mocker,
     ):
         mocker.patch("stripe.Customer.retrieve", return_value=customer)
-        mock_customizations = {"contribution_receipt": {"message": None}}
-        mocker.patch("apps.emails.helpers.make_customizations_dict", return_value=mock_customizations)
         mock_contributor_portal_url = mocker.patch(
             "apps.organizations.models.RevenueProgram.contributor_portal_url",
             return_value="contributor_portal_url",
@@ -105,7 +103,7 @@ class TestGenerateEmailData:
             contributor_email=contribution.contributor.email,
             contributor_name=expected_name,
             copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
-            customizations=mock_customizations,
+            customizations=asdict(ContributionReceiptEmailCustomizations(revenue_program=contribution.revenue_program)),
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
             non_profit=contribution.revenue_program.non_profit,

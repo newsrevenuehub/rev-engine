@@ -1,11 +1,10 @@
 import datetime
 import zoneinfo
-from dataclasses import InitVar, dataclass, field
+from typing import TypedDict
 
 from django.utils import timezone
 
 from apps.emails.models import EmailCustomization
-from apps.organizations.models import RevenueProgram
 
 
 def convert_to_timezone_formatted(
@@ -20,18 +19,17 @@ def convert_to_timezone_formatted(
     return localtz.strftime(date_format)
 
 
-@dataclass
-class ContributionReceiptEmailCustomizations:
-    """Customizations for contribution receipts."""
+class ContributionReceiptCustomizations(TypedDict):
+    message: EmailCustomization | None
 
-    message: EmailCustomization | None = field(default=None, init=False)
-    revenue_program: InitVar[RevenueProgram]
 
-    def __post_init__(self, revenue_program):
-        for customization in EmailCustomization.objects.filter(
-            revenue_program=revenue_program, email_type="contribution_receipt"
-        ):
-            # We'll have other email_block values eventually, so it doesn't make
-            # sense to move this into the filter() above.
-            if customization.email_block == "message":
-                self.message = customization
+def get_contribution_receipt_customizations(revenue_program) -> ContributionReceiptCustomizations:
+    result: ContributionReceiptCustomizations = {"message": None}
+    for customization in EmailCustomization.objects.filter(
+        revenue_program=revenue_program, email_type="contribution_receipt"
+    ):
+        # We'll have other email_block values eventually, so it doesn't make
+        # sense to move this into the filter() above.
+        if customization.email_block == "message":
+            result["message"] = customization
+    return result

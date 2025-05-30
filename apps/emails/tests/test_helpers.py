@@ -5,7 +5,7 @@ import pytest
 
 from apps.emails.helpers import (
     convert_to_timezone_formatted,
-    get_contribution_receipt_customizations,
+    get_contribution_receipt_email_customizations,
 )
 from apps.emails.models import EmailCustomization
 
@@ -45,10 +45,10 @@ class TestGetContributionReceiptCustomizations:
             revenue_program=revenue_program,
         )
         customization.save()
-        assert get_contribution_receipt_customizations(revenue_program=revenue_program)["message"] == {
+        assert get_contribution_receipt_email_customizations(revenue_program=revenue_program)["message"] == {
             "content_html": "test-content",
             "content_plain_text": "test-content",
         }
 
     def test_handles_no_data(self, revenue_program):
-        assert get_contribution_receipt_customizations(revenue_program=revenue_program)["message"] is None
+        assert get_contribution_receipt_email_customizations(revenue_program=revenue_program)["message"] is None

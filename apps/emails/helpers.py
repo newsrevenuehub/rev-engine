@@ -32,7 +32,7 @@ def customization_values(customization: EmailCustomization) -> EmailCustomizatio
     return {"content_html": customization.content_html, "content_plain_text": customization.content_plain_text}
 
 
-def get_contribution_receipt_customizations(revenue_program) -> ContributionReceiptCustomizations:
+def get_contribution_receipt_email_customizations(revenue_program) -> ContributionReceiptCustomizations:
     result: ContributionReceiptCustomizations = {"message": None}
     for customization in EmailCustomization.objects.filter(
         revenue_program=revenue_program, email_type="contribution_receipt"

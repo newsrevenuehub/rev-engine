@@ -13,7 +13,7 @@ class TestEmailCustomizationAdmin:
 
     @pytest.fixture
     def email_customization(self, revenue_program: RevenueProgram) -> EmailCustomization:
-        return EmailCustomization(
+        return EmailCustomization.objects.create(
             revenue_program=revenue_program,
             content_html="<p>Test content</p>",
             email_type="contribution_receipt",

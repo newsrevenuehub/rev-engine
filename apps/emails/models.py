@@ -44,4 +44,8 @@ class EmailCustomization(IndexedTimeStampedModel):
         super().save(*args, **kwargs)
 
     def as_dict(self) -> "EmailCustomizationValues":
+        """Return a dictionary representation of the email customization.
+
+        This is ultimately used to render customization opens in the email template.
+        """
         return {"content_html": self.content_html, "content_plain_text": self.content_plain_text}

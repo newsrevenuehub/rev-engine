@@ -1,4 +1,10 @@
+import typing
+
 from django.db import models
+
+
+if typing.TYPE_CHECKING:
+    from apps.emails.helpers import EmailCustomizationValues
 
 import nh3
 from markdownify import markdownify
@@ -22,10 +28,20 @@ class EmailCustomization(IndexedTimeStampedModel):
         max_length=30, choices=EMAIL_BLOCKS, help_text="Which block of content in an email this relates to"
     )
 
+    class Meta:
+        unique_together = (
+            "revenue_program",
+            "email_type",
+            "email_block",
+        )
+
     @property
-    def content_plain_text(self):
+    def content_plain_text(self) -> str:
         return markdownify(self.content_html)
 
     def save(self, *args, **kwargs):
         self.content_html = nh3.clean(self.content_html, attributes=ALLOWED_ATTRIBUTES, tags=ALLOWED_TAGS)
         super().save(*args, **kwargs)
+
+    def as_dict(self) -> "EmailCustomizationValues":
+        return {"content_html": self.content_html, "content_plain_text": self.content_plain_text}

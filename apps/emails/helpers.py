@@ -5,6 +5,7 @@ from typing import TypedDict
 from django.utils import timezone
 
 from apps.emails.models import EmailCustomization
+from apps.organizations.models import RevenueProgram
 
 
 def convert_to_timezone_formatted(
@@ -28,17 +29,12 @@ class ContributionReceiptCustomizations(TypedDict):
     message: EmailCustomizationValues | None
 
 
-def customization_values(customization: EmailCustomization) -> EmailCustomizationValues:
-    return {"content_html": customization.content_html, "content_plain_text": customization.content_plain_text}
-
-
-def get_contribution_receipt_email_customizations(revenue_program) -> ContributionReceiptCustomizations:
+def get_contribution_receipt_email_customizations(revenue_program: RevenueProgram) -> ContributionReceiptCustomizations:
+    """Generate dict for configuring cutomization of receipt email templates."""
     result: ContributionReceiptCustomizations = {"message": None}
-    for customization in EmailCustomization.objects.filter(
-        revenue_program=revenue_program, email_type="contribution_receipt"
-    ):
-        # We'll have other email_block values eventually, so it doesn't make
-        # sense to move this into the filter() above.
-        if customization.email_block == "message":
-            result["message"] = customization_values(customization)
+    message_customization = EmailCustomization.objects.filter(
+        revenue_program=revenue_program, email_type="contribution_receipt", email_block="message"
+    ).first()
+    if message_customization:
+        result["message"] = message_customization.as_dict()
     return result

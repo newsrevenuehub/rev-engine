@@ -20,8 +20,7 @@ ALLOWED_ATTRIBUTES = {"span": {"style"}}
 class EmailCustomization(IndexedTimeStampedModel):
     EMAIL_TYPES = [("contribution_receipt", "Contribution Receipt")]
     EMAIL_BLOCKS = [("message", "Main Message Body")]
-
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     content_html = models.TextField(max_length=5000, help_text="HTML source code of the custom content")
     email_type = models.CharField(max_length=30, choices=EMAIL_TYPES, help_text="Type of email this relates to")
     email_block = models.CharField(

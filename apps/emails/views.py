@@ -7,6 +7,9 @@ from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
 import pydantic
+from rest_framework.viewsets import GenericViewSet
+from rest_framework import serializers
+
 import reversion
 from knox.auth import TokenAuthentication
 from rest_framework.decorators import action
@@ -83,36 +86,28 @@ def preview_contribution_email_template(request, template_name: str):
     )
 
 
-class FailedPaymentRequestData(pydantic.BaseModel):
-    contribution_id: int
+class FailedPaymentRequestData(serializers.Serializer):
+    contribution_id = serializers.IntegerField(
+        help_text="The ID of the contribution for which the failed payment notification is being sent."
+    )
 
 
-class TransactionalEmailViewSet:
+class TransactionalEmailViewSet(GenericViewSet):
     """ViewSet for handling transactional emails related to contributions."""
 
     permission_classes = [IsSwitchboardAccount]
     authentication_classes = [TokenAuthentication]
 
-    @action(detail=False, methods=["POST"], url_path="failed-payment-notification")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="failed-payment-notification",
+        serializer_class=FailedPaymentRequestData,
+    )
     def failed_payment_notification(self, request: HttpRequest) -> HttpResponse:
         """View for rendering the failed payment notification email template."""
-        data = FailedPaymentRequestData(**request.data)
-        contribution = get_object_or_404(Contribution, id=data.contribution_id)
-        # In future version we should add a check to prevent double send, with optinal override
-        send_templated_email(
-            template_name="failed-payment-notification",
-            context={
-                "contribution": contribution,
-                "style": asdict(contribution.revenue_program.transactional_email_style),
-            },
-            to=[contribution.contributor_email],
-            from_email=contribution.revenue_program.transactional_email_style.from_email,
-        )
-        with reversion.create_revision():
-            TransactionalEmailRecord.objects.create(
-                contribution=contribution,
-                name=TransactionalEmailNames.FAILED_PAYMENT_NOTIFICATION,
-                sent_on=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            )
-            reversion.set_comment("Created by TransactionalEmailViewSet.failed_payment_notification")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        contribution = get_object_or_404(Contribution, id=serializer.data["contribution_id"])
+        TransactionalEmailRecord.handle_failed_payment_notification(contribution)
         return HttpResponse(status=204)

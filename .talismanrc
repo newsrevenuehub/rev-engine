@@ -30,3 +30,7 @@ fileignoreconfig:
   checksum: 0665ee216aec10046e7259d69f28634462bf8d2ab5807e565a641b131ea8d7ce
 - filename: apps/organizations/tests/test_admin.py
   checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523
+- filename: apps/emails/models.py
+  checksum: 1b939dcd32258063ac5c1356def709d106df85479cf7fd76b32b35a1cf13243e
+- filename: apps/emails/migrations/0001_DEV-6216_transactional_email_record_model.py
+  checksum: 465e96433a30805354bf3cdbf4968968ac8c8ba8ce69b3ccc166ab06050d0d17

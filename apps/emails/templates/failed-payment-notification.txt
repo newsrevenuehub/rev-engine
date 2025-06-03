@@ -1,0 +1,14 @@
+{% extends "nrh-default-contribution-base-template.txt" %}
+
+{% block header %}
+Failed Payment
+
+Dear {{ contribution.contributor.name }},
+
+We're writing to let you now that there was an issue processing your recent contribution to {{ contribution.revenue_program.name }}. Unfortunately, we were unable to complete the transaction.
+
+Please check with your bank or payment provider to ensure that there are no issues with your payment method.
+
+Payment details can be updated in the portal:
+{{ contribution.revenue_program.contributor_portal_url }}
+{% endblock header %}

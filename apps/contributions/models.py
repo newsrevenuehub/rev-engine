@@ -452,24 +452,28 @@ class Contribution(IndexedTimeStampedModel):
         return ",".join([self.billing_details.address[x] or "" for x in order])
 
     @property
-    def formatted_donor_selected_amount(self) -> str:
+    def donor_selected_amount(self) -> float | None:
+        """Amount in dollars the contributor selected (e.g. dependent on whether the contributor chose to cover fees).
+
+        If this isn't present in contribution metadata, it is None.
+        """
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(
-                "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s that"
+                "`Contribution.donor_selected_amount` called on contribution with ID %s that"
                 " does not have a value set for `contribution_metadata['donor_selected_amount']`",
                 self.id,
             )
-            return ""
+            return None
         try:
-            return f"{f'{float(amt):.2f}'} {self.currency.upper()}"
+            return float(amt)
         except ValueError:
             logger.warning(
-                "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s whose"
-                " value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to an integer.",
+                "`Contribution.donor_selected_amount` called on contribution with ID %s whose"
+                " value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to a float.",
                 self.id,
                 amt,
             )
-            return ""
+            return None
 
     BAD_ACTOR_SCORES = (
         (
@@ -1385,11 +1389,8 @@ class Contribution(IndexedTimeStampedModel):
         This is used to track the cancellation of a contribution by the contributor.
         """
         try:
-            if not (contributor := self.contributor):
-                logger.warning("Cannot create activity log for contribution %s because it has no contributor", self.pk)
-                return None
             return ActivityLog.objects.create(
-                actor_content_object=contributor,
+                actor_content_object=self.contributor,
                 activity_object_content_object=self,
                 action=ActivityLog.CANCEL,
             )

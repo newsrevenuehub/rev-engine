@@ -1,11 +1,9 @@
 import datetime
 import logging
-from dataclasses import asdict
 
 from django.conf import settings
 from django.db import models
 from django.template.loader import render_to_string
-
 
 import reversion
 

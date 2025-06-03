@@ -6,18 +6,14 @@ from django.shortcuts import get_object_or_404
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
-import pydantic
-from rest_framework.viewsets import GenericViewSet
-from rest_framework import serializers
-
-import reversion
 from knox.auth import TokenAuthentication
+from rest_framework import serializers
 from rest_framework.decorators import action
+from rest_framework.viewsets import GenericViewSet
 
 from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions.models import BillingHistoryItem, Contribution
-from apps.emails.models import TransactionalEmailNames, TransactionalEmailRecord
-from apps.emails.tasks import send_templated_email
+from apps.emails.models import TransactionalEmailRecord
 from apps.organizations.models import RevenueProgram
 
 

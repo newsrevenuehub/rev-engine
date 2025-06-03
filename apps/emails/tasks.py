@@ -28,7 +28,7 @@ from apps.organizations.models import FiscalStatusChoices, FreePlan, Transaction
 
 CONTRIBUTOR_DEFAULT_VALUE = "contributor"
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from apps.contributions.models import BillingHistoryItem, Contribution
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")

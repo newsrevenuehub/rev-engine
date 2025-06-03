@@ -12,7 +12,10 @@ from stripe.error import StripeError
 
 from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
-from apps.emails.helpers import convert_to_timezone_formatted
+from apps.emails.helpers import (
+    convert_to_timezone_formatted,
+    get_contribution_receipt_email_customizations,
+)
 from apps.emails.tasks import (
     CONTRIBUTOR_DEFAULT_VALUE,
     EmailTaskException,
@@ -103,6 +106,7 @@ class TestGenerateEmailData:
             contributor_email=contribution.contributor.email,
             contributor_name=expected_name,
             copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
+            customizations=get_contribution_receipt_email_customizations(revenue_program=contribution.revenue_program),
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
             fiscal_status=contribution.revenue_program.fiscal_status,
             non_profit=contribution.revenue_program.non_profit,

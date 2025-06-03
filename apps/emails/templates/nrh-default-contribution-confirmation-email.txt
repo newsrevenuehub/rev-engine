@@ -4,7 +4,13 @@
 Thank you for your contribution!
 
 Dear {{ contributor_name }},
+
+{% if customizations.message %}
+{{ customizations.message.content_plain_text }}
+{% else %}
 Thank you for supporting {{ rp_name }}.
+{% endif %}
+
 {% endblock header %}
 
 {% block timestamp_label %}

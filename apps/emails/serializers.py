@@ -7,7 +7,7 @@ class EmailCustomizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailCustomization
         fields = [
-            "idrevenue_program",
+            "revenue_program",
             "email_type",
             "email_block",
             "content_html",

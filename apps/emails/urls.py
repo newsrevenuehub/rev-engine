@@ -12,8 +12,8 @@ debug_urlpatterns = [
 ]
 
 router = routers.DefaultRouter()
-router.register(r"customizations", EmailCustomizationViewSet, basename="customization")
+router.register(r"emails/customizations", EmailCustomizationViewSet, basename="customization")
 
-url_patterns = [
+urlpatterns = [
     path("", include(router.urls)),
 ]

@@ -369,6 +369,7 @@ DTM_IGNORED_MIGRATIONS = {
 ### Django-CSP Settings
 
 # Stripe reference: https://docs.stripe.com/security/guide?csp=csp-js#content-security-policy
+# Google Maps API reference: https://developers.google.com/maps/documentation/javascript/content-security-policy
 
 # TODO @BW: Fix CSP violation caused by react-select emotion
 # DEV-2359
@@ -415,6 +416,7 @@ CSP_IMG_SRC = (
     "'self'",
     "blob:",
     "data:",
+    "https://maps.gstatic.com",
 )
 CSP_FONT_SRC = (
     "'self'",
@@ -437,6 +439,7 @@ CSP_CONNECT_SRC = (
     "'self'",
     "https://www.google-analytics.com",
     "https://maps.googleapis.com",
+    "https://maps.gstatic.com",
     "https://*.sentry.io",
     "https://risk.clearbit.com",
     "https://static.cloudflareinsights.com",

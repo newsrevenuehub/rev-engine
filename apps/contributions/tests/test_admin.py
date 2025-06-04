@@ -41,7 +41,7 @@ class TestQuarantineAdmin:
                 ]
             },
             contribution_metadata={"reason_for_giving": "some reason"},
-            status=ContributionStatus.PROCESSING,
+            status=ContributionStatus.FLAGGED,
             quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         )
 
@@ -56,7 +56,7 @@ class TestQuarantineAdmin:
             provider_customer_id=None,
             # doing this so have one with flagged date and one not
             flagged_date=None,
-            status=ContributionStatus.PROCESSING,
+            status=ContributionStatus.FLAGGED,
             quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         )
 

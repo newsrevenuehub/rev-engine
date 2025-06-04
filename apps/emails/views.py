@@ -1,12 +1,18 @@
 import datetime
 from dataclasses import asdict
 
+from django.db import models
 from django.http import HttpResponse
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
+from rest_framework import viewsets
+
+from apps.api.permissions import IsHubAdmin, IsOrgAdmin, IsRpAdmin
 from apps.contributions.models import BillingHistoryItem, Contribution
 from apps.emails.helpers import get_contribution_receipt_email_customizations
+from apps.emails.models import EmailCustomization
+from apps.emails.serializers import EmailCustomizationSerializer
 from apps.organizations.models import RevenueProgram
 
 
@@ -74,3 +80,23 @@ def preview_contribution_email_template(request, template_name: str):
         ),
         content_type=f"text/{'plain' if template_name.endswith('txt') else 'html'}",
     )
+
+
+class EmailCustomizationViewSet(viewsets.ModelViewSet):
+    """Viewset for managing email customizations."""
+
+    permission_classes = [IsOrgAdmin | IsHubAdmin | IsRpAdmin]
+    serializer_class = EmailCustomizationSerializer
+    http_method_names = ["get", "post", "patch", "delete"]
+    lookup_field = "id"
+
+    def get_queryset(self) -> models.QuerySet[EmailCustomization]:
+        filter_kwargs = {}
+        match self.request.user.roleassignment.role_type:
+            case "org_admin":
+                filter_kwargs["revenue_program__organization"] = self.request.user.roleassignment.organization
+            case "rp_admin":
+                filter_kwargs["revenue_program__in"] = self.request.user.roleassignment.revenue_program.values_list(
+                    "id", flat=True
+                )
+        return EmailCustomization.objects.filter(**filter_kwargs)

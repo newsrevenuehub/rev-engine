@@ -14,5 +14,6 @@ class EmailCustomizationSerializer(serializers.ModelSerializer):
             "content_html",
             "content_plain_text",
         ]
+        filters = ["revenue_program"]
 
         read_only_fields = ["id", "content_plain_text"]

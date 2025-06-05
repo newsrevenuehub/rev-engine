@@ -14,6 +14,7 @@ from apps.emails.helpers import get_contribution_receipt_email_customizations
 from apps.emails.models import EmailCustomization
 from apps.emails.serializers import EmailCustomizationSerializer
 from apps.organizations.models import RevenueProgram
+from apps.users.choices import Roles
 
 
 PERMITTED_TEMPLATES = tuple(
@@ -88,15 +89,46 @@ class EmailCustomizationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOrgAdmin | IsHubAdmin | IsRpAdmin]
     serializer_class = EmailCustomizationSerializer
     http_method_names = ["get", "post", "patch", "delete"]
-    lookup_field = "id"
 
     def get_queryset(self) -> models.QuerySet[EmailCustomization]:
+        rp_id = (
+            int(self.request.query_params.get("revenue_program"))
+            if self.request.query_params.get("revenue_program")
+            else None
+        )
         filter_kwargs = {}
         match self.request.user.roleassignment.role_type:
-            case "org_admin":
+            case Roles.ORG_ADMIN:
                 filter_kwargs["revenue_program__organization"] = self.request.user.roleassignment.organization
-            case "rp_admin":
-                filter_kwargs["revenue_program__in"] = self.request.user.roleassignment.revenue_program.values_list(
-                    "id", flat=True
+                has_access_to_rp = (
+                    rp_id
+                    in self.request.user.roleassignment.organization.revenueprogram_set.values_list("id", flat=True)
+                    if rp_id
+                    else True
                 )
-        return EmailCustomization.objects.filter(**filter_kwargs)
+            case Roles.RP_ADMIN:
+                filter_kwargs["revenue_program__id__in"] = (
+                    self.request.user.roleassignment.revenue_programs.values_list("id", flat=True)
+                )
+                has_access_to_rp = (
+                    rp_id in self.request.user.roleassignment.revenue_programs.values_list("id", flat=True)
+                    if rp_id
+                    else True
+                )
+            case (
+                Roles.HUB_ADMIN
+            ):  # pragma: no cover - false positive here but this is actually exhaustive of cases given the permission classes
+                has_access_to_rp = True
+
+        queryset = EmailCustomization.objects.filter(**filter_kwargs)
+
+        match bool(rp_id), has_access_to_rp:
+            case False, _:
+                return queryset
+            case True, False:
+                return queryset.none()
+            case (
+                True,
+                True,
+            ):  # pragma: no cover - there's a false positive here but this is actually exhaustive of cases
+                return queryset.filter(revenue_program__id=rp_id)

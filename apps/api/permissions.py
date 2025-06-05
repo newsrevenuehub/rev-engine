@@ -41,11 +41,9 @@ class IsHubAdmin(permissions.BasePermission):
     permissions are not handled here.
     """
 
-    def has_permission(self, request: HttpRequest, view) -> bool:
+    def has_permission(self, request, view):
         role_assignment = getattr(request.user, "roleassignment", None)
-        if not role_assignment:
-            return False
-        return role_assignment.role_type == Roles.HUB_ADMIN
+        return role_assignment and role_assignment.role_type == Roles.HUB_ADMIN
 
 
 class IsOrgAdmin(permissions.BasePermission):
@@ -56,9 +54,7 @@ class IsOrgAdmin(permissions.BasePermission):
 
     def has_permission(self, request: HttpRequest, view) -> bool:
         role_assignment = getattr(request.user, "roleassignment", None)
-        if not role_assignment:
-            return False
-        return role_assignment.role_type == Roles.ORG_ADMIN
+        return role_assignment and role_assignment.role_type == Roles.ORG_ADMIN
 
 
 class IsRpAdmin(permissions.BasePermission):
@@ -69,9 +65,7 @@ class IsRpAdmin(permissions.BasePermission):
 
     def has_permission(self, request: HttpRequest, view) -> bool:
         role_assignment = getattr(request.user, "roleassignment", None)
-        if not role_assignment:
-            return False
-        return role_assignment.role_type == Roles.RP_ADMIN
+        return role_assignment and role_assignment.role_type == Roles.RP_ADMIN
 
 
 class IsGetRequest(permissions.BasePermission):

@@ -89,7 +89,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             return
         if TransactionalEmailRecord.objects.filter(
             contribution=contribution,
-            name=TransactionalEmailNames.RECEIPT_EMAIL,
+            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
         ).exists():
             logger.info(
                 "Skipping sending receipt email for contribution %s, already sent",
@@ -101,7 +101,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         with reversion.create_revision():
             TransactionalEmailRecord.objects.create(
                 contribution=contribution,
-                name=TransactionalEmailNames.RECEIPT_EMAIL,
+                name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
                 sent_on=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             )
             reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")

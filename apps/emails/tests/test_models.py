@@ -1,7 +1,15 @@
-import pytest
+import datetime
+import typing
 
-from apps.emails.models import EmailCustomization
+import pytest
+import pytest_mock
+
+from apps.emails.models import EmailCustomization, TransactionalEmailRecord
 from apps.organizations.models import RevenueProgram
+
+
+if typing.TYPE_CHECKING:
+    from apps.contributions.models import Contribution
 
 
 @pytest.mark.django_db
@@ -53,3 +61,48 @@ class TestEmailCustomization:
                 "Second paragraph",
             )
         )
+
+
+@pytest.mark.django_db
+class TestTransactionalEmailRecord:
+
+    @pytest.fixture
+    def transactional_email_record_receipt_email(
+        self, one_time_contribution: "Contribution"
+    ) -> TransactionalEmailRecord:
+        """Fixture to create a default TransactionalEmailRecord instance."""
+        record = TransactionalEmailRecord(
+            contribution=one_time_contribution,
+            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+            sent_on=datetime.datetime.now(tz=datetime.timezone.utc),
+        )
+        record.save()
+        return record
+
+    @pytest.fixture
+    def _mock_stripe_retrieve(self, mocker: pytest_mock.MockerFixture):
+        """Mock the Stripe retrieve method."""
+        mocker.patch("stripe.Customer.retrieve")
+
+    @pytest.mark.usefixtures("_mock_stripe_retrieve")
+    def test_handle_receipt_email_when_unsent(self, one_time_contribution: "Contribution"):
+        query = TransactionalEmailRecord.objects.filter(
+            contribution=one_time_contribution,
+            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+        )
+        assert not query.exists()
+        TransactionalEmailRecord.handle_receipt_email(one_time_contribution)
+        assert query.exists()
+
+    def test_handle_receipt_email_when_already_sent(
+        self, transactional_email_record_receipt_email: TransactionalEmailRecord
+    ):
+        query = TransactionalEmailRecord.objects.filter(
+            contribution=transactional_email_record_receipt_email.contribution,
+            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+        )
+        assert query.exists()
+        TransactionalEmailRecord.handle_receipt_email(
+            contribution=transactional_email_record_receipt_email.contribution
+        )
+        assert query.count() == 1

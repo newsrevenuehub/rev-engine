@@ -7,7 +7,7 @@ from django.db import models
 
 import reversion
 
-from apps.emails.tasks import generate_email_data, send_templated_email
+from apps.emails.tasks import generate_email_data, send_receipt_email
 
 
 if typing.TYPE_CHECKING:
@@ -97,7 +97,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             )
             return
         data = generate_email_data(contribution, show_billing_history=show_billing_history)
-        send_templated_email(**data)
+        send_receipt_email(data)
         with reversion.create_revision():
             TransactionalEmailRecord.objects.create(
                 contribution=contribution,

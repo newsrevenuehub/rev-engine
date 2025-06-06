@@ -1445,7 +1445,7 @@ class TestPortalContributorsViewSet:
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
         contribution = contributor.contribution_set.filter(interval=interval).first()
-        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         api_client.force_authenticate(contributor)
         response = api_client.post(
             reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))
@@ -1478,7 +1478,7 @@ class TestPortalContributorsViewSet:
         contribution = contributor.contribution_set.first()
         contribution.status = contribution_status
         contribution.save()
-        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         api_client.force_authenticate(contributor)
         response = api_client.post(
             reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))

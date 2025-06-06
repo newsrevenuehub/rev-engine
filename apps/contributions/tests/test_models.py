@@ -33,7 +33,6 @@ from apps.contributions.models import (
     Payment,
     ensure_stripe_event,
     logger,
-    send_receipt_email,
 )
 from apps.contributions.serializers import STRIPE_MAX_AMOUNT
 from apps.contributions.tests.factories import (
@@ -523,26 +522,6 @@ class TestContributionModel:
     @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
     def handle_receipt_email_contribution(self, request):
         return request.getfixturevalue(request.param)
-
-    @pytest.mark.usefixtures("_mock_stripe_customer")
-    @pytest.mark.parametrize("send_receipt_email_via_nre", [True, False])
-    @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_handle_receipt_email(
-        self, contribution: Contribution, send_receipt_email_via_nre, show_billing_history, mocker, settings
-    ):
-        """Show that when org configured to have NRE send receipt emails, send_templated_email gets called with expected args."""
-        settings.CELERY_TASK_ALWAYS_EAGER = True
-        (org := contribution.revenue_program.organization).send_receipt_email_via_nre = send_receipt_email_via_nre
-        org.save()
-        send_receipt_email_spy = mocker.spy(send_receipt_email, "delay")
-
-        contribution.handle_receipt_email(show_billing_history=show_billing_history)
-        expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
-
-        if send_receipt_email_via_nre:
-            send_receipt_email_spy.assert_called_once_with(expected_data)
-        else:
-            send_receipt_email_spy.assert_not_called()
 
     def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
         # there are other paths through that call save where different stripe return values would need to

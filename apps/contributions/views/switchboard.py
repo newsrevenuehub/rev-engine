@@ -21,6 +21,7 @@ from apps.api.permissions import IsSwitchboardAccount
 from apps.common.utils import LEFT_UNCHANGED, booleanize_string
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor, Payment
+from apps.emails.models import TransactionalEmailRecord
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -53,7 +54,7 @@ class SwitchboardContributionsViewSet(
     # DEV-6162
     def _handle_receipt_email(self, contribution: Contribution) -> None:
         if booleanize_string(self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM, "")):
-            contribution.handle_receipt_email()
+            TransactionalEmailRecord.handle_receipt_email(contribution=contribution, show_billing_history=False)
 
     def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):
         """Send a receipt email if requested in a query param.

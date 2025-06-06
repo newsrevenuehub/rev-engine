@@ -89,6 +89,7 @@ class EmailCustomizationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOrgAdmin | IsHubAdmin | IsRpAdmin]
     serializer_class = EmailCustomizationSerializer
     http_method_names = ["get", "post", "patch", "delete"]
+    pagination_class = None
 
     def get_queryset(self) -> models.QuerySet[EmailCustomization]:
 

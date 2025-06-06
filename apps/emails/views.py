@@ -1,13 +1,20 @@
 import datetime
 from dataclasses import asdict
 
+from django.db import models
 from django.http import HttpResponse
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
+from rest_framework import viewsets
+
+from apps.api.permissions import IsHubAdmin, IsOrgAdmin, IsRpAdmin
 from apps.contributions.models import BillingHistoryItem, Contribution
 from apps.emails.helpers import get_contribution_receipt_email_customizations
+from apps.emails.models import EmailCustomization
+from apps.emails.serializers import EmailCustomizationSerializer
 from apps.organizations.models import RevenueProgram
+from apps.users.choices import Roles
 
 
 PERMITTED_TEMPLATES = tuple(
@@ -74,3 +81,42 @@ def preview_contribution_email_template(request, template_name: str):
         ),
         content_type=f"text/{'plain' if template_name.endswith('txt') else 'html'}",
     )
+
+
+class EmailCustomizationViewSet(viewsets.ModelViewSet):
+    """Viewset for managing email customizations."""
+
+    permission_classes = [IsOrgAdmin | IsHubAdmin | IsRpAdmin]
+    serializer_class = EmailCustomizationSerializer
+    http_method_names = ["get", "post", "patch", "delete"]
+    pagination_class = None
+
+    def get_queryset(self) -> models.QuerySet[EmailCustomization]:
+
+        filter_kwargs = {}
+        if rp_id := self.request.query_params.get("revenue_program"):
+            rp_id = int(rp_id)
+            filter_kwargs["revenue_program__id"] = rp_id
+
+        match self.request.user.roleassignment.role_type:
+            case Roles.ORG_ADMIN:
+                filter_kwargs["revenue_program__organization"] = self.request.user.roleassignment.organization
+                has_access_to_rp = (
+                    rp_id
+                    in self.request.user.roleassignment.organization.revenueprogram_set.values_list("id", flat=True)
+                )
+            case Roles.RP_ADMIN:
+                filter_kwargs["revenue_program__id__in"] = (
+                    self.request.user.roleassignment.revenue_programs.values_list("id", flat=True)
+                )
+                has_access_to_rp = rp_id in self.request.user.roleassignment.revenue_programs.values_list(
+                    "id", flat=True
+                )
+            case (
+                Roles.HUB_ADMIN
+            ):  # pragma: no cover - false positive here but this is actually exhaustive of cases given the permission classes
+                has_access_to_rp = True
+        queryset = EmailCustomization.objects.filter(**filter_kwargs)
+        if not rp_id or has_access_to_rp:
+            return queryset
+        return queryset.none()

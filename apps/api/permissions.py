@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.http import HttpRequest
 
 from rest_framework import permissions
 from waffle import get_waffle_flag_model
@@ -51,13 +52,9 @@ class IsOrgAdmin(permissions.BasePermission):
     If the user making the request is an org admin, grant permission.
     """
 
-    def has_permission(self, request, view):
-        return all(
-            [
-                role_assignment := getattr(request.user, "roleassignment", False),
-                role_assignment.role_type == Roles.ORG_ADMIN,
-            ]
-        )
+    def has_permission(self, request: HttpRequest, view) -> bool:
+        role_assignment = getattr(request.user, "roleassignment", None)
+        return role_assignment and role_assignment.role_type == Roles.ORG_ADMIN
 
 
 class IsRpAdmin(permissions.BasePermission):
@@ -66,13 +63,9 @@ class IsRpAdmin(permissions.BasePermission):
     If the user making the request is a RP admin, grant permission.
     """
 
-    def has_permission(self, request, view):
-        return all(
-            [
-                role_assignment := getattr(request.user, "roleassignment", False),
-                role_assignment.role_type == Roles.RP_ADMIN,
-            ]
-        )
+    def has_permission(self, request: HttpRequest, view) -> bool:
+        role_assignment = getattr(request.user, "roleassignment", None)
+        return role_assignment and role_assignment.role_type == Roles.RP_ADMIN
 
 
 class IsGetRequest(permissions.BasePermission):

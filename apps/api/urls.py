@@ -16,6 +16,7 @@ from apps.contributions.views.switchboard import (
     SwitchboardContributorsViewSet,
     SwitchboardPaymentsViewSet,
 )
+from apps.emails.urls import urlpatterns as emails_urlpatterns
 from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.organizations.views.switchboard import OrganizationViewSet as SwitchboardOrganizationViewSet
 from apps.pages.urls import urlpatterns as pages_urlpatterns
@@ -43,6 +44,7 @@ urlpatterns = [
     path("v1/", include(pages_urlpatterns)),
     path("v1/", include(contributions_urlpatterns)),
     path("v1/", include(switchboard_urlpatterns)),
+    path("v1/", include(emails_urlpatterns)),
     path("v1/healthcheck", include("health_check.urls")),
     path("v1/public/", include(public_urlpatterns)),
     path("v1/token/", TokenObtainPairCookieView.as_view(), name="token-obtain-pair"),

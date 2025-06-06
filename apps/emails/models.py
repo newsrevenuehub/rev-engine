@@ -97,7 +97,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             )
             return
         data = generate_email_data(contribution, show_billing_history=show_billing_history)
-        send_templated_email(data)
+        send_templated_email(**data)
         with reversion.create_revision():
             TransactionalEmailRecord.objects.create(
                 contribution=contribution,

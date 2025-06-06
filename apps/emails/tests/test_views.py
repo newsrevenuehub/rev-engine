@@ -182,23 +182,24 @@ class TestEmailCustomizationViewSet:
         api_client.force_authenticate(user=user)
         response = api_client.get(reverse("email-customization-list"))
         assert response.status_code == 200
+        result_count = len(response.json())
         match user_fixture:
             case "hub_admin_user":
-                assert response.json()["count"] == 3
-                assert {item["id"] for item in response.json()["results"]} == {
+                assert result_count == 3
+                assert {item["id"] for item in response.json()} == {
                     email_customization.id,
                     another_orgs_email_customization.id,
                     another_rps_email_customization.id,
                 }
             case "org_user":
-                assert response.json()["count"] == 2
-                assert {item["id"] for item in response.json()["results"]} == {
+                assert result_count == 2
+                assert {item["id"] for item in response.json()} == {
                     email_customization.id,
                     another_rps_email_customization.id,
                 }
             case "rp_user":
-                assert response.json()["count"] == 1
-                assert response.json()["results"][0]["id"] == email_customization.id
+                assert result_count == 1
+                assert response.json()[0]["id"] == email_customization.id
 
     @pytest.mark.parametrize(
         ("user_fixture", "customization_fixture"),
@@ -222,12 +223,9 @@ class TestEmailCustomizationViewSet:
             reverse("email-customization-list") + f"?revenue_program={customization.revenue_program.pk}",
         )
         assert response.status_code == 200
-        assert response.json()["count"]
-        assert (
-            response.json()["count"]
-            == EmailCustomization.objects.filter(revenue_program=customization.revenue_program).count()
-        )
-        assert {item["id"] for item in response.json()["results"]} == set(
+        assert (length := len(response.json()))
+        assert length == EmailCustomization.objects.filter(revenue_program=customization.revenue_program).count()
+        assert {item["id"] for item in response.json()} == set(
             EmailCustomization.objects.filter(revenue_program=customization.revenue_program).values_list(
                 "id", flat=True
             )
@@ -237,8 +235,7 @@ class TestEmailCustomizationViewSet:
         api_client.force_authenticate(user=hub_admin_user)
         response = api_client.get(reverse("email-customization-list") + "?revenue_program=999999")
         assert response.status_code == 200
-        assert response.json()["count"] == 0
-        assert response.json()["results"] == []
+        assert response.json() == []
 
     def test_filter_when_revenue_program_unowned(
         self, api_client: APIClient, another_orgs_email_customization: EmailCustomization, org_user: User
@@ -249,8 +246,7 @@ class TestEmailCustomizationViewSet:
             + f"?revenue_program={another_orgs_email_customization.revenue_program.pk}"
         )
         assert response.status_code == 200
-        assert response.json()["count"] == 0
-        assert response.json()["results"] == []
+        assert response.json() == []
 
     @pytest.mark.parametrize("user_fixture", ["hub_admin_user", "org_user", "rp_user"])
     def test_can_create(

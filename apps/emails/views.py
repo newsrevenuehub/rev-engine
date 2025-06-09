@@ -114,7 +114,9 @@ class EmailCustomizationViewSet(viewsets.ModelViewSet):
                         "id", flat=True
                     )
                 }
-            case Roles.HUB_ADMIN:
+            case (
+                Roles.HUB_ADMIN
+            ):  # pragma: no cover (given permission classes, it will always be true if at this point)
                 base_filter = {}
         queryset = EmailCustomization.objects.filter(**base_filter)
         if (rp_id := self.request.query_params.get("revenue_program")) and int(rp_id) not in queryset.values_list(

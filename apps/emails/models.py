@@ -10,7 +10,7 @@ import reversion
 from apps.emails.tasks import generate_email_data, send_receipt_email
 
 
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from apps.emails.helpers import EmailCustomizationValues
 
 import nh3

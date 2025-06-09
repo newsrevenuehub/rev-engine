@@ -2,7 +2,7 @@ import datetime
 from dataclasses import asdict
 
 from django.db import models
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
@@ -90,6 +90,19 @@ class EmailCustomizationViewSet(viewsets.ModelViewSet):
     serializer_class = EmailCustomizationSerializer
     http_method_names = ["get", "post", "patch", "delete"]
     pagination_class = None
+
+    def get_object(self):
+        """Override to always return a generic 404 message.
+
+        We override `get_object` to prevent leaking info about existence of specific email customization
+        objects. Without this, if the user tries to retrieve an unowned email customization, the API will
+        return a 404 with a message like "EmailCustomization matching query does not exist.", instead of the
+        generic "Not found." message we want to provide.
+        """
+        try:
+            return super().get_object()
+        except Http404 as exc:
+            raise Http404("Not found.") from exc
 
     def get_queryset(self) -> models.QuerySet[EmailCustomization]:
         match self.request.user.roleassignment.role_type:

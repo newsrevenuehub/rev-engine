@@ -168,7 +168,7 @@ class TestEmailCustomizationViewSet:
         api_client.force_authenticate(user=user)
         response = api_client.get(reverse("email-customization-detail", args=(str(customization.pk),)))
         assert response.status_code == 404
-        assert response.json() == {"detail": "No EmailCustomization matches the given query."}
+        assert response.json() == {"detail": "Not found."}
 
     @pytest.mark.parametrize("user_fixture", ["hub_admin_user", "org_user", "rp_user"])
     def test_can_list(
@@ -360,6 +360,7 @@ class TestEmailCustomizationViewSet:
         cust_id = customization.id
         response = api_client.delete(reverse("email-customization-detail", args=(str(cust_id),)))
         assert response.status_code == 404
+        assert response.json() == {"detail": "Not found."}
         assert EmailCustomization.objects.filter(id=cust_id).exists()
 
     def test_cannot_create_when_uniqueness_constraint_violated(

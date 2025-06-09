@@ -113,14 +113,16 @@ class TestEmailCustomizationViewSet:
         return RevenueProgramFactory(organization=revenue_program.organization)
 
     @pytest.fixture
-    def another_orgs_email_customization(self, another_org: Organization) -> EmailCustomization:
+    def another_orgs_email_customization(self, another_org: Organization, org_user: User) -> EmailCustomization:
         other_revenue_program = RevenueProgramFactory(organization=another_org)
-        return EmailCustomization.objects.create(
+        customization = EmailCustomization.objects.create(
             revenue_program=other_revenue_program,
             email_type=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
             email_block=EmailCustomization.EmailBlock.MESSAGE,
             content_html="<p>Test content</p>",
         )
+        assert customization.revenue_program.organization != org_user.roleassignment.organization
+        return customization
 
     @pytest.fixture
     def another_rps_email_customization(self, another_rp: RevenueProgram) -> EmailCustomization:
@@ -348,7 +350,6 @@ class TestEmailCustomizationViewSet:
     def test_cannot_delete_unowned(
         self,
         api_client: APIClient,
-        email_customization: EmailCustomization,
         request: pytest.FixtureRequest,
         user_fixture: str,
         customization_fixture: str,
@@ -356,9 +357,10 @@ class TestEmailCustomizationViewSet:
         user = request.getfixturevalue(user_fixture)
         customization = request.getfixturevalue(customization_fixture)
         api_client.force_authenticate(user=user)
-        response = api_client.delete(reverse("email-customization-detail", args=(str(email_customization.pk),)))
-        assert response.status_code == 204
-        assert EmailCustomization.objects.filter(id=customization.id).exists()
+        cust_id = customization.id
+        response = api_client.delete(reverse("email-customization-detail", args=(str(cust_id),)))
+        assert response.status_code == 404
+        assert EmailCustomization.objects.filter(id=cust_id).exists()
 
     def test_cannot_create_when_uniqueness_constraint_violated(
         self, api_client: APIClient, email_customization: EmailCustomization, hub_admin_user: User

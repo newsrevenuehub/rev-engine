@@ -72,7 +72,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
 
     contribution = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=TransactionalEmailNames.choices)
-    sent_on = models.CharField(max_length=50, default="pending")
+    sent_on = models.DateTimeField(default=datetime.datetime.now)
 
     def __str__(self):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"

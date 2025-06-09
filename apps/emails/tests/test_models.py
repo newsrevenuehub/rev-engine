@@ -107,6 +107,19 @@ class TestTransactionalEmailRecord:
         )
         assert query.count() == 1
 
+    def test_handle_receipt_email_when_organization_does_not_send_receipt_emails_via_nre(
+        self, one_time_contribution: "Contribution"
+    ):
+        one_time_contribution.revenue_program.organization.send_receipt_email_via_nre = False
+        one_time_contribution.revenue_program.organization.save()
+        query = TransactionalEmailRecord.objects.filter(
+            contribution=one_time_contribution,
+            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+        )
+        assert not query.exists()
+        TransactionalEmailRecord.handle_receipt_email(one_time_contribution)
+        assert not query.exists()
+
     def test_str(self, transactional_email_record_receipt_email: TransactionalEmailRecord):
         msg = transactional_email_record_receipt_email
         assert (

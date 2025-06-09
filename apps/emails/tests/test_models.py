@@ -106,3 +106,10 @@ class TestTransactionalEmailRecord:
             contribution=transactional_email_record_receipt_email.contribution
         )
         assert query.count() == 1
+
+    def test_str(self, transactional_email_record_receipt_email: TransactionalEmailRecord):
+        msg = transactional_email_record_receipt_email
+        assert (
+            str(transactional_email_record_receipt_email)
+            == f"TransactionalEmailRecord #{msg.pk} ({msg.name}) for {msg.contribution.pk} sent {msg.sent_on}"
+        )

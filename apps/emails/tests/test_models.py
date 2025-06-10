@@ -84,8 +84,16 @@ class TestTransactionalEmailRecord:
         """Mock the Stripe retrieve method."""
         mocker.patch("stripe.Customer.retrieve")
 
+    @pytest.fixture
+    def now(self, mocker: pytest_mock.MockerFixture) -> datetime.datetime:
+        """Fixture to provide the current time."""
+        fixed_time = datetime.datetime(2025, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
+        dt_module = mocker.patch("apps.emails.models.datetime")
+        dt_module.datetime.now.return_value = fixed_time
+        return fixed_time
+
     @pytest.mark.usefixtures("_mock_stripe_retrieve")
-    def test_handle_receipt_email_when_unsent(self, one_time_contribution: "Contribution"):
+    def test_handle_receipt_email_when_unsent(self, one_time_contribution: "Contribution", now: datetime.datetime):
         query = TransactionalEmailRecord.objects.filter(
             contribution=one_time_contribution,
             name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
@@ -93,6 +101,9 @@ class TestTransactionalEmailRecord:
         assert not query.exists()
         TransactionalEmailRecord.handle_receipt_email(one_time_contribution)
         assert query.exists()
+        assert query.count() == 1
+        record = query.first()
+        assert record.sent_on == now
 
     def test_handle_receipt_email_when_already_sent(
         self, transactional_email_record_receipt_email: TransactionalEmailRecord

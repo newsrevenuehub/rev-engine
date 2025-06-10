@@ -7,6 +7,7 @@ from django.db import models
 
 import reversion
 
+from apps.contributions.models import Contribution
 from apps.emails.tasks import generate_email_data, send_receipt_email
 
 
@@ -78,7 +79,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"
 
     @staticmethod
-    def handle_receipt_email(contribution, show_billing_history: bool = True) -> None:
+    def handle_receipt_email(contribution: Contribution, show_billing_history: bool = True) -> None:
         """Send a receipt email to the contributor and save a record of the email."""
         logger.info("Running for receipt email for contribution %s", contribution.pk)
         if not contribution.revenue_program.organization.send_receipt_email_via_nre:
@@ -102,6 +103,6 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             TransactionalEmailRecord.objects.create(
                 contribution=contribution,
                 name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
-                sent_on=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                sent_on=datetime.datetime.now(datetime.timezone.utc),
             )
             reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")

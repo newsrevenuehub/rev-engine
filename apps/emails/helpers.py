@@ -4,7 +4,6 @@ from typing import TypedDict
 
 from django.utils import timezone
 
-from apps.emails.models import EmailCustomization
 from apps.organizations.models import RevenueProgram
 
 
@@ -31,6 +30,8 @@ class ContributionReceiptCustomizations(TypedDict):
 
 def get_contribution_receipt_email_customizations(revenue_program: RevenueProgram) -> ContributionReceiptCustomizations:
     """Generate dict for configuring cutomization of receipt email templates."""
+    from apps.emails.models import EmailCustomization
+
     result: ContributionReceiptCustomizations = {"message": None}
     message_customization = EmailCustomization.objects.filter(
         revenue_program=revenue_program, email_type="contribution_receipt", email_block="message"

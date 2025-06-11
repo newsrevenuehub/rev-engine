@@ -102,17 +102,17 @@
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
     <p class="user-info inner-center">
-      Dear {{ contribution.contributor.name }},
+      Dear {{ contributor_name }},
     </p>
     <p class="user-info user-info-second-line inner-center">
       We're writing to let you now that there was an issue processing your recent contribution to
-      {{ contribution.revenue_program.name }}. Unfortunately, we were unable to complete the transaction.
+      {{ rp_name }}. Unfortunately, we were unable to complete the transaction.
     </p>
     <p class="user-info inner-center">
       Please check with your bank or payment provider to ensure that there are no issues with your payment method.
     </p>
     <p class="user-info inner-center">
-      Payment details can be updated in <a href="{{ contribution.revenue_program.contributor_portal_url}}">the portal</a>.
+      Payment details can be updated in <a href="{{ portal_url }}">the portal</a>.
   </td>
 </tr>
 {% endblock header %}

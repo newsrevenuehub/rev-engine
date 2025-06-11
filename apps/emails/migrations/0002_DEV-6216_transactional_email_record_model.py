@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("contributions", "0019_DEV-5953_alter_contribution_contributor"),
+        ("emails", "0001_DEV-6141_add_email_customization_model"),
     ]
 
     operations = [

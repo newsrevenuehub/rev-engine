@@ -9,6 +9,8 @@ from apps.config.tests.factories import DenyListWordFactory
 from apps.contributions.admin import ContributionAdmin, ContributorAdmin
 from apps.contributions.models import Contribution, Contributor, Payment
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.emails.admin import EmailCustomizationAdmin
+from apps.emails.models import EmailCustomization
 from apps.organizations.admin import (
     BenefitAdmin,
     BenefitLevelAdmin,
@@ -51,6 +53,7 @@ def test_expected_models_are_registered_with_django_reversion():
         Contributor,
         DenyListWord,
         DonationPage,
+        EmailCustomization,
         Font,
         Organization,
         PaymentProvider,
@@ -89,6 +92,7 @@ def test_expected_model_admins_are_registered_with_django_reversion():
             ContributorAdmin,
             DenyListWordAdmin,
             DonationPageAdmin,
+            EmailCustomizationAdmin,
             FontAdmin,
             OrganizationAdmin,
             RevenueProgramAdmin,

@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.http import HttpRequest
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.emails.models import TransactionalEmailRecord
+from apps.emails.models import EmailCustomization, TransactionalEmailRecord
 
 
 @admin.register(TransactionalEmailRecord)
@@ -27,3 +27,12 @@ class TransactionalEmailRecordAdmin(RevEngineBaseAdmin):
 
     def has_delete_permission(self, request: HttpRequest, obj: Any = None) -> bool:
         return False
+
+
+@admin.register(EmailCustomization)
+class EmailCustomizationAdmin(RevEngineBaseAdmin):
+    list_display = ("get_revenue_program_name", "email_type", "email_block")
+
+    @admin.display(description="Revenue Program Name", ordering="revenue_program__name")
+    def get_revenue_program_name(self, obj: EmailCustomization) -> str:
+        return obj.revenue_program.name

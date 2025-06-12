@@ -36,14 +36,14 @@ describe('EditorButton', () => {
   describe('When the editor prop is set', () => {
     const editor = {} as any;
 
-    it('disables itself if the isDisabled prop is undefined', () => {
-      tree({ editor });
-      expect(screen.getByRole('button')).toBeDisabled();
-    });
-
     it('disables itself if the isDisabled prop returns true', () => {
       tree({ editor, isDisabled: () => true });
       expect(screen.getByRole('button')).toBeDisabled();
+    });
+
+    it('enables itself if the isDisabled prop is undefined', () => {
+      tree({ editor });
+      expect(screen.getByRole('button')).toBeEnabled();
     });
 
     it('enables itself if the isDisabled prop returns false', () => {

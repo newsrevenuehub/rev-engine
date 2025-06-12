@@ -23,7 +23,7 @@ export function EditorButton({ ariaLabel, children, editor, isActive, isDisabled
     <Button
       aria-label={ariaLabel ?? undefined}
       aria-pressed={!!(isActive && editor && isActive(editor))}
-      disabled={!!(!editor || !isDisabled || (isDisabled && isDisabled(editor)))}
+      disabled={!!(!editor || (isDisabled && isDisabled(editor)))}
       onClick={() => editor && onClick(editor)}
       color="text"
     >

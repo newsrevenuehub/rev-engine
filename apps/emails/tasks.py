@@ -50,7 +50,11 @@ class EmailTaskException(Exception):
     autoretry_for=(SMTPException,),
 )
 def send_templated_email(
-    to, subject, message_as_text, message_as_html, from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER
+    to: str,
+    subject: str,
+    message_as_text: str,
+    message_as_html: str,
+    from_email: str = settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
 ):
     logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
     with configure_scope() as scope:

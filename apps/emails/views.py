@@ -1,12 +1,20 @@
 import datetime
 from dataclasses import asdict
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
+from knox.auth import TokenAuthentication
+from rest_framework import serializers
+from rest_framework.decorators import action
+from rest_framework.viewsets import GenericViewSet
+
+from apps.api.permissions import IsSwitchboardAccount
 from apps.contributions.models import BillingHistoryItem, Contribution
 from apps.emails.helpers import get_contribution_receipt_email_customizations
+from apps.emails.models import TransactionalEmailRecord
 from apps.organizations.models import RevenueProgram
 
 
@@ -74,3 +82,30 @@ def preview_contribution_email_template(request, template_name: str):
         ),
         content_type=f"text/{'plain' if template_name.endswith('txt') else 'html'}",
     )
+
+
+class FailedPaymentRequestData(serializers.Serializer):
+    contribution_id = serializers.IntegerField(
+        help_text="The ID of the contribution for which the failed payment notification is being sent."
+    )
+
+
+class TransactionalEmailViewSet(GenericViewSet):
+    """ViewSet for handling transactional emails related to contributions."""
+
+    permission_classes = [IsSwitchboardAccount]
+    authentication_classes = [TokenAuthentication]
+
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="failed-payment-notification",
+        serializer_class=FailedPaymentRequestData,
+    )
+    def failed_payment_notification(self, request: HttpRequest) -> HttpResponse:
+        """View for rendering the failed payment notification email template."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        contribution = get_object_or_404(Contribution, id=serializer.data["contribution_id"])
+        TransactionalEmailRecord.handle_failed_payment_notification(contribution)
+        return HttpResponse(status=204)

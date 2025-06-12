@@ -116,18 +116,21 @@ class TestActivityLogAdmin:
         return activity_log.actor_content_object.email[:1]
 
     @pytest.mark.parametrize(
-        "search_term", [contributor_email_exact_match, contributor_email_different_case, contributor_email_partial]
+        "search_term_name",
+        ["contributor_email_exact_match", "contributor_email_different_case", "contributor_email_partial"],
     )
-    def test_contributor_search_happy_path(self, search_term: str, activity_log: ActivityLog, request):
-        breakpoint()
+    def test_contributor_search_happy_path(self, search_term_name: str, activity_log: ActivityLog, request):
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         queryset, may_have_duplicates = admin.get_search_results(
-            queryset=ActivityLog.objects.all(), request="unused", search_term=search_term
+            queryset=ActivityLog.objects.all(), request="unused", search_term=request.getfixturevalue(search_term_name)
         )
         assert not may_have_duplicates
         assert list(queryset) == [activity_log]
 
     def test_contributor_search_no_results(self, activity_log: ActivityLog):
+        # Even though activity_log is unused in this method, we want it to exist so
+        # that we might match on it if functionality is incorrect.
+
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         queryset, may_have_duplicates = admin.get_search_results(
             queryset=ActivityLog.objects.all(), request="unused", search_term="nonexistent"

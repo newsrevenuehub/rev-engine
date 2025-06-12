@@ -3,7 +3,7 @@ import logging
 import typing
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 import reversion
@@ -80,8 +80,15 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"
 
     @staticmethod
-    def handle_receipt_email(contribution: Contribution, show_billing_history: bool = True) -> None:
+    def send_receipt_email(contribution: Contribution, show_billing_history: bool = True) -> None:
         """Send a receipt email to the contributor and save a record of the email."""
+        logger.info("Running for receipt email for contribution %s", contribution.pk)
+        data = generate_email_data(contribution, show_billing_history=show_billing_history)
+        send_receipt_email(data)
+
+    @classmethod
+    def handle_receipt_email(cls, contribution: Contribution, show_billing_history: bool = True) -> None:
+        """If warranted, trigger a receipt email to the contributor and save a record of the email."""
         logger.info("Running for receipt email for contribution %s", contribution.pk)
         if not contribution.revenue_program.organization.send_receipt_email_via_nre:
             logger.info(
@@ -98,12 +105,13 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
                 contribution.pk,
             )
             return
-        data = generate_email_data(contribution, show_billing_history=show_billing_history)
-        send_receipt_email(data)
-        with reversion.create_revision():
-            TransactionalEmailRecord.objects.create(
-                contribution=contribution,
-                name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
-                sent_on=datetime.datetime.now(datetime.timezone.utc),
-            )
-            reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
+        # If there's a problem sending the email, we want to rollback the email record creation
+        with transaction.atomic():
+            with reversion.create_revision():
+                TransactionalEmailRecord.objects.create(
+                    contribution=contribution,
+                    name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+                    sent_on=datetime.datetime.now(datetime.timezone.utc),
+                )
+                reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
+            cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)

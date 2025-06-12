@@ -41,7 +41,7 @@ class TestQuarantineAdmin:
                 ]
             },
             contribution_metadata={"reason_for_giving": "some reason"},
-            status=ContributionStatus.PROCESSING,
+            status=ContributionStatus.FLAGGED,
             quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         )
 
@@ -56,7 +56,7 @@ class TestQuarantineAdmin:
             provider_customer_id=None,
             # doing this so have one with flagged date and one not
             flagged_date=None,
-            status=ContributionStatus.PROCESSING,
+            status=ContributionStatus.FLAGGED,
             quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         )
 
@@ -231,6 +231,30 @@ class TestQuarantineAdmin:
     def test_complete_flagged_contribution_when_contribution_not_found(self, mocker: pytest_mock.MockerFixture):
         admin = QuarantineQueue(Quarantine, admin_site=None)
         admin.complete_flagged_contribution(mocker.Mock(), 9999, None)
+
+    @pytest.mark.parametrize(
+        ("contribution_status", "expect_in_queue"),
+        [
+            (ContributionStatus.FLAGGED, True),
+            (ContributionStatus.PROCESSING, False),
+            (ContributionStatus.PAID, False),
+            (ContributionStatus.CANCELED, False),
+            (ContributionStatus.FAILED, False),
+            (ContributionStatus.REJECTED, False),
+            (ContributionStatus.REFUNDED, False),
+            (ContributionStatus.ABANDONED, False),
+        ],
+    )
+    def test_get_queryset(self, contribution_status: str, expect_in_queue: bool, one_time_contribution: Contribution):
+        one_time_contribution.status = contribution_status
+        one_time_contribution.quarantine_status = QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+        one_time_contribution.save()
+        admin = QuarantineQueue(Quarantine, admin_site=None)
+        contributions = admin.get_queryset(None)
+        if expect_in_queue:
+            assert contributions.filter(status=contribution_status).exists()
+        else:
+            assert not contributions.filter(status=contribution_status).exists()
 
 
 @pytest.mark.django_db

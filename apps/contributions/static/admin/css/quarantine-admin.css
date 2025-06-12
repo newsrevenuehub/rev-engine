@@ -1,31 +1,21 @@
-.field-resolve_field {
-    display: flex;
-    flex-direction: column;
-}
-
-.field-resolve_field .approve {
-    background-color: #094609;
-}
-
-.field-resolve_field .reject {
-    background-color: rgb(108, 31, 31);
-}
-
-.field-resolve_field .button {
-    transition: filter 0.3s;
-}
-
-
-.field-resolve_field .button:hover {
-    filter: brightness(150%);
-}
-
-
 .quarantine-item-button-group {
     display: flex;
     gap: 0.5rem;
-}
 
-.quarantine-item-button-group .button {
-    text-align: center;
+    & .button {
+        text-align: center;
+        transition: filter 0.3s;
+
+        &:hover {
+            filter: brightness(150%);
+        }
+
+        &.approve {
+            background-color: #094609;
+        }
+
+        &.reject {
+            background-color: rgb(108, 31, 31);
+        }
+    }
 }

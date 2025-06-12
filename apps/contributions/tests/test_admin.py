@@ -388,3 +388,29 @@ class TestContributionAdmin:
         CompareVersionAdmin to do the right thing.
         """
         assert isinstance(admin, CompareVersionAdmin)
+
+    def test_quarantine_actions_shown_on_flagged_detail(self, admin):
+        contribution = ContributionFactory(status=ContributionStatus.FLAGGED)
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) in admin.get_fieldsets(obj=contribution, request="unused")
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            ContributionStatus.ABANDONED,
+            ContributionStatus.CANCELED,
+            ContributionStatus.FAILED,
+            ContributionStatus.PAID,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REFUNDED,
+            ContributionStatus.REJECTED,
+        ],
+    )
+    def test_quarantine_actions_hidden_on_unflagged_detail(self, admin, status):
+        contribution = ContributionFactory(status=status)
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) not in admin.get_fieldsets(obj=contribution, request="unused")

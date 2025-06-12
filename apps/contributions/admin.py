@@ -482,8 +482,7 @@ class QuarantineQueue(admin.ModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .filter(quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR)
-            .exclude(status=ContributionStatus.ABANDONED)
+            .filter(quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR, status=ContributionStatus.FLAGGED)
         )
 
     def complete_flagged_contribution(self, request: HttpRequest, contribution_id: str, quarantine_status: str):

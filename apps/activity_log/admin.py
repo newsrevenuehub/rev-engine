@@ -31,7 +31,7 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     list_display = ("linked_actor_object", "action", "linked_object_object", "get_on")
     actions = None
-    search_fields = ("actory_content_obj",)
+    search_fields = ("actor_content_obj",)
 
     def changelist_view(self, request: HttpRequest, extra_context: dict[Any, Any] | None = None):
         extra_context = extra_context or {}

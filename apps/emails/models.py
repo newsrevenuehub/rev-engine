@@ -4,6 +4,7 @@ import typing
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 import reversion
 
@@ -73,7 +74,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
 
     contribution = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=TransactionalEmailNames.choices)
-    sent_on = models.DateTimeField(default=datetime.datetime.now)
+    sent_on = models.DateTimeField(default=timezone.now, help_text="When the email was sent")
 
     def __str__(self):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"

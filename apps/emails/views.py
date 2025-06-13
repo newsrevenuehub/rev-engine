@@ -1,12 +1,19 @@
 import datetime
 from dataclasses import asdict
 
-from django.http import HttpResponse
+from django.db import models
+from django.http import Http404, HttpResponse
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
+from rest_framework import viewsets
+
+from apps.api.permissions import IsHubAdmin, IsOrgAdmin, IsRpAdmin
 from apps.contributions.models import BillingHistoryItem, Contribution
+from apps.emails.models import EmailCustomization
+from apps.emails.serializers import EmailCustomizationSerializer
 from apps.organizations.models import RevenueProgram
+from apps.users.choices import Roles
 
 
 PERMITTED_TEMPLATES = tuple(
@@ -73,3 +80,46 @@ def preview_contribution_email_template(request, template_name: str):
         ),
         content_type=f"text/{'plain' if template_name.endswith('txt') else 'html'}",
     )
+
+
+class EmailCustomizationViewSet(viewsets.ModelViewSet):
+    """Viewset for managing email customizations."""
+
+    permission_classes = [IsHubAdmin | IsOrgAdmin | IsRpAdmin]
+    serializer_class = EmailCustomizationSerializer
+    http_method_names = ["get", "post", "patch", "delete"]
+    pagination_class = None
+
+    def get_object(self):
+        """Override to always return a generic 404 message.
+
+        We override `get_object` to prevent leaking info about existence of specific email customization
+        objects. Without this, if the user tries to retrieve an unowned email customization, the API will
+        return a 404 with a message like "EmailCustomization matching query does not exist.", instead of the
+        generic "Not found." message we want to provide.
+        """
+        try:
+            return super().get_object()
+        except Http404 as exc:
+            raise Http404("Not found.") from exc
+
+    def get_queryset(self) -> models.QuerySet[EmailCustomization]:
+        match self.request.user.roleassignment.role_type:
+            case Roles.ORG_ADMIN:
+                base_filter = {"revenue_program__organization": self.request.user.roleassignment.organization}
+            case Roles.RP_ADMIN:
+                base_filter = {
+                    "revenue_program__id__in": self.request.user.roleassignment.revenue_programs.values_list(
+                        "id", flat=True
+                    )
+                }
+            case (
+                Roles.HUB_ADMIN
+            ):  # pragma: no cover (given permission classes, it will always be true if at this point)
+                base_filter = {}
+        queryset = EmailCustomization.objects.filter(**base_filter)
+        if (rp_id := self.request.query_params.get("revenue_program")) and int(rp_id) not in queryset.values_list(
+            "revenue_program__id", flat=True
+        ):
+            return queryset.none()
+        return queryset

@@ -29,17 +29,17 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class EmailCustomization(IndexedTimeStampedModel):
-    class EmailTypes(models.TextChoices):
+    class EmailType(models.TextChoices):
         CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
 
-    class EmailBlocks(models.TextChoices):
+    class EmailBlock(models.TextChoices):
         MESSAGE = "message", "Main Message Body"
 
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     content_html = models.TextField(max_length=5000, help_text="HTML source code of the custom content")
-    email_type = models.CharField(max_length=30, choices=EmailTypes.choices, help_text="Type of email this relates to")
+    email_type = models.CharField(max_length=30, choices=EmailType.choices, help_text="Type of email this relates to")
     email_block = models.CharField(
-        max_length=30, choices=EmailBlocks.choices, help_text="Which block of content in an email this relates to"
+        max_length=30, choices=EmailBlock.choices, help_text="Which block of content in an email this relates to"
     )
 
     class Meta:

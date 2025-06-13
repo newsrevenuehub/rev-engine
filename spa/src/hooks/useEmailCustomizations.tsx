@@ -102,49 +102,6 @@ export function useEmailCustomizations(emailType: EmailCustomization['email_type
       }
     }
   );
-  const upsertCustomizations: UseEmailCustomizationsResult['upsertCustomizations'] = async (
-    update,
-    revenueProgramId
-  ) => {
-    // We need to either create or update existing customizations depending on
-    // whether the customizations have been previously saved to the backend.
-    // We compare the update to the fetched customizations to figure out which to do.
-
-    if (!customizations) {
-      // Should never happen.
-      throw new Error('customizations is undefined');
-    }
-
-    const requests = [];
-
-    for (const emailBlock in update) {
-      const narrowedBlock = emailBlock as EmailCustomization['email_block'];
-
-      if (customizations[narrowedBlock]) {
-        requests.push(
-          updateCustomization({
-            content_html: update[narrowedBlock]!,
-            email_block: narrowedBlock,
-            email_type: emailType,
-            id: customizations[narrowedBlock].id,
-            revenue_program: customizations[narrowedBlock].revenue_program
-          })
-        );
-      } else {
-        requests.push(
-          createCustomization({
-            content_html: update[narrowedBlock]!,
-            email_block: narrowedBlock,
-            email_type: emailType,
-            revenue_program: revenueProgramId
-          })
-        );
-      }
-    }
-
-    return (await Promise.allSettled(requests)).every(({ status }) => status === 'fulfilled');
-  };
-
   const result: UseEmailCustomizationsResult = {
     customizations,
     isError,
@@ -152,7 +109,40 @@ export function useEmailCustomizations(emailType: EmailCustomization['email_type
   };
 
   if (customizations) {
-    result.upsertCustomizations = upsertCustomizations;
+    result.upsertCustomizations = async function (update, revenueProgramId) {
+      // We need to either create or update existing customizations depending on
+      // whether the customizations have been previously saved to the backend.
+      // We compare the update to the fetched customizations to figure out which to do.
+
+      const requests = [];
+
+      for (const emailBlock in update) {
+        const narrowedBlock = emailBlock as EmailCustomization['email_block'];
+
+        if (customizations[narrowedBlock]) {
+          requests.push(
+            updateCustomization({
+              content_html: update[narrowedBlock]!,
+              email_block: narrowedBlock,
+              email_type: emailType,
+              id: customizations[narrowedBlock].id,
+              revenue_program: customizations[narrowedBlock].revenue_program
+            })
+          );
+        } else {
+          requests.push(
+            createCustomization({
+              content_html: update[narrowedBlock]!,
+              email_block: narrowedBlock,
+              email_type: emailType,
+              revenue_program: revenueProgramId
+            })
+          );
+        }
+      }
+
+      return (await Promise.allSettled(requests)).every(({ status }) => status === 'fulfilled');
+    };
   }
 
   return result;

@@ -1,0 +1,125 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'ajax/axios';
+import { getAdminContributionEndpoint } from 'ajax/endpoints';
+import { ContributionInterval } from 'constants/contributionIntervals';
+import { RevenueProgram } from './useContributionPage';
+import { useSnackbar } from 'notistack';
+import SystemNotification from 'components/common/SystemNotification';
+
+export interface Contribution {
+  /**
+   * Amount of the contribution in cents, including fees.
+   */
+  amount: number;
+  auto_accepted_on: unknown;
+  /**
+   * How bad actor scored this contribution. Low is good, high is suspicious.
+   */
+  bad_actor_score: number | null;
+  /**
+   * Email of the contributor.
+   */
+  contributor_email: string;
+  /**
+   * ISO timestamp when the contribution was originally created.
+   */
+  created: string;
+  /**
+   * Currency code of the contribution.
+   */
+  currency: string;
+  /**
+   * ID of the contribution page this contribution was made via. null values
+   * here are generally set on migrated contributions.
+   */
+  donation_page_id: null | number;
+  /**
+   * ISO timestamp of the first payment on the contribution. Might be null if
+   * the contribution failed.
+   */
+  first_payment_date: null | string;
+  /**
+   * ISO timestamp of when this contribution was flagged, if ever.
+   */
+  flagged_date: null | string;
+  /**
+   * Name of the payment provider used, e.g. Stripe.
+   */
+  formatted_payment_provider_used: string;
+  /**
+   * ID of the contribution.
+   */
+  id: number;
+  /**
+   * How often this contribution recurs.
+   */
+  interval: ContributionInterval;
+  /**
+   * Can this contribution be canceled?
+   */
+  is_cancelable: boolean;
+  /**
+   * ISO timetstamp of the most recent payment made related to this
+   * contribution. Might be null if the contribution failed.
+   */
+  last_payment_date: null | string;
+  /**
+   * External URL to view the customer in the payment provider used.
+   */
+  provider_customer_url: string;
+  /**
+   * External URL to view the payment related to the contribution in the payment provider.
+   */
+  provider_payment_url: string;
+  /**
+   * External URL to view the subscription related to the contribution in the
+   * payment provider. null on one-time contributions.
+   */
+  provider_subscription_url: null | string;
+  /**
+   * Revenue program this contribution was to.
+   */
+  revenue_program: RevenueProgram;
+  /**
+   * Status of the contribution.
+   */
+  status: 'abandoned' | 'canceled' | 'failed' | 'flagged' | 'paid' | 'processing' | 'refunded' | 'rejected';
+}
+
+async function fetchContribution(contributionId: number) {
+  const { data } = await axios.get<Contribution>(getAdminContributionEndpoint(contributionId));
+
+  return data;
+}
+
+export function useContribution(contributionId: number) {
+  const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
+  const { data, isLoading, isError } = useQuery(['contribution', contributionId], () =>
+    fetchContribution(contributionId)
+  );
+  const { mutateAsync: cancelContribution } = useMutation(
+    async () => await axios.delete(getAdminContributionEndpoint(contributionId)),
+    {
+      onSuccess() {
+        queryClient.invalidateQueries(['contribution', contributionId]);
+        enqueueSnackbar('The recurring contribution was successfully canceled.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Contribution canceled" type="success" />
+          )
+        });
+      },
+      onError() {
+        enqueueSnackbar('Failed to cancel the recurring contribution. Please wait and try again.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Contribution failed to cancel" type="error" />
+          )
+        });
+      }
+    }
+  );
+
+  return { cancelContribution, contribution: data, isLoading, isError };
+}

@@ -23,6 +23,7 @@ from apps.contributions.filters import PortalContributionFilter
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
+    ContributionStatusError,
     Contributor,
 )
 
@@ -180,14 +181,11 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.
         """
-        if not contribution.is_cancelable:
+        try:
+            contribution.cancel_existing(actor=contribution.contributor)
+        except ContributionStatusError:
             logger.warning("Request was made to cancel uncancelable contribution %s", contribution.id)
             return Response({"detail": "Cannot cancel contribution"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            stripe.Subscription.delete(
-                contribution.provider_subscription_id,
-                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
-            )
         except stripe.error.StripeError:
             logger.exception(
                 "stripe.Subscription.delete returned a StripeError trying to cancel subscription %s associated with contribution %s",
@@ -195,10 +193,4 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
                 contribution.id,
             )
             return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        # Note that we optimistically create an activity log. Transaction finality is not guaranteed and the contribution only gets
-        # marked as canceled after the Stripe webhook is processed. If the webhook fails, we could end up with an activity log
-        # entry for a contribution that is not actually canceled. This should not happen frequently. The alternative would be to create
-        # the activity log entry in the webhook handler, but that would require a more complex implementation and we want to keep this
-        # simple.
-        contribution.create_contributor_canceled_contribution_activity_log()
         return Response(status=status.HTTP_204_NO_CONTENT)

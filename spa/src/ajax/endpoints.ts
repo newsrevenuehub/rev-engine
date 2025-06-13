@@ -59,6 +59,11 @@ export function getContributionSendEmailReceiptEndpoint(contributorId: number, c
 }
 
 export const CONTRIBUTIONS = 'contributions/';
+
+export function getAdminContributionEndpoint(contributionId: number) {
+  return `${CONTRIBUTIONS}${contributionId}/`;
+}
+
 export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';
 export const SUBSCRIPTIONS = 'subscriptions/';

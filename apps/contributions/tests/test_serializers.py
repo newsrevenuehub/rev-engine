@@ -90,6 +90,7 @@ class TestContributionSerializer:
             "flagged_date",
             "formatted_payment_provider_used",
             "id",
+            "is_cancelable",
             "interval",
             "last_payment_date",
             "provider_customer_url",

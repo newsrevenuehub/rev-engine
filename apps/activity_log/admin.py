@@ -4,7 +4,6 @@ from typing import Any
 from django.conf import settings
 from django.contrib import admin
 from django.db.models import Model
-from django.db.models.query import QuerySet
 from django.http import HttpRequest
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
@@ -31,17 +30,12 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     list_display = ("linked_actor_object", "action", "linked_object_object", "get_on")
     actions = None
-    search_fields = ("actor_content_obj",)
+    search_fields = ("actor__email__icontains",)
 
     def changelist_view(self, request: HttpRequest, extra_context: dict[Any, Any] | None = None):
         extra_context = extra_context or {}
         extra_context["title"] = "Activity logs"
         return super().changelist_view(request, extra_context)
-
-    def get_search_results(
-        self, request: HttpRequest, queryset: QuerySet[ActivityLog], search_term: str
-    ) -> tuple[QuerySet[ActivityLog], bool]:
-        return queryset.filter(actor__email__icontains=search_term), False
 
     def has_change_permission(self, request: HttpRequest, obj: Model | None = None) -> bool:
         """Override change permission for all users, setting to false.

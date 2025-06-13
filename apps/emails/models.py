@@ -3,7 +3,7 @@ import typing
 from django.db import models
 
 
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from apps.emails.helpers import EmailCustomizationValues
 
 import nh3
@@ -18,13 +18,17 @@ ALLOWED_ATTRIBUTES = {"span": {"style"}}
 
 
 class EmailCustomization(IndexedTimeStampedModel):
-    EMAIL_TYPES = [("contribution_receipt", "Contribution Receipt")]
-    EMAIL_BLOCKS = [("message", "Main Message Body")]
+    class EmailType(models.TextChoices):
+        CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
+
+    class EmailBlock(models.TextChoices):
+        MESSAGE = "message", "Main Message Body"
+
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     content_html = models.TextField(max_length=5000, help_text="HTML source code of the custom content")
-    email_type = models.CharField(max_length=30, choices=EMAIL_TYPES, help_text="Type of email this relates to")
+    email_type = models.CharField(max_length=30, choices=EmailType.choices, help_text="Type of email this relates to")
     email_block = models.CharField(
-        max_length=30, choices=EMAIL_BLOCKS, help_text="Which block of content in an email this relates to"
+        max_length=30, choices=EmailBlock.choices, help_text="Which block of content in an email this relates to"
     )
 
     class Meta:

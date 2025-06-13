@@ -103,7 +103,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             return
         # If there's a problem sending the email, we want to rollback the email record creation.
         # We also want to ensure that if a separate process runs this same method conccurently with same contribution,
-        # it cannot lead to
+        # it cannot lead to multiple emails being sent.
         with transaction.atomic(), reversion.create_revision():
             try:
                 TransactionalEmailRecord.objects.create(

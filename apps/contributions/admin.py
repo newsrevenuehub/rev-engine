@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import re_path, reverse
 from django.urls.resolvers import URLPattern
 from django.utils.html import format_html
+from django.utils.safestring import SafeText
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -21,7 +22,7 @@ from apps.contributions.payment_managers import PaymentProviderError
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-def flagged_contribution_actions_html(obj: Contribution):
+def flagged_contribution_actions_html(obj: Contribution) -> SafeText:
     """Return HTML to take quick actions on a flagged contribution.
 
     This is shared across the quarantine queue and contribution admins.
@@ -281,7 +282,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     def get_fieldsets(self, request: HttpRequest, obj: Contribution):
         # Add quarantine options to flagged contributions.
-        if obj.status == ContributionStatus.FLAGGED:
+        if obj.quarantine_status == QuarantineStatus.FLAGGED_BY_BAD_ACTOR:
             return (
                 (
                     "Quarantine",

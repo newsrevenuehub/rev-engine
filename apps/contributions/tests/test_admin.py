@@ -390,7 +390,9 @@ class TestContributionAdmin:
         assert isinstance(admin, CompareVersionAdmin)
 
     def test_quarantine_actions_shown_on_flagged_detail(self, admin):
-        contribution = ContributionFactory(status=ContributionStatus.FLAGGED)
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED, quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+        )
         assert (
             "Quarantine",
             {"fields": ("quarantine_actions",)},
@@ -410,6 +412,25 @@ class TestContributionAdmin:
     )
     def test_quarantine_actions_hidden_on_unflagged_detail(self, admin, status):
         contribution = ContributionFactory(status=status)
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) not in admin.get_fieldsets(obj=contribution, request="unused")
+
+    @pytest.mark.parametrize(
+        "quarantine_status",
+        [
+            QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+            QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+            QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+            QuarantineStatus.REJECTED_BY_MACHINE_FOR_BAD_ACTOR,
+            QuarantineStatus.APPROVED_BY_MACHINE_AFTER_WAIT,
+            QuarantineStatus.APPROVED_BY_HUMAN,
+            QuarantineStatus.REJECTED_BY_STRIPE_FOR_FRAUD,
+        ],
+    )
+    def test_quarantine_actions_hidden_on_other_flagged_statuses(self, admin, quarantine_status):
+        contribution = ContributionFactory(status=ContributionStatus.FLAGGED, quarantine_status=quarantine_status)
         assert (
             "Quarantine",
             {"fields": ("quarantine_actions",)},

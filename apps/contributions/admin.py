@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import re_path, reverse
 from django.urls.resolvers import URLPattern
 from django.utils.html import format_html
+from django.utils.safestring import SafeText
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -19,6 +20,49 @@ from apps.contributions.payment_managers import PaymentProviderError
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+def flagged_contribution_actions_html(obj: Contribution) -> SafeText:
+    """Return HTML to take quick actions on a flagged contribution.
+
+    This is shared across the quarantine queue and contribution admins.
+    """
+    mapping = [
+        {
+            "label": "✅ appr",
+            "url": reverse("admin:approve_quarantined_contribution", args=[obj.id]),
+            "class": "approve",
+        },
+        {
+            "label": "❌ dupe",
+            "url": reverse(
+                "admin:reject_quarantined_contribution",
+                args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_DUPE.value],
+            ),
+            "class": "reject",
+        },
+        {
+            "label": "❌ fraud",
+            "url": reverse(
+                "admin:reject_quarantined_contribution",
+                args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_FRAUD.value],
+            ),
+            "class": "reject",
+        },
+        {
+            "label": "❌ other",
+            "url": reverse(
+                "admin:reject_quarantined_contribution",
+                args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_OTHER.value],
+            ),
+            "class": "reject",
+        },
+    ]
+
+    actions = [f"""<a class="button {x["class"]}" href="{x["url"]}">{x["label"]}</a>""" for x in mapping]
+    return format_html(
+        f"""<div class="quarantine-item-button-group">{"".join(actions)}</div>""",
+    )
 
 
 @admin.register(Contributor)
@@ -227,6 +271,26 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     inlines = [PaymentInline]
 
+    class Media:
+        css = {"all": ("admin/css/quarantine-admin.css",)}
+
+    def quarantine_actions(self, obj: Contribution):
+        return flagged_contribution_actions_html(obj)
+
+    quarantine_actions.short_description = "Resolve"
+    quarantine_actions.allow_tags = True
+
+    def get_fieldsets(self, request: HttpRequest, obj: Contribution):
+        # Add quarantine options to flagged contributions.
+        if obj.quarantine_status == QuarantineStatus.FLAGGED_BY_BAD_ACTOR:
+            return (
+                (
+                    "Quarantine",
+                    {"fields": ("quarantine_actions",)},
+                ),
+            )
+        return self.fieldsets
+
     def get_queryset(self, request: HttpRequest) -> QuerySet[Contribution]:
         # Annotate the queryset with the first_payment_date
         queryset = super().get_queryset(request)
@@ -402,42 +466,7 @@ class QuarantineQueue(admin.ModelAdmin):
         return custom_urls + urls
 
     def resolve_field(self, obj: Contribution):
-        mapping = [
-            {
-                "label": "✅ appr",
-                "url": reverse("admin:approve_quarantined_contribution", args=[obj.id]),
-                "class": "approve",
-            },
-            {
-                "label": "❌ dupe",
-                "url": reverse(
-                    "admin:reject_quarantined_contribution",
-                    args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_DUPE.value],
-                ),
-                "class": "reject",
-            },
-            {
-                "label": "❌ fraud",
-                "url": reverse(
-                    "admin:reject_quarantined_contribution",
-                    args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_FRAUD.value],
-                ),
-                "class": "reject",
-            },
-            {
-                "label": "❌ other",
-                "url": reverse(
-                    "admin:reject_quarantined_contribution",
-                    args=[obj.id, QuarantineStatus.REJECTED_BY_HUMAN_OTHER.value],
-                ),
-                "class": "reject",
-            },
-        ]
-
-        actions = [f"""<a class="button {x['class']}" href="{x['url']}">{x['label']}</a>""" for x in mapping]
-        return format_html(
-            f"""<div class="quarantine-item-button-group">{"".join(actions)}</div>""",
-        )
+        return flagged_contribution_actions_html(obj)
 
     resolve_field.short_description = "Resolve"
     resolve_field.allow_tags = True

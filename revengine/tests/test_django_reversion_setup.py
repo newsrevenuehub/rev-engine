@@ -10,7 +10,7 @@ from apps.contributions.admin import ContributionAdmin, ContributorAdmin
 from apps.contributions.models import Contribution, Contributor, Payment
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.admin import EmailCustomizationAdmin
-from apps.emails.models import EmailCustomization
+from apps.emails.models import EmailCustomization, TransactionalEmailRecord
 from apps.organizations.admin import (
     BenefitAdmin,
     BenefitLevelAdmin,
@@ -63,6 +63,7 @@ def test_expected_models_are_registered_with_django_reversion():
         User,
         RoleAssignment,
         Payment,
+        TransactionalEmailRecord,
     ]
     assert set(expected_registered_models) == set(reversion.get_registered_models())
 

@@ -21,6 +21,7 @@ from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
+from apps.emails.models import EmailCustomization
 from apps.organizations.mailchimp import (
     MailchimpEmailList,
     MailchimpIntegrationError,
@@ -947,6 +948,23 @@ class TestRevenueProgram:
     def test_contributor_portal_url(self, revenue_program: RevenueProgram, mocker: pytest_mock.MockerFixture):
         mocker.patch("apps.api.views.construct_rp_domain", return_value="mock-rp-domain")
         assert revenue_program.contributor_portal_url == "https://mock-rp-domain/portal/"
+
+    @pytest.mark.parametrize("has_customizations", [True, False])
+    def test_get_contribution_receipt_email_customizations(
+        self, email_customization: EmailCustomization, revenue_program: RevenueProgram, has_customizations: bool
+    ):
+        if has_customizations:
+            email_customization.revenue_program = revenue_program
+            email_customization.save()
+        else:
+            email_customization.delete()
+
+        revenue_program.refresh_from_db()
+        customizations = revenue_program.get_contribution_receipt_email_customizations()
+        if has_customizations:
+            assert customizations == {"message": email_customization.as_dict()}
+        else:
+            assert customizations == {"message": None}
 
 
 @pytest.mark.django_db

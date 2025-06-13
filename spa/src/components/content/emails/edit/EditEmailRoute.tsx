@@ -64,7 +64,10 @@ export function EditEmailRoute() {
   }
 
   async function handleSave() {
-    // Neither of these two checks should ever be true.
+    // Neither of these two checks should ever be true. The save button will be
+    // disabled if revenueProgram is undefined, and edits can't be made until
+    // customizations have loaded, and upsertCustomizations is only set once
+    // they have.
 
     if (!revenueProgram) {
       throw new Error('revenueProgram is undefined');

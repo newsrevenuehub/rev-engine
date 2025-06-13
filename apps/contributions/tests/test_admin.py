@@ -28,7 +28,6 @@ from apps.users.models import User
 
 @pytest.mark.django_db
 class TestQuarantineAdmin:
-
     @pytest.fixture
     def flagged_one_time_contribution(self):
         return ContributionFactory(
@@ -435,3 +434,47 @@ class TestContributionAdmin:
             "Quarantine",
             {"fields": ("quarantine_actions",)},
         ) not in admin.get_fieldsets(obj=contribution, request="unused")
+
+    def test_quarantine_actions_contain_correct_content(self, admin):
+        contribution = ContributionFactory()
+        soup = bs4(admin.quarantine_actions(contribution), "html.parser")
+        assert (
+            soup.find("a", {"href": reverse("admin:approve_quarantined_contribution", args=[contribution.id])})
+            is not None
+        )
+        assert (
+            soup.find(
+                "a",
+                {
+                    "href": reverse(
+                        "admin:reject_quarantined_contribution",
+                        args=[contribution.id, QuarantineStatus.REJECTED_BY_HUMAN_DUPE.value],
+                    )
+                },
+            )
+            is not None
+        )
+        assert (
+            soup.find(
+                "a",
+                {
+                    "href": reverse(
+                        "admin:reject_quarantined_contribution",
+                        args=[contribution.id, QuarantineStatus.REJECTED_BY_HUMAN_FRAUD.value],
+                    )
+                },
+            )
+            is not None
+        )
+        assert (
+            soup.find(
+                "a",
+                {
+                    "href": reverse(
+                        "admin:reject_quarantined_contribution",
+                        args=[contribution.id, QuarantineStatus.REJECTED_BY_HUMAN_OTHER.value],
+                    )
+                },
+            )
+            is not None
+        )

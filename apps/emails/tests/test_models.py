@@ -65,7 +65,7 @@ class TestTransactionalEmailRecord:
         """Fixture to create a default TransactionalEmailRecord instance."""
         record = TransactionalEmailRecord(
             contribution=one_time_contribution,
-            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
             sent_on=datetime.datetime.now(tz=datetime.timezone.utc),
         )
         record.save()
@@ -88,7 +88,7 @@ class TestTransactionalEmailRecord:
     def test_handle_receipt_email_when_unsent(self, one_time_contribution: "Contribution", now: datetime.datetime):
         query = TransactionalEmailRecord.objects.filter(
             contribution=one_time_contribution,
-            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
         )
         assert not query.exists()
         TransactionalEmailRecord.handle_receipt_email(one_time_contribution)
@@ -97,12 +97,13 @@ class TestTransactionalEmailRecord:
         record = query.first()
         assert record.sent_on == now
 
+    @pytest.mark.usefixtures("_mock_stripe_retrieve")
     def test_handle_receipt_email_when_already_sent(
         self, transactional_email_record_receipt_email: TransactionalEmailRecord
     ):
         query = TransactionalEmailRecord.objects.filter(
             contribution=transactional_email_record_receipt_email.contribution,
-            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
         )
         assert query.exists()
         TransactionalEmailRecord.handle_receipt_email(
@@ -117,7 +118,7 @@ class TestTransactionalEmailRecord:
         one_time_contribution.revenue_program.organization.save()
         query = TransactionalEmailRecord.objects.filter(
             contribution=one_time_contribution,
-            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
         )
         assert not query.exists()
         TransactionalEmailRecord.handle_receipt_email(one_time_contribution)

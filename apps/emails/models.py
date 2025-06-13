@@ -1,9 +1,8 @@
-import datetime
 import logging
 import typing
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 import reversion
@@ -76,6 +75,12 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
     name = models.CharField(max_length=50, choices=TransactionalEmailNames.choices)
     sent_on = models.DateTimeField(default=timezone.now, help_text="When the email was sent")
 
+    class Meta:
+        unique_together = (
+            "contribution",
+            "name",
+        )
+
     def __str__(self):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"
 
@@ -96,22 +101,23 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
                 contribution.pk,
             )
             return
-        if TransactionalEmailRecord.objects.filter(
-            contribution=contribution,
-            name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
-        ).exists():
-            logger.info(
-                "Skipping sending receipt email for contribution %s, already sent",
-                contribution.pk,
-            )
-            return
-        # If there's a problem sending the email, we want to rollback the email record creation
-        with transaction.atomic():
-            with reversion.create_revision():
+        # If there's a problem sending the email, we want to rollback the email record creation.
+        # We also want to ensure that if a separate process runs this same method conccurently with same contribution,
+        # it cannot lead to
+        with transaction.atomic(), reversion.create_revision():
+            try:
                 TransactionalEmailRecord.objects.create(
                     contribution=contribution,
-                    name=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
-                    sent_on=datetime.datetime.now(datetime.timezone.utc),
+                    name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
                 )
+            except IntegrityError:
+                logger.info(
+                    "Receipt email for contribution %s already sent, skipping email creation",
+                    contribution.pk,
+                )
+                return
+            else:
                 reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
-            cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)
+                # we only send email if the record was created successfully, but if there's an error in sending the email,
+                # we'll get rollback of email record, which is what we want since we only want to create if sent (as best we can tell).
+                cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)

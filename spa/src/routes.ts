@@ -11,6 +11,7 @@ export const EDITOR_ROUTE = '/edit/';
 export const EDITOR_ROUTE_PAGE = join([EDITOR_ROUTE, '/pages/:pageId/']);
 export const EDITOR_ROUTE_PAGE_REDIRECT = join([EDITOR_ROUTE, '/:revProgramSlug/:pageSlug/']);
 export const EMAILS_SLUG = '/emails/';
+export const EMAIL_EDIT_SLUG = join([EMAILS_SLUG, '/:emailType/']);
 export const DONATION_PAGE_SLUG = '/:pageSlug/';
 export const THANK_YOU_SLUG = '/thank-you/';
 export const PAYMENT_SUCCESS = '/payment/success/';

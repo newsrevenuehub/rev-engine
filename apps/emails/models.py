@@ -75,6 +75,9 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
     name = models.CharField(max_length=50, choices=TransactionalEmailNames.choices)
     sent_on = models.DateTimeField(default=timezone.now, help_text="When the email was sent")
 
+    # We expect to add additional fields to uniqueness constraint in the future as we add more email types.
+    # Specifically, we expect to eventually store webhook event IDs here to ensure we don't send the same email
+    # multiple times for the same webhook event.
     class Meta:
         unique_together = (
             "contribution",

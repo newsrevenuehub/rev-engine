@@ -8,7 +8,11 @@ export const Button = styled(BaseButton)<{ $active?: boolean }>`
     padding: 0;
 
     &[aria-pressed='true'] {
-      background-color: #2828280f;
+      background-color: ${({ theme }) => theme.basePalette.greyscale[30]};
+
+      & .NreButtonLabel {
+        color: black;
+      }
     }
 
     .NreButtonLabel {

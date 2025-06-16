@@ -85,18 +85,18 @@ function Dashboard() {
                 </SentryRoute>
               ) : null}
               {hasEmailSectionAccess ? (
-                <>
-                  <SentryRoute path={EMAILS_SLUG} exact>
-                    <SingleOrgUserOnlyRoute>
-                      <EmailsRoute />
-                    </SingleOrgUserOnlyRoute>
-                  </SentryRoute>
-                  <SentryRoute path={EMAIL_EDIT_SLUG}>
-                    <SingleOrgUserOnlyRoute>
-                      <EditEmailRoute />
-                    </SingleOrgUserOnlyRoute>
-                  </SentryRoute>
-                </>
+                <SentryRoute path={EMAILS_SLUG} exact>
+                  <SingleOrgUserOnlyRoute>
+                    <EmailsRoute />
+                  </SingleOrgUserOnlyRoute>
+                </SentryRoute>
+              ) : null}
+              {hasEmailSectionAccess ? (
+                <SentryRoute path={EMAIL_EDIT_SLUG}>
+                  <SingleOrgUserOnlyRoute>
+                    <EditEmailRoute />
+                  </SingleOrgUserOnlyRoute>
+                </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (
                 <SentryRoute path={CONTENT_SLUG}>

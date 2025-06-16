@@ -1,5 +1,5 @@
 import { Editor } from '@tiptap/react';
-import { Select } from 'components/base';
+import { MenuItemProps, Select } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
 
 const FontSizeSelectPropTypes = {
@@ -21,9 +21,17 @@ export function FontSizeSelect({ editor }: FontSizeSelectProps) {
 
   return (
     <Select
+      MenuItemProps={
+        {
+          component: (props: MenuItemProps) => <li data-edit-email-route-maintain-editor-focus {...props} />
+        } as any
+      }
       disabled={!editor}
       onChange={(event) => editor?.chain().focus().selectParentNode().setFontSize(event.target.value).run()}
-      options={FONT_SIZES.map((size) => ({ label: size, value: `${size}px` }))}
+      options={FONT_SIZES.map((size) => ({
+        label: size,
+        value: `${size}px`
+      }))}
       value={value}
     />
   );

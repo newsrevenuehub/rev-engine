@@ -1,8 +1,7 @@
-import { ClickAwayListener } from '@material-ui/core';
 import { ArrowBackOutlined, SaveOutlined } from '@material-ui/icons';
 import { Editor } from '@tiptap/react';
 import { useSnackbar } from 'notistack';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, RouterLinkButton, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
@@ -49,10 +48,25 @@ export function EditEmailRoute() {
     });
   }, [customizationEdits, customizations, emailType, revenueProgram]);
 
-  function handleEditorBlur() {
-    setFocusedBlock(undefined);
-    setFocusedEditor(undefined);
-  }
+  useEffect(() => {
+    // If the user clicks outside of an editor or toolbar element, disconnect
+    // the editor from the toolbar. We use a DOM attribute here to avoid having
+    // to manage many refs--we need to track all editors, the toolbar, and also
+    // any dropdown menus in the toolbar because they get portalled out into the
+    // main document body.
+
+    function handleGlobalClick(event: MouseEvent) {
+      if ((event.target as HTMLElement).closest('[data-edit-email-route-maintain-editor-focus]')) {
+        return;
+      }
+
+      setFocusedBlock(undefined);
+      setFocusedEditor(undefined);
+    }
+
+    document.body.addEventListener('mouseup', handleGlobalClick);
+    return () => document.body.removeEventListener('mouseup', handleGlobalClick);
+  }, []);
 
   function handleEditorFocus(editor: Editor, block: EmailCustomization['email_block']) {
     setFocusedEditor(editor);
@@ -123,7 +137,7 @@ export function EditEmailRoute() {
           subtitle="Logo and disclaimer are pulled from the default donation page."
           title="Edit Copy"
         >
-          <div>
+          <div data-edit-email-route-maintain-editor-focus>
             <EditorToolbar editor={focusedEditor ?? null} />
             <ResetContentButton
               defaultContent={() => defaultEmailContent(emailType, focusedBlock!, revenueProgram!)}
@@ -133,18 +147,16 @@ export function EditEmailRoute() {
           </div>
           {revenueProgram && customizations && (
             <EmailPreview revenueProgram={revenueProgram}>
-              <ClickAwayListener onClickAway={handleEditorBlur}>
-                <div>
-                  <EditorBlock
-                    initialValue={
-                      customizations?.message?.content_html ?? defaultEmailContent(emailType, 'message', revenueProgram)
-                    }
-                    label="Message"
-                    onChange={handleEditorChange}
-                    onFocus={({ editor }) => handleEditorFocus(editor, 'message')}
-                  />
-                </div>
-              </ClickAwayListener>
+              <div data-edit-email-route-maintain-editor-focus>
+                <EditorBlock
+                  initialValue={
+                    customizations?.message?.content_html ?? defaultEmailContent(emailType, 'message', revenueProgram)
+                  }
+                  label="Message"
+                  onChange={handleEditorChange}
+                  onFocus={({ editor }) => handleEditorFocus(editor, 'message')}
+                />
+              </div>
             </EmailPreview>
           )}
         </SettingsSection>

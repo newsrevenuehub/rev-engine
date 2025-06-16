@@ -3,7 +3,7 @@ import { axe } from 'jest-axe';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
 import EditEmailRoute from './EditEmailRoute';
 import { useSnackbar } from 'notistack';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { useEmailCustomizations } from 'hooks/useEmailCustomizations';
 import useUser from 'hooks/useUser';
 import { EMAILS_SLUG } from 'routes';
@@ -22,6 +22,7 @@ jest.mock('notistack', () => ({
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
+  useHistory: jest.fn(),
   useParams: jest.fn()
 }));
 
@@ -47,6 +48,7 @@ function tree() {
 
 describe('EditEmailRoute', () => {
   const useEmailCustomizationsMock = jest.mocked(useEmailCustomizations);
+  const useHistoryMock = jest.mocked(useHistory);
   const useParamsMock = jest.mocked(useParams);
   const useSnackbarMock = jest.mocked(useSnackbar);
   const useUserMock = jest.mocked(useUser);
@@ -60,6 +62,7 @@ describe('EditEmailRoute', () => {
       isLoading: false,
       upsertCustomizations: jest.fn()
     });
+    useHistoryMock.mockReturnValue({ push: jest.fn() });
     useParamsMock.mockReturnValue({ emailType: 'contribution_receipt' });
     useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
     useUserMock.mockReturnValue({
@@ -132,19 +135,13 @@ describe('EditEmailRoute', () => {
   });
 
   it('disconnects the formatting toolbar and reset content button when the user clicks outside editors', () => {
-    // We need to use fake timers to properly exercise the click away handler.
-    // See discussion at https://github.com/mui/material-ui/issues/24783
-
-    jest.useFakeTimers();
     tree();
-    jest.runAllTimers();
     fireEvent.focus(screen.getByLabelText('Message'));
     expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).not.toBe('null');
     expect(screen.getByTestId('mock-reset-content-button').dataset.editor).not.toBe('null');
-    fireEvent.click(document.body);
+    fireEvent.mouseUp(document.body);
     expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).toBe('null');
     expect(screen.getByTestId('mock-reset-content-button').dataset.editor).toBe('null');
-    jest.useRealTimers();
   });
 
   it('disables the save button if no customizations exist and the content of the editors matches default content', () => {
@@ -196,19 +193,26 @@ describe('EditEmailRoute', () => {
   it.each([
     ['succeeds', true, 'The changes made to Receipts have been successfully saved.'],
     ['fails', false, 'Something went wrong saving the changes you made to Receipts. Please wait and try again.']
-  ])('shows the correct notification when saving changes %s', async (_, resolvedValue, notification) => {
-    useEmailCustomizationsMock.mockReturnValue({
-      customizations: mockCustomizations,
-      isError: false,
-      isLoading: false,
-      upsertCustomizations: jest.fn().mockResolvedValue(resolvedValue)
-    });
-    tree();
-    userEvent.type(screen.getByLabelText('Message'), 'test-change');
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(enqueueSnackbar).toBeCalled());
-    expect(enqueueSnackbar.mock.calls).toEqual([[notification, expect.anything()]]);
-  });
+  ])(
+    'shows the correct notification and navigates properly when saving changes %s',
+    async (_, resolvedValue, notification) => {
+      const push = jest.fn();
+
+      useEmailCustomizationsMock.mockReturnValue({
+        customizations: mockCustomizations,
+        isError: false,
+        isLoading: false,
+        upsertCustomizations: jest.fn().mockResolvedValue(resolvedValue)
+      });
+      useHistoryMock.mockReturnValue({ push });
+      tree();
+      userEvent.type(screen.getByLabelText('Message'), 'test-change');
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(enqueueSnackbar).toBeCalled());
+      expect(enqueueSnackbar.mock.calls).toEqual([[notification, expect.anything()]]);
+      expect(push.mock.calls).toEqual(resolvedValue ? [[EMAILS_SLUG]] : []);
+    }
+  );
 
   it('is accessible', async () => {
     const { container } = tree();

@@ -2,7 +2,7 @@ import { ArrowBackOutlined, SaveOutlined } from '@material-ui/icons';
 import { Editor } from '@tiptap/react';
 import { useSnackbar } from 'notistack';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { Button, RouterLinkButton, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import { Sections } from 'components/common/HeaderSection/HeaderSection.styled';
@@ -24,6 +24,7 @@ const HEADER_LABELS: Record<EmailCustomization['email_type'], string> = {
 
 export function EditEmailRoute() {
   const { emailType } = useParams<{ emailType: EmailCustomization['email_type'] }>();
+  const { push } = useHistory();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useUser();
   const [focusedBlock, setFocusedBlock] = useState<EmailCustomization['email_block']>();
@@ -64,8 +65,8 @@ export function EditEmailRoute() {
       setFocusedEditor(undefined);
     }
 
-    document.body.addEventListener('mouseup', handleGlobalClick);
-    return () => document.body.removeEventListener('mouseup', handleGlobalClick);
+    window.addEventListener('mouseup', handleGlobalClick);
+    return () => window.removeEventListener('mouseup', handleGlobalClick);
   }, []);
 
   function handleEditorFocus(editor: Editor, block: EmailCustomization['email_block']) {
@@ -98,6 +99,7 @@ export function EditEmailRoute() {
           <SystemNotification id={key} message={message} header="Changes Saved" type="success" />
         )
       });
+      push(EMAILS_SLUG);
     } else {
       enqueueSnackbar(
         `Something went wrong saving the changes you made to ${HEADER_LABELS[emailType]}. Please wait and try again.`,

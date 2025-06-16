@@ -61,13 +61,34 @@ describe('FontSizeSelect', () => {
       getAttributes: () => ({}),
       run: jest.fn().mockReturnThis(),
       selectParentNode: jest.fn().mockReturnThis(),
-      setFontSize: jest.fn().mockReturnThis()
+      setFontSize: jest.fn().mockReturnThis(),
+      setTextSelection: jest.fn().mockReturnThis(),
+      state: { selection: { from: 0, to: 0 } }
     } as any;
 
     tree({ editor });
     userEvent.click(screen.getByRole('button'));
     userEvent.click(screen.getByRole('option', { name: '24' }));
     expect(editor.setFontSize.mock.calls).toEqual([['24px']]);
+  });
+
+  it('retains the selection', () => {
+    const selection = { from: 123, to: 456 };
+    const editor = {
+      chain: jest.fn().mockReturnThis(),
+      focus: jest.fn().mockReturnThis(),
+      getAttributes: () => ({}),
+      run: jest.fn().mockReturnThis(),
+      selectParentNode: jest.fn().mockReturnThis(),
+      setFontSize: jest.fn().mockReturnThis(),
+      setTextSelection: jest.fn().mockReturnThis(),
+      state: { selection }
+    } as any;
+
+    tree({ editor });
+    userEvent.click(screen.getByRole('button'));
+    userEvent.click(screen.getByRole('option', { name: '24' }));
+    expect(editor.setTextSelection.mock.calls).toEqual([[selection]]);
   });
 
   it('is accessible', async () => {

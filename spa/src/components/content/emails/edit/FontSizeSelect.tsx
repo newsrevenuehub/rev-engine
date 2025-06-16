@@ -1,6 +1,7 @@
 import { Editor } from '@tiptap/react';
 import { MenuItemProps, Select } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
+import { ChangeEvent } from 'react';
 
 const FontSizeSelectPropTypes = {
   editor: PropTypes.object
@@ -19,6 +20,18 @@ export function FontSizeSelect({ editor }: FontSizeSelectProps) {
   // This cannot be memoized because editor won't change when the selection does.
   const value = editor?.getAttributes('textStyle').fontSize ?? `${DEFAULT_FONT_SIZE}px`;
 
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    // Should never happen.
+
+    if (!editor) {
+      throw new Error('editor is undefined');
+    }
+
+    const selection = { from: editor.state.selection.from, to: editor.state.selection.to };
+
+    editor.chain().focus().selectParentNode().setFontSize(event.target.value).setTextSelection(selection).run();
+  }
+
   return (
     <Select
       MenuItemProps={
@@ -27,7 +40,7 @@ export function FontSizeSelect({ editor }: FontSizeSelectProps) {
         } as any
       }
       disabled={!editor}
-      onChange={(event) => editor?.chain().focus().selectParentNode().setFontSize(event.target.value).run()}
+      onChange={handleChange}
       options={FONT_SIZES.map((size) => ({
         label: size,
         value: `${size}px`

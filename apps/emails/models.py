@@ -13,7 +13,7 @@ from apps.common.models import IndexedTimeStampedModel
 
 
 # <span style> is allowed for font size adjustments
-ALLOWED_TAGS = {"b", "i", "li", "ol", "p", "s", "span", "u", "ul"}
+ALLOWED_TAGS = {"em", "li", "ol", "p", "s", "span", "strong", "u", "ul"}
 ALLOWED_ATTRIBUTES = {"span": {"style"}}
 
 

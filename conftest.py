@@ -1131,5 +1131,5 @@ def email_customization(revenue_program: "RevenueProgram") -> EmailCustomization
         revenue_program=revenue_program,
         content_html="<p>Test content</p>",
         email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
-        email_block=EmailCustomization.EmailBlocks.MESSAGE,
+        email_block=EmailCustomization.EmailBlock.MESSAGE,
     )

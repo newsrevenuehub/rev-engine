@@ -28,7 +28,6 @@ from apps.users.models import User
 
 @pytest.mark.django_db
 class TestQuarantineAdmin:
-
     @pytest.fixture
     def flagged_one_time_contribution(self):
         return ContributionFactory(
@@ -388,3 +387,94 @@ class TestContributionAdmin:
         CompareVersionAdmin to do the right thing.
         """
         assert isinstance(admin, CompareVersionAdmin)
+
+    def test_quarantine_actions_shown_on_flagged_detail(self, admin):
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED, quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+        )
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) in admin.get_fieldsets(obj=contribution, request="unused")
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            ContributionStatus.ABANDONED,
+            ContributionStatus.CANCELED,
+            ContributionStatus.FAILED,
+            ContributionStatus.PAID,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REFUNDED,
+            ContributionStatus.REJECTED,
+        ],
+    )
+    def test_quarantine_actions_hidden_on_unflagged_detail(self, admin, status):
+        contribution = ContributionFactory(status=status)
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) not in admin.get_fieldsets(obj=contribution, request="unused")
+
+    @pytest.mark.parametrize(
+        "quarantine_status",
+        [
+            QuarantineStatus.REJECTED_BY_HUMAN_FRAUD,
+            QuarantineStatus.REJECTED_BY_HUMAN_DUPE,
+            QuarantineStatus.REJECTED_BY_HUMAN_OTHER,
+            QuarantineStatus.REJECTED_BY_MACHINE_FOR_BAD_ACTOR,
+            QuarantineStatus.APPROVED_BY_MACHINE_AFTER_WAIT,
+            QuarantineStatus.APPROVED_BY_HUMAN,
+            QuarantineStatus.REJECTED_BY_STRIPE_FOR_FRAUD,
+        ],
+    )
+    def test_quarantine_actions_hidden_on_other_flagged_statuses(self, admin, quarantine_status):
+        contribution = ContributionFactory(status=ContributionStatus.FLAGGED, quarantine_status=quarantine_status)
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) not in admin.get_fieldsets(obj=contribution, request="unused")
+
+    def test_quarantine_actions_contain_correct_content(self, admin):
+        contribution = ContributionFactory()
+        soup = bs4(admin.quarantine_actions(contribution), "html.parser")
+        assert (
+            soup.find("a", {"href": reverse("admin:approve_quarantined_contribution", args=[contribution.id])})
+            is not None
+        )
+        assert (
+            soup.find(
+                "a",
+                {
+                    "href": reverse(
+                        "admin:reject_quarantined_contribution",
+                        args=[contribution.id, QuarantineStatus.REJECTED_BY_HUMAN_DUPE.value],
+                    )
+                },
+            )
+            is not None
+        )
+        assert (
+            soup.find(
+                "a",
+                {
+                    "href": reverse(
+                        "admin:reject_quarantined_contribution",
+                        args=[contribution.id, QuarantineStatus.REJECTED_BY_HUMAN_FRAUD.value],
+                    )
+                },
+            )
+            is not None
+        )
+        assert (
+            soup.find(
+                "a",
+                {
+                    "href": reverse(
+                        "admin:reject_quarantined_contribution",
+                        args=[contribution.id, QuarantineStatus.REJECTED_BY_HUMAN_OTHER.value],
+                    )
+                },
+            )
+            is not None
+        )

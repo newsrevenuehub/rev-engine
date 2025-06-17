@@ -534,7 +534,7 @@ class Contribution(IndexedTimeStampedModel):
 
     def get_payment_manager_instance(self):
         """Select the correct payment manager for this Contribution, then instantiates it."""
-        from apps.contributions.payment_managers import StripePaymentManager
+        from apps.contributions.payment_managers import StripePaymentManager  # noqa: PLC0415
 
         return StripePaymentManager(contribution=self)
 
@@ -1304,7 +1304,7 @@ class Contribution(IndexedTimeStampedModel):
         TODO in DEV-5465: improved validation of donor_selected_amount in Pydantic
         """
         # vs circular import
-        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT
+        from apps.contributions.serializers import REVENGINE_MIN_AMOUNT, STRIPE_MAX_AMOUNT  # noqa: PLC0415
 
         if amount < REVENGINE_MIN_AMOUNT:
             raise ValueError("Amount value must be greater than $0.99")

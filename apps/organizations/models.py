@@ -524,7 +524,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def contributor_portal_url(self):
-        from apps.api.views import construct_rp_domain  # vs. circular import
+        from apps.api.views import construct_rp_domain  # # noqa: PLC0415 vs. circular import
 
         return f"https://{construct_rp_domain(self.slug)}/{settings.CONTRIBUTOR_PORTAL_URL}"
 
@@ -946,8 +946,8 @@ class PaymentProvider(IndexedTimeStampedModel):
         return f"Stripe Payment Provider acct:{self.stripe_account_id} product:{self.stripe_product_id}"
 
     def get_dependent_pages_with_publication_date(self):
-        """Retreieve live and future live contribution pages that rely on this payment provider."""
-        from apps.pages.models import DonationPage  # vs circular import
+        """Retrieve live and future live contribution pages that rely on this payment provider."""
+        from apps.pages.models import DonationPage  # noqa: PLC0415 vs circular import
 
         return DonationPage.objects.filter(revenue_program__payment_provider=self, published_date__isnull=False)
 

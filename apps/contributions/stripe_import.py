@@ -147,7 +147,6 @@ def log_backoff(details: dict) -> None:
                 exc.http_status,
                 exc.request_id,
                 exc.error,
-                exc_info=True,
             )
         else:
             logger.warning(
@@ -155,7 +154,6 @@ def log_backoff(details: dict) -> None:
                 details.wait,
                 details.tries,
                 details.exception,
-                exc_info=True,
             )
 
 
@@ -1235,7 +1233,7 @@ class StripeEventProcessor:
 
     def process(self) -> None:
         # vs. circular import
-        from .tasks import process_stripe_webhook_task
+        from .tasks import process_stripe_webhook_task  # noqa: PLC0415
 
         if not (event := self.get_event()):
             logger.warning("No event found for event id %s", self.event_id)

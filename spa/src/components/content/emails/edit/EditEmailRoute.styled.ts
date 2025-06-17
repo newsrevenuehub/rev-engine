@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import BaseSettingsSection from 'components/common/SettingsSection/SettingsSection';
 
 export const Actions = styled.div`
   display: flex;
@@ -16,4 +17,8 @@ export const Fields = styled.div`
   display: grid;
   gap: 25px;
   width: 300px;
+`;
+
+export const SettingsSection = styled(BaseSettingsSection)`
+  max-width: 760px;
 `;

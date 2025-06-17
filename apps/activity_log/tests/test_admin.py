@@ -102,3 +102,38 @@ class TestActivityLogAdmin:
         activity_log.actor_content_object = None
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         assert admin.linked_actor_object(activity_log) == "-"
+
+    @pytest.fixture
+    def contributor_email_exact_match(self, activity_log: ActivityLog):
+        return activity_log.actor_content_object.email
+
+    @pytest.fixture
+    def contributor_email_different_case(self, activity_log: ActivityLog):
+        return activity_log.actor_content_object.email.upper()
+
+    @pytest.fixture
+    def contributor_email_partial(self, activity_log: ActivityLog):
+        return activity_log.actor_content_object.email[:1]
+
+    @pytest.mark.parametrize(
+        "search_term_name",
+        ["contributor_email_exact_match", "contributor_email_different_case", "contributor_email_partial"],
+    )
+    def test_contributor_search_happy_path(self, search_term_name: str, activity_log: ActivityLog, request):
+        admin = ActivityLogAdmin(ActivityLog, admin_site=None)
+        queryset, may_have_duplicates = admin.get_search_results(
+            queryset=ActivityLog.objects.all(), request="unused", search_term=request.getfixturevalue(search_term_name)
+        )
+        assert not may_have_duplicates
+        assert list(queryset) == [activity_log]
+
+    def test_contributor_search_no_results(self, activity_log: ActivityLog):
+        # Even though activity_log is unused in this method, we want it to exist so
+        # that we might match on it if functionality is incorrect.
+
+        admin = ActivityLogAdmin(ActivityLog, admin_site=None)
+        queryset, may_have_duplicates = admin.get_search_results(
+            queryset=ActivityLog.objects.all(), request="unused", search_term="nonexistent"
+        )
+        assert not may_have_duplicates
+        assert list(queryset) == []

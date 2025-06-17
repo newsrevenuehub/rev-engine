@@ -12,6 +12,7 @@ from typing import Any, Literal, TypedDict
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Min, Q, Sum
@@ -72,6 +73,14 @@ class Contributor(IndexedTimeStampedModel):
     # TODO @BW: Rename to `email`, replacing current `email` and make non nullable and blank=False
     # DEV-5782
     email_future = models.EmailField(blank=True, null=True, unique=True, db_collation="case_insensitive")
+
+    # Allow activity log querysets to filter on this model.
+    activity_logs = GenericRelation(
+        ActivityLog,
+        content_type_field="actor_content_type",
+        object_id_field="actor_object_id",
+        related_query_name="actor",
+    )
 
     @staticmethod
     def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:

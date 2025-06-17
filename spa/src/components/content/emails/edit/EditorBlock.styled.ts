@@ -9,6 +9,11 @@ export const EditorContent = styled(BaseEditorContent)`
     &:hover {
       outline: 2px solid ${({ theme }) => theme.basePalette.primary.engineBlue};
     }
+
+    & span {
+      /* Need to specify this for font-size spans; otherwise, lines get very tight when font size is increased. */
+      line-height: 120%;
+    }
   }
 
   & .ProseMirror-focused {

@@ -288,6 +288,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
                     "Quarantine",
                     {"fields": ("quarantine_actions",)},
                 ),
+                *self.fieldsets,
             )
         return self.fieldsets
 

@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                         db_index=True, default=django.utils.timezone.now, editable=False, verbose_name="modified"
                     ),
                 ),
-                ("name", models.CharField(choices=[("receipt_email", "receipt email")], max_length=50)),
+                ("name", models.CharField(choices=[("contribution_receipt", "Contribution Receipt")], max_length=50)),
                 (
                     "sent_on",
                     models.DateTimeField(default=django.utils.timezone.now, help_text="When the email was sent"),

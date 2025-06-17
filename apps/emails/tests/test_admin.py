@@ -23,7 +23,7 @@ class TestTransactionalEmailRecordAdmin:
     @pytest.fixture
     def transactional_email_record(self, one_time_contribution: Contribution) -> TransactionalEmailRecord:
         record = TransactionalEmailRecord(
-            name=TransactionalEmailNames.RECEIPT_EMAIL.value,
+            name=TransactionalEmailNames.CONTRIBUTION_RECEIPT.value,
             contribution_id=one_time_contribution.pk,
         )
         record.save()

@@ -4,7 +4,7 @@ from django.urls import reverse
 import pytest
 from rest_framework.test import APIClient, APIRequestFactory
 
-from apps.emails.models import EmailCustomization
+from apps.emails.models import EmailCustomization, TransactionalEmailNames
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users.models import User
@@ -117,7 +117,7 @@ class TestEmailCustomizationViewSet:
         other_revenue_program = RevenueProgramFactory(organization=another_org)
         customization = EmailCustomization.objects.create(
             revenue_program=other_revenue_program,
-            email_type=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+            email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
             email_block=EmailCustomization.EmailBlock.MESSAGE,
             content_html="<p>Test content</p>",
         )
@@ -128,7 +128,7 @@ class TestEmailCustomizationViewSet:
     def another_rps_email_customization(self, another_rp: RevenueProgram) -> EmailCustomization:
         return EmailCustomization.objects.create(
             revenue_program=another_rp,
-            email_type=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+            email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
             email_block=EmailCustomization.EmailBlock.MESSAGE,
             content_html="<p>Test content</p>",
         )
@@ -258,14 +258,14 @@ class TestEmailCustomizationViewSet:
         api_client.force_authenticate(user=user)
         data = {
             "revenue_program": revenue_program.id,
-            "email_type": EmailCustomization.EmailType.CONTRIBUTION_RECEIPT.value,
+            "email_type": TransactionalEmailNames.CONTRIBUTION_RECEIPT.value,
             "email_block": EmailCustomization.EmailBlock.MESSAGE.value,
             "content_html": "<p>Test HTML content</p>",
         }
         response = api_client.post(reverse("email-customization-list"), data=data)
         assert response.status_code == 201
         assert response.json()["revenue_program"] == revenue_program.id
-        assert response.json()["email_type"] == EmailCustomization.EmailType.CONTRIBUTION_RECEIPT.value
+        assert response.json()["email_type"] == TransactionalEmailNames.CONTRIBUTION_RECEIPT.value
         assert response.json()["email_block"] == EmailCustomization.EmailBlock.MESSAGE.value
         assert response.json()["content_html"] == data["content_html"]
 
@@ -281,7 +281,7 @@ class TestEmailCustomizationViewSet:
         rp = request.getfixturevalue(rp_fixture)
         data = {
             "revenue_program": rp.id,
-            "email_type": EmailCustomization.EmailType.CONTRIBUTION_RECEIPT.value,
+            "email_type": TransactionalEmailNames.CONTRIBUTION_RECEIPT.value,
             "email_block": EmailCustomization.EmailBlock.MESSAGE.value,
             "content_html": "<p>Test HTML content</p>",
         }

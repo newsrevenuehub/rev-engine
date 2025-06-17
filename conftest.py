@@ -44,7 +44,7 @@ from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
-from apps.emails.models import EmailCustomization
+from apps.emails.models import EmailCustomization, TransactionalEmailNames
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,
@@ -1130,6 +1130,6 @@ def email_customization(revenue_program: "RevenueProgram") -> EmailCustomization
     return EmailCustomization.objects.create(
         revenue_program=revenue_program,
         content_html="<p>Test content</p>",
-        email_type=EmailCustomization.EmailTypes.CONTRIBUTION_RECEIPT,
+        email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         email_block=EmailCustomization.EmailBlocks.MESSAGE,
     )

@@ -27,16 +27,20 @@ ALLOWED_ATTRIBUTES = {"span": {"style"}}
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+class TransactionalEmailNames(models.TextChoices):
+    CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
+
+
 class EmailCustomization(IndexedTimeStampedModel):
-    class EmailType(models.TextChoices):
-        CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
 
     class EmailBlock(models.TextChoices):
         MESSAGE = "message", "Main Message Body"
 
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     content_html = models.TextField(max_length=5000, help_text="HTML source code of the custom content")
-    email_type = models.CharField(max_length=30, choices=EmailType.choices, help_text="Type of email this relates to")
+    email_type = models.CharField(
+        max_length=30, choices=TransactionalEmailNames.choices, help_text="Type of email this relates to"
+    )
     email_block = models.CharField(
         max_length=30, choices=EmailBlock.choices, help_text="Which block of content in an email this relates to"
     )
@@ -62,10 +66,6 @@ class EmailCustomization(IndexedTimeStampedModel):
         This is ultimately used to render customization opens in the email template.
         """
         return {"content_html": self.content_html, "content_plain_text": self.content_plain_text}
-
-
-class TransactionalEmailNames(models.TextChoices):
-    RECEIPT_EMAIL = "receipt_email", "receipt email"
 
 
 class TransactionalEmailRecord(IndexedTimeStampedModel):
@@ -97,7 +97,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
     @classmethod
     def handle_receipt_email(cls, contribution: Contribution, show_billing_history: bool = True) -> None:
         """If warranted, trigger a receipt email to the contributor and save a record of the email."""
-        logger.info("Running for receipt email for contribution %s", contribution.pk)
+        logger.info("Running for for contribution %s", contribution.pk)
         if not contribution.revenue_program.organization.send_receipt_email_via_nre:
             logger.info(
                 "Skipping sending receipt email for contribution %s, organization does not send receipt emails via NRE",
@@ -111,7 +111,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             try:
                 TransactionalEmailRecord.objects.create(
                     contribution=contribution,
-                    name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+                    name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
                 )
             except IntegrityError:
                 logger.info(

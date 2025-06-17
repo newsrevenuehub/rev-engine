@@ -3,7 +3,7 @@ import typing
 import pytest
 import pytest_mock
 
-from apps.emails.models import EmailCustomization, TransactionalEmailRecord
+from apps.emails.models import EmailCustomization, TransactionalEmailNames, TransactionalEmailRecord
 
 
 if typing.TYPE_CHECKING:
@@ -64,7 +64,7 @@ class TestTransactionalEmailRecord:
         """Fixture to create a default TransactionalEmailRecord instance."""
         record = TransactionalEmailRecord(
             contribution=one_time_contribution,
-            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+            name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         )
         record.save()
         return record
@@ -78,7 +78,7 @@ class TestTransactionalEmailRecord:
     def test_handle_receipt_email_when_unsent(self, one_time_contribution: "Contribution"):
         query = TransactionalEmailRecord.objects.filter(
             contribution=one_time_contribution,
-            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+            name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         )
         assert not query.exists()
         TransactionalEmailRecord.handle_receipt_email(one_time_contribution)
@@ -93,7 +93,7 @@ class TestTransactionalEmailRecord:
     ):
         query = TransactionalEmailRecord.objects.filter(
             contribution=transactional_email_record_receipt_email.contribution,
-            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+            name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         )
         assert query.exists()
         TransactionalEmailRecord.handle_receipt_email(
@@ -108,7 +108,7 @@ class TestTransactionalEmailRecord:
         one_time_contribution.revenue_program.organization.save()
         query = TransactionalEmailRecord.objects.filter(
             contribution=one_time_contribution,
-            name=EmailCustomization.EmailType.CONTRIBUTION_RECEIPT,
+            name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         )
         assert not query.exists()
         TransactionalEmailRecord.handle_receipt_email(one_time_contribution)

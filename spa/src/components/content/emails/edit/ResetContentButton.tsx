@@ -20,7 +20,9 @@ export function ResetContentButton({ defaultContent, disabled, editor }: ResetCo
       throw new Error('editor is undefined');
     }
 
-    editor.commands.setContent(defaultContent());
+    // Force an update event.
+
+    editor.commands.setContent(defaultContent(), true);
   }
 
   return (

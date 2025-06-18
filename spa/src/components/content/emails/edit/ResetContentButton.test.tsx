@@ -17,7 +17,7 @@ describe('ResetContentButton', () => {
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
-  it('sets the editor to default content when clicked', () => {
+  it('sets the editor to default content and emits an update event when clicked', () => {
     const editor = {
       commands: { setContent: jest.fn() }
     } as any;
@@ -25,7 +25,7 @@ describe('ResetContentButton', () => {
     tree({ editor });
     expect(editor.commands.setContent).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button'));
-    expect(editor.commands.setContent.mock.calls).toEqual([['default-content']]);
+    expect(editor.commands.setContent.mock.calls).toEqual([['default-content', true]]);
   });
 
   it('is accessible', async () => {

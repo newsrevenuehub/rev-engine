@@ -1,7 +1,7 @@
 import { ChangeEvent, useState } from 'react';
 import { EditorBlockProps } from '../EditorBlock';
 
-export const EditorBlock = ({ initialValue, label, onFocus, onChange }: EditorBlockProps) => {
+export const EditorBlock = ({ initialValue, label, onFocus, onChange, onSelectionUpdate }: EditorBlockProps) => {
   const [value, setValue] = useState(initialValue);
 
   function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
@@ -12,8 +12,9 @@ export const EditorBlock = ({ initialValue, label, onFocus, onChange }: EditorBl
   return (
     <textarea
       aria-label={label}
-      onFocus={() => onFocus?.({ editor: { label } } as any)}
+      onFocus={() => onFocus?.({ editor: { label, state: { selection: {} } } } as any)}
       onChange={handleChange}
+      onSelect={() => onSelectionUpdate?.({ editor: { label, state: { selection: {} } } } as any)}
       value={value}
     />
   );

@@ -43,7 +43,12 @@ const mockRp = {
 } as any;
 
 function tree() {
-  return render(<EditEmailRoute />);
+  return render(
+    <>
+      <EditEmailRoute />
+      <button data-edit-email-route-maintain-editor-focus>maintain focus</button>
+    </>
+  );
 }
 
 describe('EditEmailRoute', () => {
@@ -121,9 +126,26 @@ describe('EditEmailRoute', () => {
     tree();
     fireEvent.focus(screen.getByLabelText('Message'));
 
-    // See mocks for where this { label: 'Message' } object comes from.
-    expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).toBe(JSON.stringify({ label: 'Message' }));
-    expect(screen.getByTestId('mock-reset-content-button').dataset.editor).toBe(JSON.stringify({ label: 'Message' }));
+    // See mocks for where this { label: 'Message', etc } object comes from.
+    expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).toBe(
+      JSON.stringify({ label: 'Message', state: { selection: {} } })
+    );
+    expect(screen.getByTestId('mock-reset-content-button').dataset.editor).toBe(
+      JSON.stringify({ label: 'Message', state: { selection: {} } })
+    );
+  });
+
+  it('passes through the editor selection to the formatting toolbar when it changes', () => {
+    tree();
+    fireEvent.select(screen.getByLabelText('Message'));
+
+    // See mocks for where this { label: 'Message',  etc } object comes from.
+    expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).toBe(
+      JSON.stringify({ label: 'Message', state: { selection: {} } })
+    );
+    expect(screen.getByTestId('mock-reset-content-button').dataset.editor).toBe(
+      JSON.stringify({ label: 'Message', state: { selection: {} } })
+    );
   });
 
   it('sets the appropriate default content on the reset content button when an editor is focused', () => {
@@ -142,6 +164,14 @@ describe('EditEmailRoute', () => {
     fireEvent.mouseUp(document.body);
     expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).toBe('null');
     expect(screen.getByTestId('mock-reset-content-button').dataset.editor).toBe('null');
+  });
+
+  it('ignores clicks inside elements with data-edit-email-route-maintain-editor-focus attributes', () => {
+    tree();
+    fireEvent.focus(screen.getByLabelText('Message'));
+    expect(screen.getByTestId('mock-editor-toolbar').dataset.editor).not.toBe('null');
+    expect(screen.getByTestId('mock-reset-content-button').dataset.editor).not.toBe('null');
+    fireEvent.mouseUp(screen.getByRole('button', { name: 'maintain focus' }));
   });
 
   it('disables the save button if no customizations exist and the content of the editors matches default content', () => {

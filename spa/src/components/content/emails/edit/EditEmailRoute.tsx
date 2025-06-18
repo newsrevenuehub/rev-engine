@@ -28,6 +28,7 @@ export function EditEmailRoute() {
   const { user } = useUser();
   const [focusedBlock, setFocusedBlock] = useState<EmailCustomization['email_block']>();
   const [focusedEditor, setFocusedEditor] = useState<Editor>();
+  const [focusedEditorSelection, setFocusedEditorSelection] = useState<Editor['state']['selection']>();
   const { customizations, upsertCustomizations } = useEmailCustomizations(emailType);
   const [customizationEdits, setCustomizationEdits] = useState<EmailCustomizationChanges>({});
   const revenueProgram = user?.revenue_programs[0];
@@ -70,11 +71,16 @@ export function EditEmailRoute() {
 
   function handleEditorFocus(editor: Editor, block: EmailCustomization['email_block']) {
     setFocusedEditor(editor);
+    setFocusedEditorSelection(editor.state.selection);
     setFocusedBlock(block);
   }
 
   function handleEditorChange(value: string) {
     setCustomizationEdits((existing) => ({ ...existing, [focusedBlock as string]: value }));
+  }
+
+  function handleEditorSelelectionUpdate(editor: Editor) {
+    setFocusedEditorSelection(editor.state.selection);
   }
 
   async function handleSave() {
@@ -139,7 +145,7 @@ export function EditEmailRoute() {
           title="Edit Copy"
         >
           <div data-edit-email-route-maintain-editor-focus>
-            <EditorToolbar editor={focusedEditor ?? null} />
+            <EditorToolbar editor={focusedEditor ?? null} selection={focusedEditorSelection} />
             <ResetContentButton
               defaultContent={() => defaultEmailContent(emailType, focusedBlock!, revenueProgram!)}
               disabled={!revenueProgram || !focusedBlock}
@@ -156,6 +162,7 @@ export function EditEmailRoute() {
                   label="Message"
                   onChange={handleEditorChange}
                   onFocus={({ editor }) => handleEditorFocus(editor, 'message')}
+                  onSelectionUpdate={({ editor }) => handleEditorSelelectionUpdate(editor)}
                 />
               </div>
             </EmailPreview>

@@ -16,11 +16,13 @@ import FontSizeSelect from './FontSizeSelect';
 import { Root, Section } from './EditorToolbar.styled';
 
 const EditorToolbarPropTypes = {
-  editor: PropTypes.object
+  editor: PropTypes.object,
+  selection: PropTypes.object
 };
 
 export interface EditorToolbarProps extends InferProps<typeof EditorToolbarPropTypes> {
   editor: Editor | null;
+  selection?: Editor['state']['selection'];
 }
 
 // Exported for tests only.
@@ -32,6 +34,10 @@ export const ALIGNMENT_BUTTONS = [
 ];
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
+  // We never use the selection prop here directly, but we use it to force a
+  // re-render (updating active states) when the user moves around in the
+  // editor.
+
   return (
     <Root>
       <Section>

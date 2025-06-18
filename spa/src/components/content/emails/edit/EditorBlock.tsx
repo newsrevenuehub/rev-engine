@@ -11,12 +11,14 @@ const EditorBlockPropTypes = {
   initialValue: PropTypes.string.isRequired,
   label: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
-  onFocus: PropTypes.func
+  onFocus: PropTypes.func,
+  onSelectionUpdate: PropTypes.func
 };
 
 export interface EditorBlockProps extends InferProps<typeof EditorBlockPropTypes> {
   onChange: (value: string) => void;
   onFocus?: ({ editor }: { editor: Editor }) => void;
+  onSelectionUpdate?: ({ editor }: { editor: Editor }) => void;
 }
 
 const tipTapExtensions = [
@@ -29,7 +31,7 @@ const tipTapExtensions = [
   Underline
 ];
 
-export function EditorBlock({ initialValue, label, onChange, onFocus }: EditorBlockProps) {
+export function EditorBlock({ initialValue, label, onChange, onFocus, onSelectionUpdate }: EditorBlockProps) {
   const editor = useEditor({
     editorProps: {
       attributes: {
@@ -38,6 +40,7 @@ export function EditorBlock({ initialValue, label, onChange, onFocus }: EditorBl
     },
     extensions: tipTapExtensions,
     content: initialValue,
+    onSelectionUpdate: ({ editor }) => onSelectionUpdate?.({ editor }),
     onUpdate: ({ editor }) => onChange(editor.getHTML())
   });
 

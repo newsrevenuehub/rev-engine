@@ -12,8 +12,8 @@ describe('EditorBlock', () => {
     expect(screen.getByLabelText('test-label')).toHaveTextContent('initial-value');
   });
 
-  // Skipping tests around onChange because it appears jsdom doesn't support
-  // contenteditable (which taptap uses) well.
+  // Skipping tests around onChange and onSelectionUpdate because it appears
+  // jsdom doesn't support contenteditable (which taptap uses) well.
 
   it('calls the onFocus prop when the editor is focused', () => {
     const onFocus = jest.fn();

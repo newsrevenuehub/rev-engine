@@ -12,7 +12,14 @@ router.register(r"revenue-programs", revengine_views.RevenueProgramViewSet, base
 
 switchboard_router = routers.DefaultRouter()
 switchboard_router.register(
-    r"organizations", switchboard_views.OrganizationViewSet, basename="switchboard-organization"
+    r"organizations",
+    switchboard_views.OrganizationViewSet,
+    basename="switchboard-organization",
+)
+switchboard_router.register(
+    r"revenue-programs",
+    switchboard_views.RevenueProgramViewSet,
+    basename="switchboard-revenue-program",
 )
 
 urlpatterns = [

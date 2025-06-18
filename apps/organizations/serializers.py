@@ -399,3 +399,10 @@ class OrganizationSwitchboardSerializer(serializers.ModelSerializer):
         model = Organization
         fields = ["id", "name", "plan_name", "slug", "stripe_subscription_id"]
         read_only_fields = fields
+
+
+class RevenueProgramSwitchboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RevenueProgram
+        fields = ["id", "slug", "stripe_account_id"]
+        read_only_fields = fields

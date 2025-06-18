@@ -21,6 +21,7 @@ from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     OrganizationSwitchboardSerializer,
     RevenueProgramSerializer,
+    RevenueProgramSwitchboardSerializer,
 )
 from conftest import make_mock_mailchimp_email_list
 
@@ -325,3 +326,13 @@ class TestOrganizationSwitchboardSerializer:
         assert set(serialized.keys()) == expected_fields
         for field in expected_fields:
             assert serialized[field] == getattr(organization, field)
+
+
+@pytest.mark.django_db
+class TestRevenueProgramSwitchboardSerializer:
+    def test_has_right_fields(self, revenue_program):
+        expected_fields = {"id", "slug", "stripe_account_id"}
+        serialized = RevenueProgramSwitchboardSerializer(revenue_program).data
+        assert set(serialized.keys()) == expected_fields
+        for field in expected_fields:
+            assert serialized[field] == getattr(revenue_program, field)

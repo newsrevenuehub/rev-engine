@@ -94,10 +94,6 @@ jobs:
           start: npx vite preview --port 3000
           wait-on: http://localhost:3000
           wait-on-timeout: 120
-          # because of "parallel" parameter
-          # these containers will load balance all found tests among themselves
-          parallel: true
-          group: "Cypress integration tests"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CYPRESS_PROJECT_ID: ${{ secrets.PROJECT_ID }}

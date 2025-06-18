@@ -46,3 +46,11 @@ def get_revenue_program_activecampaign_detail(_: HttpRequest, pk: int) -> Respon
     """Return the ActiveCampaign data for the revenue program with the given ID."""
     revenue_program = get_object_or_404(RevenueProgram, pk=pk)
     return Response(serializers.ActiveCampaignRevenueProgramForSwitchboardSerializer(revenue_program).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsSwitchboardAccount])
+def get_revenue_program_detail(_: HttpRequest, pk: int) -> Response:
+    """Return the revenue program detail for the given ID."""
+    revenue_program = get_object_or_404(RevenueProgram, pk=pk)
+    return Response(serializers.RevenueProgramSwitchboardSerializer(revenue_program).data)

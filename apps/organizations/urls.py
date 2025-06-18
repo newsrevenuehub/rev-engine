@@ -37,5 +37,10 @@ urlpatterns = [
         switchboard_views.get_revenue_program_activecampaign_detail,
         name="switchboard-revenue-program-activecampaign-detail",
     ),
+    path(
+        "switchboard/revenue-programs/<int:pk>/",
+        switchboard_views.get_revenue_program_detail,
+        name="switchboard-revenue-program-detail",
+    ),
     path("switchboard/", include(switchboard_router.urls)),
 ]

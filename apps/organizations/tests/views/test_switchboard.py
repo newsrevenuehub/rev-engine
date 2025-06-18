@@ -147,3 +147,39 @@ class TestOrganizationViewSetSwitchboard:
             api_client.force_authenticate(user=org_user_free_plan)
         response = api_client.get(url)
         assert response.status_code == 403 if authenticated else 401
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("user_fixture", "permitted"),
+    [
+        ("switchboard_user", True),
+        ("org_user_free_plan", False),
+        ("hub_admin_user", False),
+        ("superuser", False),
+    ],
+)
+def test_switchboard_rp_detail(request, user_fixture, permitted, api_client, revenue_program):
+    user = request.getfixturevalue(user_fixture)
+    api_client.force_authenticate(user)
+    response = api_client.get(reverse("switchboard-revenue-program-detail", args=(revenue_program.pk,)))
+    assert response.status_code == (status.HTTP_200_OK if permitted else status.HTTP_403_FORBIDDEN)
+    if permitted:
+        assert response.json() == {
+            "id": revenue_program.id,
+            "slug": revenue_program.slug,
+            "stripe_account_id": revenue_program.payment_provider.stripe_account_id,
+        }
+
+
+@pytest.mark.django_db
+def test_switchboard_rp_detail_non_existent_returns_404(api_client, switchboard_user):
+    api_client.force_authenticate(user=switchboard_user)
+    response = api_client.get(reverse("switchboard-revenue-program-detail", args=(999999,)))
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_switchboard_rp_detail_unauthenticated_returns_401(api_client, revenue_program):
+    response = api_client.get(reverse("switchboard-revenue-program-detail", args=(revenue_program.pk,)))
+    assert response.status_code == 401

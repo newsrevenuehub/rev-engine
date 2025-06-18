@@ -397,6 +397,14 @@ class TestContributionAdmin:
             {"fields": ("quarantine_actions",)},
         ) in admin.get_fieldsets(obj=contribution, request="unused")
 
+    def test_other_fields_shown_on_flagged_detail(self, admin):
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED, quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+        )
+        fields = admin.get_fieldsets(obj=contribution, request="unused")
+        for fieldset in ContributionAdmin.fieldsets:
+            assert fieldset in fields
+
     @pytest.mark.parametrize(
         "status",
         [

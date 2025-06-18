@@ -344,7 +344,7 @@ class TestStripeWebhookProcessor:
         )
         contribution.contribution_metadata["schema_version"] = schema_version
         contribution.save()
-        mock_send_receipt = mocker.patch.object(contribution, "handle_receipt_email")
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         payment = PaymentFactory(contribution=contribution)
         mocker.patch(
             "apps.contributions.models.Payment.from_stripe_invoice_payment_succeeded_event",
@@ -362,7 +362,10 @@ class TestStripeWebhookProcessor:
             event=StripeEventData(**invoice_payment_succeeded_for_recurring_payment_event)
         )
         processor.handle_invoice_payment_succeeded()
-        assert mock_send_receipt.called is expect_send
+        if expect_send:
+            mock_send_receipt.assert_called_once_with(contribution=contribution, show_billing_history=False)
+        else:
+            mock_send_receipt.assert_not_called()
 
     @pytest.mark.parametrize(
         ("schema_version", "expect_send"),
@@ -379,7 +382,7 @@ class TestStripeWebhookProcessor:
         )
         contribution.contribution_metadata["schema_version"] = schema_version
         contribution.save()
-        mock_send_receipt = mocker.patch.object(contribution, "handle_receipt_email")
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         payment = PaymentFactory(contribution=contribution)
         mocker.patch(
             "apps.contributions.models.Payment.from_stripe_payment_intent_succeeded_event", return_value=payment
@@ -393,4 +396,7 @@ class TestStripeWebhookProcessor:
         mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._handle_contribution_update")
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
         processor.handle_payment_intent_succeeded()
-        assert mock_send_receipt.called is expect_send
+        if expect_send:
+            mock_send_receipt.assert_called_once_with(contribution=contribution, show_billing_history=False)
+        else:
+            mock_send_receipt.assert_not_called()

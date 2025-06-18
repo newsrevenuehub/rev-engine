@@ -365,7 +365,7 @@ class TestSwitchboardContributionsViewSet:
     def test_create_send_receipt_query_param(
         self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
     ):
-        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_handle_receipt_email = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         api_client.post(
             reverse("switchboard-contribution-list") + querystring,
             data=creation_data_recurring_with_page,
@@ -492,7 +492,7 @@ class TestSwitchboardContributionsViewSet:
         send_receipt: bool,
         mocker: pytest_mock.MockerFixture,
     ) -> None:
-        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_handle_receipt_email = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         response = api_client.patch(
             reverse("switchboard-contribution-detail", args=(contribution.id,)) + querystring,
             data={"amount": contribution.amount + 1000},

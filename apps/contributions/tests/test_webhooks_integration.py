@@ -144,7 +144,7 @@ class TestPaymentIntentSucceeded:
             provider_payment_id=payment_intent_for_one_time_contribution.id,
         )
         PaymentFactory(contribution=contribution, stripe_balance_transaction_id="bt_fake_01")
-        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(
             reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
@@ -160,7 +160,7 @@ class TestPaymentIntentSucceeded:
         assert Payment.objects.filter(
             contribution=contribution, stripe_balance_transaction_id=balance_transaction_for_one_time_charge.id
         ).exists()
-        mock_send_receipt.assert_called_once()
+        mock_send_receipt.assert_called_once_with(contribution=contribution, show_billing_history=False)
 
     def test_when_one_time_contribution_not_found(self, payment_intent_succeeded_one_time_event, mocker, client):
         logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
@@ -563,7 +563,7 @@ class TestInvoicePaymentSucceeded:
         event, contribution, is_first_payment, payment_method = happy_path_test_case
         count = Payment.objects.count()
         mocker.spy(Payment, "from_stripe_invoice_payment_succeeded_event")
-        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(reverse("stripe-webhooks-contributions"), data=event, **header)
         assert response.status_code == status.HTTP_200_OK

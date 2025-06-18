@@ -22,18 +22,15 @@ from sentry_sdk import configure_scope
 from stripe.error import StripeError
 
 from apps.contributions.choices import ContributionInterval
-from apps.emails.helpers import (
-    ContributionReceiptCustomizations,
-    convert_to_timezone_formatted,
-    get_contribution_receipt_email_customizations,
-)
-from apps.organizations.models import FiscalStatusChoices, FreePlan, TransactionalEmailStyle
+from apps.emails.helpers import convert_to_timezone_formatted
+from apps.organizations.models import FreePlan, TransactionalEmailStyle
 
 
 CONTRIBUTOR_DEFAULT_VALUE = "contributor"
 
 if TYPE_CHECKING:  # pragma: no cover
     from apps.contributions.models import BillingHistoryItem, Contribution
+    from apps.emails.helpers import ContributionReceiptCustomizations
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -67,12 +64,6 @@ def send_templated_email(
         logger.info("Email sent to recipient `%s` with subject `%s`", to, subject)
 
 
-class FiscalStatuses(Enum):
-    FISCALLY_SPONSORED = FiscalStatusChoices.FISCALLY_SPONSORED.value
-    FOR_PROFIT = FiscalStatusChoices.FOR_PROFIT.value
-    NON_PROFIT = FiscalStatusChoices.NONPROFIT.value
-
-
 class ContributionIntervals(Enum):
     ONE_TIME = ContributionInterval.ONE_TIME.value
     MONTH = ContributionInterval.MONTHLY.value
@@ -90,7 +81,7 @@ class SendContributionEmailData(TypedDict):
     rp_name: str
     contributor_name: str
     non_profit: bool
-    fiscal_status: Literal[FiscalStatuses.FISCALLY_SPONSORED, FiscalStatuses.FOR_PROFIT, FiscalStatuses.NON_PROFIT]
+    fiscal_status: Literal["for-profit", "nonprofit", "fiscally sponsored"]
     fiscal_sponsor_name: str | None
     portal_url: str
     style: TransactionalEmailStyle
@@ -161,7 +152,7 @@ def generate_email_data(
         # both cases.
         contributor_name=getattr(customer, "name", CONTRIBUTOR_DEFAULT_VALUE) or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=datetime.datetime.now(datetime.timezone.utc).year,
-        customizations=get_contribution_receipt_email_customizations(revenue_program=contribution.revenue_program),
+        customizations=contribution.revenue_program.get_contribution_receipt_email_customizations(),
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
         fiscal_status=contribution.revenue_program.fiscal_status,
         non_profit=contribution.revenue_program.non_profit,
@@ -198,7 +189,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
         contributor_email=user.email,
         contributor_name=name or CONTRIBUTOR_DEFAULT_VALUE,
         copyright_year=now.year,
-        customizations=get_contribution_receipt_email_customizations(revenue_program=revenue_program),
+        customizations=revenue_program.get_contribution_receipt_email_customizations(),
         fiscal_sponsor_name=revenue_program.fiscal_sponsor_name,
         fiscal_status=revenue_program.fiscal_status,
         non_profit=revenue_program.non_profit,

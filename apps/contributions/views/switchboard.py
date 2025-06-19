@@ -44,7 +44,7 @@ class SwitchboardContributionFilter(django_filters.FilterSet):
 
     class Meta:
         model = Contribution
-        fields = ["provider_subscription_id", "provider_payment_id"]
+        fields = ["provider_subscription_id", "provider_payment_id", "contributor_email"]
 
 
 class SwitchboardContributionsViewSet(

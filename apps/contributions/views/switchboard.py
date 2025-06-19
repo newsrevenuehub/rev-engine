@@ -47,7 +47,7 @@ class SwitchboardContributionsViewSet(
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["provider_subscription_id", "provider_payment_id"]
+    filterset_fields = ["provider_subscription_id", "provider_payment_id", "contributor__email", "contributor__id"]
 
     # TODO @BW: Make calling _handle_receipt_email fault tolerant
     # DEV-6162

@@ -754,7 +754,7 @@ class TestSwitchboardContributionsViewSet:
 
         response = api_client.get(
             reverse("switchboard-contribution-list"),
-            {"contributor__email": contributor.email},
+            {"contributor_email": contributor.email},
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK
@@ -763,7 +763,7 @@ class TestSwitchboardContributionsViewSet:
 
         response = api_client.get(
             reverse("switchboard-contribution-list"),
-            {"contributor__email": "nonexistent@example.com"},
+            {"contributor_email": "nonexistent@example.com"},
             headers={"Authorization": f"Token {switchboard_api_token}"},
         )
         assert response.status_code == status.HTTP_200_OK

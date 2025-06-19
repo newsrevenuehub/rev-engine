@@ -40,10 +40,11 @@ class SwitchboardContributionFilter(django_filters.FilterSet):
     """
 
     contributor_id = django_filters.NumberFilter(field_name="contributor__id", lookup_expr="exact")
+    contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="exact")
 
     class Meta:
         model = Contribution
-        fields = ["provider_subscription_id", "provider_payment_id", "contributor__email"]
+        fields = ["provider_subscription_id", "provider_payment_id"]
 
 
 class SwitchboardContributionsViewSet(

@@ -716,6 +716,66 @@ class TestSwitchboardContributionsViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]) == 3
 
+    def test_filter_by_contributor_id(self, api_client: APIClient, switchboard_api_token: str):
+        contributor = ContributorFactory()
+        contributor_contribution = ContributionFactory(contributor=contributor)
+        ContributionFactory()
+        ContributionFactory()
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor_id": contributor.id},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(results := response.json()["results"]) == 1
+        assert results[0]["id"] == contributor_contribution.id
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor_id": 99999},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 0
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 3
+
+    def test_filter_by_contributor_email(self, api_client: APIClient, switchboard_api_token: str):
+        contributor = ContributorFactory(email="test@example.com")
+        contributor_contribution = ContributionFactory(contributor=contributor)
+        ContributionFactory()
+        ContributionFactory()
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor__email": contributor.email},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(results := response.json()["results"]) == 1
+        assert results[0]["id"] == contributor_contribution.id
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor__email": "nonexistent@example.com"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 0
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 3
+
 
 @pytest.mark.django_db
 class TestSwitchboardPaymentsViewSet:

@@ -6,6 +6,7 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
+import django_filters
 import reversion
 from django_filters.rest_framework import DjangoFilterBackend
 from knox.auth import TokenAuthentication
@@ -29,6 +30,22 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 SEND_RECEIPT_QUERY_PARAM = "send_receipt"
 
 
+class SwitchboardContributionFilter(django_filters.FilterSet):
+    """Custom filter set for SwitchboardContributionsViewSet to handle foreign key filtering properly.
+
+    Django REST Framework's default filtering with filterset_fields can be strict with foreign key
+    fields, returning 400 Bad Request for non-existent IDs. This custom filter set uses NumberFilter
+    for contributor_id to allow filtering by any numeric value, returning 200 OK with empty results
+    for non-existent contributor IDs instead of validation errors.
+    """
+
+    contributor_id = django_filters.NumberFilter(field_name="contributor__id", lookup_expr="exact")
+
+    class Meta:
+        model = Contribution
+        fields = ["provider_subscription_id", "provider_payment_id", "contributor__email"]
+
+
 class SwitchboardContributionsViewSet(
     UniquenessConstraintViolationViewSetMixin,
     viewsets.GenericViewSet,
@@ -47,7 +64,7 @@ class SwitchboardContributionsViewSet(
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["provider_subscription_id", "provider_payment_id"]
+    filterset_class = SwitchboardContributionFilter
 
     # TODO @BW: Make calling _handle_receipt_email fault tolerant
     # DEV-6162

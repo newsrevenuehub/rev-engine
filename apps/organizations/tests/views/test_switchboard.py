@@ -163,8 +163,8 @@ def test_switchboard_rp_detail(request, user_fixture, permitted, api_client, rev
     user = request.getfixturevalue(user_fixture)
     api_client.force_authenticate(user)
     response = api_client.get(reverse("switchboard-revenue-program-detail", args=(revenue_program.pk,)))
-    assert response.status_code == status.HTTP_200_OK
     if permitted:
+        assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "id": revenue_program.id,
             "slug": revenue_program.slug,

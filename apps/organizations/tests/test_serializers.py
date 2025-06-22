@@ -320,7 +320,7 @@ class TestActiveCampaignRevenueProgramForSpaSerializer:
 
 @pytest.mark.django_db
 class TestOrganizationSwitchboardSerializer:
-    def test_has_right_fields(self, organization: Organization):
+    def test_has_expected_fields(self, organization: Organization):
         expected_fields = {"id", "name", "plan_name", "slug", "stripe_subscription_id"}
         serialized = OrganizationSwitchboardSerializer(organization).data
         assert set(serialized.keys()) == expected_fields
@@ -330,7 +330,7 @@ class TestOrganizationSwitchboardSerializer:
 
 @pytest.mark.django_db
 class TestRevenueProgramSwitchboardSerializer:
-    def test_has_right_fields(self, revenue_program):
+    def test_has_expected_fields(self, revenue_program):
         expected_fields = {"id", "slug", "stripe_account_id"}
         serialized = RevenueProgramSwitchboardSerializer(revenue_program).data
         assert set(serialized.keys()) == expected_fields

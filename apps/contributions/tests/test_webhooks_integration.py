@@ -221,10 +221,8 @@ class TestPaymentIntentCanceled:
 
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert (
-            contribution.status == ContributionStatus.REJECTED
-            if cancellation_reason == "fraudulent"
-            else ContributionStatus.CANCELED
+        assert contribution.status == (
+            ContributionStatus.REJECTED if cancellation_reason == "fraudulent" else ContributionStatus.FAILED
         )
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_canceled):

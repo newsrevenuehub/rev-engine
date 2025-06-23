@@ -1,4 +1,4 @@
-FROM node:16-slim as static_files
+FROM node:18-slim as static_files
 
 WORKDIR /code
 ENV PATH /code/node_modules/.bin:$PATH

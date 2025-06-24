@@ -8,7 +8,7 @@ from django.utils import timezone
 import reversion
 
 from apps.contributions.models import Contribution
-from apps.emails.tasks import generate_email_data, synchronous_send_receipt_email
+from apps.emails.tasks import generate_email_data, send_receipt_email
 
 
 if typing.TYPE_CHECKING:  # pragma: no cover
@@ -92,7 +92,7 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         """Send a receipt email to the contributor and save a record of the email."""
         logger.info("Running for receipt email for contribution %s", contribution.pk)
         data = generate_email_data(contribution, show_billing_history=show_billing_history)
-        synchronous_send_receipt_email(data)
+        send_receipt_email(data)
 
     @classmethod
     def handle_receipt_email(cls, contribution: Contribution, show_billing_history: bool = True) -> None:

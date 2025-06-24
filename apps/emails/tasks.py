@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import uuid
 from dataclasses import asdict
 from enum import Enum
 from smtplib import SMTPException
@@ -232,18 +231,6 @@ def get_test_magic_link(user, revenue_program) -> str:
     return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(user.email)}"
 
 
-def synchronous_send_receipt_email(data: SendContributionEmailData) -> None:
-    logger.info("synchronous_send_receipt_email: Starting email send to %s", data["contributor_email"])
-    result = send_mail(
-        subject="Thank you for your contribution!",
-        message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
-        from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
-        recipient_list=[data["contributor_email"]],
-        html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
-    )
-    logger.info("synchronous_send_receipt_email: send_mail returned %s", result)
-
-
 @shared_task(
     name="send_receipt_email",
     max_retries=5,
@@ -253,24 +240,16 @@ def synchronous_send_receipt_email(data: SendContributionEmailData) -> None:
 )
 def send_receipt_email(data: SendContributionEmailData) -> None:
     """Retrieve Stripe customer and send receipt email for a contribution."""
-    call_id = str(uuid.uuid4())[:8]
-
-    logger.info("send_receipt_email [%s]: Starting email send to %s", call_id, data["contributor_email"])
-
+    logger.info("send_receipt_email: Attempting to send receipt email with the following template data %s", data)
     with configure_scope() as scope:
         scope.user = {"email": (to := data["contributor_email"])}
-        try:
-            result = send_mail(
-                subject="Thank you for your contribution!",
-                message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
-                from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
-                recipient_list=[to],
-                html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
-            )
-            logger.info("send_receipt_email [%s]: send_mail returned %s", call_id, result)
-        except SMTPException:
-            logger.exception("send_receipt_email [%s]: Error sending receipt email to %s", call_id, to)
-            raise
+        send_mail(
+            subject="Thank you for your contribution!",
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
+            from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+            recipient_list=[to],
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
+        )
 
 
 @shared_task(

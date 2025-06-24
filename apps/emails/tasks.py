@@ -232,6 +232,18 @@ def get_test_magic_link(user, revenue_program) -> str:
     return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(user.email)}"
 
 
+def synchronous_send_receipt_email(data: SendContributionEmailData) -> None:
+    logger.info("synchronous_send_receipt_email: Starting email send to %s", data["contributor_email"])
+    result = send_mail(
+        subject="Thank you for your contribution!",
+        message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
+        from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+        recipient_list=[data["contributor_email"]],
+        html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
+    )
+    logger.info("synchronous_send_receipt_email: send_mail returned %s", result)
+
+
 @shared_task(
     name="send_receipt_email",
     max_retries=5,

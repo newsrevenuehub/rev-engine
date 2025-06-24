@@ -243,13 +243,17 @@ def send_receipt_email(data: SendContributionEmailData) -> None:
     logger.info("send_receipt_email: Attempting to send receipt email with the following template data %s", data)
     with configure_scope() as scope:
         scope.user = {"email": (to := data["contributor_email"])}
-        send_mail(
-            subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
-            from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
-            recipient_list=[to],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
-        )
+        try:
+            send_mail(
+                subject="Thank you for your contribution!",
+                message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
+                from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+                recipient_list=[to],
+                html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
+            )
+        except SMTPException:
+            logger.exception("send_receipt_email: Error sending receipt email to %s", to)
+            raise
 
 
 @shared_task(

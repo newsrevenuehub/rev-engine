@@ -1,4 +1,5 @@
 import { RevenueProgram } from 'hooks/useContributionPage';
+import { EmailCustomization } from 'hooks/useEmailCustomizations';
 
 export const TOKEN = 'token/';
 export const USER = 'users/';
@@ -14,6 +15,13 @@ export const AUTHORIZE_STRIPE_PAYMENT_ROUTE = 'payments/';
 
 export function getPaymentSuccessEndpoint(clientProviderSecretId: string) {
   return `payments/${clientProviderSecretId}/success/`;
+}
+
+// Email customizations
+export const EMAIL_CUSTOMIZATIONS = 'emails/customizations/';
+
+export function getEmailCustomizationEndpoint(id: EmailCustomization['id']) {
+  return `emails/customizations/${id}/`;
 }
 
 // Pages

@@ -54,6 +54,17 @@ describe('Select', () => {
     expect(screen.queryByText('option1 selected')).not.toBeInTheDocument();
   });
 
+  it('passes through props on MenuItemProps to its menu items', () => {
+    tree({
+      MenuItemProps: { className: 'test-class' }
+    });
+    userEvent.click(screen.getByRole('button'));
+
+    // Need to query by CSS class.
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(document.querySelector('.test-class')).toBeInTheDocument();
+  });
+
   it('is accessible', async () => {
     const { container } = tree();
 

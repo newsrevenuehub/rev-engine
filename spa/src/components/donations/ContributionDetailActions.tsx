@@ -33,12 +33,15 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
         aria-label="Actions"
         color="secondary"
         onClick={(event) => setMenuAnchorEl(event.currentTarget)}
+        aria-pressed={!!menuAnchorEl}
       >
         <MoreHorizOutlined />
       </Button>
       <Menu
         id="contribution-detail-actions-menu"
         anchorEl={menuAnchorEl}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         keepMounted
         onClose={handleMenuClose}
         open={!!menuAnchorEl}

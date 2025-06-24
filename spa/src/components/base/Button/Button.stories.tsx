@@ -1,8 +1,8 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryFn, StoryObj } from '@storybook/react';
 import Icon from '@material-design-icons/svg/filled/block.svg?react';
 import Button, { ButtonProps } from './Button';
 
-export default {
+const meta: Meta<typeof Button> = {
   component: Button,
   title: 'Base/Button',
   parameters: {
@@ -14,30 +14,74 @@ If you are using the outlined variant of this component, you should also add the
       }
     }
   }
-} as ComponentMeta<typeof Button>;
+};
 
-const Template: ComponentStory<typeof Button> = (args) => {
+export default meta;
+
+const Template: StoryFn<typeof Button> = (args) => {
   const colors = ['error', 'information', 'primaryDark', 'primaryLight', 'secondary', 'text'];
 
   return (
-    <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, 200px)' }}>
-      {colors.map((color) => (
-        <>
-          <Button {...args} color={color as ButtonProps['color']} />
-          <Button {...args} color={color as ButtonProps['color']} disabled />
-        </>
-      ))}
-      <Button startIcon={<Icon />} {...args} color="primaryDark" />
-      <Button endIcon={<Icon />} {...args} color="primaryDark" />
-      <Button startIcon={<Icon />} {...args} color="primaryLight" />
-      <Button endIcon={<Icon />} {...args} color="primaryLight" />
-      <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
-        <Button {...args} variant="outlined" />
-      </div>
-      <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
-        <Button {...args} variant="outlined" disabled />
-      </div>
-    </div>
+    <>
+      <table>
+        <thead>
+          <tr>
+            <th style={{ width: 200 }}>Normal</th>
+            <th style={{ width: 200 }}>Disabled</th>
+            <th style={{ width: 200 }}>Active/Pressed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {colors.map((color) => (
+            <tr>
+              <td>
+                <Button {...args} color={color as ButtonProps['color']} fullWidth />
+              </td>
+              <td>
+                <Button {...args} color={color as ButtonProps['color']} fullWidth disabled />
+              </td>
+              <td>
+                <Button {...args} color={color as ButtonProps['color']} fullWidth aria-pressed />
+              </td>
+            </tr>
+          ))}
+          <tr>
+            <td style={{ alignItems: 'center', background: 'blue', padding: 20 }}>
+              <Button {...args} variant="outlined" />
+            </td>
+            <td style={{ alignItems: 'center', background: 'blue', padding: 20 }}>
+              <Button {...args} variant="outlined" disabled />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table style={{ marginTop: 20 }}>
+        <thead>
+          <tr>
+            <th style={{ width: 200 }}>Start Icon</th>
+            <th style={{ width: 200 }}>End Icon</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <Button fullWidth startIcon={<Icon />} {...args} color="primaryDark" />
+            </td>
+            <td>
+              <Button fullWidth endIcon={<Icon />} {...args} color="primaryDark" />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <Button fullWidth startIcon={<Icon />} {...args} color="primaryLight" />
+            </td>
+            <td>
+              <Button fullWidth endIcon={<Icon />} {...args} color="primaryLight" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </>
   );
 };
 

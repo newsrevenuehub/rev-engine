@@ -1,8 +1,8 @@
+import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { render, screen, waitFor } from 'test-utils';
+import { render, screen } from 'test-utils';
 import ContributionDetailActions, { ContributionDetailActionsProps } from './ContributionDetailActions';
 import { useContribution } from 'hooks/useContribution';
-import userEvent from '@testing-library/user-event';
 
 jest.mock('hooks/useContribution');
 

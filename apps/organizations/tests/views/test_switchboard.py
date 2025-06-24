@@ -175,16 +175,32 @@ def test_switchboard_rp_detail(request, user_fixture, permitted, api_client, rev
 
 
 @pytest.mark.django_db
-def test_switchboard_rp_detail_non_existent_returns_404(api_client, switchboard_user):
-    api_client.force_authenticate(user=switchboard_user)
-    response = api_client.get(reverse("switchboard-revenue-program-detail", args=(999999,)))
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("rp_existent", [True, False])
-def test_switchboard_rp_detail_unauthenticated_returns_401(rp_existent, api_client, revenue_program):
+@pytest.mark.parametrize(
+    ("authenticated", "rp_existent", "authorised", "status_code"),
+    [
+        (False, False, False, 401),
+        (False, True, False, 401),
+        (True, False, False, 403),
+        (True, True, False, 403),
+        (True, False, True, 404),
+        (True, True, True, 200),
+    ],
+)
+def test_get_rp_detail_access_combinations(
+    authenticated,
+    rp_existent,
+    authorised,
+    status_code,
+    api_client,
+    revenue_program,
+    org_user_free_plan,
+    switchboard_user,
+):
+    if authenticated and authorised:
+        api_client.force_authenticate(user=switchboard_user)
+    elif authenticated and not authorised:
+        api_client.force_authenticate(user=org_user_free_plan)
     response = api_client.get(
         reverse("switchboard-revenue-program-detail", args=(revenue_program.pk if rp_existent else 999999,))
     )
-    assert response.status_code == 401
+    assert response.status_code == status_code

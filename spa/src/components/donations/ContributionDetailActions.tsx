@@ -1,10 +1,10 @@
 import { MoreHorizOutlined } from '@material-ui/icons';
-import { Menu, MenuItem, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
+import { Button, Menu, MenuItem, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
 import { useState } from 'react';
 import { useContribution } from 'hooks/useContribution';
 import useModal from 'hooks/useModal';
-import { Button, ModalHeaderIcon, RedEmphasis, Root } from './ContributionDetailActions.styled';
+import { MenuButton, ModalHeaderIcon, RedEmphasis, Root } from './ContributionDetailActions.styled';
 
 const ContributionDetailActionsPropTypes = {
   contributionId: PropTypes.number.isRequired
@@ -28,7 +28,7 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
 
   return (
     <Root>
-      <Button
+      <MenuButton
         aria-controls="contribution-detail-actions-menu"
         aria-label="Actions"
         color="secondary"
@@ -36,7 +36,7 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
         aria-pressed={!!menuAnchorEl}
       >
         <MoreHorizOutlined />
-      </Button>
+      </MenuButton>
       <Menu
         id="contribution-detail-actions-menu"
         anchorEl={menuAnchorEl}

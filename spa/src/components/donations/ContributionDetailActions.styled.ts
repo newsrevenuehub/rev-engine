@@ -7,7 +7,7 @@ export const Root = styled.div`
   text-align: right;
 `;
 
-export const Button = styled(BaseButton)`
+export const MenuButton = styled(BaseButton)`
   && {
     padding: 6px;
     min-width: 20px;

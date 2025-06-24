@@ -182,6 +182,9 @@ def test_switchboard_rp_detail_non_existent_returns_404(api_client, switchboard_
 
 
 @pytest.mark.django_db
-def test_switchboard_rp_detail_unauthenticated_returns_401(api_client, revenue_program):
-    response = api_client.get(reverse("switchboard-revenue-program-detail", args=(revenue_program.pk,)))
+@pytest.mark.parametrize("rp_existent", [True, False])
+def test_switchboard_rp_detail_unauthenticated_returns_401(rp_existent, api_client, revenue_program):
+    response = api_client.get(
+        reverse("switchboard-revenue-program-detail", args=(revenue_program.pk if rp_existent else 999999,))
+    )
     assert response.status_code == 401

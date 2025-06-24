@@ -65,15 +65,6 @@ jobs:
     needs: check-changes
     if: ${{ needs['check-changes'].outputs.spa == 'true' }}
     runs-on: ubuntu-latest
-    strategy:
-      # when one test fails, DO NOT cancel the other
-      # containers, because this will kill Cypress processes
-      # leaving the Dashboard hanging ...
-      # https://github.com/cypress-io/github-action/issues/48
-      fail-fast: false
-      matrix:
-        # run 3 copies of the current job in parallel
-        containers: [1, 2, 3]
     env:
       VITE_HUB_STRIPE_API_PUB_KEY: pk_test_djfoi12312414
       VITE_STRIPE_ACCOUNT_ID: acc_3kjfo23jj
@@ -94,12 +85,6 @@ jobs:
           start: npx vite preview --port 3000
           wait-on: http://localhost:3000
           wait-on-timeout: 120
-          # because of "record" and "parallel" parameters
-          # these containers will load balance all found tests among themselves
-          record: true
-          parallel: true
-          group: "Cypress integration tests"
         env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CYPRESS_PROJECT_ID: ${{ secrets.PROJECT_ID }}

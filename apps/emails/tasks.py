@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 from dataclasses import asdict
 from enum import Enum
 from smtplib import SMTPException
@@ -240,19 +241,23 @@ def get_test_magic_link(user, revenue_program) -> str:
 )
 def send_receipt_email(data: SendContributionEmailData) -> None:
     """Retrieve Stripe customer and send receipt email for a contribution."""
-    logger.info("send_receipt_email: Attempting to send receipt email with the following template data %s", data)
+    call_id = str(uuid.uuid4())[:8]
+
+    logger.info("send_receipt_email [%s]: Starting email send to %s", call_id, data["contributor_email"])
+
     with configure_scope() as scope:
         scope.user = {"email": (to := data["contributor_email"])}
         try:
-            send_mail(
+            result = send_mail(
                 subject="Thank you for your contribution!",
                 message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
                 from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
                 recipient_list=[to],
                 html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
             )
+            logger.info("send_receipt_email [%s]: send_mail returned %s", call_id, result)
         except SMTPException:
-            logger.exception("send_receipt_email: Error sending receipt email to %s", to)
+            logger.exception("send_receipt_email [%s]: Error sending receipt email to %s", call_id, to)
             raise
 
 

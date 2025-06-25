@@ -31,7 +31,7 @@ SEND_RECEIPT_QUERY_PARAM = "send_receipt"
 
 
 class SwitchboardContributionFilter(django_filters.FilterSet):
-    contributor_id = django_filters.NumberFilter(field_name="contributor__id", lookup_expr="exact")
+    contributor_id = django_filters.NumberFilter(field_name="contributor__id")
     contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
 
     class Meta:

@@ -1363,7 +1363,6 @@ class Test_log_backoff:
                 valid_details_args["wait"],
                 valid_details_args["tries"],
                 valid_details_args["exception"],
-                exc_info=True,
             )
 
     def test_when_details_arg_unexpected(self, invalid_details_args, mocker):

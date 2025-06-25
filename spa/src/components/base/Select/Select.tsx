@@ -1,10 +1,11 @@
-import styled from 'styled-components';
-import MenuItem from '../MenuItem/MenuItem';
-import { ReactNode, forwardRef } from 'react';
-import TextField from '../TextField/TextField';
 import { OutlinedTextFieldProps } from '@material-ui/core';
+import { ReactNode, forwardRef } from 'react';
+import styled from 'styled-components';
+import MenuItem, { MenuItemProps } from '../MenuItem/MenuItem';
+import TextField from '../TextField/TextField';
 
 export type SelectProps = Omit<OutlinedTextFieldProps, 'variant'> & {
+  MenuItemProps?: Partial<MenuItemProps>;
   options: Array<{ label: ReactNode; value: string | number; selectedLabel?: string | null }>;
 };
 
@@ -45,7 +46,7 @@ const StyledMenuItem = styled(MenuItem)`
 `;
 
 export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
-  const { options, ...other } = props;
+  const { MenuItemProps, options, ...other } = props;
 
   return (
     <StyledSelect
@@ -63,9 +64,9 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
       {...other}
     >
       {options.map((item) => (
-        <StyledMenuItem key={item.value} value={item.value}>
+        <StyledMenuItem key={item.value} value={item.value} {...MenuItemProps}>
           <span id="menu-label">{item.label}</span>
-          <span id="selected-label">{item.selectedLabel || item.label}</span>
+          <span id="selected-label">{item.selectedLabel ?? item.label}</span>
         </StyledMenuItem>
       ))}
     </StyledSelect>

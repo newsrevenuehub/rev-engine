@@ -1355,6 +1355,7 @@ class Test_log_backoff:
                 valid_details_args["exception"].http_status,
                 valid_details_args["exception"].request_id,
                 valid_details_args["exception"].error,
+                exc_info=True,
             )
         else:
             mock_logger.assert_called_once_with(
@@ -1362,6 +1363,7 @@ class Test_log_backoff:
                 valid_details_args["wait"],
                 valid_details_args["tries"],
                 valid_details_args["exception"],
+                exc_info=True,
             )
 
     def test_when_details_arg_unexpected(self, invalid_details_args, mocker):
@@ -1391,4 +1393,5 @@ class Test_log_backoff:
             stripe_rate_limit_error.http_status,
             stripe_rate_limit_error.request_id,
             stripe_rate_limit_error.error,
+            exc_info=True,
         )

@@ -147,6 +147,7 @@ def log_backoff(details: dict) -> None:
                 exc.http_status,
                 exc.request_id,
                 exc.error,
+                exc_info=True,  # noqa: LOG014
             )
         else:
             logger.warning(

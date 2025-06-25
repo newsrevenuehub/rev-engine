@@ -32,6 +32,8 @@ SEND_RECEIPT_QUERY_PARAM = "send_receipt"
 
 class SwitchboardContributionFilter(django_filters.FilterSet):
     contributor_id = django_filters.NumberFilter(field_name="contributor__id")
+    # TODO @leo: clean this up after below ticket is complete, we will not have duplicates at that point
+    #  https://news-revenue-hub.atlassian.net/browse/DEV-5782
     contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
 
     class Meta:

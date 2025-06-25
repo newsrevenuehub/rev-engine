@@ -1,28 +1,12 @@
-import { useState, FormEvent } from 'react';
+import { PublicOutlined } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
-import { CircularProgress, Divider, Grid } from '@material-ui/core';
-import CloseIcon from '@material-ui/icons/Close';
-import PublicIcon from '@material-ui/icons/Public';
-
-import {
-  Flex,
-  Title,
-  Paper,
-  Modal,
-  Icon,
-  IconButton,
-  Content,
-  Label,
-  Input,
-  UnderText,
-  Actions,
-  PublishButton,
-  CancelButton
-} from './PublishModal.styled';
-import getDomain from 'utilities/getDomain';
+import { useState } from 'react';
+import { Button, Modal, ModalFooter, ModalHeader } from 'components/base';
 import { PagePropTypes } from 'constants/propTypes';
-import slugify from 'utilities/slugify';
 import { ContributionPage } from 'hooks/useContributionPage';
+import getDomain from 'utilities/getDomain';
+import slugify from 'utilities/slugify';
+import { CircularProgress, Explanation, FieldAdornment, ModalContent, Prompt, TextField } from './PublishModal.styled';
 
 const PublishModalPropTypes = {
   className: PropTypes.string,
@@ -42,98 +26,60 @@ export interface PublishModalProps extends InferProps<typeof PublishModalPropTyp
 }
 
 export function PublishModal({ open, onClose, onPublish, page, loading, slugError }: PublishModalProps) {
-  const [slug, setSlug] = useState(page?.slug ?? '');
+  const [slug, setSlug] = useState(page.slug ?? '');
   const domain = getDomain(window.location.host);
 
-  const domainUrl = `.${domain}/`;
-
-  const handleChangeSlug = (event: FormEvent) => {
-    const element = event.target as HTMLInputElement;
-    setSlug(slugify(element.value ?? ''));
-  };
-
-  const handlePublish = () => {
-    onPublish({ slug });
-  };
-
   return (
-    <Modal open={!!open} onClose={onClose} aria-label={`Publish page ${page?.name}`}>
-      <Paper>
-        <IconButton onClick={onClose}>
-          <Icon>
-            <CloseIcon />
-          </Icon>
-        </IconButton>
-        <Flex>
-          <PublicIcon />
-          <Title>Publish Page</Title>
-        </Flex>
-        <Divider />
-        <Content>
-          <p style={{ margin: 0 }}>
-            Your URL is where contributors will access your contribution page. Fill out the fields to create your
-            contribution page link.
-          </p>
-          <Grid container>
-            <Grid item xs={4}>
-              <Label>Site Name*</Label>
-            </Grid>
-            <Grid item xs={3} />
-            <Grid item xs={5}>
-              <Label>Page Name</Label>
-            </Grid>
-            <Grid item xs={4}>
-              <Input value={page?.revenue_program?.slug} readOnly $start />
-              <UnderText>*Site name can’t be changed upon publish.</UnderText>
-            </Grid>
-            <Grid item xs={3}>
-              <Input
-                $center
-                disabled
-                defaultValue={domainUrl}
-                inputProps={{ 'aria-label': 'Domain URL', className: 'NreTextFieldInput' }}
-              />
-            </Grid>
-            <Grid item xs={5}>
-              <Input
-                $end
-                error={!!slugError?.length}
-                data-testid="page-name-input"
-                placeholder="Ex. contribute, donate, join"
-                helperText={slugError?.length ? slugError.join('. ') : ''}
-                value={slug}
-                onChange={handleChangeSlug}
-                inputProps={{ 'aria-label': 'Page Name', className: 'NreTextFieldInput' }}
-              />
-            </Grid>
-            <Grid item xs={2} />
-            <Grid item xs={5}></Grid>
-          </Grid>
-          <Actions>
-            <CancelButton variant="contained" onClick={onClose} disableElevation>
-              Cancel
-            </CancelButton>
-            <PublishButton
-              data-testid="modal-publish-button"
-              variant="contained"
-              onClick={handlePublish}
-              disableElevation
-              disabled={!slug || !!loading}
-            >
-              {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Publish'}
-            </PublishButton>
-          </Actions>
-        </Content>
-      </Paper>
+    <Modal onClose={onClose} open={!!open} aria-labelledby="publish-page-modal-title">
+      <ModalHeader icon={<PublicOutlined />} onClose={onClose} id="publish-page-modal-title">
+        Publish Page
+      </ModalHeader>
+      <ModalContent>
+        <Prompt>
+          Your URL is where contributors will access your contribution page. Fill out page name to create your
+          contribution page link and publish.
+        </Prompt>
+        <Explanation>
+          <strong>Example:</strong> If the Organization site name is 'News Revenue Engine' and the page name is 'Give',
+          then the full URL is <strong>newsrevenueengine.{domain}/give</strong>.
+        </Explanation>
+        <TextField
+          error={!!slugError}
+          fullWidth
+          helperText={slugError?.length && slugError.join('. ')}
+          id="publish-modal-page-slug"
+          InputProps={{
+            // Have to copy props from our base component to get styling to look correct.
+            classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' },
+            startAdornment: (
+              <FieldAdornment position="start">
+                {page.revenue_program.slug}.{domain}/
+              </FieldAdornment>
+            )
+          }}
+          label="Page Name"
+          onChange={({ target }) => setSlug(slugify(target.value))}
+          placeholder="Ex. contribute, donate, join"
+          value={slug}
+        ></TextField>
+      </ModalContent>
+      <ModalFooter>
+        <Button color="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button color="primaryDark" disabled={!!(!slug || loading)} onClick={() => onPublish({ slug })}>
+          {loading ? (
+            <span aria-label="Loading">
+              <CircularProgress size={20} />
+            </span>
+          ) : (
+            'Publish'
+          )}
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }
-
-PublishModal.defaultProps = {
-  className: '',
-  loading: false,
-  open: false
-};
 
 PublishModal.propTypes = PublishModalPropTypes;
 

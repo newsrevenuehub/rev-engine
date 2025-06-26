@@ -73,12 +73,21 @@ describe('EmailsRoute', () => {
     } else {
       const editButtonLabel = block.editable ? 'View & Edit' : 'View';
 
-      it(`shows a disabled ${editButtonLabel} button`, () => {
-        tree();
-        expect(
-          within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: editButtonLabel })
-        ).toBeDisabled();
-      });
+      if (block.disabled) {
+        it(`shows a disabled ${editButtonLabel} button`, () => {
+          tree();
+          expect(
+            within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: editButtonLabel })
+          ).toHaveAttribute('aria-disabled', 'true');
+        });
+      } else {
+        it(`shows an enabled ${editButtonLabel} button`, () => {
+          tree();
+          expect(
+            within(screen.getByTestId(`email-block-${block.name}`)).getByRole('button', { name: editButtonLabel })
+          ).toHaveAttribute('aria-disabled', 'false');
+        });
+      }
 
       if (block.testEmailName) {
         it(`shows a button to send a ${block.testEmailName} test email`, () => {

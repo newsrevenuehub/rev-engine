@@ -15,7 +15,8 @@ import {
   PROFILE,
   SETTINGS,
   EMAILS_SLUG,
-  CUSTOMIZE_SLUG
+  CUSTOMIZE_SLUG,
+  EMAIL_EDIT_SLUG
 } from 'routes';
 
 // Children
@@ -46,6 +47,7 @@ import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAcce
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 import AnalyticsSetup from 'components/common/AnalyticsSetup/AnalyticsSetup';
 import { EmailsRoute } from 'components/content/emails';
+import { EditEmailRoute } from 'components/content/emails/edit';
 import CustomizeRoute from 'components/content/CustomizeRoute';
 
 function Dashboard() {
@@ -83,9 +85,16 @@ function Dashboard() {
                 </SentryRoute>
               ) : null}
               {hasEmailSectionAccess ? (
-                <SentryRoute path={EMAILS_SLUG}>
+                <SentryRoute path={EMAILS_SLUG} exact>
                   <SingleOrgUserOnlyRoute>
                     <EmailsRoute />
+                  </SingleOrgUserOnlyRoute>
+                </SentryRoute>
+              ) : null}
+              {hasEmailSectionAccess ? (
+                <SentryRoute path={EMAIL_EDIT_SLUG}>
+                  <SingleOrgUserOnlyRoute>
+                    <EditEmailRoute />
                   </SingleOrgUserOnlyRoute>
                 </SentryRoute>
               ) : null}

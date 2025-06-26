@@ -15,6 +15,7 @@
 import base64
 import datetime
 import json
+import typing
 from dataclasses import asdict
 from datetime import timedelta
 from io import BytesIO
@@ -43,6 +44,7 @@ from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
+from apps.emails.models import EmailCustomization, TransactionalEmailNames
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,
@@ -55,6 +57,9 @@ from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 from revengine.utils import __ensure_gs_credentials
 
+
+if typing.TYPE_CHECKING:
+    from apps.organizations.models import RevenueProgram
 
 DEFAULT_FLAGS_CONFIG_MAPPING = {
     CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME: {
@@ -1118,3 +1123,13 @@ def default_password():
 def switchboard_user(settings, default_password):
     settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
     return UserFactory(email=email, password=default_password)
+
+
+@pytest.fixture
+def email_customization(revenue_program: "RevenueProgram") -> EmailCustomization:
+    return EmailCustomization.objects.create(
+        revenue_program=revenue_program,
+        content_html="<p>Test content</p>",
+        email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
+        email_block=EmailCustomization.EmailBlock.MESSAGE,
+    )

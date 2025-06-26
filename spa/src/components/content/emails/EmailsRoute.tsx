@@ -16,12 +16,14 @@ interface EmailBlock extends Omit<EmailBlockProps, 'onSendTest'> {
 export const blocks: EmailBlock[] = [
   {
     editable: true,
+    emailType: 'contribution_receipt',
     description:
       'Receipts are sent for all contributions after a successful payment. The receipts thank the contributor for their contribution, confirm payment, and provide tax information. Contributors can also resend receipts to themselves in the contributor portal.',
     name: 'Receipt',
     testEmailName: 'receipt'
   },
   {
+    disabled: true,
     editable: true,
     description: (
       <>
@@ -36,6 +38,7 @@ export const blocks: EmailBlock[] = [
     name: 'Cancelation'
   },
   {
+    disabled: true,
     editable: true,
     description:
       'For contributors with recurring annual contributions, a payment reminder is sent 7 days before their contribution renews. This time period can be configured within your organization’s Stripe account.',
@@ -43,6 +46,7 @@ export const blocks: EmailBlock[] = [
     testEmailName: 'reminder'
   },
   {
+    disabled: true,
     editable: false,
     description:
       "A failed payment notification email is sent when RevEngine's payment processor cannot charge the payment method of a contribution, which could be due to incorrect payment information or expired cards.",
@@ -62,6 +66,7 @@ export const blocks: EmailBlock[] = [
     name: 'Payment Change Confirmation'
   },
   {
+    disabled: true,
     description:
       'Contributors can access the contributor portal to manage their contributions to your organization, and are granted access through a secure magic link sent via email.',
     name: 'Magic Link',
@@ -106,7 +111,9 @@ export function EmailsRoute() {
         {blocks.map((block) => (
           <EmailBlock
             description={block.description}
+            disabled={block.disabled}
             editable={block.editable}
+            emailType={block.emailType}
             hideActions={block.hideActions}
             key={block.name}
             name={block.name}

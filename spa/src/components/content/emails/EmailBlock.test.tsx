@@ -48,9 +48,21 @@ describe('EmailBlock', () => {
     it.each([
       ['View', false],
       ['View & Edit', true]
-    ])('shows a disabled %s button if the editable prop is %s', (name, editable) => {
+    ])('shows a button if the editable prop is %s', (name, editable) => {
       tree({ editable });
-      expect(screen.getByRole('button', { name })).toBeDisabled();
+      expect(screen.getByRole('button', { name })).toBeVisible();
+    });
+
+    // These have to check ARIA attributes because the edit "buttons" are actually links in the DOM.
+
+    it('enables the edit button if the disabled prop is false', () => {
+      tree({ disabled: false, editable: true });
+      expect(screen.getByRole('button', { name: 'View & Edit' })).toHaveAttribute('aria-disabled', 'false');
+    });
+
+    it('disables the edit button if the disabled prop is true', () => {
+      tree({ disabled: true, editable: true });
+      expect(screen.getByRole('button', { name: 'View & Edit' })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('is accessible', async () => {

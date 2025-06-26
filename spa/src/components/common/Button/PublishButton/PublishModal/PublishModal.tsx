@@ -36,12 +36,13 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
       </ModalHeader>
       <ModalContent>
         <Prompt>
-          Your URL is where contributors will access your contribution page. Fill out page name to create your
-          contribution page link and publish.
+          Enter a page name to create and publish a unique contribution page link. This page name will serve as the slug
+          that appears after your domain's web address.
         </Prompt>
         <Explanation>
-          <strong>Example:</strong> If the Organization site name is 'News Revenue Engine' and the page name is 'Give',
-          then the full URL is <strong>newsrevenueengine.{domain}/give</strong>.
+          <strong>Example:</strong> If your domain is <strong>mywebsite</strong> and the page name is{' '}
+          <strong>give</strong>, the full URL for the contribution page will be:{' '}
+          <strong>mywebsite.fundjournalism.org/give</strong>
         </Explanation>
         <TextField
           error={!!slugError}

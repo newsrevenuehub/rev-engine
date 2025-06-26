@@ -33,7 +33,6 @@ from apps.contributions.models import (
     Payment,
     ensure_stripe_event,
     logger,
-    send_receipt_email,
 )
 from apps.contributions.serializers import STRIPE_MAX_AMOUNT
 from apps.contributions.tests.factories import (
@@ -43,7 +42,7 @@ from apps.contributions.tests.factories import (
 )
 from apps.contributions.typings import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.emails.tasks import generate_email_data, send_templated_email
+from apps.emails.tasks import generate_email_data, send_receipt_email, send_templated_email
 from apps.organizations.models import FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -544,7 +543,7 @@ class TestContributionModel:
         else:
             send_receipt_email_spy.assert_not_called()
 
-    def test_cancel_pending_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
+    def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
         # there are other paths through that call save where different stripe return values would need to
         # be provided. We're only testing processing case, and assume that it also means that save calls right update
         # fields for all non-error paths through cancel function.

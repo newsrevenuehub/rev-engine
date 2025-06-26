@@ -13,7 +13,7 @@ const ContributionDetailActionsPropTypes = {
 export type ContributionDetailActionsProps = InferProps<typeof ContributionDetailActionsPropTypes>;
 
 export function ContributionDetailActions({ contributionId }: ContributionDetailActionsProps) {
-  const { cancelContribution, contribution } = useContribution(contributionId);
+  const { cancelMutation, contribution, isFetching } = useContribution(contributionId);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
   const { handleClose: handleConfirmClose, handleOpen: handleConfirmOpen, open: confirmOpen } = useModal();
 
@@ -22,7 +22,7 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
   }
 
   function handleConfirmCancel() {
-    cancelContribution();
+    cancelMutation.mutateAsync();
     handleConfirmClose();
   }
 
@@ -46,7 +46,10 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
         onClose={handleMenuClose}
         open={!!menuAnchorEl}
       >
-        <MenuItem disabled={!contribution || !contribution.is_cancelable} onClick={handleConfirmOpen}>
+        <MenuItem
+          disabled={!contribution || !contribution.is_cancelable || isFetching || cancelMutation.isLoading}
+          onClick={handleConfirmOpen}
+        >
           Cancel Contribution
         </MenuItem>
       </Menu>

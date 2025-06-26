@@ -15,7 +15,7 @@ describe('ContributionDetailActions', () => {
 
   beforeEach(() => {
     useContributionMock.mockReturnValue({
-      cancelContribution: jest.fn(),
+      cancelMutation: { mutateAsync: jest.fn() } as any,
       contribution: {} as any,
       isError: false,
       isLoading: false
@@ -34,7 +34,7 @@ describe('ContributionDetailActions', () => {
       ['enabled', true]
     ])("is disabled if the contribution isn't cancelable", (_, is_cancelable) => {
       useContributionMock.mockReturnValue({
-        cancelContribution: jest.fn(),
+        cancelMutation: {} as any,
         contribution: { is_cancelable } as any,
         isError: false,
         isLoading: false
@@ -47,9 +47,21 @@ describe('ContributionDetailActions', () => {
       );
     });
 
+    it('is disabled if a cancel request is in progress, even if the contribution is cancelable', () => {
+      useContributionMock.mockReturnValue({
+        cancelMutation: { isLoading: true } as any,
+        contribution: { is_cancelable: true } as any,
+        isError: false,
+        isLoading: false
+      });
+      tree();
+      userEvent.click(screen.getByRole('button', { name: 'Actions' }));
+      expect(screen.getByRole('menuitem', { name: 'Cancel Contribution' })).toHaveAttribute('aria-disabled', 'true');
+    });
+
     it('shows a confirmation modal when clicked', async () => {
       useContributionMock.mockReturnValue({
-        cancelContribution: jest.fn(),
+        cancelMutation: {} as any,
         contribution: { is_cancelable: true } as any,
         isError: false,
         isLoading: false
@@ -62,12 +74,12 @@ describe('ContributionDetailActions', () => {
     });
 
     describe('The confirmation modal', () => {
-      let cancelContribution: jest.Mock;
+      let mutateAsync: jest.Mock;
 
       beforeEach(() => {
-        cancelContribution = jest.fn();
+        mutateAsync = jest.fn();
         useContributionMock.mockReturnValue({
-          cancelContribution,
+          cancelMutation: { mutateAsync } as any,
           contribution: { is_cancelable: true } as any,
           isError: false,
           isLoading: false
@@ -98,7 +110,7 @@ describe('ContributionDetailActions', () => {
         userEvent.click(screen.getByRole('menuitem', { name: 'Cancel Contribution' }));
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
         userEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }));
-        expect(cancelContribution).toHaveBeenCalledTimes(1);
+        expect(mutateAsync).toHaveBeenCalledTimes(1);
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
 

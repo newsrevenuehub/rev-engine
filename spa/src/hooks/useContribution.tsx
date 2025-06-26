@@ -95,11 +95,11 @@ async function fetchContribution(contributionId: number) {
 export function useContribution(contributionId: number) {
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
-  const { data, isLoading, isError } = useQuery(['contribution', contributionId], () =>
+  const { data, isFetching, isError } = useQuery(['contribution', contributionId], () =>
     fetchContribution(contributionId)
   );
-  const { mutateAsync: cancelContribution } = useMutation(
-    async () => await axios.delete(getAdminContributionEndpoint(contributionId)),
+  const cancelMutation = useMutation(
+    async () => await axios.delete<void>(getAdminContributionEndpoint(contributionId)),
     {
       onSuccess() {
         queryClient.invalidateQueries(['contribution', contributionId]);
@@ -121,5 +121,5 @@ export function useContribution(contributionId: number) {
     }
   );
 
-  return { cancelContribution, contribution: data, isLoading, isError };
+  return { cancelMutation, contribution: data, isFetching, isError };
 }

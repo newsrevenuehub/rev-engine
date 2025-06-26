@@ -53,10 +53,10 @@ describe('usePortalContribution', () => {
     // These wait for the next update to allow component updates to happen after
     // the fetch completes.
 
-    it('returns a loading status', async () => {
+    it('returns a fetching status', async () => {
       const { result, waitForNextUpdate } = hook(mockContribution.id);
 
-      expect(result.current.isLoading).toBe(true);
+      expect(result.current.isFetching).toBe(true);
       await waitForNextUpdate();
     });
 
@@ -100,7 +100,7 @@ describe('usePortalContribution', () => {
     });
   });
 
-  describe('The cancelContribution function', () => {
+  describe('cancelMutation', () => {
     let errorSpy: jest.SpyInstance;
     const invalidateQueries = jest.fn();
 
@@ -119,7 +119,7 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(axiosMock.history.delete.length).toBe(0);
-      await result.current.cancelContribution();
+      await result.current.cancelMutation.mutateAsync();
       await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
       expect(axiosMock.history.delete[0].url).toBe(getAdminContributionEndpoint(mockContribution.id));
     });
@@ -129,7 +129,7 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(enqueueSnackbar).not.toHaveBeenCalled();
-      await result.current.cancelContribution();
+      await result.current.cancelMutation.mutateAsync();
       await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
       expect(enqueueSnackbar).toHaveBeenCalledWith(
         'The recurring contribution was successfully canceled.',
@@ -146,7 +146,7 @@ describe('usePortalContribution', () => {
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(enqueueSnackbar).not.toHaveBeenCalled();
       try {
-        await result.current.cancelContribution();
+        await result.current.cancelMutation.mutateAsync();
       } catch {}
       await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
       expect(enqueueSnackbar).toHaveBeenCalledWith(
@@ -160,7 +160,7 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(invalidateQueries).not.toHaveBeenCalled();
-      await result.current.cancelContribution();
+      await result.current.cancelMutation.mutateAsync();
       await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
       expect(invalidateQueries).toHaveBeenCalledWith(['contribution', mockContribution.id]);
       expect(invalidateQueries).toHaveBeenCalledTimes(1);

@@ -3,11 +3,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from apps.emails.helpers import (
-    convert_to_timezone_formatted,
-    get_contribution_receipt_email_customizations,
-)
-from apps.emails.models import EmailCustomization
+from apps.emails.helpers import convert_to_timezone_formatted
 
 
 @pytest.mark.parametrize(
@@ -32,23 +28,3 @@ def test_convert_to_timezone_formatted(timezone, fmt, is_UTC, expect):
         else convert_to_timezone_formatted(test_date, timezone)
     )
     assert tz_date == expect
-
-
-@pytest.mark.django_db
-class TestGetContributionReceiptCustomizations:
-    def test_sets_properties_when_present(self, revenue_program):
-        customization = EmailCustomization(
-            content_html="test-content",
-            # No content_plain_text here because it's a calculated property on the model
-            email_type="contribution_receipt",
-            email_block="message",
-            revenue_program=revenue_program,
-        )
-        customization.save()
-        assert get_contribution_receipt_email_customizations(revenue_program=revenue_program)["message"] == {
-            "content_html": "test-content",
-            "content_plain_text": "test-content",
-        }
-
-    def test_handles_no_data(self, revenue_program):
-        assert get_contribution_receipt_email_customizations(revenue_program=revenue_program)["message"] is None

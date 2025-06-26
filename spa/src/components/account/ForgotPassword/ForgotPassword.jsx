@@ -11,7 +11,7 @@ import * as S from '../Account.styled';
 import ForgotPasswordForm from './ForgotPasswordForm';
 
 import PageTitle from 'elements/PageTitle';
-import Logobar from 'components/account/common/logobar/Logobar';
+import { IntegrationLogos } from 'components/account/common/IntegrationLogos';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 
 import { SIGN_IN } from 'routes';
@@ -78,7 +78,7 @@ function ForgotPassword() {
           </S.NavLink>
         </S.FormElements>
 
-        <Logobar />
+        <IntegrationLogos />
       </S.Right>
       <S.BottomBar>
         <S.BottomBarYellowSVG src={YellowSVG} data-testid="bottom-yellow-svg" />

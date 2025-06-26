@@ -18,6 +18,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.secret_manager import GoogleCloudSecretProvider
 from apps.common.utils import google_cloud_pub_sub_is_configured, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
+from apps.emails.helpers import ContributionReceiptCustomizations
 from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.mailchimp import (
     MailchimpEmailList,
@@ -923,6 +924,18 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.mailchimp_list_id = None
             self.save(update_fields={"mailchimp_server_prefix", "modified", "mailchimp_list_id"})
             reversion.set_comment("disable_mailchimp_integration updated this RP")
+
+    def get_contribution_receipt_email_customizations(self) -> ContributionReceiptCustomizations:
+        """Generate dict for configuring cutomization of receipt email templates."""
+        from apps.emails.models import EmailCustomization
+
+        result: ContributionReceiptCustomizations = {"message": None}
+        message_customization = EmailCustomization.objects.filter(
+            revenue_program=self, email_type="contribution_receipt", email_block="message"
+        ).first()
+        if message_customization:
+            result["message"] = message_customization.as_dict()
+        return result
 
 
 class PaymentProvider(IndexedTimeStampedModel):

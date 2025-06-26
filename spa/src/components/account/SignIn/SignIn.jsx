@@ -19,7 +19,7 @@ import { handleLoginSuccess } from 'components/authentication/util';
 import { useConfigureAnalytics } from 'components/analytics';
 
 import SignInForm from './SignInForm';
-import Logobar from 'components/account/common/logobar/Logobar';
+import { IntegrationLogos } from 'components/account/common/IntegrationLogos';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 import PageTitle from 'elements/PageTitle';
 
@@ -76,7 +76,7 @@ function SignIn({ onSuccess }) {
             </S.NavLink>
           </S.FormElements>
 
-          <Logobar />
+          <IntegrationLogos />
         </S.Right>
       </S.Outer>
       <S.BottomBar>

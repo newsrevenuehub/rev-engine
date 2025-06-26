@@ -1,8 +1,7 @@
 import styled from 'styled-components';
 
 export const Root = styled.div`
-  margin: 60px 0;
-  max-width: 600px;
+  margin: 60px;
 `;
 
 export const Heading = styled.div`

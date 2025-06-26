@@ -16,8 +16,8 @@ export const logos = [
   { height: 20, image: DigestbuilderLogo, name: 'Digestbuilder' },
   { height: 25, image: NewspackLogo, name: 'Newspack' },
   { height: 30, image: MailchimpLogo, name: 'Mailchimp' },
-  { height: 20, image: ActiveCampaignLogo, name: 'ActiveCampaign' },
-  { height: 25, image: EventbriteLogo, name: 'Eventbrite' }
+  { height: 15, image: ActiveCampaignLogo, name: 'ActiveCampaign' },
+  { height: 20, image: EventbriteLogo, name: 'Eventbrite' }
 ];
 
 export function IntegrationLogos() {

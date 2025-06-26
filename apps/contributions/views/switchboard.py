@@ -53,7 +53,7 @@ class SwitchboardContributionsViewSet(
 
     permission_classes = [IsSwitchboardAccount]
     http_method_names = ["patch", "post", "get"]
-    queryset = Contribution.objects.all()
+    queryset = Contribution.objects.all().select_related("donation_page__revenue_program")
     serializer_class = serializers.SwitchboardContributionSerializer
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571

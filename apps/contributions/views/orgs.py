@@ -137,11 +137,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         cancels the Stripe subscription. Webhook event listeners will update the
         contribution status when it succeeds.
         """
-        # Use get_queryset() to enforce the same permissions here as on
-        # retrieving contributions.
-        contribution = self.get_queryset().filter(id=pk).first()
-        if not contribution:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        contribution = self.get_object()
         try:
             contribution.cancel_existing(actor=request.user)
         except ContributionStatusError:

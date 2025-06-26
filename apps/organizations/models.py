@@ -927,7 +927,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def get_contribution_receipt_email_customizations(self) -> ContributionReceiptCustomizations:
         """Generate dict for configuring cutomization of receipt email templates."""
-        from apps.emails.models import EmailCustomization
+        from apps.emails.models import EmailCustomization  # noqa: PLC0415
 
         result: ContributionReceiptCustomizations = {"message": None}
         message_customization = EmailCustomization.objects.filter(

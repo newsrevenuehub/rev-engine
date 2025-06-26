@@ -11,7 +11,7 @@ import * as S from '../Account.styled';
 import SignUpForm from './SignUpForm';
 
 import Leftbar from 'components/account/common/leftbar/Leftbar';
-import Logobar from 'components/account/common/logobar/Logobar';
+import { IntegrationLogos } from 'components/account/common/IntegrationLogos';
 import { Link as RouterLink, useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
@@ -106,7 +106,7 @@ function SignUp() {
           </S.NavLink>
         </S.FormElements>
 
-        <Logobar />
+        <IntegrationLogos />
       </S.Right>
       <S.BottomBar>
         <S.BottomBarYellowSVG src={YellowSVG} data-testid="bottom-yellow-svg" />

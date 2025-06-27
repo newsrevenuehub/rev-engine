@@ -64,7 +64,7 @@ describe('ContributionDetailActions', () => {
         cancelMutation: {} as any,
         contribution: { is_cancelable: true } as any,
         isError: false,
-        isLoading: false
+        isFetching: false
       });
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Actions' }));
@@ -82,7 +82,7 @@ describe('ContributionDetailActions', () => {
           cancelMutation: { mutateAsync } as any,
           contribution: { is_cancelable: true } as any,
           isError: false,
-          isLoading: false
+          isFetching: false
         });
       });
 

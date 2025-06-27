@@ -1,4 +1,4 @@
-import { Meta, StoryFn, StoryObj } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Icon from '@material-design-icons/svg/filled/block.svg?react';
 import Button, { ButtonProps } from './Button';
 

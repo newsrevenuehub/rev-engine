@@ -18,7 +18,7 @@ describe('ContributionDetailActions', () => {
       cancelMutation: { mutateAsync: jest.fn() } as any,
       contribution: {} as any,
       isError: false,
-      isLoading: false
+      isFetching: false
     });
   });
 
@@ -37,7 +37,7 @@ describe('ContributionDetailActions', () => {
         cancelMutation: {} as any,
         contribution: { is_cancelable } as any,
         isError: false,
-        isLoading: false
+        isFetching: false
       });
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Actions' }));
@@ -52,7 +52,7 @@ describe('ContributionDetailActions', () => {
         cancelMutation: { isLoading: true } as any,
         contribution: { is_cancelable: true } as any,
         isError: false,
-        isLoading: false
+        isFetching: false
       });
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Actions' }));

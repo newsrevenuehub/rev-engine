@@ -39,11 +39,12 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
     generate_email_data,
+    send_receipt_email,
     send_templated_email,
 )
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignment
+from apps.users.models import RoleAssignment, User
 from revengine.settings.base import CurrencyDict
 
 
@@ -658,7 +659,7 @@ class Contribution(IndexedTimeStampedModel):
             idempotency_key=f"{self.uuid}-subscription",
         )
 
-    def cancel(self):
+    def cancel_pending(self):
         """Cancel a contribution that either hasn't been completed yet, or has been flagged for review.
 
         This method is used when a user clicks "back" on the second payment form
@@ -703,6 +704,41 @@ class Contribution(IndexedTimeStampedModel):
         with reversion.create_revision():
             self.save(update_fields={"status", "modified"})
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
+
+    def cancel_existing(self, actor: Contributor | User):
+        """Cancel a recurring, paid contribution.
+
+        This is used by contributors in the portal and admins in the admin
+        dashboard. It doesn't update status immediately. It relies on Stripe
+        webhooks to do this once the contribution is successfully canceled.
+        Calling this on a contribution that isn't recurring will raise an
+        exception.
+        """
+        if not self.stripe_subscription or self.stripe_subscription.status not in self.CANCELABLE_SUBSCRIPTION_STATUSES:
+            raise ContributionStatusError("Contribution is not cancelable")
+        stripe.Subscription.delete(
+            self.provider_subscription_id,
+            stripe_account=self.revenue_program.payment_provider.stripe_account_id,
+        )
+        # Note that we optimistically create an activity log. Transaction finality is not guaranteed and the contribution only gets
+        # marked as canceled after the Stripe webhook is processed. If the webhook fails, we could end up with an activity log
+        # entry for a contribution that is not actually canceled. This should not happen frequently. The alternative would be to create
+        # the activity log entry in the webhook handler, but that would require a more complex implementation and we want to keep this
+        # simple.
+        self.create_canceled_contribution_activity_log(actor=actor)
+
+    def handle_receipt_email(self, show_billing_history: bool = False):
+        """Send a receipt email to contribution's contributor if org is configured to have NRE send receipt email."""
+        logger.info("`Contribution.handle_receipt_email` called on contribution with ID %s", self.id)
+        if (org := self.revenue_program.organization).send_receipt_email_via_nre:
+            logger.info("Contribution.handle_receipt_email: the parent org (%s) sends emails with NRE", org.id)
+            data = generate_email_data(self, show_billing_history=show_billing_history)
+            send_receipt_email.delay(data)
+        else:
+            logger.info(
+                "Contribution.handle_receipt_email called on contribution %s the parent org of which does not send email with NRE",
+                self.id,
+            )
 
     def get_billing_history(self) -> list[BillingHistoryItem] | None:
         """Get the billing history of a contribution."""
@@ -1378,14 +1414,11 @@ class Contribution(IndexedTimeStampedModel):
         # Send amount updated email to contributor
         self.send_recurring_contribution_amount_updated_email()
 
-    def create_contributor_canceled_contribution_activity_log(self) -> ActivityLog | None:
-        """Create an activity log entry for a contributor-canceled contribution.
-
-        This is used to track the cancellation of a contribution by the contributor.
-        """
+    def create_canceled_contribution_activity_log(self, actor: Contributor | User) -> ActivityLog | None:
+        """Create an activity log entry for a canceled contribution."""
         try:
             return ActivityLog.objects.create(
-                actor_content_object=self.contributor,
+                actor_content_object=actor,
                 activity_object_content_object=self,
                 action=ActivityLog.CANCEL,
             )

@@ -7,6 +7,7 @@ export * from './FormControlLabel/FormControlLabel';
 export * from './IconButton/IconButton';
 export * from './Link/Link';
 export * from './LinkButton/LinkButton';
+export * from './Menu/Menu';
 export * from './MenuItem/MenuItem';
 export * from './Modal';
 export * from './OffscreenText/OffscreenText';

@@ -10,6 +10,7 @@ from django.db.models import Q
 
 import dateparser
 import pytest
+import pytest_mock
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
@@ -26,6 +27,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionQuerySet,
     ContributionStatus,
+    ContributionStatusError,
     Contributor,
     Payment,
 )
@@ -47,6 +49,7 @@ from apps.organizations.tests.factories import (
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
+from apps.users.models import User
 
 
 class MockOAuthResponse(StripeObject):
@@ -446,6 +449,66 @@ class TestContributionsViewSet:
             assert len(response.json()["results"]) == len(expected)
             assert {x["id"] for x in response.json()["results"]} == {x.id for x in expected}
 
+    def test_destroy_happy_path(
+        self,
+        api_client: APIClient,
+        filter_user: User,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        api_client.force_authenticate(filter_user)
+        mock_cancel_existing = mocker.patch("apps.contributions.models.Contribution.cancel_existing")
+        response = api_client.delete(reverse("contribution-detail", kwargs={"pk": monthly_contribution.id}))
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_cancel_existing.assert_called_once()
+
+    def test_destroy_nonexistent_contribution(
+        self,
+        api_client: APIClient,
+        filter_user: User,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        api_client.force_authenticate(filter_user)
+        mock_cancel_existing = mocker.patch("apps.contributions.models.Contribution.cancel_existing")
+        response = api_client.delete(reverse("contribution-detail", kwargs={"pk": monthly_contribution.id + 1}))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_cancel_existing.assert_not_called()
+
+    def test_destroy_unauthorized_user(
+        self,
+        api_client: APIClient,
+        org_user_free_plan: User,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        api_client.force_authenticate(org_user_free_plan)
+        mock_cancel_existing = mocker.patch("apps.contributions.models.Contribution.cancel_existing")
+        response = api_client.delete(reverse("contribution-detail", kwargs={"pk": monthly_contribution.id}))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_cancel_existing.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("exception", "expected_status"),
+        [
+            (ContributionStatusError, status.HTTP_400_BAD_REQUEST),
+            (stripe.error.StripeError, status.HTTP_500_INTERNAL_SERVER_ERROR),
+        ],
+    )
+    def test_destroy_handles_exceptions(
+        self,
+        exception,
+        expected_status,
+        api_client: APIClient,
+        monthly_contribution: Contribution,
+        superuser: User,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        api_client.force_authenticate(superuser)
+        mocker.patch("apps.contributions.models.Contribution.cancel_existing", side_effect=exception)
+        response = api_client.delete(reverse("contribution-detail", kwargs={"pk": monthly_contribution.id}))
+        assert response.status_code == expected_status
+
 
 @pytest.mark.django_db
 class TestContributionsViewSetExportCSV:
@@ -764,12 +827,12 @@ class TestPaymentViewset:
         )
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
 
-        mock_cancel = mocker.Mock()
-        monkeypatch.setattr("apps.contributions.models.Contribution.cancel", mock_cancel)
+        mock_cancel_pending = mocker.Mock()
+        monkeypatch.setattr("apps.contributions.models.Contribution.cancel_pending", mock_cancel_pending)
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
         contribution.refresh_from_db()
-        mock_cancel.assert_called_once()
+        mock_cancel_pending.assert_called_once()
 
         # test revision and update fields
 

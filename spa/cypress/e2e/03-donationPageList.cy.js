@@ -64,8 +64,8 @@ describe('Pages view', () => {
     cy.wait('@createNewPage');
     cy.wait('@draftPageById');
     cy.getByTestId('publish-button').click();
-    cy.getByTestId('page-name-input').type('donate');
-    cy.getByTestId('modal-publish-button').click();
+    cy.findByRole('textbox', { name: 'Page Name' }).type('donate');
+    cy.findByRole('button', { name: 'Publish' }).click();
     cy.wait('@patchPage');
     cy.getByTestId('page-creation-success-evidence');
     cy.getByTestId('copy-contribution-page-link').click();

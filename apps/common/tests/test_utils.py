@@ -296,7 +296,7 @@ def test_booleanize_string(value, expected):
 
 @pytest.mark.django_db
 class Test_upsert_with_diff_check:
-    from apps.contributions.models import Contribution
+    from apps.contributions.models import Contribution  # noqa: PLC0415
 
     AMOUNT = 1000
     UPDATE_AMOUNT = 10000
@@ -306,7 +306,7 @@ class Test_upsert_with_diff_check:
 
     @pytest.fixture
     def instance(self):
-        from apps.contributions.tests.factories import ContributionFactory
+        from apps.contributions.tests.factories import ContributionFactory  # noqa: PLC0415
 
         return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
 

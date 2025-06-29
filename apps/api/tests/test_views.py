@@ -256,7 +256,7 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
     the contributor-verify-token endpoint, this test proves that the resulting response will be a success and will contain
     a JWT with a future expiration for the requesting user.
     """
-    from apps.emails import tasks as email_tasks
+    from apps.emails import tasks as email_tasks  # noqa: PLC0415
 
     spy = mocker.spy(email_tasks, "send_mail")
 
@@ -350,7 +350,7 @@ def test_request_contributor_token_creates_usable_magic_links(mocker, api_client
     we create the preexisting contributor with the same email, but with a different case. In either case, we show
     that only one contributor exists in the db after magic link flow is completed.
     """
-    from apps.emails import tasks as email_tasks
+    from apps.emails import tasks as email_tasks  # noqa: PLC0415
 
     spy = mocker.spy(email_tasks, "send_mail")
     rp = RevenueProgramFactory()

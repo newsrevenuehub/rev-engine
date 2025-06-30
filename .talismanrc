@@ -27,7 +27,7 @@ fileignoreconfig:
   checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f
 # Complaints about SHAS
 - filename: poetry.lock
-  checksum: 63c8533e11c39432488db648ccfbc7b09a43acf8ca555b1037726ecf545e753a
+  checksum: 4b57c3729106788cfb50c02fb74a9e64fc7133102b1f689a8f2a47a5439ff4c6
 - filename: apps/organizations/tests/test_admin.py
   checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523
 - filename: apps/emails/migrations/0001_DEV-6141_add_email_customization_model.py

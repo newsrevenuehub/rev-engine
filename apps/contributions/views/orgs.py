@@ -130,12 +130,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         raise ApiConfigurationError
 
     def destroy(self, request, pk: int) -> Response:
-        """Cancel a contribution.
+        """Cancel a recurring contribution.
 
         This parallels the handle_delete() method on PortalContributorsViewSet.
-        It doesn't actually delete the object or update it directly, only
-        cancels the Stripe subscription. Webhook event listeners will update the
-        contribution status when it succeeds.
+        It cancels the Stripe subscription. When that succeeds, Webhook event listeners
+        will delete the object or update contribution status as appropriate.
         """
         contribution = self.get_object()
         try:

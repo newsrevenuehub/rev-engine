@@ -543,7 +543,7 @@ class TestContributionModel:
         else:
             send_receipt_email_spy.assert_not_called()
 
-    def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
+    def test_cancel_pending_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
         # there are other paths through that call save where different stripe return values would need to
         # be provided. We're only testing processing case, and assume that it also means that save calls right update
         # fields for all non-error paths through cancel function.

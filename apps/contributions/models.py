@@ -355,6 +355,8 @@ class Contribution(IndexedTimeStampedModel):
     ACTIVE_SUBSCRIPTION_STATUSES = ("active",)
 
     CANCELABLE_SUBSCRIPTION_STATUSES = (
+        # These statuses are only considered by the cancel_existing() method,
+        # not the cancel_pending() one.
         "trialing",
         "active",
         "past_due",

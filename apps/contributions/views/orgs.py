@@ -132,9 +132,13 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     def destroy(self, request, pk: int) -> Response:
         """Cancel a recurring contribution.
 
+        This only should be called on contributions that have an active Stripe
+        subscription, e.g. have completed checkout.
+
         This parallels the handle_delete() method on PortalContributorsViewSet.
-        It cancels the Stripe subscription. When that succeeds, Webhook event listeners
-        will delete the object or update contribution status as appropriate.
+        It cancels the Stripe subscription. When that succeeds, Webhook event
+        listeners will delete the object or update contribution status as
+        appropriate.
         """
         contribution = self.get_object()
         try:

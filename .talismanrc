@@ -19,9 +19,9 @@ fileignoreconfig:
 # Complaint about on_delete set to protect
 - filename: apps/contributions/migrations/0019_DEV-5953_alter_contribution_contributor.py
   checksum: 46cfdad2fe32315db8ce1618429588ed65933cbd4566b2ff7dcca4ab6605c70f
-# Complaints about a potential secret pattern, false positive in DEV-5663
+# Complaints about a potential secret pattern, false positive in DEV-5221
 - filename: apps/organizations/tests/test_serializers.py
-  checksum: dc46de11fc3b2b088f067a4ba25fb9260bd9923873d9da66cd5162380412ac14
+  checksum: 563e8ce0e35c09df908d277d9f7507f585ee81ae8a9f9841816bc3840ee3e0ce
 # Complaints about fake IDs in subscription JSON
 - filename: apps/contributions/tests/fixtures/subscription-expand-invoice-pi.json
   checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f
@@ -30,7 +30,9 @@ fileignoreconfig:
   checksum: 63c8533e11c39432488db648ccfbc7b09a43acf8ca555b1037726ecf545e753a
 - filename: apps/organizations/tests/test_admin.py
   checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523
-- filename: apps/emails/models.py
-  checksum: 75fae550fd38a4b1942c2fd54abe7383c2e820fb53662ba85e18fbd2886b2e01
 - filename: apps/emails/migrations/0001_DEV-6141_add_email_customization_model.py
   checksum: 48e48c55838f11f41a54cbe8e792d867e132a67269d7aac4a0a9d68d2a2175a6
+- filename: apps/emails/models.py
+  checksum: ea0843a714844ace91c28b9fcb3c777cf5f0573c7a051c16167c0c1190d2f781
+- filename: apps/emails/migrations/0002_DEV-6233_transactionalemailrecord.py
+  checksum: 924c38a9c67597545505c83dd86c7476eab14a54b3023bfa6ef67220a1a1345c

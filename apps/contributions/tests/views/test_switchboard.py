@@ -365,7 +365,7 @@ class TestSwitchboardContributionsViewSet:
     def test_create_send_receipt_query_param(
         self, api_client, creation_data_recurring_with_page, switchboard_api_token, mocker, querystring, send_receipt
     ):
-        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_handle_receipt_email = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         api_client.post(
             reverse("switchboard-contribution-list") + querystring,
             data=creation_data_recurring_with_page,
@@ -492,7 +492,7 @@ class TestSwitchboardContributionsViewSet:
         send_receipt: bool,
         mocker: pytest_mock.MockerFixture,
     ) -> None:
-        mock_handle_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_receipt_email")
+        mock_handle_receipt_email = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
         response = api_client.patch(
             reverse("switchboard-contribution-detail", args=(contribution.id,)) + querystring,
             data={"amount": contribution.amount + 1000},
@@ -715,6 +715,73 @@ class TestSwitchboardContributionsViewSet:
         )
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]) == 3
+
+    def test_filter_by_contributor_id_happy_path(self, api_client: APIClient, switchboard_api_token: str):
+        contributor = ContributorFactory()
+        contributor_contribution = ContributionFactory(contributor=contributor)
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor_id": contributor.id},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(results := response.json()["results"]) == 1
+        assert results[0]["id"] == contributor_contribution.id
+
+    def test_filter_by_contributor_id_non_existent(self, api_client: APIClient, switchboard_api_token: str):
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor_id": 99999},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 0
+
+    def test_filter_by_contributor_id_no_filter(self, api_client: APIClient, switchboard_api_token: str):
+        ContributionFactory()
+        ContributionFactory()
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 2
+
+    def test_filter_by_contributor_email_happy_path(self, api_client: APIClient, switchboard_api_token: str):
+        contributor = ContributorFactory(email="test@example.com")
+        contributor_contribution = ContributionFactory(contributor=contributor)
+        ContributionFactory()
+        ContributionFactory()
+
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor_email": contributor.email},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(results := response.json()["results"]) == 1
+        assert results[0]["id"] == contributor_contribution.id
+
+    def test_filter_by_contributor_email_non_existent(self, api_client: APIClient, switchboard_api_token: str):
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            {"contributor_email": "nonexistent@example.com"},
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 0
+
+    def test_filter_by_contributor_email_no_filter(self, api_client: APIClient, switchboard_api_token: str):
+        ContributionFactory()
+        ContributionFactory()
+        response = api_client.get(
+            reverse("switchboard-contribution-list"),
+            headers={"Authorization": f"Token {switchboard_api_token}"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 2
 
 
 @pytest.mark.django_db

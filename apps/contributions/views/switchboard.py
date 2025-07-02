@@ -6,6 +6,7 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 
+import django_filters
 import reversion
 from django_filters.rest_framework import DjangoFilterBackend
 from knox.auth import TokenAuthentication
@@ -21,12 +22,24 @@ from apps.api.permissions import IsSwitchboardAccount
 from apps.common.utils import LEFT_UNCHANGED, booleanize_string
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor, Payment
+from apps.emails.models import TransactionalEmailRecord
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 SEND_RECEIPT_QUERY_PARAM = "send_receipt"
+
+
+class SwitchboardContributionFilter(django_filters.FilterSet):
+    contributor_id = django_filters.NumberFilter(field_name="contributor__id")
+    # TODO @leo: clean this up after below ticket is complete, we will not have duplicates at that point
+    #  https://news-revenue-hub.atlassian.net/browse/DEV-5782
+    contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="iexact")
+
+    class Meta:
+        model = Contribution
+        fields = ["provider_subscription_id", "provider_payment_id", "contributor_email", "contributor_id"]
 
 
 class SwitchboardContributionsViewSet(
@@ -41,19 +54,19 @@ class SwitchboardContributionsViewSet(
 
     permission_classes = [IsSwitchboardAccount]
     http_method_names = ["patch", "post", "get"]
-    queryset = Contribution.objects.all()
+    queryset = Contribution.objects.all().select_related("donation_page__revenue_program")
     serializer_class = serializers.SwitchboardContributionSerializer
     # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["provider_subscription_id", "provider_payment_id"]
+    filterset_class = SwitchboardContributionFilter
 
     # TODO @BW: Make calling _handle_receipt_email fault tolerant
     # DEV-6162
     def _handle_receipt_email(self, contribution: Contribution) -> None:
         if booleanize_string(self.request.query_params.get(SEND_RECEIPT_QUERY_PARAM, "")):
-            contribution.handle_receipt_email()
+            TransactionalEmailRecord.handle_receipt_email(contribution=contribution, show_billing_history=False)
 
     def perform_create(self, serializer: serializers.SwitchboardContributionSerializer):
         """Send a receipt email if requested in a query param.

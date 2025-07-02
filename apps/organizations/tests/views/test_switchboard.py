@@ -147,3 +147,60 @@ class TestOrganizationViewSetSwitchboard:
             api_client.force_authenticate(user=org_user_free_plan)
         response = api_client.get(url)
         assert response.status_code == 403 if authenticated else 401
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("user_fixture", "permitted"),
+    [
+        ("switchboard_user", True),
+        ("org_user_free_plan", False),
+        ("hub_admin_user", False),
+        ("superuser", False),
+    ],
+)
+def test_switchboard_rp_detail(request, user_fixture, permitted, api_client, revenue_program):
+    user = request.getfixturevalue(user_fixture)
+    api_client.force_authenticate(user)
+    response = api_client.get(reverse("switchboard-revenue-program-detail", args=(revenue_program.pk,)))
+    if permitted:
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {
+            "id": revenue_program.id,
+            "slug": revenue_program.slug,
+            "stripe_account_id": revenue_program.payment_provider.stripe_account_id,
+        }
+    else:
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("authenticated", "rp_existent", "authorised", "status_code"),
+    [
+        (False, False, False, 401),
+        (False, True, False, 401),
+        (True, False, False, 403),
+        (True, True, False, 403),
+        (True, False, True, 404),
+        (True, True, True, 200),
+    ],
+)
+def test_get_rp_detail_access_combinations(
+    authenticated,
+    rp_existent,
+    authorised,
+    status_code,
+    api_client,
+    revenue_program,
+    org_user_free_plan,
+    switchboard_user,
+):
+    if authenticated and authorised:
+        api_client.force_authenticate(user=switchboard_user)
+    elif authenticated and not authorised:
+        api_client.force_authenticate(user=org_user_free_plan)
+    response = api_client.get(
+        reverse("switchboard-revenue-program-detail", args=(revenue_program.pk if rp_existent else 999999,))
+    )
+    assert response.status_code == status_code

@@ -1,4 +1,4 @@
-import { forwardRef, useEffect } from 'react';
+import { forwardRef, useEffect, useRef } from 'react';
 import { Button, ButtonProps } from 'components/base';
 import useModal from 'hooks/useModal';
 import UnsavedChangesModal from './UnsavedChangesModal';
@@ -27,6 +27,9 @@ export interface DiscardChangesButtonProps extends Omit<ButtonProps, 'onClick'> 
 
 export const DiscardChangesButton = forwardRef<HTMLButtonElement, DiscardChangesButtonProps>(
   ({ changesPending, component, onDiscard, ...rest }, ref) => {
+    // We need to be able to change this immediately, without a re-render, so
+    // that the logic around allowing discards can see it when it needs to.
+    const canDiscard = useRef(!changesPending);
     const { open, handleClose, handleOpen } = useModal();
     const Component = component ?? Button;
 
@@ -36,8 +39,10 @@ export const DiscardChangesButton = forwardRef<HTMLButtonElement, DiscardChanges
     useEffect(() => {
       if (changesPending) {
         const prompter = (event: BeforeUnloadEvent) => {
-          event.returnValue = CONFIRM_MESSAGE;
-          event.preventDefault();
+          if (!canDiscard.current) {
+            event.returnValue = CONFIRM_MESSAGE;
+            event.preventDefault();
+          }
         };
 
         window.addEventListener('beforeunload', prompter);
@@ -45,22 +50,41 @@ export const DiscardChangesButton = forwardRef<HTMLButtonElement, DiscardChanges
       }
     }, [changesPending]);
 
+    // Handle the user navigating to another SPA route.
+
+    function promptMessage() {
+      if (!canDiscard.current) {
+        return CONFIRM_MESSAGE;
+      }
+
+      // Allow the navigation.
+
+      return true;
+    }
+
     function handleClick() {
       if (changesPending) {
         handleOpen();
       } else {
+        // We might navigate away immediately in the onDiscard handler, so we
+        // need to set that it is OK to do so right now.
+
+        canDiscard.current = true;
         onDiscard();
       }
     }
 
     function handleModalConfirm() {
+      // See note above about setting canDiscard.
+
       handleClose();
+      canDiscard.current = true;
       onDiscard();
     }
 
     return (
       <>
-        <Prompt when={changesPending} message={CONFIRM_MESSAGE} />
+        <Prompt message={promptMessage} />
         <Component onClick={handleClick} ref={ref} {...rest} />
         <UnsavedChangesModal onCancel={handleClose} onExit={handleModalConfirm} open={open} />
       </>

@@ -1,12 +1,21 @@
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import DiscardChangesButton, { DiscardChangesButtonProps } from './DiscardChangesButton';
-import { PromptProps } from 'react-router-dom';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
 
-  Prompt: ({ message, when }: PromptProps) => <div data-testid="mock-prompt" data-message={message} data-when={when} />
+  // This mock allows for manually checking the return value of the message prop
+  // without re-rendering. It's ARIA hidden because the button has no text.
+
+  Prompt: ({ message }: { message: () => string | boolean }) => (
+    <button
+      aria-hidden
+      data-testid="mock-prompt"
+      data-message={message()}
+      onClick={(event) => ((event.target as HTMLElement).dataset.message = message().toString())}
+    />
+  )
 }));
 
 function tree(props?: Partial<DiscardChangesButtonProps>) {
@@ -44,7 +53,11 @@ describe('DiscardChangesButton', () => {
 
     it("doesn't prompt the user if they navigate away to another route", () => {
       tree({ changesPending: false });
-      expect(screen.getByTestId('mock-prompt').dataset.when).toBe('false');
+
+      const prompt = screen.getByTestId('mock-prompt');
+
+      fireEvent.click(prompt);
+      expect(prompt.dataset.message).toBe('true');
     });
 
     it("doesn't prompt the user if they navigate away from the page", () => {
@@ -86,7 +99,11 @@ describe('DiscardChangesButton', () => {
 
     it('prompts the user if they navigate away to another route', () => {
       tree({ changesPending: true });
-      expect(screen.getByTestId('mock-prompt').dataset.when).toBe('true');
+
+      const prompt = screen.getByTestId('mock-prompt');
+
+      fireEvent.click(prompt);
+      expect(prompt.dataset.message).not.toBe('true');
     });
 
     it('shows the user a prompt if they navigate away from the page', () => {

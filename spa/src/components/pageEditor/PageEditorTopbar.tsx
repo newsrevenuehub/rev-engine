@@ -8,13 +8,13 @@ import { BackButton } from './BackButton';
 
 function PageEditorTopbar() {
   const { pageChanges } = useEditablePageContext();
-  const confirmNavigation = Object.keys(pageChanges).length !== 0;
+  const changesPending = Object.keys(pageChanges).length !== 0;
 
   return (
     <Root>
       <Group>
-        <BackButton confirmNavigation={confirmNavigation} />
-        <SvgLogo src={logoBlue} alt="News Revenue Hub Logo" />
+        <BackButton changesPending={changesPending} />
+        <SvgLogo src={logoBlue} alt="News Revenue Hub" />
         <PageName />
       </Group>
       <Group>

@@ -255,6 +255,22 @@ class TestQuarantineAdmin:
         else:
             assert not contributions.filter(status=contribution_status).exists()
 
+    def test_get_queryset_excludes_when_missing_provider_payment_method_id(
+        self,
+        one_time_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        """Ensure that contributions without a provider_payment_method_id are not included in the quarantine queue."""
+        one_time_contribution.status = ContributionStatus.FLAGGED
+        one_time_contribution.quarantine_status = QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+        one_time_contribution.provider_payment_method_id = None
+        one_time_contribution.save()
+        admin = QuarantineQueue(Quarantine, admin_site=None)
+        assert not admin.get_queryset(request=mocker.MagicMock()).exists()
+        one_time_contribution.provider_payment_method_id = "pm_1234"
+        one_time_contribution.save()
+        assert admin.get_queryset(request=mocker.MagicMock()).exists()
+
 
 @pytest.mark.django_db
 class TestContributorAdmin:

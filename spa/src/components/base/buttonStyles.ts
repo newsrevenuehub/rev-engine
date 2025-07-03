@@ -29,7 +29,7 @@ export const buttonColors = {
     normal: { bg: revEngineTheme.basePalette.primary.chartreuse, fg: revEngineTheme.basePalette.greyscale.black }
   },
   secondary: {
-    active: { bg: revEngineTheme.basePalette.greyscale['70'], fg: '' },
+    active: { bg: revEngineTheme.basePalette.greyscale['70'], fg: revEngineTheme.basePalette.greyscale.white },
     disabled: { bg: '#f9f9f9', fg: revEngineTheme.basePalette.greyscale['30'] },
     hover: { bg: revEngineTheme.basePalette.greyscale['30'], fg: '' },
     normal: { bg: revEngineTheme.basePalette.greyscale['10'], fg: revEngineTheme.basePalette.greyscale.black }

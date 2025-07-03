@@ -20,6 +20,8 @@ import { PaymentStatus } from 'components/common/PaymentStatus';
 import PageTitle from 'elements/PageTitle';
 import { Block, Check } from '@material-ui/icons';
 import { CircularProgress } from 'components/base';
+import DashboardSection from 'components/dashboard/DashboardSection';
+import ContributionDetailActions from './ContributionDetailActions';
 
 function DonationDetail() {
   // Context
@@ -129,74 +131,79 @@ function DonationDetail() {
   } = donationData || {};
 
   return (
-    <Root data-testid="donation-detail" layout>
-      <PageTitle
-        title={`${contributionId} ${revenueProgram?.name ? `| ${revenueProgram?.name} ` : ''}| Contributions`}
-      />
-      {isLoading ? (
-        <Loading layout>
-          <CircularProgress />
-        </Loading>
-      ) : (
-        <>
-          <DL layout>
-            <DataGroup heading="Contribution details">
-              <dt>Status</dt>
-              <dd data-testid="status">{status && <PaymentStatus status={status} />}</dd>
+    <>
+      <ContributionDetailActions contributionId={parseInt(contributionId)} />
+      <DashboardSection heading="Contribution Info">
+        <Root data-testid="donation-detail" layout>
+          <PageTitle
+            title={`${contributionId} ${revenueProgram?.name ? `| ${revenueProgram?.name} ` : ''}| Contributions`}
+          />
+          {isLoading ? (
+            <Loading layout>
+              <CircularProgress />
+            </Loading>
+          ) : (
+            <>
+              <DL layout>
+                <DataGroup heading="Contribution details">
+                  <dt>Status</dt>
+                  <dd data-testid="status">{status && <PaymentStatus status={status} />}</dd>
 
-              <dt layout>Contributor</dt>
-              <dd layout data-testid="donorEmail">
-                {contributorEmail}
-              </dd>
+                  <dt layout>Contributor</dt>
+                  <dd layout data-testid="donorEmail">
+                    {contributorEmail}
+                  </dd>
 
-              <dt>Amount</dt>
-              <dd data-testid="amount">{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
+                  <dt>Amount</dt>
+                  <dd data-testid="amount">{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
 
-              <dt>Payment interval</dt>
-              <dd data-testid="interval">{getFrequencyAdjective(interval)}</dd>
+                  <dt>Payment interval</dt>
+                  <dd data-testid="interval">{getFrequencyAdjective(interval)}</dd>
 
-              <dt>Last payment date</dt>
-              <dd data-testid="lastPaymentDate">
-                {lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}
-              </dd>
-            </DataGroup>
-            <DataGroup heading="Payment provider">
-              <dt>Payment provider</dt>
-              <dd data-testid="paymentProvider">{paymentProvider || NO_VALUE}</dd>
-              <ResourceLink provider={paymentProvider} resource="payment" url={provider_payment_url} />
-              <ResourceLink provider={paymentProvider} resource="subscription" url={provider_subscription_url} />
-              <ResourceLink provider={paymentProvider} resource="customer" url={provider_customer_url} />
-            </DataGroup>
-            {flaggedDate && (
-              <DataGroup heading="Flagged status">
-                <dt>Flagged date</dt>
-                <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
-                {status === 'flagged' && (
-                  <ManageFlagged>
-                    <Button
-                      loading={processing}
-                      type="positive"
-                      onClick={handleAccept}
-                      data-testid="accept-flagged-button"
-                    >
-                      <Check /> Accept
-                    </Button>
-                    <Button
-                      loading={processing}
-                      type="caution"
-                      onClick={handleReject}
-                      data-testid="reject-flagged-button"
-                    >
-                      <Block /> Reject
-                    </Button>
-                  </ManageFlagged>
+                  <dt>Last payment date</dt>
+                  <dd data-testid="lastPaymentDate">
+                    {lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}
+                  </dd>
+                </DataGroup>
+                <DataGroup heading="Payment provider">
+                  <dt>Payment provider</dt>
+                  <dd data-testid="paymentProvider">{paymentProvider || NO_VALUE}</dd>
+                  <ResourceLink provider={paymentProvider} resource="payment" url={provider_payment_url} />
+                  <ResourceLink provider={paymentProvider} resource="subscription" url={provider_subscription_url} />
+                  <ResourceLink provider={paymentProvider} resource="customer" url={provider_customer_url} />
+                </DataGroup>
+                {flaggedDate && (
+                  <DataGroup heading="Flagged status">
+                    <dt>Flagged date</dt>
+                    <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
+                    {status === 'flagged' && (
+                      <ManageFlagged>
+                        <Button
+                          loading={processing}
+                          type="positive"
+                          onClick={handleAccept}
+                          data-testid="accept-flagged-button"
+                        >
+                          <Check /> Accept
+                        </Button>
+                        <Button
+                          loading={processing}
+                          type="caution"
+                          onClick={handleReject}
+                          data-testid="reject-flagged-button"
+                        >
+                          <Block /> Reject
+                        </Button>
+                      </ManageFlagged>
+                    )}
+                  </DataGroup>
                 )}
-              </DataGroup>
-            )}
-          </DL>
-        </>
-      )}
-    </Root>
+              </DL>
+            </>
+          )}
+        </Root>
+      </DashboardSection>
+    </>
   );
 }
 

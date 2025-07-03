@@ -127,6 +127,7 @@ class ContributionSerializer(serializers.ModelSerializer):
             "formatted_payment_provider_used",
             "id",
             "interval",
+            "is_cancelable",
             "last_payment_date",
             "provider_customer_url",
             "provider_payment_url",

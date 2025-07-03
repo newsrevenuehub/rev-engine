@@ -57,7 +57,7 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
         try:
-            contribution.cancel()
+            contribution.cancel_pending()
         except ContributionIntervalError:
             logger.exception(
                 "`PaymentViewset.destroy` called for contribution with unexpected interval %s", contribution.interval

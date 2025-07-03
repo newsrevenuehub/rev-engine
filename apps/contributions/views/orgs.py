@@ -20,7 +20,7 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatusError
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_verify_apple_domain,
@@ -128,6 +128,32 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             return self.model.objects.filtered_by_role_assignment(ra).with_first_payment_date()
         logger.warning("Encountered unexpected user %s", user.id)
         raise ApiConfigurationError
+
+    def destroy(self, request, pk: int) -> Response:
+        """Cancel a recurring contribution.
+
+        This only should be called on contributions that have an active Stripe
+        subscription, e.g. have completed checkout.
+
+        This parallels the handle_delete() method on PortalContributorsViewSet.
+        It cancels the Stripe subscription. When that succeeds, Webhook event
+        listeners will delete the object or update contribution status as
+        appropriate.
+        """
+        contribution = self.get_object()
+        try:
+            contribution.cancel_existing(actor=request.user)
+        except ContributionStatusError:
+            logger.warning("Request was made to cancel uncancelable contribution %s", contribution.id)
+            return Response({"detail": "Cannot cancel contribution"}, status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.StripeError:
+            logger.exception(
+                "stripe.Subscription.delete returned a StripeError trying to cancel subscription %s associated with contribution %s",
+                contribution.provider_subscription_id,
+                contribution.id,
+            )
+            return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=["post"],

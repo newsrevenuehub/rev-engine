@@ -388,6 +388,7 @@ class TestSwitchboardContributionsViewSet:
             "id": contribution.id,
             "interval": contribution.interval,
             "last_payment_date": contribution.last_payment_date.isoformat() if contribution.last_payment_date else None,
+            "organization_slug": contribution.revenue_program.organization.slug,
             "payment_provider_used": contribution.payment_provider_used,
             "provider_customer_id": contribution.provider_customer_id,
             "provider_payment_id": contribution.provider_payment_id,

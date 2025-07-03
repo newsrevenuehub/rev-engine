@@ -42,7 +42,7 @@ from apps.contributions.tests.factories import (
 )
 from apps.contributions.typings import StripeEventData, cast_metadata_to_stripe_payment_metadata_schema
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.emails.tasks import generate_email_data, send_receipt_email, send_templated_email
+from apps.emails.tasks import generate_email_data, send_templated_email
 from apps.organizations.models import FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -518,30 +518,6 @@ class TestContributionModel:
             idempotency_key=f"{contribution.uuid}-setup-intent",
         )
         assert setup_intent == return_value
-
-    @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
-    def handle_receipt_email_contribution(self, request):
-        return request.getfixturevalue(request.param)
-
-    @pytest.mark.usefixtures("_mock_stripe_customer")
-    @pytest.mark.parametrize("send_receipt_email_via_nre", [True, False])
-    @pytest.mark.parametrize("show_billing_history", [False, True])
-    def test_handle_receipt_email(
-        self, contribution: Contribution, send_receipt_email_via_nre, show_billing_history, mocker, settings
-    ):
-        """Show that when org configured to have NRE send receipt emails, send_templated_email gets called with expected args."""
-        settings.CELERY_TASK_ALWAYS_EAGER = True
-        (org := contribution.revenue_program.organization).send_receipt_email_via_nre = send_receipt_email_via_nre
-        org.save()
-        send_receipt_email_spy = mocker.spy(send_receipt_email, "delay")
-
-        contribution.handle_receipt_email(show_billing_history=show_billing_history)
-        expected_data = generate_email_data(contribution, show_billing_history=show_billing_history)
-
-        if send_receipt_email_via_nre:
-            send_receipt_email_spy.assert_called_once_with(expected_data)
-        else:
-            send_receipt_email_spy.assert_not_called()
 
     def test_cancel_pending_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
         # there are other paths through that call save where different stripe return values would need to

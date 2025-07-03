@@ -50,7 +50,10 @@ export const DiscardChangesButton = forwardRef<HTMLButtonElement, DiscardChanges
       }
     }, [changesPending]);
 
-    // Handle the user navigating to another SPA route.
+    // Handle the user navigating to another SPA route. We return a text message
+    // to show a confirmation to the user with that text, or true to let the
+    // navigation continue immediately.
+    // @see https://v5.reactrouter.com/core/api/Prompt
 
     function promptMessage() {
       if (!canDiscard.current) {

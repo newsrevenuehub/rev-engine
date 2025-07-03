@@ -104,7 +104,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         self,
     ) -> models.QuerySet["organizations.Organization"]:
         """All the orgs a user is permitted to see based on being a superuser or else on their role assignment, if any."""
-        from apps.organizations.models import Organization
+        from apps.organizations.models import Organization  # noqa: PLC0415
 
         if self.is_superuser:
             return Organization.objects.all()
@@ -121,7 +121,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     @property
     def permitted_revenue_programs(self) -> models.QuerySet["organizations.RevenueProgram"]:
         """All the revenue programs a user is permitted to see based on being a superuser or else on their role assignment, if any."""
-        from apps.organizations.models import RevenueProgram
+        from apps.organizations.models import RevenueProgram  # noqa: PLC0415
 
         if self.is_superuser:
             return RevenueProgram.objects.all()

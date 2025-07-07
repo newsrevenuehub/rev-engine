@@ -218,9 +218,9 @@ def make_send_test_magic_link_email_data(user, revenue_program) -> SendMagicLink
 
 def get_test_magic_link(user, revenue_program) -> str:
     # vs circular import
-    from apps.api.serializers import ContributorObtainTokenSerializer
-    from apps.api.views import construct_rp_domain
-    from apps.contributions.models import Contributor
+    from apps.api.serializers import ContributorObtainTokenSerializer  # noqa: PLC0415
+    from apps.api.views import construct_rp_domain  # noqa: PLC0415
+    from apps.contributions.models import Contributor  # noqa: PLC0415
 
     serializer = ContributorObtainTokenSerializer(data={"email": user.email, "subdomain": revenue_program.slug})
     serializer.is_valid(raise_exception=True)

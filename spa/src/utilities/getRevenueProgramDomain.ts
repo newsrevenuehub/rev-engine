@@ -1,5 +1,5 @@
 import { HOST_MAP } from 'appSettings';
-import { RevenueProgram, RevenueProgramWithFullOrganization } from 'hooks/useContributionPage';
+import { RevenueProgramForContributionPage } from 'hooks/useContributionPage';
 import getDomain from './getDomain';
 
 /**
@@ -7,7 +7,7 @@ import getDomain from './getDomain';
  * `https://`, or a trailing slash. This uses mappings set in HOST_MAP but
  * otherwise falls back to the current domain.
  */
-export function getRevenueProgramDomain(revenueProgram: RevenueProgram | RevenueProgramWithFullOrganization) {
+export function getRevenueProgramDomain(revenueProgram: RevenueProgramForContributionPage) {
   for (const mappedDomain in HOST_MAP) {
     if (revenueProgram.slug === HOST_MAP[mappedDomain]) {
       return mappedDomain;

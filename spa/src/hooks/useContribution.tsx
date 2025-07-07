@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 import axios from 'ajax/axios';
 import { getAdminContributionEndpoint } from 'ajax/endpoints';
-import { ContributionInterval } from 'constants/contributionIntervals';
-import { RevenueProgram } from './useContributionPage';
-import { useSnackbar } from 'notistack';
 import SystemNotification from 'components/common/SystemNotification';
+import { ContributionInterval } from 'constants/contributionIntervals';
+import { RevenueProgramForContributionPage } from './useContributionPage';
 
 export interface Contribution {
   /**
@@ -79,7 +79,7 @@ export interface Contribution {
   /**
    * Revenue program this contribution was to.
    */
-  revenue_program: RevenueProgram;
+  revenue_program: RevenueProgramForContributionPage;
   /**
    * Status of the contribution.
    */

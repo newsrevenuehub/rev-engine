@@ -1,5 +1,8 @@
 import { UserRole } from 'constants/authConstants';
-import { EnginePlan, RevenueProgram } from './useContributionPage';
+import { EnginePlan } from './useContributionPage';
+import { RevenueProgram } from './useRevenueProgram';
+
+export type RevenueProgramForUser = Omit<RevenueProgram, 'transactional_email_style'>;
 
 export interface Organization {
   id: number;
@@ -23,7 +26,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  revenue_programs: RevenueProgram[];
+  revenue_programs: RevenueProgramForUser[];
   /**
    * The role the user has. The first value is an internal ID, the second is human-readable.
    */

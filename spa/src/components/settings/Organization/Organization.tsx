@@ -1,28 +1,25 @@
 import InfoIcon from '@material-design-icons/svg/outlined/info.svg?react';
-import { useCallback, useMemo } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import MaskedInput from 'react-input-mask';
-
 import { Undo } from '@material-ui/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAlert } from 'react-alert';
+import { Controller, useForm } from 'react-hook-form';
+import MaskedInput from 'react-input-mask';
+import axios from 'ajax/axios';
+import { PATCH_ORGANIZATION, REVENUE_PROGRAM } from 'ajax/endpoints';
 import { Button, MenuItem, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
 import SubheaderSection from 'components/common/SubheaderSection';
-import { useEffect, useState } from 'react';
-import { useAlert } from 'react-alert';
-
-import axios from 'ajax/axios';
-import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
+import SuccessBanner from 'components/common/SuccessBanner';
 import { GlobalLoading } from 'components/common/GlobalLoading';
 import { FiscalStatus, TAX_STATUS } from 'constants/fiscalStatus';
 import { HELP_URL } from 'constants/helperUrls';
 import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
-import { RevenueProgram } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
+import { RevenueProgramForUser } from 'hooks/useUser.types';
 import { getUserRole } from 'utilities/getUserRole';
-
-import SuccessBanner from 'components/common/SuccessBanner';
 import {
   ActionWrapper,
   ContentForm,
@@ -36,7 +33,6 @@ import {
   WarningMessage,
   Wrapper
 } from './Organization.styled';
-import { AxiosError } from 'axios';
 
 export type OrganizationFormFields = {
   companyName: string;
@@ -49,7 +45,7 @@ type PatchOrganizationNameErrors = {
   name?: string[];
 };
 
-interface RevenueProgramPatch extends Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
+interface RevenueProgramPatch extends Pick<RevenueProgramForUser, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
   tax_id: string;
 }
 
@@ -125,7 +121,7 @@ const Organization = () => {
       if (!revenueProgramFromCurrentOrg?.length) {
         throw new Error('Revenue Program is not yet defined');
       }
-      return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
+      return axios.patch(`${REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
         tax_id: tax_id.replace('-', ''),
         fiscal_status,
         fiscal_sponsor_name: fiscal_status === TAX_STATUS.FISCALLY_SPONSORED ? fiscal_sponsor_name : ''

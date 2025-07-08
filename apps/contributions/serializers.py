@@ -904,6 +904,10 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     revenue_program_source = serializers.SerializerMethodField(read_only=True)
+    organization_slug = serializers.CharField(
+        source="revenue_program.organization.slug",
+        read_only=True,
+    )
 
     class Meta:
         model = Contribution
@@ -916,6 +920,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
             "id",
             "interval",
             "last_payment_date",
+            "organization_slug",
             "payment_provider_used",
             "provider_customer_id",
             "provider_payment_id",

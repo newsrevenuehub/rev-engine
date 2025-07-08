@@ -23,7 +23,6 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import Banner from 'components/common/Banner';
 import Hero from 'components/common/Hero';
 import { PaymentStatus } from 'components/common/PaymentStatus';
-import DashboardSection from 'components/dashboard/DashboardSection';
 import DonationDetail from 'components/donations/DonationDetail';
 import DonationsTable from 'components/donations/DonationsTable';
 import Filters from 'components/donations/filters/Filters';
@@ -164,9 +163,7 @@ const Donations = () => {
       >
         <Switch>
           <SentryRoute path={`${path}:contributionId`}>
-            <DashboardSection heading="Contribution Info">
-              <DonationDetail />
-            </DashboardSection>
+            <DonationDetail />
           </SentryRoute>
           <SentryRoute>
             {bannerType && (

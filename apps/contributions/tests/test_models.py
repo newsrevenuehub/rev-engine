@@ -519,11 +519,7 @@ class TestContributionModel:
         )
         assert setup_intent == return_value
 
-    @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
-    def handle_receipt_email_contribution(self, request):
-        return request.getfixturevalue(request.param)
-
-    def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
+    def test_cancel_pending_calls_save_with_right_update_fields(self, one_time_contribution, mocker):
         # there are other paths through that call save where different stripe return values would need to
         # be provided. We're only testing processing case, and assume that it also means that save calls right update
         # fields for all non-error paths through cancel function.
@@ -532,10 +528,10 @@ class TestContributionModel:
         mock_cancel = mocker.Mock()
         mocker.patch("stripe.PaymentIntent.cancel", mock_cancel)
         save_spy = mocker.spy(Contribution, "save")
-        one_time_contribution.cancel()
+        one_time_contribution.cancel_pending()
         save_spy.assert_called_once_with(one_time_contribution, update_fields={"status", "modified"})
 
-    def test_cancel_creates_a_revision(self, one_time_contribution, mocker, monkeypatch):
+    def test_cancel_pending_creates_a_revision(self, one_time_contribution, mocker, monkeypatch):
         """Show that cancel creates a revision with the right comment."""
         one_time_contribution.status = ContributionStatus.PROCESSING
         one_time_contribution.save()
@@ -544,7 +540,7 @@ class TestContributionModel:
         mock_cancel = mocker.Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
-        one_time_contribution.cancel()
+        one_time_contribution.cancel_pending()
         mock_create_revision.assert_called_once()
         mock_set_revision_comment.assert_called_once_with(
             f"`Contribution.cancel` saved changes to contribution with ID {one_time_contribution.id}"
@@ -558,11 +554,11 @@ class TestContributionModel:
             ContributionStatus.FLAGGED,
         ],
     )
-    def test_cancel_when_one_time(self, status, monkeypatch, mocker):
+    def test_cancel_pending_when_one_time(self, status, monkeypatch, mocker):
         contribution = ContributionFactory(one_time=True, status=status)
         mock_cancel = mocker.Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
-        contribution.cancel()
+        contribution.cancel_pending()
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.CANCELED
         mock_cancel.assert_called_once_with(
@@ -585,7 +581,7 @@ class TestContributionModel:
             (ContributionStatus.FAILED, "annual_subscription", False),
         ],
     )
-    def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch, mocker):
+    def test_cancel_pending_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch, mocker):
         contribution = ContributionFactory(
             **{
                 contribution_type: True,
@@ -604,7 +600,7 @@ class TestContributionModel:
         mock_retrieve_pm = mocker.Mock(return_value=MockPaymentMethod())
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_retrieve_pm)
 
-        contribution.cancel()
+        contribution.cancel_pending()
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.CANCELED
 
@@ -622,7 +618,7 @@ class TestContributionModel:
         else:
             mock_pm_detach.assert_not_called()
 
-    def test_cancel_when_unpermitted_interval(self, monkeypatch, mocker):
+    def test_cancel_pending_when_unpermitted_interval(self, monkeypatch, mocker):
         contribution = ContributionFactory(
             annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
         )
@@ -633,9 +629,44 @@ class TestContributionModel:
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
         monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
         with pytest.raises(ContributionIntervalError):
-            contribution.cancel()
+            contribution.cancel_pending()
         assert contribution.modified == last_modified
         mock_stripe_method.assert_not_called()
+
+    def test_cancel_existing_raises_when_no_subscription(self):
+        contribution = ContributionFactory(interval=ContributionInterval.ONE_TIME, provider_subscription_id=None)
+        with pytest.raises(ContributionStatusError):
+            contribution.cancel_existing(actor=ContributorFactory())
+
+    @pytest.mark.parametrize(
+        ("status"),
+        ["canceled", "incomplete", "incomplete_expired", "paused", "unpaid"],
+    )
+    def test_cancel_existing_raises_with_bad_subscription_status(self, status, mocker: pytest_mock.MockerFixture):
+        mocker.patch("stripe.Subscription.retrieve", return_value=mocker.MagicMock(status=status))
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY, provider_subscription_id="mock_delete")
+        with pytest.raises(ContributionStatusError):
+            contribution.cancel_existing(actor=ContributorFactory())
+
+    def test_cancel_existing_cancels_stripe_sub(self, mocker: pytest_mock.MockerFixture):
+        mocker.patch("stripe.Subscription.retrieve", return_value=mocker.MagicMock(status="active"))
+        mock_delete = mocker.patch("stripe.Subscription.delete")
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY, provider_subscription_id="mock-sub-id")
+        contribution.cancel_existing(actor=ContributorFactory())
+        mock_delete.assert_called_once_with(
+            contribution.provider_subscription_id,
+            stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
+        )
+
+    def test_cancel_existing_creates_activity_log(self, mocker: pytest_mock.MockerFixture):
+        mocker.patch("stripe.Subscription.retrieve", return_value=mocker.MagicMock(status="active"))
+        mocker.patch("stripe.Subscription.delete")
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY, provider_subscription_id="mock-sub-id")
+        contribution.cancel_existing(actor=contribution.contributor)
+        logs = ActivityLog.objects.filter(actor__email=contribution.contributor.email)
+        assert len(logs) == 1
+        assert logs[0].action == ActivityLog.CANCEL
+        assert logs[0].activity_object_content_object == contribution
 
     @pytest.mark.django_db
     @pytest.mark.parametrize("trait", ["one_time", "annual_subscription", "monthly_subscription"])
@@ -654,7 +685,7 @@ class TestContributionModel:
             "unexpected",
         ],
     )
-    def test_cancel_when_unpermitted_status(self, status, monkeypatch, mocker):
+    def test_cancel_pending_when_unpermitted_status(self, status, monkeypatch, mocker):
         contribution = ContributionFactory(annual_subscription=True, status=status)
         last_modified = contribution.modified
         mock_stripe_method = mocker.Mock()
@@ -664,7 +695,7 @@ class TestContributionModel:
         monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
 
         with pytest.raises(ContributionStatusError):
-            contribution.cancel()
+            contribution.cancel_pending()
         assert contribution.modified == last_modified
         mock_stripe_method.assert_not_called()
 
@@ -2067,8 +2098,8 @@ class TestContributionModel:
         assert contribution.payment_set.count() == 0
         assert Contribution.objects.exclude_paymentless_canceled().count() == 0
 
-    def test_create_contributor_canceled_contribution_activity_log_happy_path(self, contribution: Contribution) -> None:
-        activity_log = contribution.create_contributor_canceled_contribution_activity_log()
+    def test_create_create_canceled_contribution_activity_log_happy_path(self, contribution: Contribution) -> None:
+        activity_log = contribution.create_canceled_contribution_activity_log(actor=contribution.contributor)
         assert activity_log.actor_content_object == contribution.contributor
         assert activity_log.action == ActivityLog.CANCEL
         assert activity_log.activity_object_content_object == contribution
@@ -2076,11 +2107,11 @@ class TestContributionModel:
         assert activity_log.created
         assert activity_log.modified
 
-    def test_create_contributor_canceled_contribution_activity_log_unexpected_error(
+    def test_create_create_canceled_contribution_activity_log_unexpected_error(
         self, contribution: Contribution, mocker: pytest_mock.MockerFixture
     ) -> None:
         mocker.patch("apps.activity_log.models.ActivityLog.objects.create", side_effect=Exception("unexpected error"))
-        assert contribution.create_contributor_canceled_contribution_activity_log() is None
+        assert contribution.create_canceled_contribution_activity_log(actor=contribution.contributor) is None
 
 
 @pytest.mark.django_db

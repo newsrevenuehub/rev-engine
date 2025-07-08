@@ -33,6 +33,6 @@ fileignoreconfig:
 - filename: apps/emails/migrations/0001_DEV-6141_add_email_customization_model.py
   checksum: 48e48c55838f11f41a54cbe8e792d867e132a67269d7aac4a0a9d68d2a2175a6
 - filename: apps/emails/models.py
-  checksum: ea0843a714844ace91c28b9fcb3c777cf5f0573c7a051c16167c0c1190d2f781
+  checksum: bfd77fc54acd22786497fd2ebc54fdfae0bcc3c9864ad612c187ef062bce6628
 - filename: apps/emails/migrations/0002_DEV-6233_transactionalemailrecord.py
-  checksum: 924c38a9c67597545505c83dd86c7476eab14a54b3023bfa6ef67220a1a1345c
+  checksum: c13a8df9914b839a9b13151c63f70271842c22a6370739dbcec8683732c7920a

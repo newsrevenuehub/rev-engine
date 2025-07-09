@@ -90,6 +90,7 @@ class TestContributionSerializer:
             "flagged_date",
             "formatted_payment_provider_used",
             "id",
+            "is_cancelable",
             "interval",
             "last_payment_date",
             "provider_customer_url",
@@ -1632,6 +1633,12 @@ class TestSwitchboardContributionSerializer:
         one_time_contribution._revenue_program = None
         serializer = serializers.SwitchboardContributionSerializer(data={})
         assert serializer.get_revenue_program_source(instance=one_time_contribution) is None
+
+    def test_has_organization_slug(self, one_time_contribution):
+        """Test that the serializer includes the organization slug."""
+        serializer = serializers.SwitchboardContributionSerializer(instance=one_time_contribution)
+        assert "organization_slug" in serializer.data
+        assert serializer.data["organization_slug"] == one_time_contribution.revenue_program.organization.slug
 
 
 @pytest.mark.django_db

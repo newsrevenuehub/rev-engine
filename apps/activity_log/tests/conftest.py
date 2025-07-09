@@ -7,4 +7,4 @@ from apps.contributions.models import Contribution
 @pytest.fixture
 def activity_log(monthly_contribution: Contribution) -> ActivityLog:
     """Create a sample ActivityLog instance for testing."""
-    return monthly_contribution.create_contributor_canceled_contribution_activity_log()
+    return monthly_contribution.create_canceled_contribution_activity_log(actor=monthly_contribution.contributor)

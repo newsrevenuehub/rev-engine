@@ -58,6 +58,17 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
     }
   }
 
+  &&[aria-pressed='true'] {
+    box-shadow: none;
+    background-color: ${({ color }) => (color ? buttonColors[color].active.bg : buttonColors.primaryLight.active.bg)};
+
+    .NreButtonLabel {
+      color: ${({ color }) => (color ? buttonColors[color].active.fg : buttonColors.primaryLight.active.fg)};
+      /* Used to sync icon color to label color when using (startIcon & endIcon) */
+      fill: ${({ color }) => (color ? buttonColors[color].active.fg : buttonColors.primaryLight.active.fg)};
+    }
+  }
+
   &&.NreButtonOutlined {
     background: none;
     border-color: white;
@@ -94,7 +105,7 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
   }
 `;
 
-export function Button(props: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
   // If we're using the outlined variant, disable the ripple because it
   // interferes with the intended appearance.
 
@@ -103,10 +114,11 @@ export function Button(props: ButtonProps) {
   return (
     <StyledMuiButton
       classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined' }}
+      ref={ref}
       {...props}
       {...propOverrides}
     />
   );
-}
+});
 
 export default Button;

@@ -2,7 +2,14 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import EmailPreview, { EmailPreviewProps } from './EmailPreview';
 
-const testRp = { name: 'test-rp-name' } as any;
+const testRp = {
+  name: 'test-rp-name',
+  transactional_email_style: {
+    is_default_logo: false,
+    logo_alt_text: 'test-rp-logo-alt-text',
+    logo_url: 'test-rp-logo-url'
+  }
+} as any;
 
 function tree(props?: Partial<EmailPreviewProps>) {
   return render(<EmailPreview revenueProgram={testRp} {...props} />);
@@ -15,6 +22,11 @@ describe('EmailPreview', () => {
   });
 
   // Content tests here aren't exhaustive--capturing logic around revenue program data.
+
+  it("shows the revenue program's logo", () => {
+    tree();
+    expect(screen.getByRole('img', { name: testRp.transactional_email_style.logo_alt_text })).toBeVisible();
+  });
 
   it('shows a copyright with the revenue program name', () => {
     tree();

@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import axios from 'ajax/axios';
-import { RevenueProgram } from './useContributionPage';
 import { getRevenueProgramActiveCampaignStatusEndpoint } from 'ajax/endpoints';
+import { RevenueProgram } from './useRevenueProgram';
 import useUser from './useUser';
 
 export interface RevenueProgramActiveCampaignStatus {

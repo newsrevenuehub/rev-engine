@@ -133,8 +133,12 @@ class TestRevenueProgramSerializer:
             "tax_id",
             "fiscal_status",
             "fiscal_sponsor_name",
+            "transactional_email_style",
         ):
-            assert serialized[field] == getattr(mc_connected_rp, field)
+            if field == "transactional_email_style":
+                assert serialized[field] == asdict(mc_connected_rp.transactional_email_style)
+            else:
+                assert serialized[field] == getattr(mc_connected_rp, field)
 
     def test_update_override_has_update_fields_in_save(self, revenue_program, mocker):
         save_spy = mocker.patch("apps.organizations.models.RevenueProgram.save")

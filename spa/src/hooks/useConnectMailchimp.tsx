@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'ajax/axios';
-import { getRevenueProgramMailchimpStatusEndpoint } from 'ajax/endpoints';
-import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
-import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import queryString from 'query-string';
 import { useCallback, useMemo, useState } from 'react';
+import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
+import axios from 'ajax/axios';
+import { getRevenueProgramMailchimpStatusEndpoint } from 'ajax/endpoints';
+import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import {
@@ -12,7 +12,7 @@ import {
   RevenueProgramMailchimpStatus,
   UseConnectMailchimpResult
 } from './useConnectMailchimp.types';
-import { RevenueProgram } from './useContributionPage';
+import { RevenueProgram } from './useRevenueProgram';
 import useUser from './useUser';
 
 const BASE_URL = window.location.origin;

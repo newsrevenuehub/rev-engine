@@ -9,10 +9,10 @@ import Axios from 'ajax/axios';
 import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
+import { RevenueProgram } from 'hooks/useRevenueProgram';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE, SETTINGS } from 'routes';
 import { TestQueryClientProvider } from 'test-utils';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
-import { RevenueProgram } from 'hooks/useContributionPage';
 
 jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useConnectMailchimp');

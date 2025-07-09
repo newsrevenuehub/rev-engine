@@ -1,11 +1,11 @@
 import QuestionMarkIcon from '@material-design-icons/svg/filled/question_mark.svg?react';
 import LocalPhoneOutlinedIcon from '@material-ui/icons/LocalPhoneOutlined';
 import MailOutlinedIcon from '@material-ui/icons/MailOutlined';
-import { Link } from 'components/base';
-import { ArrowPopover } from 'components/common/ArrowPopover';
-import { RevenueProgram, RevenueProgramWithFullOrganization } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import { useCallback, useState } from 'react';
+import { Link } from 'components/base';
+import { ArrowPopover } from 'components/common/ArrowPopover';
+import { RevenueProgramForContributionPage } from 'hooks/useContributionPage';
 import {
   ContactInfoButton,
   ContactInfoDetails,
@@ -15,7 +15,7 @@ import {
 } from './ContactInfoPopover.styled';
 
 export interface ContactInfoPopoverProps extends InferProps<typeof ContactInfoPopoverPropTypes> {
-  revenueProgram?: RevenueProgram | RevenueProgramWithFullOrganization;
+  revenueProgram?: RevenueProgramForContributionPage;
 }
 
 const ContactInfoPopover = ({ revenueProgram }: ContactInfoPopoverProps) => {

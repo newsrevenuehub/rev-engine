@@ -1,6 +1,6 @@
-import { LinkButton } from 'components/base';
-import { ContributionPage, RevenueProgramWithFullOrganization } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
+import { LinkButton } from 'components/base';
+import { ContributionPage, RevenueProgramForContributionPage } from 'hooks/useContributionPage';
 import { pageLink } from 'utilities/getPageLinks';
 import { Controls, Header, Message, Root } from './ContributionsHeader.styled';
 
@@ -11,7 +11,7 @@ const ContributionsHeaderPropTypes = {
 
 export interface ContributionsHeaderProps extends InferProps<typeof ContributionsHeaderPropTypes> {
   defaultPage?: ContributionPage;
-  revenueProgram?: RevenueProgramWithFullOrganization;
+  revenueProgram?: RevenueProgramForContributionPage;
 }
 
 export function ContributionsHeader({ defaultPage, revenueProgram }: ContributionsHeaderProps) {

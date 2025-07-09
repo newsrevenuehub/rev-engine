@@ -1,7 +1,7 @@
 import { Facebook, MailOutline, Twitter } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
+import { RevenueProgramForContributionPage } from 'hooks/useContributionPage';
 import { SocialShareList, Root, Text, SocialShareLink, SocialShareItem } from './PostContributionSharing.styled';
-import { RevenueProgramWithFullOrganization } from 'hooks/useContributionPage/useContributionPage.types';
 
 const PostContributionSharingPropTypes = {
   donationPageUrl: PropTypes.string.isRequired,
@@ -9,7 +9,7 @@ const PostContributionSharingPropTypes = {
 };
 
 export interface PostContributionSharingProps extends InferProps<typeof PostContributionSharingPropTypes> {
-  revenueProgram: RevenueProgramWithFullOrganization;
+  revenueProgram: RevenueProgramForContributionPage;
 }
 
 export function PostContributionSharing({ donationPageUrl, revenueProgram }: PostContributionSharingProps) {

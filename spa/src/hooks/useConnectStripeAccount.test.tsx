@@ -2,14 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-hooks';
 import MockAdapter from 'axios-mock-adapter';
 import { ReactChild } from 'react';
+import { useHistory } from 'react-router-dom';
 import axios from 'ajax/axios';
 import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 import useUser from 'hooks/useUser';
-import useConnectStripeAccount, { StripeAccountLinkStatusResponse } from './useConnectStripeAccount';
-import { User } from './useUser.types';
-import { RevenueProgram } from './useContributionPage';
-import { useHistory } from 'react-router-dom';
 import { SIGN_IN } from 'routes';
+import useConnectStripeAccount, { StripeAccountLinkStatusResponse } from './useConnectStripeAccount';
+import { RevenueProgram } from './useRevenueProgram';
+import { User } from './useUser.types';
 
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({

@@ -1,7 +1,7 @@
 import { UseQueryResult } from '@tanstack/react-query';
-import { EnginePlan } from './useContributionPage';
-import { RevenueProgram } from 'hooks/useContributionPage/useContributionPage.types';
 import { Dispatch, SetStateAction } from 'react';
+import { EnginePlan } from './useContributionPage';
+import { RevenueProgramForUser } from './useUser.types';
 
 /**
  * A single Mailchimp audience.
@@ -98,7 +98,7 @@ export interface UseConnectMailchimpResult {
   /**
    * Current Revenue Program being connected to Mailchimp.
    */
-  revenueProgram?: RevenueProgram;
+  revenueProgram?: RevenueProgramForUser;
   /**
    * Selects an audience to be synced with our contributor data. Only defined if
    * Mailchimp is connected.

@@ -12,7 +12,6 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionInterval
 
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
 
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
@@ -584,7 +583,7 @@ describe('User flow: happy path', () => {
     });
   });
 
-  specify.only('Double-clicking submit button', () => {
+  specify('Double-clicking submit button', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
@@ -650,7 +649,7 @@ describe('User flow: canceling contribution', () => {
       .click();
 
     cy.wait('@create-subscription-payment');
-    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
+    cy.findByRole('button', { name: 'Back' }).click();
     cy.wait('@cancel-payment');
 
     // here we show that previous form values still in place when sent back to initial form
@@ -697,7 +696,7 @@ describe('User flow: canceling contribution', () => {
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
     cy.wait('@create-subscription-payment');
-    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).dblclick();
+    cy.findByRole('button', { name: 'Back' }).dblclick();
     cy.wait('@cancel-payment');
 
     // Test that we're able to re-do the payment.
@@ -742,7 +741,7 @@ describe('User flow: canceling contribution', () => {
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
     cy.wait('@create-subscription-payment');
-    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
+    cy.findByRole('button', { name: 'Back' }).click();
     cy.wait('@cancel-payment');
     cy.contains("Something went wrong, but don't worry, you haven't been charged. Try refreshing.");
   });

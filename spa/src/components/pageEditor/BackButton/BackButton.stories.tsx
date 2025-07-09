@@ -18,4 +18,4 @@ const Template: ComponentStory<typeof BackButton> = (props) => (
 export const Default = Template.bind({});
 export const ConfirmNavigation = Template.bind({});
 
-ConfirmNavigation.args = { confirmNavigation: true };
+ConfirmNavigation.args = { changesPending: true };

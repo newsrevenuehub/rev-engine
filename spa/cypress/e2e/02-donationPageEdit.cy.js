@@ -9,7 +9,7 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Constants
-import { DELETE_PAGE, PATCH_PAGE, LIST_FONTS, LIST_PAGES, LIST_STYLES, TEMPLATES, USER } from 'ajax/endpoints';
+import { DELETE_PAGE, PATCH_PAGE, LIST_FONTS, LIST_PAGES, LIST_STYLES, USER } from 'ajax/endpoints';
 import { DELETE_LIVE_PAGE_CONFIRM_TEXT } from 'constants/textConstants';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';

@@ -9,6 +9,7 @@ import useUser from 'hooks/useUser';
 import { EMAILS_SLUG } from 'routes';
 import { defaultEmailContent } from './defaultContent';
 
+jest.mock('components/common/DiscardChangesButton');
 jest.mock('hooks/useEmailCustomizations');
 jest.mock('hooks/useUser');
 jest.mock('./EditorBlock');
@@ -80,13 +81,34 @@ describe('EditEmailRoute', () => {
     });
   });
 
-  it.each([['Back'], ['Cancel Changes']])('shows a %s button that returns to the emails list', (name) => {
-    tree();
+  describe.each([['Back'], ['Cancel Changes']])('The %s button', (name) => {
+    it('navigates to the list of emails immediately if there are no pending changes', () => {
+      const mockHistoryPush = jest.fn();
 
-    const button = screen.getByRole('button', { name });
+      useHistoryMock.mockReturnValue({ push: mockHistoryPush });
+      tree();
+      expect(mockHistoryPush).not.toBeCalled();
 
-    expect(button).toBeVisible();
-    expect(button).toHaveAttribute('href', EMAILS_SLUG);
+      const button = screen.getByRole('button', { name });
+
+      expect(button.dataset.changesPending).toBe('false');
+      fireEvent.click(button);
+      expect(mockHistoryPush.mock.calls).toEqual([[EMAILS_SLUG]]);
+    });
+
+    it('shows a confirmation modal before navigating to the emails list if there are pending changes', () => {
+      const mockHistoryPush = jest.fn();
+
+      useHistoryMock.mockReturnValue({ push: mockHistoryPush });
+      tree();
+      userEvent.type(screen.getByLabelText('Message'), 'test-change');
+
+      const button = screen.getByRole('button', { name });
+
+      expect(screen.getByRole('button', { name }).dataset.changesPending).toBe('true');
+      fireEvent.click(button);
+      expect(mockHistoryPush.mock.calls).toEqual([[EMAILS_SLUG]]);
+    });
   });
 
   it.each([['Sender Email Address'], ['Sender Name']])('shows a disabled %s field', (name) => {

@@ -7,7 +7,7 @@ import pytest
 import reversion
 import stripe
 
-from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.choices import ContributionInterval, ContributionStatus, QuarantineStatus
 from apps.contributions.management.commands.add_quarantine_status import Command as AddQuarantineStatusCommand
 from apps.contributions.management.commands.audit_recurring_contributions import Command as AuditRecurringContributions
 from apps.contributions.management.commands.fix_contributions_missing_provider_payment_method_id import (
@@ -1127,4 +1127,57 @@ class Test_add_quarantine_status:
         return AddQuarantineStatusCommand()
 
     def test_handle(self, mocker, command):
-        pass
+        mock_update_rejected = mocker.patch.object(command, "update_rejected_contributions_quarantine_status")
+        mock_update_approved = mocker.patch.object(command, "update_approved_contributions_quarantine_status")
+        command.handle()
+        mock_update_rejected.assert_called_once()
+        mock_update_approved.assert_called_once()
+
+    def test_update_contribution_quarantine_status(self, command, mocker, one_time_contribution):
+        one_time_contribution.quarantine_status = None
+        one_time_contribution.save()
+        command.update_contribution_quarantine_status(one_time_contribution, QuarantineStatus.APPROVED_BY_UKNKOWN)
+
+    @pytest.fixture
+    def contribution_one_time_approved(self, one_time_contribution, settings):
+        one_time_contribution.quarantine_status = None
+        one_time_contribution.status = ContributionStatus.PAID
+        one_time_contribution.bad_actor_score = settings.BAD_ACTOR_BAD_SCORE
+        one_time_contribution.save()
+        return one_time_contribution
+
+    @pytest.fixture
+    def contribution_recurring_approved(self, monthly_contribution):
+        monthly_contribution.quarantine_status = None
+        monthly_contribution.status = ContributionStatus.PAID
+        monthly_contribution.provider_setup_intent_id = "seti_12345"
+        monthly_contribution.save()
+        return monthly_contribution
+
+    def test_update_approved_contributions_quarantine_status(
+        self,
+        contribution_one_time_approved,
+        contribution_recurring_approved,
+        command,
+    ):
+        command.update_approved_contributions_quarantine_status()
+        contribution_one_time_approved.refresh_from_db()
+        contribution_recurring_approved.refresh_from_db()
+        assert contribution_one_time_approved.quarantine_status == QuarantineStatus.APPROVED_BY_UKNKOWN
+        assert contribution_recurring_approved.quarantine_status == QuarantineStatus.APPROVED_BY_UKNKOWN
+
+    @pytest.fixture
+    def rejected_contributions(self, one_time_contribution, monthly_contribution):
+        one_time_contribution.status = ContributionStatus.REJECTED
+        one_time_contribution.quarantine_status = None
+        one_time_contribution.save()
+        monthly_contribution.status = ContributionStatus.REJECTED
+        monthly_contribution.quarantine_status = None
+        monthly_contribution.save()
+        return [one_time_contribution, monthly_contribution]
+
+    def test_update_rejected_contributions_quarantine_status(self, command, rejected_contributions):
+        command.update_rejected_contributions_quarantine_status()
+        for con in rejected_contributions:
+            con.refresh_from_db()
+            assert con.quarantine_status == QuarantineStatus.REJECTED_BY_HUMAN_FOR_UNKNOWN

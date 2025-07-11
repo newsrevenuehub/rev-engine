@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db.models import Count
 
 import reversion
 
@@ -16,94 +16,82 @@ class Command(BaseCommand):
     def name(self):
         return Path(__file__).name
 
-    def update_contribution_quarantine_status_for_recurring_rejected_by_human(self):
-        self.stdout.write(
-            self.style.HTTP_INFO("Updating quarantine status for recurring contributions rejected by human")
-        )
-        qs = (
-            Contribution.objects.filter(
-                interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
-                quarantine_status__isnull=True,
-                status=ContributionStatus.REJECTED,
-            )
-            .annotate(payment_count=Count("payment"))
-            .filter(payment_count=0)
-        )
-        self.stdout.write(
-            self.style.HTTP_INFO(f"Found {qs.count()} rejected recurring contributions to update quarantine status")
-        )
-        for contribution in qs:
-            contribution.quarantine_status = QuarantineStatus.REJECTED_BY_HUMAN_FOR_UNKNOWN
-            with reversion.create_revision():
-                contribution.save(update_fields={"quarantine_status", "modified"})
-                reversion.set_comment(
-                    "add_quarantine_status updated quarantine status for recurring contribution rejected by human"
-                )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Updated quarantine status for contribution {contribution.id} to {contribution.quarantine_status}"
-                )
-            )
+    @property
+    def base_queryset(self):
+        # We will limit to only v1.4 contributions because they're the only ones that should have a quarantine status,
+        # and some assumptions in other code in command (such as presence of provider_setup_intent_id) are only valid for
+        # v1.4 contributions.
+        return Contribution.objects.filter(contribution_metadata__schema_version="1.4", quarantine_status__isnull=True)
 
-    def update_contribution_quarantine_status_for_one_time_rejected_by_human(self):
-        self.stdout.write(
-            self.style.HTTP_INFO("Updating quarantine status for one-time contributions rejected by human")
+    @property
+    def rejected_contributions(self):
+        """Get contributions that were rejected by a human in quarantine.
+
+        Note: In general, status of "rejected" is a good indicator that contribution was rejected via quarantine queue. That said,
+        there may be a small number of one-time contributions whose status is `rejected` not because a human rejected them
+        in quarantine, but because we processed a stripe payment_intent.canceled event, which can happen from time to time if we
+        let through a transaction that downstream Stripe identifies as fraudulent for some reason. While we could look into revision
+        comments (for instance, look for the absence of a revision comment indicating the webhook processor for payment_intent.canceled
+        touched contribution), this is a small edge case and we can ignore it for now.
+        """
+        return self.base_queryset.filter(status=ContributionStatus.REJECTED)
+
+    @property
+    def approved_recurring_contributions(self):
+        """Get recurring contributions that were approved."""
+        return self.base_queryset.filter(
+            interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
+            provider_setup_intent_id__isnull=False,
+            provider_subscription_id__isnull=False,
         )
-        # Note on small edge case here around one-time contributions where have rejected status because rejected by stripe as fraudulent.
-        # Alternative would be to look for a revision comment but the code didn't always add revision comment we can look for
-        # here (confirm this)
-        qs = Contribution.objects.filter(
+
+    @property
+    def approved_one_time_contributions(self):
+        """Get one-time contributions that were approved."""
+        return self.base_queryset.filter(
             interval=ContributionInterval.ONE_TIME,
-            quarantine_status__isnull=True,
-            status=ContributionStatus.REJECTED,
+            status=ContributionStatus.PAID,
+            bad_actor_score__gte=settings.BAD_ACTOR_BAD_SCORE,
         )
+
+    @property
+    def approved_contributions(self):
+        """Get contributions that were approved."""
+        return self.approved_one_time_contributions.union(self.approved_recurring_contributions, all=True)
+
+    def update_rejected_contributions_quarantine_status(self):
+        """Update quarantine status for contributions that were rejected."""
+        self.stdout.write(self.style.HTTP_INFO("Updating quarantine status for rejected contributions"))
+        qs = self.rejected_contributions
         self.stdout.write(
-            self.style.HTTP_INFO(f"Found {qs.count()} one-time rejected contributions to update quarantine status")
+            self.style.HTTP_INFO(f"Found {qs.count()} rejected contributions to update quarantine status")
         )
         for contribution in qs:
-            contribution.quarantine_status = QuarantineStatus.REJECTED_BY_HUMAN_FOR_UNKNOWN
-            with reversion.create_revision():
-                contribution.save(update_fields={"quarantine_status", "modified"})
-                reversion.set_comment(
-                    "add_quarantine_status updated quarantine status for one-time contribution rejected by human"
-                )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Updated quarantine status for contribution {contribution.id} to {contribution.quarantine_status}"
-                )
-            )
+            self.update_contribution_quarantine_status(contribution, QuarantineStatus.REJECTED_BY_HUMAN_FOR_UNKNOWN)
 
-    def update_quarantine_status_for_recurring_approved_contributions(self):
-        self.stdout.write(self.style.HTTP_INFO("Updating quarantine status for recurring contributions approved"))
-        qs = (
-            Contribution.objects.filter(
-                interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
-                quarantine_status__isnull=True,
-                status=ContributionStatus.PAID,
-            )
-            .annotate(payment_count=Count("payment"))
-            .filter(payment_count=0)
-        )
+    def update_approved_contributions_quarantine_status(self):
+        """Update quarantine status for recurring contributions that were approved."""
+        self.stdout.write(self.style.HTTP_INFO("Updating quarantine status for approved recurring contributions"))
+        qs = self.approved_contributions
         self.stdout.write(
             self.style.HTTP_INFO(f"Found {qs.count()} approved recurring contributions to update quarantine status")
         )
         for contribution in qs:
-            contribution.quarantine_status = QuarantineStatus.APPROVED_BY_HUMAN
+            self.update_contribution_quarantine_status(contribution, QuarantineStatus.APPROVED_BY_UKNKOWN)
 
-    def handle_recurring_contributions(self):
-        self.update_contribution_quarantine_status_for_recurring_rejected_by_human()
-        self.update_quarantine_status_for_recurring_approved_contributions()
-
-    def update_quarantine_status_for_one_time_approved_contributions(self):
-        pass
-
-    def handle_one_time_contributions(self):
-        self.update_contribution_quarantine_status_for_one_time_rejected_by_human()
-        self.update_quarantine_status_for_one_time_approved_contributions()
+    def update_contribution_quarantine_status(self, contribution: Contribution, status: QuarantineStatus):
+        """Update the quarantine status of a contribution."""
+        contribution.quarantine_status = status
+        with reversion.create_revision():
+            contribution.save(update_fields={"quarantine_status", "modified"})
+            reversion.set_comment("add_quarantine_status updated quarantine status")
+        self.stdout.write(
+            self.style.SUCCESS(f"Updated quarantine status for contribution {contribution.id} to {status}")
+        )
 
     def handle(self, *args, **options):
         """Handle command."""
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
-        self.handle_recurring_contributions()
-        self.handle_one_time_contributions()
+        self.update_rejected_contributions_quarantine_status()
+        self.update_approved_contributions_quarantine_status()
         self.stdout.write(self.style.SUCCESS(f"`{self.name}` is done"))

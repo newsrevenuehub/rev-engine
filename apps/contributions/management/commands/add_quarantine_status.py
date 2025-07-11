@@ -9,6 +9,10 @@ from apps.contributions.choices import ContributionInterval, ContributionStatus,
 from apps.contributions.models import Contribution
 
 
+# TODO @BW: Remove this command and tests after ITS-3204 is complete
+# DEV-6356
+
+
 class Command(BaseCommand):
     """Command to retroactively add quarantine status to contributions that were approved or rejected in the past."""
 

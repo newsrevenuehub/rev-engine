@@ -8,6 +8,7 @@ import reversion
 import stripe
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.management.commands.add_quarantine_status import Command as AddQuarantineStatusCommand
 from apps.contributions.management.commands.audit_recurring_contributions import Command as AuditRecurringContributions
 from apps.contributions.management.commands.fix_contributions_missing_provider_payment_method_id import (
     Command as FixContributionMissingProviderPaymentMethodId,
@@ -1117,3 +1118,13 @@ class Test_audit_recurring_contributions:
     def test_call_command(self, command, mocker):
         mocker.patch.object(command, "do_audit")
         call_command("audit_recurring_contributions", for_stripe_accounts="acct_1")
+
+
+@pytest.mark.django_db
+class Test_add_quarantine_status:
+    @pytest.fixture
+    def command(self):
+        return AddQuarantineStatusCommand()
+
+    def test_handle(self, mocker, command):
+        pass

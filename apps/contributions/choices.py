@@ -41,3 +41,7 @@ class QuarantineStatus(TextChoices):
     APPROVED_BY_MACHINE_AFTER_WAIT = "approved_by_machine_after_wait", "Approved by machine after waiting"
     APPROVED_BY_HUMAN = "approved_by_human", "Approved by human"
     REJECTED_BY_STRIPE_FOR_FRAUD = "rejected_by_stripe_for_fraud", "Rejected by Stripe for being fraudulent"
+    # We use this choice for contributions that were rejected before we started tracking quarantine status as a field
+    # whose quarantine status value was set by DEV-5528. We do this instead of using the "REJECTED_BY_HUMAN_OTHER" choice
+    # to allow for better data quality in future when we try to optimize our bad actor detection and rejection
+    REJECTED_BY_HUMAN_FOR_UNKNOWN = "rejected_by_human_for_unknown", "Rejected by human for unknown reason"

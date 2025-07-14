@@ -81,7 +81,7 @@ class Command(BaseCommand):
             self.style.HTTP_INFO(f"Found {qs.count()} approved recurring contributions to update quarantine status")
         )
         for contribution in qs:
-            self.update_contribution_quarantine_status(contribution, QuarantineStatus.APPROVED_BY_UKNKOWN)
+            self.update_contribution_quarantine_status(contribution, QuarantineStatus.APPROVED_BY_UNKNOWN)
 
     def update_contribution_quarantine_status(self, contribution: Contribution, status: QuarantineStatus):
         """Update the quarantine status of a contribution."""

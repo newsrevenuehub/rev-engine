@@ -50,4 +50,4 @@ class QuarantineStatus(TextChoices):
     )
     # This is used for contributions that were approved before we started tracking quarantine status as a field. We can't
     # distinguish between human and machine approval, so we use this generic status.
-    APPROVED_BY_UKNKOWN = "legacy_approved_by_unknown", "[Legacy] Approved by unknown"
+    APPROVED_BY_UNKNOWN = "legacy_approved_by_unknown", "[Legacy] Approved by unknown"

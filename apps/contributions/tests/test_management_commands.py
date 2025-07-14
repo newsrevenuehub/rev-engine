@@ -1,3 +1,4 @@
+import uuid
 from copy import deepcopy
 
 from django.core.management import call_command
@@ -1126,17 +1127,27 @@ class Test_add_quarantine_status:
     def command(self):
         return AddQuarantineStatusCommand()
 
-    def test_handle(self, mocker, command):
-        mock_update_rejected = mocker.patch.object(command, "update_rejected_contributions_quarantine_status")
-        mock_update_approved = mocker.patch.object(command, "update_approved_contributions_quarantine_status")
-        command.handle()
-        mock_update_rejected.assert_called_once()
-        mock_update_approved.assert_called_once()
+    @pytest.mark.usefixtures(
+        "contribution_one_time_approved", "contribution_recurring_approved", "rejected_contributions"
+    )
+    @pytest.mark.parametrize("dry_run", [True, False])
+    def test_handle(self, mocker, command, dry_run: bool):
+        update_rejected_spy = mocker.spy(command, "update_rejected_contributions_quarantine_status")
+        update_approved_spy = mocker.spy(command, "update_approved_contributions_quarantine_status")
+        mock_save = mocker.patch("apps.contributions.models.Contribution.save")
+        command.handle(dry_run=dry_run)
+        update_rejected_spy.assert_called_once()
+        update_approved_spy.assert_called_once()
+        if dry_run:
+            mock_save.assert_not_called()
+        else:
+            # there are total of 4 contributions to update because rejected contributions consists of 2
+            assert mock_save.call_count == 4
 
     def test_update_contribution_quarantine_status(self, command, mocker, one_time_contribution):
         one_time_contribution.quarantine_status = None
         one_time_contribution.save()
-        command.update_contribution_quarantine_status(one_time_contribution, QuarantineStatus.APPROVED_BY_UKNKOWN)
+        command.update_contribution_quarantine_status(one_time_contribution, QuarantineStatus.APPROVED_BY_UNKNOWN)
 
     @pytest.fixture
     def contribution_one_time_approved(self, one_time_contribution, settings):
@@ -1150,7 +1161,7 @@ class Test_add_quarantine_status:
     def contribution_recurring_approved(self, monthly_contribution):
         monthly_contribution.quarantine_status = None
         monthly_contribution.status = ContributionStatus.PAID
-        monthly_contribution.provider_setup_intent_id = "seti_12345"
+        monthly_contribution.provider_setup_intent_id = f"seti_{uuid.uuid4()}"
         monthly_contribution.save()
         return monthly_contribution
 
@@ -1163,18 +1174,25 @@ class Test_add_quarantine_status:
         command.update_approved_contributions_quarantine_status()
         contribution_one_time_approved.refresh_from_db()
         contribution_recurring_approved.refresh_from_db()
-        assert contribution_one_time_approved.quarantine_status == QuarantineStatus.APPROVED_BY_UKNKOWN
-        assert contribution_recurring_approved.quarantine_status == QuarantineStatus.APPROVED_BY_UKNKOWN
+        assert contribution_one_time_approved.quarantine_status == QuarantineStatus.APPROVED_BY_UNKNOWN
+        assert contribution_recurring_approved.quarantine_status == QuarantineStatus.APPROVED_BY_UNKNOWN
 
     @pytest.fixture
-    def rejected_contributions(self, one_time_contribution, monthly_contribution):
-        one_time_contribution.status = ContributionStatus.REJECTED
-        one_time_contribution.quarantine_status = None
-        one_time_contribution.save()
-        monthly_contribution.status = ContributionStatus.REJECTED
-        monthly_contribution.quarantine_status = None
-        monthly_contribution.save()
-        return [one_time_contribution, monthly_contribution]
+    def rejected_contributions(self, settings):
+        one_time_rejected = ContributionFactory(
+            status=ContributionStatus.REJECTED,
+            quarantine_status=None,
+            interval=ContributionInterval.ONE_TIME,
+            bad_actor_score=settings.BAD_ACTOR_BAD_SCORE,
+        )
+        recurring_rejected = ContributionFactory(
+            status=ContributionStatus.REJECTED,
+            quarantine_status=None,
+            interval=ContributionInterval.MONTHLY,
+            provider_subscription_id=f"sub_{uuid.uuid4()}",
+            provider_setup_intent_id=f"seti_{uuid.uuid4()}",
+        )
+        return [one_time_rejected, recurring_rejected]
 
     def test_update_rejected_contributions_quarantine_status(self, command, rejected_contributions):
         command.update_rejected_contributions_quarantine_status()

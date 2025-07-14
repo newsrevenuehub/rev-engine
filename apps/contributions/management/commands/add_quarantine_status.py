@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandParser
+from django.db.models import Q
 
 import reversion
 
@@ -15,6 +16,8 @@ from apps.contributions.models import Contribution
 
 class Command(BaseCommand):
     """Command to retroactively add quarantine status to contributions that were approved or rejected in the past."""
+
+    dry_run = False  # Set to True to run in dry-run mode, where no changes are made to the database.
 
     @property
     def name(self):
@@ -44,6 +47,7 @@ class Command(BaseCommand):
     def approved_recurring_contributions(self):
         """Get recurring contributions that were approved."""
         return self.base_queryset.filter(
+            ~Q(status=ContributionStatus.REJECTED),
             interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
             provider_setup_intent_id__isnull=False,
             provider_subscription_id__isnull=False,
@@ -86,16 +90,33 @@ class Command(BaseCommand):
     def update_contribution_quarantine_status(self, contribution: Contribution, status: QuarantineStatus):
         """Update the quarantine status of a contribution."""
         contribution.quarantine_status = status
+        if self.dry_run:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"[DRY-RUN] Would update contribution {contribution.pk} quarantine_status to {status}"
+                )
+            )
+            return
         with reversion.create_revision():
             contribution.save(update_fields={"quarantine_status", "modified"})
             reversion.set_comment("Management command add_quarantine_status [DEV-5528] updated quarantine status")
         self.stdout.write(
-            self.style.SUCCESS(f"Updated quarantine status for contribution {contribution.id} to {status}")
+            self.style.SUCCESS(f"Updated quarantine status for contribution {contribution.pk} to {status}")
+        )
+
+    def add_arguments(self, parser: CommandParser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Run the command in dry-run mode without making any changes to the database.",
         )
 
     def handle(self, *args, **options):
         """Handle command."""
         self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
+        if options.get("dry_run"):
+            self.dry_run = True
+            self.stdout.write(self.style.WARNING("Running in dry-run mode. No changes will be made to the database."))
         self.update_rejected_contributions_quarantine_status()
         self.update_approved_contributions_quarantine_status()
         self.stdout.write(self.style.SUCCESS(f"`{self.name}` is done"))

@@ -44,7 +44,10 @@ class QuarantineStatus(TextChoices):
     # We use the two choices below for contributions that were rejected before we started tracking quarantine status as a field
     # whose quarantine status value was set by DEV-5528.REJECTED_BY_HUMAN_FOR_UNKNOWN is distinct from "REJECTED_BY_HUMAN_OTHER"
     # retain meaning of "REJECTED_BY_HUMAN_FOR_OTHER" label as a human rejecting for some reason not captured by other statuses.
-    REJECTED_BY_HUMAN_FOR_UNKNOWN = "rejected_by_human_for_unknown", "Rejected by human for unknown reason"
+    REJECTED_BY_HUMAN_FOR_UNKNOWN = (
+        "legacy_rejected_by_human_for_unknown",
+        "[Legacy] Rejected by human for unknown reason",
+    )
     # This is used for contributions that were approved before we started tracking quarantine status as a field. We can't
     # distinguish between human and machine approval, so we use this generic status.
-    APPROVED_BY_UKNKOWN = "approved_by_unknown", "Approved by unknown"
+    APPROVED_BY_UKNKOWN = "legacy_approved_by_unknown", "[Legacy] Approved by unknown"

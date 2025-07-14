@@ -1,5 +1,7 @@
 import django.forms.models
 from django.contrib.admin.sites import AdminSite
+from django.contrib.messages import get_messages
+from django.core.exceptions import ValidationError
 from django.test import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
@@ -67,10 +69,7 @@ class TestDonationPageAdmin:
         else:
             soup = bs4(response.content, "html.parser")
             org = rp.organization
-            expected = (
-                f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} "
-                f"plan, which does not get this feature"
-            )
+            expected = f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, which does not get this feature"
             assert soup.body.find(text=lambda t: expected in t.text)
 
     @pytest.mark.parametrize("plan", [FreePlan, CorePlan, PlusPlan])
@@ -142,3 +141,38 @@ class TestDonationPageAdmin:
         )
         page_empty_sidebar_elements.refresh_from_db()
         assert page_empty_sidebar_elements.name == new_name
+
+    def test_duplicate_page(self, admin_client, donation_page):
+        response = admin_client.post(
+            reverse("admin:pages_donationpage_changelist"),
+            {
+                "action": "duplicate_selected",
+                "_selected_action": [donation_page.id],
+            },
+            follow=True,
+        )
+        assert response.status_code == 200
+        duplicates = DonationPage.objects.filter(
+            revenue_program=donation_page.revenue_program, name__startswith=donation_page.name
+        ).exclude(id=donation_page.id)
+        assert duplicates.count() == 1
+        messages = list(get_messages(response.wsgi_request))
+        assert len(messages) == 1
+        assert "1 page duplicated successfully" in str(messages[0])
+
+    def test_duplicate_page_validation_error(self, admin_client, donation_page, mocker):
+        mocker.patch(
+            "apps.pages.models.DonationPage.duplicate",
+            side_effect=ValidationError("test error"),
+        )
+        response = admin_client.post(
+            reverse("admin:pages_donationpage_changelist"),
+            {
+                "action": "duplicate_selected",
+                "_selected_action": [donation_page.id],
+            },
+            follow=True,
+        )
+        assert response.status_code == 200
+        messages = list(get_messages(response.wsgi_request))
+        assert any("Could not duplicate page" in str(message) for message in messages)

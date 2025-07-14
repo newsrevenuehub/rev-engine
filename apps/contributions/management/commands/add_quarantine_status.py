@@ -88,7 +88,7 @@ class Command(BaseCommand):
         contribution.quarantine_status = status
         with reversion.create_revision():
             contribution.save(update_fields={"quarantine_status", "modified"})
-            reversion.set_comment("add_quarantine_status updated quarantine status")
+            reversion.set_comment("Management command add_quarantine_status [DEV-5528] updated quarantine status")
         self.stdout.write(
             self.style.SUCCESS(f"Updated quarantine status for contribution {contribution.id} to {status}")
         )

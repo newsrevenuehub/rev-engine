@@ -3,7 +3,7 @@ import { Editor } from '@tiptap/react';
 import { useSnackbar } from 'notistack';
 import { useEffect, useMemo, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import { Button, RouterLinkButton, TextField } from 'components/base';
+import { Button, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import { Sections } from 'components/common/HeaderSection/HeaderSection.styled';
 import EditorToolbar from 'components/content/emails/edit/EditorToolbar';
@@ -17,6 +17,7 @@ import EmailPreview from './EmailPreview';
 import ResetContentButton from './ResetContentButton';
 import { defaultEmailContent } from './defaultContent';
 import { Actions, BackButtonContainer, Fields, SettingsSection } from './EditEmailRoute.styled';
+import { DiscardChangesButton } from 'components/common/DiscardChangesButton';
 
 const HEADER_LABELS: Record<EmailCustomization['email_type'], string> = {
   contribution_receipt: 'Receipts'
@@ -33,7 +34,7 @@ export function EditEmailRoute() {
   const [focusedEditorSelection, setFocusedEditorSelection] = useState<Editor['state']['selection']>();
   const { customizations, upsertCustomizations } = useEmailCustomizations(emailType);
   const [customizationEdits, setCustomizationEdits] = useState<EmailCustomizationChanges>({});
-  const editsPending = useMemo(() => {
+  const changesPending = useMemo(() => {
     if (!revenueProgram) {
       return false;
     }
@@ -122,9 +123,14 @@ export function EditEmailRoute() {
   return (
     <>
       <BackButtonContainer>
-        <RouterLinkButton color="text" startIcon={<ArrowBackOutlined />} to={EMAILS_SLUG}>
+        <DiscardChangesButton
+          changesPending={changesPending}
+          color="text"
+          onDiscard={() => push(EMAILS_SLUG)}
+          startIcon={<ArrowBackOutlined />}
+        >
           Back
-        </RouterLinkButton>
+        </DiscardChangesButton>
       </BackButtonContainer>
       <HeaderSection title={HEADER_LABELS[emailType]} variant="dark" />
       <Sections>
@@ -170,10 +176,15 @@ export function EditEmailRoute() {
           )}
         </SettingsSection>
         <Actions>
-          <RouterLinkButton color="secondary" to={EMAILS_SLUG}>
+          <DiscardChangesButton
+            changesPending={changesPending}
+            color="secondary"
+            onDiscard={() => push(EMAILS_SLUG)}
+            startIcon={<ArrowBackOutlined />}
+          >
             Cancel Changes
-          </RouterLinkButton>
-          <Button color="primaryDark" disabled={!editsPending} onClick={handleSave} startIcon={<SaveOutlined />}>
+          </DiscardChangesButton>
+          <Button color="primaryDark" disabled={!changesPending} onClick={handleSave} startIcon={<SaveOutlined />}>
             Save
           </Button>
         </Actions>

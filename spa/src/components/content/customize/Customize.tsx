@@ -80,7 +80,7 @@ function Customize() {
       {showCoreUpgradePrompt && <CustomizeCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} />}
       <CustomizeContent>
         <SectionWrapper>
-          <SendTestEmail description={emailDescription} rpId={user.revenue_programs[0].id} />
+          <SendTestEmail description={emailDescription} rpId={user.revenue_programs[0].id} editable={!isFreeOrg} />
         </SectionWrapper>
         {!isFreeOrg && (
           <WideMargin>

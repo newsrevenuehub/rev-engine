@@ -1,7 +1,6 @@
 import { ContributionInterval } from 'constants/contributionIntervals';
-import { FiscalStatus } from 'constants/fiscalStatus';
-import { Style } from '../useStyleList';
 import { Organization } from 'hooks/useUser.types';
+import { Style } from '../useStyleList';
 
 // Types here come from looking at Django models, in particular whether a field
 // can be null. Even if a field is not nullable, it may be an empty string.
@@ -318,7 +317,7 @@ export interface PaymentProvider {
  * A revenue program. Organizations can have multiple revenue programs
  * associated with them.
  */
-export interface RevenueProgram {
+export interface RevenueProgramForContributionPage {
   /**
    * Point of contact for the revenue program.
    */
@@ -327,6 +326,10 @@ export interface RevenueProgram {
    * Point of contact for the revenue program.
    */
   contact_phone: string;
+  /**
+   * ID of the default donation page of this revenue program, if it exists.
+   */
+  default_donation_page: number | null;
   /**
    * ID used for Facebook analytics.
    */
@@ -352,9 +355,9 @@ export interface RevenueProgram {
    */
   name: string;
   /**
-   * Has the revenue program been set up with Stripe and verified by them?
+   * Parent organization.
    */
-  payment_provider_stripe_verified: boolean;
+  organization: Organization;
   /**
    * Slug for the revenue program used in URLs, in particular the subdomain of
    * contribution pages.
@@ -368,31 +371,8 @@ export interface RevenueProgram {
    * URL for the revenue program's web site.
    */
   website_url: string;
-  /**
-   * ID of parent organization
-   */
-  organization: number;
-  /**
-   * ID of the default donation page of this revenue program, if it exists.
-   */
-  default_donation_page: number | null;
-  /**
-   * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
-   */
-  fiscal_status: FiscalStatus;
-  /**
-   * Fiscal sponsor name. Will only have a non-null value if fiscal_status === "fiscally sponsored"
-   */
-  fiscal_sponsor_name?: string | null;
-  /**
-   * EIN tax ID.
-   */
-  tax_id?: string | null;
 }
 
-export interface RevenueProgramWithFullOrganization extends Omit<RevenueProgram, 'organization'> {
-  organization: Organization;
-}
 /**
  * A page where visitors can make contributions to a revenue program.
  */
@@ -539,7 +519,7 @@ export interface ContributionPage {
   /**
    * Revenue program this page belongs to.
    */
-  revenue_program: RevenueProgramWithFullOrganization;
+  revenue_program: RevenueProgramForContributionPage;
   /**
    * ISO-3166 code of the country that the revenue program belongs to.
    */

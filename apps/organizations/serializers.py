@@ -336,10 +336,11 @@ class RevenueProgramSerializer(UpdateFieldsBaseSerializer):
     """RevenueProgram serializer you should consider updating."""
 
     slug = serializers.SlugField(required=False)
+    transactional_email_style = serializers.SerializerMethodField()
 
     class Meta:
         model = RevenueProgram
-        fields = [
+        fields = (
             "id",
             "name",
             "slug",
@@ -348,7 +349,12 @@ class RevenueProgramSerializer(UpdateFieldsBaseSerializer):
             "fiscal_sponsor_name",
             "contact_phone",
             "contact_email",
-        ]
+            "transactional_email_style",
+        )
+        read_only_fields = ["transactional_email_style"]
+
+    def get_transactional_email_style(self, obj: RevenueProgram):
+        return asdict(obj.transactional_email_style)
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

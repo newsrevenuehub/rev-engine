@@ -1,9 +1,9 @@
-import { axe } from 'jest-axe';
 import userEvent from '@testing-library/user-event';
-import { fireEvent, render, screen, waitFor } from 'test-utils';
-import { useRevenueProgram } from 'hooks/useRevenueProgram';
+import { axe } from 'jest-axe';
 import { useAlert } from 'react-alert';
 import { TextField } from 'components/base';
+import { useRevenueProgram } from 'hooks/useRevenueProgram';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
 
 import { GENERIC_ERROR } from 'constants/textConstants';
 
@@ -34,7 +34,9 @@ describe('ContributorPortal', () => {
 
   beforeEach(() => {
     useRevenueProgramMock.mockReturnValue({
-      updateRevenueProgram: jest.fn()
+      updateRevenueProgram: jest.fn(),
+      revenueProgram: {} as any,
+      isFetching: false
     });
     useAlertMock.mockReturnValue({
       error: jest.fn()
@@ -72,7 +74,9 @@ describe('ContributorPortal', () => {
       useRevenueProgramMock.mockReturnValue({
         updateRevenueProgram: jest
           .fn()
-          .mockRejectedValue({ response: { data: { contact_phone: ['mock-phone-number-error'] } } })
+          .mockRejectedValue({ response: { data: { contact_phone: ['mock-phone-number-error'] } } }),
+        revenueProgram: {} as any,
+        isFetching: false
       });
 
       tree();
@@ -159,6 +163,8 @@ describe('ContributorPortal', () => {
     it('should show error message from server if related to field', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       useRevenueProgramMock.mockReturnValue({
+        isFetching: false,
+        revenueProgram: {} as any,
         updateRevenueProgram: jest
           .fn()
           .mockRejectedValue({ response: { data: { contact_email: ['mock-email-error'] } } })
@@ -206,7 +212,9 @@ describe('ContributorPortal', () => {
 
     beforeEach(() => {
       useRevenueProgramMock.mockReturnValue({
-        updateRevenueProgram
+        updateRevenueProgram,
+        isFetching: false,
+        revenueProgram: {} as any
       });
     });
 
@@ -305,7 +313,9 @@ describe('ContributorPortal', () => {
       } as any);
 
       useRevenueProgramMock.mockReturnValue({
-        updateRevenueProgram
+        updateRevenueProgram,
+        isFetching: false,
+        revenueProgram: {} as any
       });
 
       tree();

@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import NRELogo from 'assets/images/nre-logo-yellow.svg?react';
 
 // Most values are not themed because we're matching styles set on the email
 // template.
@@ -9,6 +8,19 @@ export const Details = styled.div`
   border-radius: 10px;
   margin: 24px 0;
   padding: 20px 24px;
+`;
+
+export const Header = styled.div<{ $defaultLogo?: boolean }>`
+  display: flex;
+  height: 80px;
+  ${(props) =>
+    props.$defaultLogo
+      ? `
+      align-items: flex-start;
+      justify-content: flex-start;`
+      : `
+      align-items: center;
+      justify-content: center;`};
 `;
 
 export const BodyText = styled.p`
@@ -27,7 +39,7 @@ export const Heading = styled.h4`
   font-size: 30px;
 `;
 
-export const Logo = styled(NRELogo)`
+export const Logo = styled.img`
   height: 50px;
   width: auto;
 `;

@@ -1,5 +1,5 @@
-import { RevenueProgram } from 'hooks/useContributionPage';
 import { EmailCustomization } from 'hooks/useEmailCustomizations';
+import { RevenueProgram } from 'hooks/useRevenueProgram';
 
 const defaults: Record<
   EmailCustomization['email_type'],

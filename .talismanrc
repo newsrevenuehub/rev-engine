@@ -22,6 +22,9 @@ fileignoreconfig:
 # Complaints about a potential secret pattern, false positive in DEV-5221
 - filename: apps/organizations/tests/test_serializers.py
   checksum: 563e8ce0e35c09df908d277d9f7507f585ee81ae8a9f9841816bc3840ee3e0ce
+# Complains about a potential secret pattern, false positive in DEV-6243
+- filename: spa/src/components/pageEditor/BackButton/BackButton.test.tsx
+  checksum: f87b0647afe2c1071e332311faf691a036dd184e4af18079fbe2a6dd48a5bf59
 # Complaints about fake IDs in subscription JSON
 - filename: apps/contributions/tests/fixtures/subscription-expand-invoice-pi.json
   checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f

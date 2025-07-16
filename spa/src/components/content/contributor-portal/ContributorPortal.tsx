@@ -1,23 +1,23 @@
 import SaveIcon from '@material-design-icons/svg/outlined/save.svg?react';
 import { AxiosError } from 'axios';
+import PropTypes, { InferProps } from 'prop-types';
+import { useEffect, useMemo, useState } from 'react';
+import { useAlert } from 'react-alert';
+import { Controller, useForm } from 'react-hook-form';
 import { Button, TextField, PhoneTextField } from 'components/base';
 import Hero from 'components/common/Hero';
 import SuccessBanner from 'components/common/SuccessBanner';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import { RevenueProgram } from 'hooks/useContributionPage';
 import { UpdateRevenueProgramErrors, useRevenueProgram } from 'hooks/useRevenueProgram';
-import PropTypes, { InferProps } from 'prop-types';
-import { useEffect, useMemo, useState } from 'react';
-import { useAlert } from 'react-alert';
-import { Controller, useForm } from 'react-hook-form';
+import { RevenueProgramForUser } from 'hooks/useUser.types';
 import { SectionWrapper } from '../pages/Pages.styled';
 import { ActionWrapper, Description, FormWrapper, InputsWrapper, Label } from './ContributorPortal.styles';
 
-type ContactInfoFormFields = Pick<RevenueProgram, 'contact_email' | 'contact_phone'>;
+type ContactInfoFormFields = Pick<RevenueProgramForUser, 'contact_email' | 'contact_phone'>;
 
 export interface ContributorPortalProps extends InferProps<typeof ContributorPortalPropTypes> {
-  revenueProgram?: RevenueProgram;
+  revenueProgram?: RevenueProgramForUser;
 }
 
 const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {

@@ -8,9 +8,11 @@ import { useEmailCustomizations } from 'hooks/useEmailCustomizations';
 import useUser from 'hooks/useUser';
 import { EMAILS_SLUG } from 'routes';
 import { defaultEmailContent } from './defaultContent';
+import { useRevenueProgram } from 'hooks/useRevenueProgram';
 
 jest.mock('components/common/DiscardChangesButton');
 jest.mock('hooks/useEmailCustomizations');
+jest.mock('hooks/useRevenueProgram');
 jest.mock('hooks/useUser');
 jest.mock('./EditorBlock');
 jest.mock('./EditorToolbar');
@@ -40,7 +42,12 @@ const mockCustomizations = {
 
 const mockRp = {
   id: 123,
-  name: 'mock-rp-name'
+  name: 'mock-rp-name',
+  transactional_email_style: {
+    is_default_logo: false,
+    logo_alt_text: 'test-rp-logo-alt-text',
+    logo_url: 'test-rp-logo-url'
+  }
 } as any;
 
 function tree() {
@@ -56,6 +63,7 @@ describe('EditEmailRoute', () => {
   const useEmailCustomizationsMock = jest.mocked(useEmailCustomizations);
   const useHistoryMock = jest.mocked(useHistory);
   const useParamsMock = jest.mocked(useParams);
+  const useRevenueProgramMock = jest.mocked(useRevenueProgram);
   const useSnackbarMock = jest.mocked(useSnackbar);
   const useUserMock = jest.mocked(useUser);
   let enqueueSnackbar: jest.Mock;
@@ -71,6 +79,11 @@ describe('EditEmailRoute', () => {
     useHistoryMock.mockReturnValue({ push: jest.fn() });
     useParamsMock.mockReturnValue({ emailType: 'contribution_receipt' });
     useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
+    useRevenueProgramMock.mockReturnValue({
+      revenueProgram: mockRp,
+      isFetching: false,
+      updateRevenueProgram: jest.fn()
+    });
     useUserMock.mockReturnValue({
       isError: false,
       isLoading: false,

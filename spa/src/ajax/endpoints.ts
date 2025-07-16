@@ -1,5 +1,5 @@
-import { RevenueProgram } from 'hooks/useContributionPage';
 import { EmailCustomization } from 'hooks/useEmailCustomizations';
+import { RevenueProgram } from 'hooks/useRevenueProgram';
 
 export const TOKEN = 'token/';
 export const USER = 'users/';
@@ -91,7 +91,7 @@ export const CUSTOMIZE_ACCOUNT_ENDPOINT = 'customize_account/';
 export const PATCH_ORGANIZATION = 'organizations/';
 
 // Revenue Programs
-export const PATCH_REVENUE_PROGRAM = 'revenue-programs/';
+export const REVENUE_PROGRAM = 'revenue-programs/';
 
 // Mailchimp
 export const MAILCHIMP_OAUTH_SUCCESS = 'mailchimp-oauth-success/';

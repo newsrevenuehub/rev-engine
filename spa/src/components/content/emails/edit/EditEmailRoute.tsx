@@ -10,6 +10,7 @@ import EditorToolbar from 'components/content/emails/edit/EditorToolbar';
 import SystemNotification from 'components/common/SystemNotification';
 import { EmailCustomization, EmailCustomizationChanges, useEmailCustomizations } from 'hooks/useEmailCustomizations';
 import useUser from 'hooks/useUser';
+import { useRevenueProgram } from 'hooks/useRevenueProgram';
 import { EMAILS_SLUG } from 'routes';
 import EditorBlock from './EditorBlock';
 import EmailPreview from './EmailPreview';
@@ -27,12 +28,12 @@ export function EditEmailRoute() {
   const { push } = useHistory();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useUser();
+  const { revenueProgram } = useRevenueProgram(user?.revenue_programs[0].id);
   const [focusedBlock, setFocusedBlock] = useState<EmailCustomization['email_block']>();
   const [focusedEditor, setFocusedEditor] = useState<Editor>();
   const [focusedEditorSelection, setFocusedEditorSelection] = useState<Editor['state']['selection']>();
   const { customizations, upsertCustomizations } = useEmailCustomizations(emailType);
   const [customizationEdits, setCustomizationEdits] = useState<EmailCustomizationChanges>({});
-  const revenueProgram = user?.revenue_programs[0];
   const changesPending = useMemo(() => {
     if (!revenueProgram) {
       return false;

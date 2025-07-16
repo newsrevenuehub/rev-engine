@@ -1,6 +1,6 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
-import { RevenueProgram } from 'hooks/useContributionPage';
+import { RevenueProgram } from 'hooks/useRevenueProgram';
 import {
   Details,
   BodyText,
@@ -10,7 +10,8 @@ import {
   FakeLink,
   Footer,
   RevenueProgramStatus,
-  Logo
+  Logo,
+  Header
 } from './EmailPreview.styled';
 
 const EmailPreviewPropTypes = {
@@ -28,7 +29,15 @@ export function EmailPreview({ children, revenueProgram }: EmailPreviewProps) {
 
   return (
     <Root>
-      <Logo />
+      <Header
+        $defaultLogo={revenueProgram.transactional_email_style.is_default_logo}
+        style={{ backgroundColor: revenueProgram.transactional_email_style.header_color ?? undefined }}
+      >
+        <Logo
+          src={revenueProgram.transactional_email_style.logo_url}
+          alt={revenueProgram.transactional_email_style.logo_alt_text}
+        />
+      </Header>
       <Heading>Thank You For Your Contribution!</Heading>
       <BodyText>Dear [FIRST NAME] [LAST NAME],</BodyText>
       {children}

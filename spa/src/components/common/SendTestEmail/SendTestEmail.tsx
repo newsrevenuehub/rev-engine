@@ -7,9 +7,9 @@ import { useSnackbar } from 'notistack';
 import { ButtonWrapper, Description, Label, Preview } from './SendTestEmail.styled';
 import SystemNotification from '../SystemNotification';
 
-export type SendTestEmailProps = InferProps<typeof SendTestEmailPropTypes> & { editable?: boolean };
+export type SendTestEmailProps = InferProps<typeof SendTestEmailPropTypes>;
 
-const SendTestEmail = ({ rpId, description, editable = false }: SendTestEmailProps) => {
+const SendTestEmail = ({ rpId, description }: SendTestEmailProps) => {
   const { enqueueSnackbar } = useSnackbar();
 
   async function postSendTestEmail(email_name?: string, revenue_program?: number) {
@@ -54,13 +54,13 @@ const SendTestEmail = ({ rpId, description, editable = false }: SendTestEmailPro
       <Description>{description}</Description>
       <Preview>Preview sample emails</Preview>
       <ButtonWrapper>
-        <Button color="secondary" onClick={handleSendTestEmail('receipt')} disabled={!editable}>
+        <Button color="secondary" onClick={handleSendTestEmail('receipt')}>
           Send Receipt
         </Button>
-        <Button color="secondary" onClick={handleSendTestEmail('reminder')} disabled={!editable}>
+        <Button color="secondary" onClick={handleSendTestEmail('reminder')}>
           Send Reminder
         </Button>
-        <Button color="secondary" onClick={handleSendTestEmail('magic_link')} disabled={!editable}>
+        <Button color="secondary" onClick={handleSendTestEmail('magic_link')}>
           Send Magic link
         </Button>
       </ButtonWrapper>

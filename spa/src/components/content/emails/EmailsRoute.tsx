@@ -7,6 +7,7 @@ import { TestEmailName, useTestEmails } from 'hooks/useTestEmails';
 import { EMAIL_CANCELATION_KB_URL, EMAIL_KB_URL, EMAIL_PAYMENT_CHANGE_KB_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import { useMemo } from 'react';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 interface EmailBlock extends Omit<EmailBlockProps, 'onSendTest'> {
   testEmailName?: TestEmailName;
@@ -76,6 +77,8 @@ export const blocks: EmailBlock[] = [
 
 export function EmailsRoute() {
   const { user } = useUser();
+  const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_NAMES.FREE;
+
   const { sendTestEmail } = useTestEmails();
   const firstRevenueProgramId = useMemo(() => {
     if (user?.revenue_programs) {
@@ -111,7 +114,7 @@ export function EmailsRoute() {
         {blocks.map((block) => (
           <EmailBlock
             description={block.description}
-            disabled={block.disabled}
+            disabled={block.disabled || isFreeOrg}
             editable={block.editable}
             emailType={block.emailType}
             hideActions={block.hideActions}

@@ -4,6 +4,7 @@ import { useTestEmails } from 'hooks/useTestEmails';
 import useUser from 'hooks/useUser';
 import EmailsRoute, { blocks } from './EmailsRoute';
 import { EMAIL_KB_URL } from 'constants/helperUrls';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 jest.mock('hooks/useTestEmails');
 jest.mock('hooks/useUser');
@@ -111,6 +112,37 @@ describe('EmailsRoute', () => {
     }
   });
 
+  it('disables receipt edtitor block view/edit button when user is on free plan', () => {
+    useUserMock.mockReturnValue({
+      isError: false,
+      isLoading: false,
+      user: {
+        organizations: [{ plan: { name: PLAN_NAMES.FREE } }],
+        revenue_programs: [{ id: 123 }]
+      }
+    } as any);
+    tree();
+    const blockElement = screen.getByTestId(`email-block-Receipt`);
+    const viewEditButton = within(blockElement).getByRole('button', { name: 'View & Edit' });
+    expect(viewEditButton).toHaveAttribute('aria-disabled', 'true');
+  });
+  it.each([PLAN_NAMES.CORE, PLAN_NAMES.PLUS])(
+    'enables receipt edtitor block view/edit button when user is on %s plan',
+    (planName) => {
+      useUserMock.mockReturnValue({
+        isError: false,
+        isLoading: false,
+        user: {
+          organizations: [{ plan: { name: planName } }],
+          revenue_programs: [{ id: 123 }]
+        }
+      } as any);
+      tree();
+      const blockElement = screen.getByTestId(`email-block-Receipt`);
+      const viewEditButton = within(blockElement).getByRole('button', { name: 'View & Edit' });
+      expect(viewEditButton).toHaveAttribute('aria-disabled', 'false');
+    }
+  );
   it('is accessible', async () => {
     const { container } = tree();
 

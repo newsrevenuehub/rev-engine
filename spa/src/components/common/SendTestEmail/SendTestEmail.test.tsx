@@ -16,8 +16,8 @@ jest.mock('notistack', () => ({
 
 const rpId = 1;
 
-function tree() {
-  return render(<SendTestEmail rpId={rpId} description="mock-description" />);
+function tree({ editable = true } = {}) {
+  return render(<SendTestEmail rpId={rpId} description="mock-description" editable={editable} />);
 }
 
 describe('SendTestEmail', () => {
@@ -105,5 +105,12 @@ describe('SendTestEmail', () => {
     const { container } = tree();
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('should disable buttons if editable is false', () => {
+    tree({ editable: false });
+    expect(screen.getByRole('button', { name: 'Send Receipt' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Send Reminder' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Send Magic link' })).toBeDisabled();
   });
 });

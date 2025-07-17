@@ -77,10 +77,18 @@ describe('Customize Styles', () => {
         tree();
         expect(screen.queryByTestId('subtitle')).not.toBeInTheDocument();
       });
+      it('should render SendTestEmail with editable prop as false', () => {
+        tree();
+        expect(screen.getByTestId('mock-send-test-email').dataset.editable).toBe('false');
+      });
     } else {
       it(`should show a "${PAID_SUBTITLE}" subtitle`, () => {
         tree();
         expect(screen.getByTestId('subtitle')).toHaveTextContent(PAID_SUBTITLE);
+      });
+      it('should render SendTestEmail with editable prop as true', () => {
+        tree();
+        expect(screen.getByTestId('mock-send-test-email').dataset.editable).toBe('true');
       });
     }
 

@@ -19,7 +19,7 @@ from reversion.views import RevisionMixin
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.mixins import UniquenessConstraintViolationViewSetMixin
 from apps.api.permissions import IsSwitchboardAccount
-from apps.common.utils import LEFT_UNCHANGED, booleanize_string
+from apps.common.utils import booleanize_string
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, Contributor, Payment
 from apps.emails.models import TransactionalEmailRecord
@@ -131,8 +131,8 @@ class SwitchboardContributorsViewSet(
         Nevertheless, this is the behavior we want in short term so that we can create new contributors without
         accidentally creating duplicates (from the perspective of post DEV-5503 world).
         """
-        contributor, action = Contributor.get_or_create_contributor_by_email(request.data.get("email"))
-        if action == LEFT_UNCHANGED:
+        contributor, created = Contributor.objects.get_or_create(email=request.data.get("email", "").strip())
+        if not created:
             return Response(
                 {"error": f"A contributor (ID: {contributor.id}) with email {contributor.email} already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -142,7 +142,7 @@ class SwitchboardContributorsViewSet(
 
     @action(methods=["get"], url_path="email/(?P<email>[^/]+)", detail=False)
     def get_by_email(self, request: HttpRequest, email: str) -> Response:
-        contributor = get_object_or_404(Contributor.objects.all(), email__iexact=email.strip())
+        contributor = get_object_or_404(Contributor.objects.all(), email=email.strip())
         serializer = serializers.SwitchboardContributorSerializer(contributor)
         return Response(serializer.data)
 

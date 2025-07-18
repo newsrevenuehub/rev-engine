@@ -160,12 +160,10 @@ class RequestContributorTokenEmailView(APIView):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)
         serializer = ContributorObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        contributor, created = Contributor.get_or_create_contributor_by_email(email=request.data["email"])
-        canonical_email = contributor.email
+        email = request.data["email"].strip()
+        contributor, created = Contributor.objects.get_or_create(email=email)
         if created:  # pragma: no branch
-            logger.info(
-                "[RequestContributorTokenEmailView] Created new contributor with email %s", request.data["email"]
-            )
+            logger.info("[RequestContributorTokenEmailView] Created new contributor with email %s", email)
 
         serializer.update_short_lived_token(contributor)
 
@@ -177,11 +175,11 @@ class RequestContributorTokenEmailView(APIView):
         logger.info("Trying to retrieve revenue program by slug: %s", serializer.validated_data.get("subdomain"))
 
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
-        magic_link = self.get_magic_link(domain, serializer.validated_data["access"], canonical_email)
-        logger.info("Sending magic link email to [%s] | magic link: [%s]", canonical_email, magic_link)
+        magic_link = self.get_magic_link(domain, serializer.validated_data["access"], email)
+        logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
         data = {
             "magic_link": mark_safe(magic_link),
-            "email": canonical_email,
+            "email": email,
             "style": asdict(revenue_program.transactional_email_style),
             "rp_name": revenue_program.name,
         }
@@ -190,7 +188,7 @@ class RequestContributorTokenEmailView(APIView):
             data["style"]["logo_url"] = f"{settings.SITE_URL}/static/nre-logo-white.png"
 
         send_templated_email.delay(
-            canonical_email,
+            email,
             "Manage your contributions",
             render_to_string("nrh-manage-contributions-magic-link.txt", data),
             render_to_string("nrh-manage-contributions-magic-link.html", data),
@@ -238,7 +236,6 @@ class VerifyContributorTokenView(APIView):
             "contributor": contributor_serializer.data,
             "csrftoken": csrf_token,
         }
-
         return response
 
 

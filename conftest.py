@@ -1074,7 +1074,7 @@ def unmarked_abandoned_contributions() -> list[Contribution]:
             }
         )
         for interval in [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
-        for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING]
+        for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.CANCELED]
     ]
 
 

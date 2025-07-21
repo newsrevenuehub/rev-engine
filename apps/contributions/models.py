@@ -280,7 +280,7 @@ class ContributionQuerySet(models.QuerySet):
         CONTRIBUTION_ABANDONED_THRESHOLD hours.
         """
         return self.filter(
-            status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING],
+            status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.CANCELED],
             created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
             provider_payment_method_id__isnull=True,
         )

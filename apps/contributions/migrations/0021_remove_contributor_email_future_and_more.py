@@ -20,15 +20,11 @@ class Migration(migrations.Migration):
             old_name="email_future",
             new_name="email",
         ),
-        CreateCollation(
-            "case_insensitive_future",
-            provider="icu",
-            locale="und-u-ks-level2",
-            deterministic=True,
-        ),
         migrations.AlterField(
             model_name="contributor",
             name="email",
-            field=models.EmailField(blank=False, null=False, unique=True, db_collation="case_insensitive_future"),
+            field=models.EmailField(
+                blank=False, null=False, unique=True, db_collation="case_insensitive", max_length=254
+            ),
         ),
     ]

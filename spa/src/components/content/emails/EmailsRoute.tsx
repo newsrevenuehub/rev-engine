@@ -77,7 +77,6 @@ export const blocks: EmailBlock[] = [
 
 export function EmailsRoute() {
   const { user } = useUser();
-  const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_NAMES.FREE;
 
   const { sendTestEmail } = useTestEmails();
   const firstRevenueProgramId = useMemo(() => {
@@ -87,6 +86,7 @@ export function EmailsRoute() {
   }, [user?.revenue_programs]);
   const orgPlan = useMemo(() => user?.organizations[0].plan.name, [user?.organizations]);
   const prompt = orgPlan === 'FREE' ? '' : 'View and edit capabilities coming soon.';
+  const isFreeOrg = !orgPlan || orgPlan === PLAN_NAMES.FREE;
 
   function handleSendTest(emailName: TestEmailName) {
     if (!firstRevenueProgramId) {

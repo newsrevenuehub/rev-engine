@@ -77,7 +77,6 @@ export const blocks: EmailBlock[] = [
 
 export function EmailsRoute() {
   const { user } = useUser();
-
   const { sendTestEmail } = useTestEmails();
   const firstRevenueProgramId = useMemo(() => {
     if (user?.revenue_programs) {

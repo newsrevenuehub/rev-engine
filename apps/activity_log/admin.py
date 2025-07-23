@@ -4,6 +4,7 @@ from typing import Any
 from django.conf import settings
 from django.contrib import admin
 from django.db.models import Model
+from django.db.models.functions import Collate
 from django.http import HttpRequest
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
@@ -30,7 +31,20 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     list_display = ("linked_actor_object", "action", "linked_object_object", "get_on")
     actions = None
-    search_fields = ("actor__email",)
+    search_fields = ("email_deterministic",)
+
+    def get_queryset(self, request: HttpRequest):
+        """Facilitate search on non-deterministic collation.
+
+        See https://adamj.eu/tech/2023/02/23/migrate-django-postgresql-ci-fields-case-insensitive-collation/
+        """
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                email_deterministic=Collate("actor__email", "und-x-icu"),
+            )
+        )
 
     def changelist_view(self, request: HttpRequest, extra_context: dict[Any, Any] | None = None):
         extra_context = extra_context or {}

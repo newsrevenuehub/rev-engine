@@ -20,11 +20,12 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionStatusError
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatusError
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_verify_apple_domain,
 )
+from apps.emails.models import TransactionalEmailRecord
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 
@@ -153,6 +154,19 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
                 contribution.id,
             )
             return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="send-receipt",
+    )
+    def send_receipt(self, request, pk) -> Response:
+        contribution = self.get_object()
+        TransactionalEmailRecord.send_receipt_email(
+            contribution=contribution,
+            show_billing_history=contribution.interval != ContributionInterval.ONE_TIME.value,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(

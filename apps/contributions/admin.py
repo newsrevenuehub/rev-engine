@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin import ModelAdmin
 from django.db.models import Min, QuerySet
+from django.db.models.functions import Collate
 from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import re_path, reverse
 from django.urls.resolvers import URLPattern
@@ -70,8 +71,21 @@ class ContributorAdmin(RevEngineBaseAdmin):
     list_display = ("email",)
     list_filter = ("email",)
     ordering = ("email",)
-    search_fields = ("email",)
+    search_fields = ("email_deterministic",)
     readonly_fields = ("email",)
+
+    def get_queryset(self, request: HttpRequest):
+        """Facilitate search on non-deterministic collation.
+
+        See https://adamj.eu/tech/2023/02/23/migrate-django-postgresql-ci-fields-case-insensitive-collation/
+        """
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                email_deterministic=Collate("email", "und-x-icu"),
+            )
+        )
 
 
 @admin.register(Payment)
@@ -235,7 +249,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     search_fields = (
         "donation_page__revenue_program__name",
-        "contributor__email",
+        "email_deterministic",
         "donation_page__name",
         "modified",
         "created",
@@ -277,6 +291,20 @@ class ContributionAdmin(RevEngineBaseAdmin):
     quarantine_actions.short_description = "Resolve"
     quarantine_actions.allow_tags = True
 
+    def get_queryset(self, request: HttpRequest):
+        """Facilitate search on non-deterministic collation.
+
+        See https://adamj.eu/tech/2023/02/23/migrate-django-postgresql-ci-fields-case-insensitive-collation/
+        """
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                email_deterministic=Collate("contributor__email", "und-x-icu"),
+            )
+            .with_first_payment_date()
+        )
+
     def get_fieldsets(self, request: HttpRequest, obj: Contribution):
         # Add quarantine options to flagged contributions.
         if obj.quarantine_status == QuarantineStatus.FLAGGED_BY_BAD_ACTOR:
@@ -288,11 +316,6 @@ class ContributionAdmin(RevEngineBaseAdmin):
                 *self.fieldsets,
             )
         return self.fieldsets
-
-    def get_queryset(self, request: HttpRequest) -> QuerySet[Contribution]:
-        # Annotate the queryset with the first_payment_date
-        queryset = super().get_queryset(request)
-        return queryset.with_first_payment_date()
 
     def first_payment_date_display(self, obj):
         return obj.first_payment_date

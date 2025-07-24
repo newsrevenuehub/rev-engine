@@ -15,7 +15,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Min, Q, Sum
+from django.db.models import Count, Min, Q, Sum
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -273,15 +273,27 @@ class ContributionQuerySet(models.QuerySet):
             )
         return connected_contributions
 
-    def unmarked_abandoned_carts(self) -> models.QuerySet:
+    def unmarked_abandoned_carts(self) -> models.QuerySet[Contribution]:
         """Return contributions that have been abandoned.
 
-        We define abandoned as contributions that have a status of flagged, processing, or canceled and that
-        were created more than CONTRIBUTION_ABANDONED_THRESHOLD hours ago.
+        We define abandoned as contributions that have no payment method ID
+        AND:
+         a. have a status of flagged, processing AND were created more than CONTRIBUTION_ABANDONED_THRESHOLD hours ago.
+         OR
+         b. have a status of canceled and no payments
+
+
+        b. would happen when a contributor completes first page of checkout and their contribution is flagged, and then they
+        cancel the contribution before completing the payment form.
         """
-        return self.filter(
-            status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.CANCELED],
-            created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
+        return self.annotate(payment_count=Count("payment")).filter(
+            Q(
+                Q(status=ContributionStatus.CANCELED, payment_count=0)
+                | Q(
+                    status__in=[ContributionStatus.PROCESSING, ContributionStatus.FLAGGED],
+                    created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
+                ),
+            ),
             provider_payment_method_id__isnull=True,
         )
 

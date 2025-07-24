@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
 from django.core.files.images import ImageFile
-from django.utils.timezone import now
+from django.utils.timezone import now as tz_now
 
 import PIL.Image
 import pytest
@@ -40,7 +40,7 @@ from apps.common.constants import (
     MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME,
 )
 from apps.contributions.bad_actor import BadActorOverallScore
-from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.choices import ContributionStatus
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory, PaymentFactory
 from apps.contributions.typings import StripePaymentMetadataSchemaV1_4
@@ -229,7 +229,7 @@ def switchboard_api_token(switchboard_user):
 @pytest.fixture
 def switchboard_api_expired_token(switchboard_user):
     token, token_string = AuthToken.objects.create(switchboard_user)
-    token.expiry = now() - timedelta(days=1)
+    token.expiry = tz_now() - timedelta(days=1)
     token.save()
     return token_string
 
@@ -1048,7 +1048,47 @@ def payment_method(payment_method_data_factory):
 
 
 @pytest.fixture
-def not_unmarked_abandoned_contributions() -> list[Contribution]:
+def contribution_like_abandoned_but_not_old_enough(now: datetime.datetime) -> Contribution:
+    return ContributionFactory(
+        one_time=True, status=ContributionStatus.PROCESSING, provider_payment_method_id=None, created=now
+    )
+
+
+@pytest.fixture
+def unmarked_abandoned_canceled_contribution() -> Contribution:
+    contribution = ContributionFactory(
+        one_time=True,
+        status=ContributionStatus.CANCELED,
+        provider_payment_method_id=None,
+    )
+    contribution.payment_set.all().delete()
+    return contribution
+
+
+@pytest.fixture
+def unmarked_abandoned_processing_contribution(now: datetime.datetime) -> Contribution:
+    return ContributionFactory(
+        one_time=True,
+        status=ContributionStatus.PROCESSING,
+        provider_payment_method_id=None,
+        created=now - datetime.timedelta(days=1),
+    )
+
+
+@pytest.fixture
+def unmarked_abandoned_flagged_contribution(now: datetime.datetime) -> Contribution:
+    return ContributionFactory(
+        one_time=True,
+        status=ContributionStatus.FLAGGED,
+        provider_payment_method_id=None,
+        created=now - datetime.timedelta(days=1),
+    )
+
+
+@pytest.fixture
+def not_unmarked_abandoned_contributions(
+    contribution_like_abandoned_but_not_old_enough: Contribution,
+) -> list[Contribution]:
     return [
         ContributionFactory(**{param: True})
         for param in [
@@ -1059,22 +1099,19 @@ def not_unmarked_abandoned_contributions() -> list[Contribution]:
             "annual_subscription",
             "one_time",
         ]
-    ]
+    ] + [contribution_like_abandoned_but_not_old_enough]
 
 
 @pytest.fixture
-def unmarked_abandoned_contributions() -> list[Contribution]:
+def unmarked_abandoned_contributions(
+    unmarked_abandoned_canceled_contribution: Contribution,
+    unmarked_abandoned_processing_contribution: Contribution,
+    unmarked_abandoned_flagged_contribution: Contribution,
+) -> list[Contribution]:
     return [
-        ContributionFactory(
-            **{
-                "unmarked_abandoned": True,
-                "one_time" if interval == ContributionInterval.ONE_TIME else "monthly_subscription": True,
-                "status": status,
-                "interval": interval,
-            }
-        )
-        for interval in [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
-        for status in [ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.CANCELED]
+        unmarked_abandoned_canceled_contribution,
+        unmarked_abandoned_processing_contribution,
+        unmarked_abandoned_flagged_contribution,
     ]
 
 
@@ -1133,3 +1170,8 @@ def email_customization(revenue_program: "RevenueProgram") -> EmailCustomization
         email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         email_block=EmailCustomization.EmailBlock.MESSAGE,
     )
+
+
+@pytest.fixture
+def now() -> datetime.datetime:
+    return tz_now()

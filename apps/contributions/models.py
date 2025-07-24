@@ -528,14 +528,6 @@ class Contribution(IndexedTimeStampedModel):
     def expanded_bad_actor_score(self):
         return None if self.bad_actor_score is None else self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
-    @property
-    def is_unmarked_abandoned_cart(self) -> bool:
-        return (
-            not self.provider_payment_method_id
-            and self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING)
-            and (self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD)
-        )
-
     def process_flagged_payment(self, new_quarantine_status: QuarantineStatus, reject: bool = False):
         logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
         payment_manager = self.get_payment_manager_instance()

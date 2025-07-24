@@ -1,15 +1,15 @@
 name: Build and Test React Application
 
 on:
-  push:
-    branches:
-      - "*"
+  pull_request:
+
 jobs:
   # Only run if SPA code has changed
   check-changes:
     runs-on: ubuntu-latest
     # Required permissions
     permissions:
+      contents: read
       pull-requests: read
     # Set job outputs to values from filter step
     outputs:
@@ -29,6 +29,7 @@ jobs:
     if: ${{ needs['check-changes'].outputs.spa == 'true' }}
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - name: Checkout branch

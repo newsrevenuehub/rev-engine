@@ -10,7 +10,7 @@ fileignoreconfig:
   checksum: 913500c2201780b1763283a509529ce7448b8c74747199cd7bc05e3bfc24985a
 # Complaints about SHAS
 - filename: spa/package-lock.json
-  checksum: 2851c824fd67d4a19a2c31d991447f79236d555bd20f0ce6e396a1c25de49b17
+  checksum: 4f7d119274a0b291bb4624eb7c3f28db38b75fa377d273aaee7ad452f5eb9c7d
 # Complaint about on_delete set to protect
 - filename: apps/contributions/models.py
   checksum: a8d8ba39452106d15de17d5b6685835289bca9554604ed16ee7034679b9ad337

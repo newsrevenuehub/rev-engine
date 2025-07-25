@@ -406,7 +406,9 @@ class TestContributionAdmin:
 
     def test_quarantine_actions_shown_on_flagged_detail(self, admin):
         contribution = ContributionFactory(
-            status=ContributionStatus.FLAGGED, quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+            status=ContributionStatus.FLAGGED,
+            quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+            provider_payment_method_id="pm_1234",
         )
         assert (
             "Quarantine",
@@ -415,7 +417,9 @@ class TestContributionAdmin:
 
     def test_other_fields_shown_on_flagged_detail(self, admin):
         contribution = ContributionFactory(
-            status=ContributionStatus.FLAGGED, quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR
+            status=ContributionStatus.FLAGGED,
+            quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+            provider_payment_method_id="pm_1234",
         )
         fields = admin.get_fieldsets(obj=contribution, request="unused")
         for fieldset in ContributionAdmin.fieldsets:
@@ -434,7 +438,7 @@ class TestContributionAdmin:
         ],
     )
     def test_quarantine_actions_hidden_on_unflagged_detail(self, admin, status):
-        contribution = ContributionFactory(status=status)
+        contribution = ContributionFactory(status=status, quarantine_status=None, provider_payment_method_id="pm_1234")
         assert (
             "Quarantine",
             {"fields": ("quarantine_actions",)},
@@ -453,7 +457,31 @@ class TestContributionAdmin:
         ],
     )
     def test_quarantine_actions_hidden_on_other_flagged_statuses(self, admin, quarantine_status):
-        contribution = ContributionFactory(status=ContributionStatus.FLAGGED, quarantine_status=quarantine_status)
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED, quarantine_status=quarantine_status, provider_payment_method_id="pm_1234"
+        )
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) not in admin.get_fieldsets(obj=contribution, request="unused")
+
+    def test_quarantine_actions_hidden_if_missing_provider_payment_method_id(self, admin):
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED,
+            quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+            provider_payment_method_id=None,
+        )
+        assert (
+            "Quarantine",
+            {"fields": ("quarantine_actions",)},
+        ) not in admin.get_fieldsets(obj=contribution, request="unused")
+
+    def test_quarantine_actions_hidden_if_status_is_canceled(self, admin):
+        contribution = ContributionFactory(
+            status=ContributionStatus.CANCELED,
+            quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+            provider_payment_method_id="pm_1234",
+        )
         assert (
             "Quarantine",
             {"fields": ("quarantine_actions",)},

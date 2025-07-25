@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from types import TracebackType
 
 from django.conf import settings
+from django.db.models import Q
 from django.db.utils import OperationalError
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -67,8 +68,10 @@ def auto_accept_flagged_contributions():
     failed_captures = 0
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
+        ~Q(status__in=[ContributionStatus.ABANDONED, ContributionStatus.CANCELED]),
         quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
         flagged_date__lte=now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA),
+        provider_payment_method_id__isnull=False,
     )
     logger.info(
         "Found %s flagged contributions past auto-accept date that are eligible for auto-accept",

@@ -282,7 +282,13 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     def get_fieldsets(self, request: HttpRequest, obj: Contribution):
         # Add quarantine options to flagged contributions.
-        if obj.quarantine_status == QuarantineStatus.FLAGGED_BY_BAD_ACTOR:
+        if all(
+            [
+                obj.quarantine_status == QuarantineStatus.FLAGGED_BY_BAD_ACTOR.value,
+                obj.status == ContributionStatus.FLAGGED,
+                obj.provider_payment_method_id is not None,
+            ]
+        ):
             return (
                 (
                     "Quarantine",

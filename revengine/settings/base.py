@@ -485,7 +485,6 @@ STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_CONTRIBUT
 STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
-    "payment_intent.succeeded",
     "customer.subscription.updated",
     "customer.subscription.deleted",
     "invoice.upcoming",

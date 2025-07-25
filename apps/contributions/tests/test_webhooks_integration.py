@@ -6,8 +6,8 @@ circumstances expected request states lead to expected side effects.
 
 Note that this is not a perfect integration test. Here, unlike in prod, we execute our async tasks synchronously.
 
-Tests are grouped by the type of webhook they are testing. For example, all tests for the `payment_intent_succeeded` webhooks
-are grouped together in the `TestPaymentIntentSucceeded` class.
+Tests are grouped by the type of webhook they are testing. For example, all tests for the `payment_intent.canceled` webhooks
+are grouped together in the `TestPaymentIntentCanceled` class.
 """
 
 import datetime
@@ -19,7 +19,6 @@ from django.utils.timezone import make_aware
 
 import pytest
 import stripe
-from addict import Dict as AttrDict
 from rest_framework import status
 from stripe.webhook import WebhookSignature
 
@@ -45,12 +44,6 @@ def _synchronous_celery(settings):
 @pytest.fixture
 def payment_intent_canceled():
     with Path("apps/contributions/tests/fixtures/payment-intent-canceled-webhook.json").open() as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def payment_intent_payment_failed():
-    with Path("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json").open() as f:
         return json.load(f)
 
 
@@ -118,85 +111,6 @@ def test_charge_succeeded(client, mocker, charge_succeeded_event):
     )
     assert by_pm.count() == 1
     assert by_pm.first().id == contribution.id
-
-
-@pytest.mark.django_db
-@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
-class TestPaymentIntentSucceeded:
-    def test_when_when_one_time_and_contribution_found(
-        self,
-        payment_intent_succeeded_one_time_event,
-        payment_intent_for_one_time_contribution,
-        balance_transaction_for_one_time_charge,
-        payment_method,
-        client,
-        mocker,
-    ):
-        payment_intent_succeeded_one_time_event["data"]["object"]["payment_method"] = payment_method.id
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"}))
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
-        mocker.patch("stripe.PaymentMethod.retrieve", return_value=payment_method)
-        contribution = ContributionFactory(
-            one_time=True,
-            status=ContributionStatus.PROCESSING,
-            last_payment_date=None,
-            provider_payment_id=payment_intent_for_one_time_contribution.id,
-        )
-        PaymentFactory(contribution=contribution, stripe_balance_transaction_id="bt_fake_01")
-        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
-        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        response = client.post(
-            reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
-        )
-        assert response.status_code == status.HTTP_200_OK
-        contribution.refresh_from_db()
-        assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
-        assert contribution.status == ContributionStatus.PAID
-        assert (
-            contribution.provider_payment_method_id
-            == payment_intent_succeeded_one_time_event["data"]["object"]["payment_method"]
-        )
-        assert Payment.objects.filter(
-            contribution=contribution, stripe_balance_transaction_id=balance_transaction_for_one_time_charge.id
-        ).exists()
-        mock_send_receipt.assert_called_once_with(contribution=contribution, show_billing_history=False)
-
-    def test_when_one_time_contribution_not_found(self, payment_intent_succeeded_one_time_event, mocker, client):
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
-        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        Contribution.objects.all().delete()
-        response = client.post(
-            reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
-        )
-        assert response.status_code == status.HTTP_200_OK
-        assert logger_spy.call_args == mocker.call(
-            "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
-        )
-
-    @pytest.fixture(
-        params=[
-            "payment_intent_succeeded_subscription_creation_event",
-        ]
-    )
-    def when_not_one_time_payment_event(self, request):
-        return request.getfixturevalue(request.param)
-
-    def test_when_not_one_time_payment(self, when_not_one_time_payment_event, mocker, client):
-        ContributionFactory(provider_payment_id=when_not_one_time_payment_event["data"]["object"]["id"])
-        logger_spy = mocker.patch("apps.contributions.webhooks.logger.info")
-        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        response = client.post(reverse("stripe-webhooks-contributions"), data=when_not_one_time_payment_event, **header)
-        assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_has_calls(
-            [
-                mocker.call(
-                    "Payment intent %s in event %s appears to be for a subscription, which are handled in different webhook receiver",
-                    when_not_one_time_payment_event["data"]["object"]["id"],
-                    when_not_one_time_payment_event["id"],
-                )
-            ]
-        )
 
 
 @pytest.mark.django_db

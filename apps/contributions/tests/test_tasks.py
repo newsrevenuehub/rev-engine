@@ -222,12 +222,12 @@ class TestProcessStripeWebhookTask:
         )
 
     @pytest.mark.parametrize("contribution_found", [True, False])
-    def test_synchronously(self, contribution_found, payment_intent_succeeded, mocker):
+    def test_synchronously(self, contribution_found, payment_intent_payment_failed, mocker):
         mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
         mock_logger = mocker.patch("apps.contributions.tasks.logger.info")
         if not contribution_found:
             mock_process.side_effect = Contribution.DoesNotExist
-        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
+        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_payment_failed)
         mock_process.assert_called_once()
         if contribution_found:
             assert mock_logger.call_count == 1
@@ -237,39 +237,42 @@ class TestProcessStripeWebhookTask:
                 "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
             )
 
-    def test_event_properties_passed_to_processor(self, payment_intent_succeeded, mocker):
+    def test_event_properties_passed_to_processor(self, payment_intent_payment_failed, mocker):
         mock_processor = mocker.patch.object(StripeWebhookProcessor, "__new__")
-        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
+        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_payment_failed)
         mock_processor.assert_called_once_with(
             mocker.ANY,
             event=StripeEventData(
-                id=payment_intent_succeeded.get("id"),
-                object=payment_intent_succeeded.get("object"),
-                account=payment_intent_succeeded.get("account"),
-                api_version=payment_intent_succeeded.get("api_version"),
-                created=payment_intent_succeeded.get("created"),
-                data=payment_intent_succeeded.get("data"),
-                request=payment_intent_succeeded.get("request"),
-                livemode=payment_intent_succeeded.get("livemode"),
-                pending_webhooks=payment_intent_succeeded.get("pending_webhooks"),
-                type=payment_intent_succeeded.get("type"),
+                id=payment_intent_payment_failed.get("id"),
+                object=payment_intent_payment_failed.get("object"),
+                account=payment_intent_payment_failed.get("account"),
+                api_version=payment_intent_payment_failed.get("api_version"),
+                created=payment_intent_payment_failed.get("created"),
+                data=payment_intent_payment_failed.get("data"),
+                request=payment_intent_payment_failed.get("request"),
+                livemode=payment_intent_payment_failed.get("livemode"),
+                pending_webhooks=payment_intent_payment_failed.get("pending_webhooks"),
+                type=payment_intent_payment_failed.get("type"),
             ),
         )
 
-    def test_extraneous_properties_on_event(self, payment_intent_succeeded, mocker):
+    def test_extraneous_properties_on_event(self, payment_intent_payment_failed, mocker):
         mock_processor = mocker.Mock()
         mocker.patch.object(StripeWebhookProcessor, "__new__", return_value=mock_processor)
-        payment_intent_succeeded["unexpected_property"] = "value"
-        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
+        payment_intent_payment_failed["unexpected_property"] = "value"
+        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_payment_failed)
         mock_processor.process.assert_called_once()
 
     def test_calls_healthchecks(
-        self, mocker: pytest_mock.MockerFixture, payment_intent_succeeded: dict[str, Any], settings: SettingsWrapper
+        self,
+        mocker: pytest_mock.MockerFixture,
+        payment_intent_payment_failed: dict[str, Any],
+        settings: SettingsWrapper,
     ):
         settings.HEALTHCHECK_URL_PROCESS_STRIPE_WEBHOOK_TASK = "https://foo"
         mocker.patch.object(StripeWebhookProcessor, "__new__")
         mock_ping_healthchecks = mocker.patch("apps.contributions.tasks.ping_healthchecks")
-        contribution_tasks.process_stripe_webhook_task(payment_intent_succeeded)
+        contribution_tasks.process_stripe_webhook_task(payment_intent_payment_failed)
         mock_ping_healthchecks.assert_called_once_with(
             "process_stripe_webhook_task", settings.HEALTHCHECK_URL_PROCESS_STRIPE_WEBHOOK_TASK
         )
@@ -285,13 +288,13 @@ def test_on_process_stripe_webhook_task_failure(mocker):
 
 
 @pytest.mark.django_db
-def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_intent_succeeded_one_time_event, mocker):
+def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_intent_payment_failed, mocker):
     logger_spy = mocker.spy(contribution_tasks.logger, "info")
     Contribution.objects.all().delete()
-    contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded_one_time_event)
+    contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_payment_failed)
     assert logger_spy.call_args == mocker.call(
         "Could not find contribution. Here's the event data: %s",
-        StripeEventData(**payment_intent_succeeded_one_time_event),
+        StripeEventData(**payment_intent_payment_failed),
         exc_info=True,
     )
 

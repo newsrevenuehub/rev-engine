@@ -1,5 +1,6 @@
 import logging
 import typing
+from datetime import date
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -29,6 +30,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class TransactionalEmailNames(models.TextChoices):
     CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
+    ANNUAL_PAYMENT_REMINDER = "annual_payment_reminder", "Annual Payment Reminder"
 
 
 class EmailCustomization(IndexedTimeStampedModel):
@@ -74,6 +76,15 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
     contribution = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=TransactionalEmailNames.choices)
     sent_on = models.DateTimeField(default=timezone.now, help_text="When the email was sent")
+    unique_identifier = models.CharField(
+        max_length=300,
+        null=True,
+        blank=True,
+        help_text=(
+            "A unique identifier for the email, such as a webhook event ID or similar to ensure transactional "
+            "emails are not sent multiple times for the same event."
+        ),
+    )
 
     # We expect to add additional fields to uniqueness constraint in the future as we add more email types.
     # Specifically, we expect to eventually store webhook event IDs here to ensure we don't send the same email
@@ -82,10 +93,43 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         unique_together = (
             "contribution",
             "name",
+            "unique_identifier",
         )
 
     def __str__(self):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"
+
+    @staticmethod
+    def handle_annual_payment_reminder(
+        contribution: Contribution, unique_identifier: str, next_charge_date: date
+    ) -> None:
+        """If warranted, trigger an annual payment reminder email to the contributor."""
+        logger.info("Running for contribution %s", contribution.pk)
+        if contribution.revenue_program.organization.disable_reminder_emails:
+            logger.info(
+                "Will not send annual payment reminder email for contribution %s, "
+                "organization does not send annual payment reminder emails via NRE",
+                contribution.pk,
+            )
+            return
+        with transaction.atomic(), reversion.create_revision():
+            _, created = TransactionalEmailRecord.objects.get_or_create(
+                contribution=contribution,
+                name=TransactionalEmailNames.ANNUAL_PAYMENT_REMINDER,
+                unique_identifier=unique_identifier,
+            )
+            if not created:
+                logger.info(
+                    "Annual payment reminder email for contribution %s already sent, skipping email creation",
+                    contribution.pk,
+                )
+            else:
+                contribution.send_recurring_contribution_change_email(
+                    f"Reminder: {contribution.revenue_program.name} scheduled contribution",
+                    "recurring-contribution-email-reminder",
+                    next_charge_date,
+                )
+                reversion.set_comment("Created by TransactionalEmailRecord.handle_annual_payment_reminder")
 
     @staticmethod
     def send_receipt_email(contribution: Contribution, show_billing_history: bool = True) -> None:

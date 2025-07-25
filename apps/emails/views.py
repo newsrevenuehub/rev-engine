@@ -6,12 +6,19 @@ from django.http import Http404, HttpResponse
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 
-from rest_framework import viewsets
+from knox.auth import TokenAuthentication
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from apps.api.permissions import IsHubAdmin, IsOrgAdmin, IsRpAdmin
+from apps.api.permissions import IsHubAdmin, IsOrgAdmin, IsRpAdmin, IsSwitchboardAccount
 from apps.contributions.models import BillingHistoryItem, Contribution
-from apps.emails.models import EmailCustomization
-from apps.emails.serializers import EmailCustomizationSerializer
+from apps.emails.models import EmailCustomization, TransactionalEmailRecord
+from apps.emails.serializers import (
+    EmailCustomizationSerializer,
+    TriggerAnnualPaymentReminderSerializer,
+)
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 
@@ -123,3 +130,19 @@ class EmailCustomizationViewSet(viewsets.ModelViewSet):
         ):
             return queryset.none()
         return queryset
+
+
+class TriggerTransactionalEmailViewSet(viewsets.GenericViewSet):
+    """Viewset for triggering transactional emails."""
+
+    permission_classes = [IsSwitchboardAccount]
+    authentication_classes = [TokenAuthentication]
+
+    @action(
+        detail=False, methods=["post"], url_path="annual-payment-reminder", url_name="trigger-annual-payment-reminder"
+    )
+    def trigger_annual_payment_reminder(self, request: Request) -> Response:
+        serializer = TriggerAnnualPaymentReminderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        TransactionalEmailRecord.handle_annual_payment_reminder(**serializer.validated_data)
+        return Response(status=status.HTTP_204_NO_CONTENT)

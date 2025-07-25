@@ -7,7 +7,7 @@ from apps.contributions.models import Contribution, ContributionStatus
 
 
 class ContributionFilter(django_filters.FilterSet):
-    contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
+    contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="contains")
     status = django_filters.MultipleChoiceFilter(choices=ContributionStatus.choices)
     status__not = django_filters.MultipleChoiceFilter(
         choices=ContributionStatus.choices, field_name="status", exclude=True, lookup_expr="iexact"

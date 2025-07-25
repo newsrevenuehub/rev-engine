@@ -91,8 +91,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     def get_contributor_contributions(self, contributor: Contributor) -> QuerySet[Contribution]:
         return (
-            contributor.get_contributor_contributions_queryset()
-            .exclude_hidden_statuses()
+            contributor.contribution_set.exclude_hidden_statuses()
             .exclude_paymentless_canceled()
             .exclude_recurring_missing_provider_subscription_id()
             .exclude_dummy_payment_method_id()

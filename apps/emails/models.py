@@ -90,11 +90,21 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
     # Specifically, we expect to eventually store webhook event IDs here to ensure we don't send the same email
     # multiple times for the same webhook event.
     class Meta:
-        unique_together = (
-            "contribution",
-            "name",
-            "unique_identifier",
-        )
+        # The two constraints below ensure that we only send one email per contribution, name, and unique identifier.
+        # By default, null is treated as distinct in Django. Django 5 introduces `distinct_nulls=False` option
+        # to change this behavior, but in Django 4.2, we need to use a condition to achieve the same.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["contribution", "name", "unique_identifier"],
+                name="contribution_name_unique_identifier_when_not_null",
+                condition=models.Q(unique_identifier__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["contribution", "name"],
+                name="contribution_name_unique_identifier_when_null",
+                condition=models.Q(unique_identifier__isnull=True),
+            ),
+        ]
 
     def __str__(self):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"

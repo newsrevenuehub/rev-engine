@@ -1,5 +1,7 @@
 import typing
 
+from django.utils import timezone
+
 import pytest
 import pytest_mock
 
@@ -59,12 +61,13 @@ class TestTransactionalEmailRecord:
 
     @pytest.fixture
     def transactional_email_record_receipt_email(
-        self, one_time_contribution: "Contribution"
+        self, one_time_contribution: "Contribution", now: timezone.datetime
     ) -> TransactionalEmailRecord:
         """Fixture to create a default TransactionalEmailRecord instance."""
         record = TransactionalEmailRecord(
             contribution=one_time_contribution,
             name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
+            sent_on=now,
         )
         record.save()
         return record
@@ -89,11 +92,12 @@ class TestTransactionalEmailRecord:
 
     @pytest.mark.usefixtures("_mock_stripe_retrieve")
     def test_handle_receipt_email_when_already_sent(
-        self, transactional_email_record_receipt_email: TransactionalEmailRecord
+        self, transactional_email_record_receipt_email: TransactionalEmailRecord, now: timezone.datetime
     ):
         query = TransactionalEmailRecord.objects.filter(
             contribution=transactional_email_record_receipt_email.contribution,
             name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
+            sent_on=now,
         )
         assert query.exists()
         TransactionalEmailRecord.handle_receipt_email(

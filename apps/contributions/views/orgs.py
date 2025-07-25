@@ -163,12 +163,16 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def send_receipt(self, request, pk) -> Response:
         contribution = self.get_object()
+
+        # We only allow sending receipts for contributions that have already
+        # sent at least one receipt.
+
+        # TODO(@nrh-cklimas): Eventually this logic should test for
+        # the existence of transactional email records instead.
+        # DEV-6390
         if contribution.payment_set.count() == 0:
             # 404 so we don't leak information about contributions; these are
             # treated identically to nonexistent ones.
-            #
-            # Eventually this logic should test for the existence of
-            # transactional email records instead.
             return Response(status=status.HTTP_404_NOT_FOUND)
         TransactionalEmailRecord.send_receipt_email(
             contribution=contribution,

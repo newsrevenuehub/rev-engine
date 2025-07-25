@@ -17,6 +17,7 @@ from apps.contributions.views.switchboard import (
     SwitchboardPaymentsViewSet,
 )
 from apps.emails.urls import urlpatterns as emails_urlpatterns
+from apps.emails.views import TriggerTransactionalEmailViewSet
 from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.organizations.views.switchboard import OrganizationViewSet as SwitchboardOrganizationViewSet
 from apps.pages.urls import urlpatterns as pages_urlpatterns
@@ -33,6 +34,9 @@ switchboard_router.register(r"contributors", SwitchboardContributorsViewSet, bas
 switchboard_router.register(r"payments", SwitchboardPaymentsViewSet, basename="switchboard-payment")
 switchboard_router.register(r"users", SwitchboardUsersViewSet, basename="switchboard-user")
 switchboard_router.register(r"organizations", SwitchboardOrganizationViewSet, basename="switchboard-organization")
+switchboard_router.register(
+    r"trigger-transactional-email", TriggerTransactionalEmailViewSet, basename="switchboard-trigger-email"
+)
 switchboard_urlpatterns = [
     path("switchboard/login/", SwitchboardLoginView.as_view(), name="switchboard-login"),
     path("switchboard/", include(switchboard_router.urls)),

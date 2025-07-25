@@ -23,11 +23,6 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 
 
 @pytest.fixture
-def now() -> timezone.datetime:
-    return timezone.now()
-
-
-@pytest.fixture
 def expiring_flagged_contributions(now):
     flagged_date = now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA) - timedelta(days=1)
     return ContributionFactory.create_batch(2, status=ContributionStatus.FLAGGED, flagged_date=flagged_date)

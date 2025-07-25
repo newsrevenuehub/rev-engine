@@ -20,7 +20,7 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, ContributionStatusError
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus, ContributionStatusError
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_verify_apple_domain,
@@ -163,6 +163,14 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def send_receipt(self, request, pk) -> Response:
         contribution = self.get_object()
+        if contribution.status not in (
+            ContributionStatus.CANCELED,
+            ContributionStatus.PAID,
+            ContributionStatus.REFUNDED,
+        ):
+            # 404 so we don't leak information about contributions; these are
+            # treated identically to nonexistent ones.
+            return Response(status=status.HTTP_404_NOT_FOUND)
         TransactionalEmailRecord.send_receipt_email(
             contribution=contribution,
             show_billing_history=contribution.interval != ContributionInterval.ONE_TIME.value,

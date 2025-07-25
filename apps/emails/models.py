@@ -86,9 +86,6 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         ),
     )
 
-    # We expect to add additional fields to uniqueness constraint in the future as we add more email types.
-    # Specifically, we expect to eventually store webhook event IDs here to ensure we don't send the same email
-    # multiple times for the same webhook event.
     class Meta:
         # The two constraints below ensure that we only send one email per contribution, name, and unique identifier.
         # By default, null is treated as distinct in Django. Django 5 introduces `distinct_nulls=False` option

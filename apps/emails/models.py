@@ -3,7 +3,7 @@ import typing
 from datetime import date
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 import reversion
@@ -130,13 +130,13 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
                     "Annual payment reminder email for contribution %s already sent, skipping email creation",
                     contribution.pk,
                 )
-            else:
-                contribution.send_recurring_contribution_change_email(
-                    f"Reminder: {contribution.revenue_program.name} scheduled contribution",
-                    "recurring-contribution-email-reminder",
-                    next_charge_date,
-                )
-                reversion.set_comment("Created by TransactionalEmailRecord.handle_annual_payment_reminder")
+                return
+            contribution.send_recurring_contribution_change_email(
+                f"Reminder: {contribution.revenue_program.name} scheduled contribution",
+                "recurring-contribution-email-reminder",
+                next_charge_date,
+            )
+            reversion.set_comment("Created by TransactionalEmailRecord.handle_annual_payment_reminder")
 
     @staticmethod
     def send_receipt_email(contribution: Contribution, show_billing_history: bool = True) -> None:
@@ -159,19 +159,17 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         # We also want to ensure that if a separate process runs this same method conccurently with same contribution,
         # it cannot lead to multiple emails being sent.
         with transaction.atomic(), reversion.create_revision():
-            try:
-                TransactionalEmailRecord.objects.create(
-                    contribution=contribution,
-                    name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
-                )
-            except IntegrityError:
+            _, created = TransactionalEmailRecord.objects.get_or_create(
+                contribution=contribution,
+                name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
+            )
+            if not created:
                 logger.info(
                     "Receipt email for contribution %s already sent, skipping email creation",
                     contribution.pk,
                 )
                 return
-            else:
-                reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
-                # we only send email if the record was created successfully, but if there's an error in sending the email,
-                # we'll get rollback of email record, which is what we want since we only want to create if sent (as best we can tell).
-                cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)
+            reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
+            # we only send email if the record was created successfully, but if there's an error in sending the email,
+            # we'll get rollback of email record, which is what we want since we only want to create if sent (as best we can tell).
+            cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)

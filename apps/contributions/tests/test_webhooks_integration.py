@@ -14,13 +14,16 @@ import datetime
 import json
 from pathlib import Path
 
+from django.test import Client
 from django.urls import reverse
 from django.utils.timezone import make_aware
 
 import pytest
+import pytest_mock
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
+from stripe.api_resources.event import Event
 from stripe.webhook import WebhookSignature
 
 from apps.contributions.models import (
@@ -30,7 +33,7 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
-from apps.contributions.typings import StripeEventData
+from apps.contributions.typings import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS, StripeEventData
 
 
 @pytest.fixture(autouse=True)
@@ -75,13 +78,26 @@ def charge_refunded():
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
-def test_payment_method_attached(client, mocker, payment_method_attached_event):
-    contribution = ContributionFactory(
-        one_time=True,
-        flagged=True,
-        provider_customer_id=payment_method_attached_event["data"]["object"]["customer"],
-        provider_payment_method_id=None,
-        provider_payment_method_details=None,
+@pytest.mark.parametrize("schema_version_for_second_event", STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.keys())
+def test_payment_method_attached(
+    client: Client,
+    mocker: pytest_mock.MockerFixture,
+    payment_method_attached_event: Event,
+    valid_metadata: dict,
+    schema_version_for_second_event: str,
+):
+    assert valid_metadata["schema_version"] != "1.6"
+    kwargs = {
+        "one_time": True,
+        "flagged": False,
+        "provider_customer_id": payment_method_attached_event["data"]["object"]["customer"],
+        "provider_payment_method_id": None,
+        "provider_payment_method_details": None,
+        "contribution_metadata": valid_metadata,
+    }
+    first_contribution = ContributionFactory(**kwargs)
+    second_contribution = ContributionFactory(
+        **{**kwargs, "contribution_metadata": {**valid_metadata, "schema_version": schema_version_for_second_event}}
     )
     mocker.patch(
         "stripe.PaymentMethod.retrieve",
@@ -90,21 +106,36 @@ def test_payment_method_attached(client, mocker, payment_method_attached_event):
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
     assert response.status_code == status.HTTP_200_OK
-    contribution.refresh_from_db()
-    assert contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
-    assert contribution.provider_payment_method_details == pm
+    first_contribution.refresh_from_db()
+    assert first_contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
+    assert first_contribution.provider_payment_method_details == pm
+    second_contribution.refresh_from_db()
+    if schema_version_for_second_event == "1.6":
+        assert second_contribution.provider_payment_method_id is None
+        assert second_contribution.provider_payment_method_details is None
+    else:
+        assert second_contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
+        assert second_contribution.provider_payment_method_details == pm
 
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
-def test_charge_succeeded(client, mocker, charge_succeeded_event):
+@pytest.mark.parametrize("schema_version", STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.keys())
+def test_charge_succeeded(
+    client: Client,
+    mocker: pytest_mock.MockerFixture,
+    charge_succeeded_event: Event,
+    valid_metadata: dict,
+    schema_version: str,
+):
     contribution = ContributionFactory(
         one_time=True,
-        status=ContributionStatus.PROCESSING,
+        flagged=False,
         provider_payment_id=charge_succeeded_event["data"]["object"]["payment_intent"],
         provider_payment_method_id=None,
+        provider_payment_method_details=None,
+        contribution_metadata={**valid_metadata, "schema_version": schema_version},
     )
-    assert contribution.provider_payment_method_id is None
     mocker.patch(
         "stripe.PaymentMethod.retrieve",
         return_value=(pm := {"card": {"brand": "Visa", "last4": "4242"}}),
@@ -112,12 +143,13 @@ def test_charge_succeeded(client, mocker, charge_succeeded_event):
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     response = client.post(reverse("stripe-webhooks-contributions"), data=charge_succeeded_event, **header)
     assert response.status_code == status.HTTP_200_OK
-    by_pm = Contribution.objects.filter(
-        provider_payment_method_id=charge_succeeded_event["data"]["object"]["payment_method"],
-        provider_payment_method_details=pm,
-    )
-    assert by_pm.count() == 1
-    assert by_pm.first().id == contribution.id
+    contribution.refresh_from_db()
+    if schema_version == "1.6":
+        assert contribution.provider_payment_method_id is None
+        assert contribution.provider_payment_method_details is None
+    else:
+        assert contribution.provider_payment_method_id == charge_succeeded_event["data"]["object"]["payment_method"]
+        assert contribution.provider_payment_method_details == pm
 
 
 @pytest.mark.django_db

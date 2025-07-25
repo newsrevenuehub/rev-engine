@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import axios from 'ajax/axios';
-import { getAdminContributionEndpoint } from 'ajax/endpoints';
+import { getAdminContributionEndpoint, getAdminContributionSendReceiptEndpoint } from 'ajax/endpoints';
 import SystemNotification from 'components/common/SystemNotification';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { RevenueProgramForContributionPage } from './useContributionPage';
@@ -120,6 +120,27 @@ export function useContribution(contributionId: number) {
       }
     }
   );
+  const sendReceiptMutation = useMutation(
+    async () => await axios.post<void>(getAdminContributionSendReceiptEndpoint(contributionId)),
+    {
+      onSuccess() {
+        enqueueSnackbar("The receipt has been successfully sent to the contributor's email address.", {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Receipt sent" type="success" />
+          )
+        });
+      },
+      onError() {
+        enqueueSnackbar('The receipt failed to send to the contributor. Please wait and try again.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Receipt resend failed" type="error" />
+          )
+        });
+      }
+    }
+  );
 
-  return { cancelMutation, contribution: data, isFetching, isError };
+  return { cancelMutation, sendReceiptMutation, contribution: data, isFetching, isError };
 }

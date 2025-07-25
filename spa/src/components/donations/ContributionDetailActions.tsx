@@ -13,7 +13,7 @@ const ContributionDetailActionsPropTypes = {
 export type ContributionDetailActionsProps = InferProps<typeof ContributionDetailActionsPropTypes>;
 
 export function ContributionDetailActions({ contributionId }: ContributionDetailActionsProps) {
-  const { cancelMutation, contribution, isFetching } = useContribution(contributionId);
+  const { cancelMutation, contribution, isFetching, sendReceiptMutation } = useContribution(contributionId);
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLButtonElement | null>(null);
   const { handleClose: handleConfirmClose, handleOpen: handleConfirmOpen, open: confirmOpen } = useModal();
 
@@ -24,6 +24,11 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
   function handleConfirmCancel() {
     cancelMutation.mutateAsync();
     handleConfirmClose();
+  }
+
+  function handleResendReceipt() {
+    sendReceiptMutation.mutateAsync();
+    handleMenuClose();
   }
 
   return (
@@ -46,8 +51,11 @@ export function ContributionDetailActions({ contributionId }: ContributionDetail
         onClose={handleMenuClose}
         open={!!menuAnchorEl}
       >
+        <MenuItem disabled={!contribution || isFetching || sendReceiptMutation.isPending} onClick={handleResendReceipt}>
+          Resend Receipt
+        </MenuItem>
         <MenuItem
-          disabled={!contribution || !contribution.is_cancelable || isFetching || cancelMutation.isLoading}
+          disabled={!contribution || !contribution.is_cancelable || isFetching || cancelMutation.isPending}
           onClick={handleConfirmOpen}
         >
           Cancel Contribution

@@ -509,6 +509,112 @@ class TestContributionsViewSet:
         response = api_client.delete(reverse("contribution-detail", kwargs={"pk": monthly_contribution.id}))
         assert response.status_code == expected_status
 
+    @pytest.mark.parametrize(
+        ("contribution_status"), [ContributionStatus.CANCELED, ContributionStatus.PAID, ContributionStatus.REFUNDED]
+    )
+    def test_send_receipt_happy_path(
+        self,
+        contribution_status,
+        api_client: APIClient,
+        filter_user: User,
+        monthly_contribution_multiple_payments: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        monthly_contribution_multiple_payments.status = contribution_status
+        monthly_contribution_multiple_payments.save()
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.send_receipt_email")
+        api_client.force_authenticate(filter_user)
+        response = api_client.post(
+            reverse("contribution-send-receipt", args=(monthly_contribution_multiple_payments.id,))
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_send_receipt.assert_called_once()
+
+    @pytest.mark.parametrize(
+        ("interval", "billing_history_expected"),
+        [
+            (ContributionInterval.MONTHLY, True),
+            (ContributionInterval.ONE_TIME, False),
+            (ContributionInterval.YEARLY, True),
+        ],
+    )
+    def test_send_receipt_includes_billing_history(
+        self,
+        interval: ContributionInterval,
+        billing_history_expected: bool,
+        api_client: APIClient,
+        filter_user: User,
+        monthly_contribution_multiple_payments: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        # We're changing interval here for testing purposes, so the fixture's
+        # name isn't quite accurate--we just need payments to exist.
+        monthly_contribution_multiple_payments.interval = interval
+        monthly_contribution_multiple_payments.save()
+        api_client.force_authenticate(filter_user)
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.send_receipt_email")
+        response = api_client.post(
+            reverse("contribution-send-receipt", args=(monthly_contribution_multiple_payments.id,))
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_send_receipt.assert_called_with(
+            contribution=monthly_contribution_multiple_payments, show_billing_history=billing_history_expected
+        )
+
+    def test_send_receipt_nonexistent_contribution(
+        self,
+        api_client: APIClient,
+        filter_user: User,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        api_client.force_authenticate(filter_user)
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.send_receipt_email")
+        response = api_client.post(reverse("contribution-send-receipt", args=(monthly_contribution.id + 1,)))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_send_receipt.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("contribution_status"),
+        [
+            ContributionStatus.PROCESSING,
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+            ContributionStatus.ABANDONED,
+        ],
+    )
+    def test_send_receipt_no_payments(
+        self,
+        contribution_status,
+        api_client: APIClient,
+        filter_user: User,
+        monthly_contribution: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        monthly_contribution.status = contribution_status
+        monthly_contribution.save()
+        api_client.force_authenticate(filter_user)
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.send_receipt_email")
+        response = api_client.post(reverse("contribution-send-receipt", args=(monthly_contribution.id,)))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_send_receipt.assert_not_called()
+
+    def test_send_receipt_unauthorized_user(
+        self,
+        api_client: APIClient,
+        org_user_free_plan: User,
+        monthly_contribution_multiple_payments: Contribution,
+        mocker: pytest_mock.MockerFixture,
+    ):
+        api_client.force_authenticate(org_user_free_plan)
+        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.send_receipt_email")
+        response = api_client.post(
+            reverse("contribution-send-receipt", args=(monthly_contribution_multiple_payments.id,))
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_send_receipt.assert_not_called()
+
 
 @pytest.mark.django_db
 class TestContributionsViewSetExportCSV:

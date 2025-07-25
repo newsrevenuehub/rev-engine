@@ -138,9 +138,7 @@ class TriggerTransactionalEmailViewSet(viewsets.GenericViewSet):
     permission_classes = [IsSwitchboardAccount]
     authentication_classes = [TokenAuthentication]
 
-    @action(
-        detail=False, methods=["post"], url_path="annual-payment-reminder", url_name="trigger-annual-payment-reminder"
-    )
+    @action(detail=False, methods=["post"], url_path="annual-payment-reminder", url_name="annual-payment-reminder")
     def trigger_annual_payment_reminder(self, request: Request) -> Response:
         serializer = TriggerAnnualPaymentReminderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

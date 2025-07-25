@@ -410,7 +410,7 @@ class TestTriggerTransactionalEmailViewSet:
         assert not query.exists()
         mock_send_mail = mocker.patch("apps.contributions.models.Contribution.send_recurring_contribution_change_email")
         response = api_client.post(
-            reverse("switchboard-trigger-email-trigger-annual-payment-reminder"),
+            reverse("switchboard-trigger-email-annual-payment-reminder"),
             data={
                 "contribution": annual_contribution.pk,
                 "unique_identifier": uid,
@@ -434,7 +434,7 @@ class TestTriggerTransactionalEmailViewSet:
     ):
         api_client.force_authenticate(user=switchboard_user)
         response = api_client.post(
-            reverse("switchboard-trigger-email-trigger-annual-payment-reminder"),
+            reverse("switchboard-trigger-email-annual-payment-reminder"),
             data={
                 "contribution": None,
                 "unique_identifier": None,
@@ -460,7 +460,7 @@ class TestTriggerTransactionalEmailViewSet:
         contribution = request.getfixturevalue(contribution_fixture)
         api_client.force_authenticate(user=switchboard_user)
         response = api_client.post(
-            reverse("switchboard-trigger-email-trigger-annual-payment-reminder"),
+            reverse("switchboard-trigger-email-annual-payment-reminder"),
             data={
                 "contribution": contribution.pk,
                 "unique_identifier": "unique-id-123",

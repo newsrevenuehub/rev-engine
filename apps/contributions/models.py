@@ -74,6 +74,13 @@ class Contributor(IndexedTimeStampedModel):
     # DEV-5782
     email_future = models.EmailField(blank=True, null=True, unique=True, db_collation="case_insensitive")
 
+    email_insensitive = models.EmailField(
+        blank=True,
+        null=True,
+        unique=True,
+        db_collation="case_insensitive_deterministic",
+    )
+
     # Allow activity log querysets to filter on this model.
     activity_logs = GenericRelation(
         ActivityLog,
@@ -95,6 +102,8 @@ class Contributor(IndexedTimeStampedModel):
         kwargs = {"email": stripped}
         if not Contributor.objects.filter(email_future=stripped).exists():
             kwargs["email_future"] = stripped
+        if not Contributor.objects.filter(email_insensitive=stripped).exists():
+            kwargs["email_insensitive"] = stripped
         return Contributor.objects.create(**kwargs), CREATED
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):

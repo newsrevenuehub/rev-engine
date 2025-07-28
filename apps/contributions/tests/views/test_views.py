@@ -5,6 +5,7 @@ import json
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
 
@@ -530,7 +531,8 @@ class TestContributionsViewSet:
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_send_receipt.assert_called_once()
-        logs = ActivityLog.objects.filter(actor__email=filter_user.email)
+        user_content_type = ContentType.objects.get_for_model(filter_user)
+        logs = ActivityLog.objects.filter(actor_content_type=user_content_type, actor_object_id=filter_user.id)
         assert len(logs) == 1
         assert logs[0].action == ActivityLog.SEND_RECEIPT
         assert logs[0].activity_object_content_object == monthly_contribution_multiple_payments

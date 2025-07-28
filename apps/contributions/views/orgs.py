@@ -181,7 +181,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         )
         ActivityLog.objects.create(
             actor_content_object=request.user,
-            activity_object_content_object=self,
+            activity_object_content_object=contribution,
             action=ActivityLog.SEND_RECEIPT,
         )
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -24,12 +24,6 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 @pytest.mark.django_db
 @pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestStripeWebhookProcessor:
-    @pytest.fixture
-    def payment_intent_test_case(self, payment_intent_succeeded_one_time_event):
-        contribution = ContributionFactory(
-            provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"]
-        )
-        return payment_intent_succeeded_one_time_event, contribution
 
     @pytest.fixture
     def invoice_test_case(self, invoice_upcoming_event):
@@ -54,7 +48,6 @@ class TestStripeWebhookProcessor:
 
     @pytest.fixture(
         params=[
-            "payment_intent_test_case",
             "invoice_test_case",
             "charge_test_case",
             "subscription_test_case",
@@ -75,14 +68,14 @@ class TestStripeWebhookProcessor:
         else:
             assert processor.contribution is None
 
-    def test_contribution_property_when_unexpected_object_type(self, mocker, payment_intent_succeeded_one_time_event):
+    def test_contribution_property_when_unexpected_object_type(self, mocker, payment_intent_payment_failed):
         mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.object_type", return_value="unexpected")
-        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_payment_failed))
         assert processor.contribution is None
 
     @pytest.fixture
-    def unexpected_event(self, payment_intent_succeeded_one_time_event):
-        return StripeEventData(**payment_intent_succeeded_one_time_event | {"type": "unexpected"})
+    def unexpected_event(self, payment_intent_payment_failed):
+        return StripeEventData(**payment_intent_payment_failed | {"type": "unexpected"})
 
     def test_contribution_when_unexpected_object_type(self, unexpected_event, mocker):
         processor = StripeWebhookProcessor(unexpected_event)
@@ -98,17 +91,17 @@ class TestStripeWebhookProcessor:
         ],
     )
     def test_webhook_live_mode_agrees_with_environment(
-        self, event_live_mode, payment_intent_succeeded_one_time_event, settings_live_mode, expected, settings
+        self, event_live_mode, payment_intent_payment_failed, settings_live_mode, expected, settings
     ):
         settings.STRIPE_LIVE_MODE = settings_live_mode
         processor = StripeWebhookProcessor(
-            event=StripeEventData(**payment_intent_succeeded_one_time_event | {"livemode": event_live_mode})
+            event=StripeEventData(**payment_intent_payment_failed | {"livemode": event_live_mode})
         )
         assert processor.webhook_live_mode_agrees_with_environment == expected
 
     @pytest.mark.parametrize("agrees", [True, False])
     @pytest.mark.parametrize("contribution_found", [True, False])
-    def test_process(self, agrees, contribution_found, mocker, payment_intent_succeeded_one_time_event):
+    def test_process(self, agrees, contribution_found, mocker, payment_intent_payment_failed):
         mocker.patch.object(
             StripeWebhookProcessor,
             "webhook_live_mode_agrees_with_environment",
@@ -123,7 +116,7 @@ class TestStripeWebhookProcessor:
             Contribution.objects.all().delete()
 
         if contribution_found:
-            StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
+            StripeWebhookProcessor(payment_intent_payment_failed).process()
             if agrees:
                 mock_route_request.assert_called_once()
                 logger_spy.assert_not_called()
@@ -133,15 +126,15 @@ class TestStripeWebhookProcessor:
 
         elif agrees:
             with pytest.raises(Contribution.DoesNotExist):
-                StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
+                StripeWebhookProcessor(payment_intent_payment_failed).process()
 
-    def test__handle_contribution_update_when_no_contribution(self, mocker, payment_intent_succeeded_one_time_event):
+    def test__handle_contribution_update_when_no_contribution(self, mocker, payment_intent_payment_failed):
         mocker.patch(
             "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
             return_value=None,
             new_callable=mocker.PropertyMock,
         )
-        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_payment_failed))
         with pytest.raises(Contribution.DoesNotExist):
             processor._handle_contribution_update({}, "")
 
@@ -150,20 +143,20 @@ class TestStripeWebhookProcessor:
         self,
         stripe_has_metadata,
         mocker,
-        payment_intent_succeeded_one_time_event,
+        payment_intent_payment_failed,
     ):
         mock_get_metadata_update_value = mocker.patch(
             "apps.contributions.webhooks.StripeWebhookProcessor.get_metadata_update_value",
             return_value={"foo": "bar"},
         )
         if stripe_has_metadata:
-            payment_intent_succeeded_one_time_event["data"]["object"]["metadata"] = {
+            payment_intent_payment_failed["data"]["object"]["metadata"] = {
                 "something": "truthy",
             }
         else:
-            payment_intent_succeeded_one_time_event["data"]["object"]["metadata"] = {}
+            payment_intent_payment_failed["data"]["object"]["metadata"] = {}
 
-        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_payment_failed))
         mocker.patch.object(
             processor, "contribution", new_callable=mocker.PropertyMock, return_value=ContributionFactory()
         )
@@ -177,16 +170,16 @@ class TestStripeWebhookProcessor:
             mock_get_metadata_update_value.assert_not_called()
 
     @pytest.mark.parametrize("has_pm_id", [True, False])
-    def test__add_pm_id_and_payment_method_details(self, mocker, has_pm_id, payment_intent_succeeded_one_time_event):
-        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+    def test__add_pm_id_and_payment_method_details(self, mocker, has_pm_id, customer_subscription_updated_event):
+        processor = StripeWebhookProcessor(event=StripeEventData(**customer_subscription_updated_event))
         mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=mocker.Mock())
         mocker.patch.object(
             processor, "contribution", new_callable=mocker.PropertyMock, return_value=ContributionFactory()
         )
         processor._add_pm_id_and_payment_method_details(pm_id="pm_id" if has_pm_id else None, update_data={})
 
-    def test__handle_pm_update_event_when_no_update(self, mocker, payment_intent_succeeded_one_time_event):
-        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+    def test__handle_pm_update_event_when_no_update(self, mocker, customer_subscription_updated_event):
+        processor = StripeWebhookProcessor(event=StripeEventData(**customer_subscription_updated_event))
         mocker.patch.object(processor, "contribution", return_value=None, new_callable=mocker.PropertyMock)
         processor._add_pm_id_and_payment_method_details(pm_id="pm_id", update_data={})
 
@@ -275,14 +268,12 @@ class TestStripeWebhookProcessor:
             ("contribution_metadata", None, None),
         ],
     )
-    def test_get_metadata_update_value(
-        self, request, payment_intent_succeeded_one_time_event, meta_con, meta_stripe, expected
-    ):
+    def test_get_metadata_update_value(self, request, payment_intent_payment_failed, meta_con, meta_stripe, expected):
         contribution_metadata = request.getfixturevalue(meta_con) if meta_con else None
         stripe_metadata = request.getfixturevalue(meta_stripe) if meta_stripe else None
         expected = request.getfixturevalue(expected) if expected else None
 
-        processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
+        processor = StripeWebhookProcessor(event=payment_intent_payment_failed)
 
         if expected:
             assert processor.get_metadata_update_value(
@@ -297,26 +288,26 @@ class TestStripeWebhookProcessor:
             )
 
     def test_get_metadata_update_value_when_invalid_metadata_error_contribution(
-        self, payment_intent_succeeded_one_time_event, mocker, contribution_metadata
+        self, payment_intent_payment_failed, mocker, contribution_metadata
     ):
         mock_get_metadata = mocker.patch(
             "apps.contributions.webhooks.cast_metadata_to_stripe_payment_metadata_schema",
             side_effect=InvalidMetadataError("Uh oh!"),
         )
-        processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
+        processor = StripeWebhookProcessor(event=payment_intent_payment_failed)
         assert (
             processor.get_metadata_update_value(contribution_metadata=contribution_metadata, stripe_metadata=None) == {}
         )
         mock_get_metadata.assert_called_once_with(contribution_metadata)
 
     def test_get_metadata_update_value_when_invalid_metadata_error_stripe(
-        self, payment_intent_succeeded_one_time_event, mocker, contribution_metadata, subscription_metadata_changed
+        self, payment_intent_payment_failed, mocker, contribution_metadata, subscription_metadata_changed
     ):
         mock_get_metadata = mocker.patch(
             "apps.contributions.webhooks.cast_metadata_to_stripe_payment_metadata_schema",
             side_effect=[True, InvalidMetadataError],
         )
-        processor = StripeWebhookProcessor(event=payment_intent_succeeded_one_time_event)
+        processor = StripeWebhookProcessor(event=payment_intent_payment_failed)
         assert (
             processor.get_metadata_update_value(
                 contribution_metadata=contribution_metadata, stripe_metadata=subscription_metadata_changed
@@ -362,40 +353,6 @@ class TestStripeWebhookProcessor:
             event=StripeEventData(**invoice_payment_succeeded_for_recurring_payment_event)
         )
         processor.handle_invoice_payment_succeeded()
-        if expect_send:
-            mock_send_receipt.assert_called_once_with(contribution=contribution, show_billing_history=False)
-        else:
-            mock_send_receipt.assert_not_called()
-
-    @pytest.mark.parametrize(
-        ("schema_version", "expect_send"),
-        [
-            ("1.4", True),
-            *[(k, False) for k in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS if k != "1.4"],
-        ],
-    )
-    def test_handle_payment_intent_succeeded_receipt_email_per_schema(
-        self, schema_version, expect_send, mocker, payment_intent_succeeded_one_time_event
-    ):
-        contribution = ContributionFactory(
-            provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"]
-        )
-        contribution.contribution_metadata["schema_version"] = schema_version
-        contribution.save()
-        mock_send_receipt = mocker.patch("apps.emails.models.TransactionalEmailRecord.handle_receipt_email")
-        payment = PaymentFactory(contribution=contribution)
-        mocker.patch(
-            "apps.contributions.models.Payment.from_stripe_payment_intent_succeeded_event", return_value=payment
-        )
-        mocker.patch(
-            "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
-            return_value=contribution,
-            new_callable=mocker.PropertyMock,
-        )
-        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._add_pm_id_and_payment_method_details")
-        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor._handle_contribution_update")
-        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
-        processor.handle_payment_intent_succeeded()
         if expect_send:
             mock_send_receipt.assert_called_once_with(contribution=contribution, show_billing_history=False)
         else:

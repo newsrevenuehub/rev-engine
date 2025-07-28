@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from reversion.views import create_revision
 
+from apps.activity_log.models import ActivityLog
 from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
@@ -177,6 +178,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         TransactionalEmailRecord.send_receipt_email(
             contribution=contribution,
             show_billing_history=contribution.interval != ContributionInterval.ONE_TIME.value,
+        )
+        ActivityLog.objects.create(
+            actor_content_object=request.user,
+            activity_object_content_object=self,
+            action=ActivityLog.SEND_RECEIPT,
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 

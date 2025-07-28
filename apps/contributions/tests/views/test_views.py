@@ -21,6 +21,7 @@ from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 from waffle import get_waffle_flag_model
 
+from apps.activity_log.models import ActivityLog
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import (
     Contribution,
@@ -529,6 +530,10 @@ class TestContributionsViewSet:
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_send_receipt.assert_called_once()
+        logs = ActivityLog.objects.filter(actor__email=filter_user.email)
+        assert len(logs) == 1
+        assert logs[0].action == ActivityLog.SEND_RECEIPT
+        assert logs[0].activity_object_content_object == monthly_contribution_multiple_payments
 
     @pytest.mark.parametrize(
         ("interval", "billing_history_expected"),

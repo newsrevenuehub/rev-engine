@@ -1482,57 +1482,6 @@ class Payment(IndexedTimeStampedModel):
             raise ValueError("Cannot link payment intent to a single balance transaction")
 
     @classmethod
-    @ensure_stripe_event(["payment_intent.succeeded"])
-    def get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
-        cls, event: StripeEventData
-    ) -> (Contribution | None, stripe.BalanceTransaction | None):
-        """Attempt to pair a Stripe event with an NRE contribution and balance transaction.
-
-        Returns a tuple of contribution, balance_transaction. Either or both may be None.
-
-        If there is more than one possible balance transaction (because > 1 charge on PI), we raise an exception. This is not
-        expected, but the data model would allow for it.
-        """
-        # we re-retrieve the PI because its state could have changed between the time the event was received and now
-        pi = stripe.PaymentIntent.retrieve(
-            event.data["object"]["id"],
-            stripe_account=event.account,
-        )
-        try:
-            cls._ensure_pi_has_single_charge(pi, event.id)
-            balance_transaction_id = pi.charges.data[0].balance_transaction
-        except ValueError:
-            balance_transaction_id = None
-        if not balance_transaction_id:
-            logger.warning(
-                "Could not find a balance transaction for PI %s associated with event %s",
-                getattr(pi, "id", "<no-pi>"),
-                event.id,
-            )
-            balance_transaction = None
-        else:
-            balance_transaction = stripe.BalanceTransaction.retrieve(
-                balance_transaction_id,
-                stripe_account=event.account,
-            )
-        try:
-            contribution = (
-                Contribution.objects.get(provider_payment_id=pi.id)
-                # pi.charges.data[0].invoice -- when is it none
-                if pi.charges.data[0].description == "Subscription creation" or pi.charges.data[0].invoice is None
-                else cls.get_contribution_for_recurrence(balance_transaction.id, event.account)
-            )
-        except Contribution.DoesNotExist:
-            contribution = None
-        if not contribution:
-            logger.warning(
-                "Could not find a contribution for PI %s associated with event %s",
-                getattr(pi, "id", "<no-pi>"),
-                event.id,
-            )
-        return contribution, balance_transaction
-
-    @classmethod
     @ensure_stripe_event(["invoice.payment_succeeded"])
     def get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(
         cls, event: StripeEventData
@@ -1582,31 +1531,6 @@ class Payment(IndexedTimeStampedModel):
             },
         )
         return payment
-
-    @classmethod
-    @ensure_stripe_event(["payment_intent.succeeded"])
-    def from_stripe_payment_intent_succeeded_event(cls, event: StripeEventData) -> Payment:
-        (
-            contribution,
-            balance_transaction,
-        ) = cls.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(event=event)
-
-        # if matching contribution is a recurring one, we will no-op because we'll create payment in
-        # `from_stripe_invoice_payment_succeeded_event` which should occur around the same time. We don't want to create
-        # duplicate payment instances for the same transaction.
-        if contribution and contribution.interval != ContributionInterval.ONE_TIME:
-            logger.debug(
-                "`Contribution.from_stripe_payment_intent_succeeded_event` called on contribution with ID %s which is a recurring"
-                " contribution. Will not create a payment instance because it will be created in"
-                " `from_stripe_invoice_payment_succeeded_event`",
-                contribution.id,
-            )
-            return None
-        return cls._handle_create_payment(
-            contribution=contribution,
-            balance_transaction=balance_transaction,
-            event_id=event.id,
-        )
 
     @classmethod
     @ensure_stripe_event(["charge.refunded"])

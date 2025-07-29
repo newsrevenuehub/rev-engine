@@ -6,13 +6,11 @@ fileignoreconfig:
 # This is Talisman complaining about the activity log model migration referencing an ID field.
 - filename: apps/activity_log/migrations/0001_DEV-5825_initial.py
   checksum: 6a3573c9864555ca5b931094e4fc6f0b2139b400843655147aebc4a9bc574200
-# False Complaint about a test function (test_event_properties_passed_to_processor)
-# exposing a secret in the test file.
 - filename: apps/contributions/tests/test_tasks.py
-  checksum: e59bc640891f89cc6f1f4c5eebfd3e91a76ea19a107e5c681c259d9a8fc10e59
+  checksum: 913500c2201780b1763283a509529ce7448b8c74747199cd7bc05e3bfc24985a
 # Complaints about SHAS
 - filename: spa/package-lock.json
-  checksum: 2851c824fd67d4a19a2c31d991447f79236d555bd20f0ce6e396a1c25de49b17
+  checksum: 4f7d119274a0b291bb4624eb7c3f28db38b75fa377d273aaee7ad452f5eb9c7d
 # Complaint about on_delete set to protect
 - filename: apps/contributions/models.py
   checksum: a8d8ba39452106d15de17d5b6685835289bca9554604ed16ee7034679b9ad337
@@ -30,7 +28,7 @@ fileignoreconfig:
   checksum: daab2f3bbc84bd90993feacc1e64ef38a359a05211b10e18eecce754992bf46f
 # Complaints about SHAS
 - filename: poetry.lock
-  checksum: 4b57c3729106788cfb50c02fb74a9e64fc7133102b1f689a8f2a47a5439ff4c6
+  checksum: 1794ad4ae3eb9ec8c742e2037c9d84f6889fd544095490ff1737c483c89fa16c
 - filename: apps/organizations/tests/test_admin.py
   checksum: 1e85dbd63bf5bb525005faf47e95780cdc457a2c1a52475820d894cf57959523
 - filename: apps/emails/migrations/0001_DEV-6141_add_email_customization_model.py

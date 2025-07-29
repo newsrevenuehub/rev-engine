@@ -1,10 +1,17 @@
 from django.template import TemplateDoesNotExist
 from django.urls import reverse
+from django.utils import timezone
 
 import pytest
+import pytest_mock
+from knox.auth import TokenAuthentication
+from rest_framework import status
 from rest_framework.test import APIClient, APIRequestFactory
 
-from apps.emails.models import EmailCustomization, TransactionalEmailNames
+from apps.api.permissions import IsSwitchboardAccount
+from apps.contributions.models import Contribution
+from apps.emails.models import EmailCustomization, TransactionalEmailNames, TransactionalEmailRecord
+from apps.emails.views import TriggerTransactionalEmailViewSet
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users.models import User
@@ -379,3 +386,98 @@ class TestEmailCustomizationViewSet:
             response.json()["non_field_errors"][0]
             == "The fields revenue_program, email_type, email_block must make a unique set."
         )
+
+
+@pytest.mark.django_db
+class TestTriggerTransactionalEmailViewSet:
+
+    def test_trigger_annual_payment_reminder_happy_path(
+        self,
+        api_client: APIClient,
+        switchboard_user: User,
+        annual_contribution: "Contribution",
+        mocker: pytest_mock.MockerFixture,
+        now: timezone.datetime,
+    ):
+        api_client.force_authenticate(user=switchboard_user)
+        uid = "unique-id-123"
+        next_charge_date = now.date()
+        query = TransactionalEmailRecord.objects.filter(
+            contribution=annual_contribution,
+            name=TransactionalEmailNames.ANNUAL_PAYMENT_REMINDER,
+            unique_identifier=uid,
+        )
+        assert not query.exists()
+        mock_send_mail = mocker.patch("apps.contributions.models.Contribution.send_recurring_contribution_change_email")
+        response = api_client.post(
+            reverse("switchboard-trigger-email-annual-payment-reminder"),
+            data={
+                "contribution": annual_contribution.pk,
+                "unique_identifier": uid,
+                "next_charge_date": next_charge_date.isoformat(),
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert query.exists()
+        assert query.count() == 1
+        mock_send_mail.assert_called_once_with(
+            f"Reminder: {annual_contribution.revenue_program.name} scheduled contribution",
+            "recurring-contribution-email-reminder",
+            next_charge_date,
+        )
+
+    def test_trigger_annual_payment_reminder_missing_fields(
+        self,
+        api_client: APIClient,
+        switchboard_user: User,
+    ):
+        api_client.force_authenticate(user=switchboard_user)
+        response = api_client.post(
+            reverse("switchboard-trigger-email-annual-payment-reminder"),
+            data={
+                "contribution": None,
+                "unique_identifier": None,
+                "next_charge_date": None,
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {
+            "contribution": ["This field may not be null."],
+            "unique_identifier": ["This field may not be null."],
+            "next_charge_date": ["This field may not be null."],
+        }
+
+    @pytest.mark.parametrize("contribution_fixture", ["one_time_contribution", "monthly_contribution"])
+    def test_trigger_annual_payment_reminder_when_wrong_interval(
+        self,
+        api_client: APIClient,
+        switchboard_user: User,
+        contribution_fixture: str,
+        request: pytest.FixtureRequest,
+    ):
+        contribution = request.getfixturevalue(contribution_fixture)
+        api_client.force_authenticate(user=switchboard_user)
+        response = api_client.post(
+            reverse("switchboard-trigger-email-annual-payment-reminder"),
+            data={
+                "contribution": contribution.pk,
+                "unique_identifier": "unique-id-123",
+                "next_charge_date": timezone.now().date().isoformat(),
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {
+            "contribution": [
+                f"Contribution must be yearly for email type '{TransactionalEmailNames.ANNUAL_PAYMENT_REMINDER.value}'. "
+                f"Current contribution interval is {contribution.interval}."
+            ]
+        }
+
+    def test_has_expected_permissions_class(self):
+        assert TriggerTransactionalEmailViewSet.permission_classes == [IsSwitchboardAccount]
+
+    def test_has_expected_authentication_class(self):
+        assert TriggerTransactionalEmailViewSet.authentication_classes == [TokenAuthentication]

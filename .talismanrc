@@ -6,11 +6,8 @@ fileignoreconfig:
 # This is Talisman complaining about the activity log model migration referencing an ID field.
 - filename: apps/activity_log/migrations/0001_DEV-5825_initial.py
   checksum: 6a3573c9864555ca5b931094e4fc6f0b2139b400843655147aebc4a9bc574200
-# False Complaint about a test function (test_event_properties_passed_to_processor)
-# exposing a secret in the test file.
 - filename: apps/contributions/tests/test_tasks.py
-  checksum: e59bc640891f89cc6f1f4c5eebfd3e91a76ea19a107e5c681c259d9a8fc10e59
-# Complaints about SHAS
+  checksum: 1e18dba640f02a6ae4a4f1528df2563982afd3becdff7bb57dd8895b7f0acbf3
 - filename: spa/package-lock.json
   checksum: 4f7d119274a0b291bb4624eb7c3f28db38b75fa377d273aaee7ad452f5eb9c7d
 # Complaint about on_delete set to protect

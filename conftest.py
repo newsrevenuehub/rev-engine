@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
 from django.core.files.images import ImageFile
-from django.utils.timezone import now as tz_now
+from django.utils import timezone
 
 import PIL.Image
 import pytest
@@ -229,7 +229,7 @@ def switchboard_api_token(switchboard_user):
 @pytest.fixture
 def switchboard_api_expired_token(switchboard_user):
     token, token_string = AuthToken.objects.create(switchboard_user)
-    token.expiry = tz_now() - timedelta(days=1)
+    token.expiry = timezone.now() - timedelta(days=1)
     token.save()
     return token_string
 
@@ -846,12 +846,6 @@ def subscription_factory(subscription_data_factory):
 
 
 @pytest.fixture
-def payment_intent_succeeded():
-    with Path("apps/contributions/tests/fixtures/payment-intent-succeeded-webhook.json").open() as f:
-        return json.load(f)
-
-
-@pytest.fixture
 def minimally_valid_google_service_account_credentials():
     # This is a subset of the service account JSON. If any of these key/vals are missing,
     # `service_account.Credentials.from_service_account_info`
@@ -921,11 +915,6 @@ def stripe_subscription_expanded():
         return stripe.Subscription.construct_from(json.load(f), key="test")
 
 
-def payment_intent_for_recurring_charge_expanded():
-    with Path("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json").open() as f:
-        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-
 @pytest.fixture
 def balance_transaction_for_recurring_charge():
     with Path("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json").open() as f:
@@ -957,30 +946,8 @@ def invoice_upcoming_event():
 
 
 @pytest.fixture
-def customer_subscription_updated_event():
+def customer_subscription_updated_event(_suppress_stripe_webhook_sig_verification):
     with Path("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json").open() as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def payment_intent_succeeded_one_time_event(_suppress_stripe_webhook_sig_verification):
-    with Path("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json").open() as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-def payment_intent_succeeded_subscription_creation_event(_suppress_stripe_webhook_sig_verification):
-    with Path(
-        "apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json"
-    ).open() as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-def payment_intent_succeeded_subscription_recurring_charge_event(_suppress_stripe_webhook_sig_verification):
-    with Path(
-        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
-    ).open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
@@ -1173,5 +1140,11 @@ def email_customization(revenue_program: "RevenueProgram") -> EmailCustomization
 
 
 @pytest.fixture
-def now() -> datetime.datetime:
-    return tz_now()
+def now() -> timezone.datetime:
+    return timezone.now()
+
+
+@pytest.fixture
+def payment_intent_payment_failed(_suppress_stripe_webhook_sig_verification):
+    with Path("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)

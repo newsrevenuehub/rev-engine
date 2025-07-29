@@ -119,21 +119,27 @@ class TestActivityLogAdmin:
         "search_term_name",
         ["contributor_email_exact_match", "contributor_email_different_case", "contributor_email_partial"],
     )
-    def test_contributor_search_happy_path(self, search_term_name: str, activity_log: ActivityLog, request):
+    def test_contributor_search_happy_path(
+        self,
+        search_term_name: str,
+        activity_log: ActivityLog,
+        request: pytest.FixtureRequest,
+        mocker: pytest_mock.MockerFixture,
+    ):
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         queryset, may_have_duplicates = admin.get_search_results(
-            queryset=ActivityLog.objects.all(), request="unused", search_term=request.getfixturevalue(search_term_name)
+            queryset=admin.get_queryset(request=mocker.Mock()),
+            request="unused",
+            search_term=request.getfixturevalue(search_term_name),
         )
         assert not may_have_duplicates
         assert list(queryset) == [activity_log]
 
-    def test_contributor_search_no_results(self, activity_log: ActivityLog):
-        # Even though activity_log is unused in this method, we want it to exist so
-        # that we might match on it if functionality is incorrect.
-
+    @pytest.mark.usefixtures("activity_log")
+    def test_contributor_search_no_results(self, mocker: pytest_mock.MockerFixture):
         admin = ActivityLogAdmin(ActivityLog, admin_site=None)
         queryset, may_have_duplicates = admin.get_search_results(
-            queryset=ActivityLog.objects.all(), request="unused", search_term="nonexistent"
+            queryset=admin.get_queryset(request=mocker.Mock()), request="unused", search_term="nonexistent"
         )
         assert not may_have_duplicates
         assert list(queryset) == []

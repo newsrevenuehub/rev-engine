@@ -253,7 +253,8 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "donation_page__name",
         "modified",
         "created",
-        "first_payment_date",
+        # TODO @BW: Add back first_payment_date after using deterministic case insensitive collation
+        # DEV-6403
     )
 
     readonly_fields = (

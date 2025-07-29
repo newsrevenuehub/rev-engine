@@ -1,12 +1,14 @@
 import logging
 import typing
+from datetime import date
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 import reversion
 
+from apps.contributions.choices import ContributionInterval
 from apps.contributions.models import Contribution
 from apps.emails.tasks import generate_email_data, send_receipt_email
 
@@ -29,6 +31,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class TransactionalEmailNames(models.TextChoices):
     CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
+    ANNUAL_PAYMENT_REMINDER = "annual_payment_reminder", "Annual Payment Reminder"
 
 
 class EmailCustomization(IndexedTimeStampedModel):
@@ -74,18 +77,73 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
     contribution = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
     name = models.CharField(max_length=50, choices=TransactionalEmailNames.choices)
     sent_on = models.DateTimeField(default=timezone.now, help_text="When the email was sent")
+    unique_identifier = models.CharField(
+        max_length=300,
+        null=True,
+        blank=True,
+        help_text=(
+            "A unique identifier for the email, such as a webhook event ID or similar to ensure transactional "
+            "emails are not sent multiple times for the same event."
+        ),
+    )
 
-    # We expect to add additional fields to uniqueness constraint in the future as we add more email types.
-    # Specifically, we expect to eventually store webhook event IDs here to ensure we don't send the same email
-    # multiple times for the same webhook event.
     class Meta:
-        unique_together = (
-            "contribution",
-            "name",
-        )
+        # The two constraints below ensure that we only send one email per contribution, name, and unique identifier.
+        # By default, null is treated as distinct in Django. Django 5 introduces `distinct_nulls=False` option
+        # to change this behavior, but in Django 4.2, we need to use a condition to achieve the same.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["contribution", "name", "unique_identifier"],
+                name="contribution_name_unique_identifier_when_not_null",
+                condition=models.Q(unique_identifier__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["contribution", "name"],
+                name="contribution_name_unique_identifier_when_null",
+                condition=models.Q(unique_identifier__isnull=True),
+            ),
+        ]
 
     def __str__(self):
         return f"TransactionalEmailRecord #{self.pk} ({self.name}) for {self.contribution.pk} sent {self.sent_on}"
+
+    @staticmethod
+    def handle_annual_payment_reminder(
+        contribution: Contribution, unique_identifier: str, next_charge_date: date
+    ) -> None:
+        """If warranted, trigger an annual payment reminder email to the contributor."""
+        logger.info("Running for contribution %s", contribution.pk)
+        if contribution.revenue_program.organization.disable_reminder_emails:
+            logger.info(
+                "Will not send annual payment reminder email for contribution %s, "
+                "organization does not send annual payment reminder emails via NRE",
+                contribution.pk,
+            )
+            return
+        if contribution.interval != ContributionInterval.YEARLY:
+            logger.info(
+                "Will not send annual payment reminder email for contribution %s contribution is not yearly",
+                contribution.pk,
+            )
+            return
+        with transaction.atomic(), reversion.create_revision():
+            _, created = TransactionalEmailRecord.objects.get_or_create(
+                contribution=contribution,
+                name=TransactionalEmailNames.ANNUAL_PAYMENT_REMINDER,
+                unique_identifier=unique_identifier,
+            )
+            if not created:
+                logger.info(
+                    "Annual payment reminder email for contribution %s already sent, skipping email creation",
+                    contribution.pk,
+                )
+                return
+            contribution.send_recurring_contribution_change_email(
+                f"Reminder: {contribution.revenue_program.name} scheduled contribution",
+                "recurring-contribution-email-reminder",
+                next_charge_date,
+            )
+            reversion.set_comment("Created by TransactionalEmailRecord.handle_annual_payment_reminder")
 
     @staticmethod
     def send_receipt_email(contribution: Contribution, show_billing_history: bool = True) -> None:
@@ -108,19 +166,17 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
         # We also want to ensure that if a separate process runs this same method conccurently with same contribution,
         # it cannot lead to multiple emails being sent.
         with transaction.atomic(), reversion.create_revision():
-            try:
-                TransactionalEmailRecord.objects.create(
-                    contribution=contribution,
-                    name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
-                )
-            except IntegrityError:
+            _, created = TransactionalEmailRecord.objects.get_or_create(
+                contribution=contribution,
+                name=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
+            )
+            if not created:
                 logger.info(
                     "Receipt email for contribution %s already sent, skipping email creation",
                     contribution.pk,
                 )
                 return
-            else:
-                reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
-                # we only send email if the record was created successfully, but if there's an error in sending the email,
-                # we'll get rollback of email record, which is what we want since we only want to create if sent (as best we can tell).
-                cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)
+            reversion.set_comment("Created by TransactionalEmailRecord.handle_receipt_email")
+            # we only send email if the record was created successfully, but if there's an error in sending the email,
+            # we'll get rollback of email record, which is what we want since we only want to create if sent (as best we can tell).
+            cls.send_receipt_email(contribution=contribution, show_billing_history=show_billing_history)

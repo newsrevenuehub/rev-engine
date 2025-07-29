@@ -337,21 +337,41 @@ class Test_auto_accept_flagged_contributions:
             size=2,
             quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
             flagged_date=now - timedelta(days=settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA),
+            status=ContributionStatus.FLAGGED,
+            provider_payment_method_id="pm_1234567890",
         )
 
-    def test_happy_path(self, mocker: pytest_mock.MockerFixture, eligible_contributions: list[Contribution]) -> None:
+    @pytest.fixture
+    def ineligible_contribution(self, now: timezone.datetime) -> list[Contribution]:
+        return ContributionFactory(
+            quarantine_status=QuarantineStatus.FLAGGED_BY_BAD_ACTOR,
+            flagged_date=now - timedelta(days=settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA),
+            provider_payment_method_id=None,
+        )
+
+    def test_happy_path(
+        self,
+        mocker: pytest_mock.MockerFixture,
+        eligible_contributions: list[Contribution],
+        ineligible_contribution: Contribution,
+    ) -> None:
         mock_ping_healthchecks = mocker.patch("apps.contributions.tasks.ping_healthchecks")
         mock_complete_payment = mocker.patch(
             "apps.contributions.payment_managers.StripePaymentManager.complete_payment"
         )
+        ineligible_modified = ineligible_contribution.modified
         success_count, fail_count = contribution_tasks.auto_accept_flagged_contributions()
         mock_ping_healthchecks.assert_called_once()
         assert mock_complete_payment.call_count == len(eligible_contributions)
         assert success_count == len(eligible_contributions)
         assert fail_count == 0
+        ineligible_contribution.refresh_from_db()
+        assert ineligible_contribution.modified == ineligible_modified
 
+    @pytest.mark.usefixtures("eligible_contributions")
     def test_when_payment_provider_error(
-        self, mocker: pytest_mock.MockerFixture, eligible_contributions: list[Contribution]
+        self,
+        mocker: pytest_mock.MockerFixture,
     ) -> None:
         mocker.patch(
             "apps.contributions.payment_managers.StripePaymentManager.complete_payment",

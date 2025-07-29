@@ -96,8 +96,6 @@ class StripeWebhookProcessor:
                 return self.handle_payment_intent_canceled()
             case "payment_intent.payment_failed":
                 return self.handle_payment_intent_failed()
-            case "payment_intent.succeeded":
-                return self.handle_payment_intent_succeeded()
             case "customer.subscription.updated":
                 return self.handle_subscription_updated()
             case "customer.subscription.deleted":
@@ -273,43 +271,6 @@ class StripeWebhookProcessor:
             {"status": ContributionStatus.FAILED},
             "`StripeWebhookProcessor.handle_payment_intent_failed` updated contribution",
         )
-
-    def handle_payment_intent_succeeded(self):
-        """Handle a payment intent succeeded event if it's for a one-time.
-
-        If it's for a recurring contribution, we expect to handle that in the
-        invoice.payment_succeeded event handler.
-
-        This method does the following when payment intent is for a one-time contribution:
-
-        - Update contribution with payment provider data, also update status
-        - Create a payment instance
-        - Send receipt email (if it's v1.4 metadata schema version)
-        """
-        if self.obj_data.get("invoice", None):
-            logger.info(
-                "Payment intent %s in event %s appears to be for a subscription, which are handled in different webhook receiver",
-                self.id,
-                self.event_id,
-            )
-            return
-        with transaction.atomic():
-            payment = Payment.from_stripe_payment_intent_succeeded_event(event=self.event)
-            contribution_update_data = self._add_pm_id_and_payment_method_details(
-                pm_id=self.obj_data["payment_method"],
-                update_data={
-                    "last_payment_date": payment.created,
-                    "status": ContributionStatus.PAID,
-                },
-            )
-            self._handle_contribution_update(
-                contribution_update_data,
-                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
-            )
-            if (self.contribution.contribution_metadata or {}).get("schema_version") == "1.4":
-                TransactionalEmailRecord.handle_receipt_email(
-                    contribution=self.contribution, show_billing_history=False
-                )
 
     def handle_subscription_updated(self):
         update_data = self._add_pm_id_and_payment_method_details(

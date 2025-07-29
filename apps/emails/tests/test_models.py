@@ -194,3 +194,26 @@ class TestTransactionalEmailRecord:
             unique_identifier=uid,
         ).exists()
         mock_send_mail.assert_not_called()
+
+    @pytest.mark.parametrize("contribution_fixture", ["monthly_contribution", "one_time_contribution"])
+    def test_handle_annual_payment_reminder_when_not_year_interval(
+        self,
+        mocker: pytest_mock.MockerFixture,
+        now: timezone.datetime,
+        contribution_fixture: str,
+        request: pytest.FixtureRequest,
+    ):
+        mock_send_mail = mocker.patch("apps.contributions.models.Contribution.send_recurring_contribution_change_email")
+        uid = "unique-id-123"
+        contribution = request.getfixturevalue(contribution_fixture)
+        TransactionalEmailRecord.handle_annual_payment_reminder(
+            contribution=contribution,
+            unique_identifier=uid,
+            next_charge_date=now.date(),
+        )
+        assert not TransactionalEmailRecord.objects.filter(
+            contribution=contribution,
+            name=TransactionalEmailNames.ANNUAL_PAYMENT_REMINDER,
+            unique_identifier=uid,
+        ).exists()
+        mock_send_mail.assert_not_called()

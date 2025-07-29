@@ -8,6 +8,7 @@ from django.utils import timezone
 
 import reversion
 
+from apps.contributions.choices import ContributionInterval
 from apps.contributions.models import Contribution
 from apps.emails.tasks import generate_email_data, send_receipt_email
 
@@ -116,6 +117,12 @@ class TransactionalEmailRecord(IndexedTimeStampedModel):
             logger.info(
                 "Will not send annual payment reminder email for contribution %s, "
                 "organization does not send annual payment reminder emails via NRE",
+                contribution.pk,
+            )
+            return
+        if contribution.interval != ContributionInterval.YEARLY:
+            logger.info(
+                "Will not send annual payment reminder email for contribution %s contribution is not yearly",
                 contribution.pk,
             )
             return

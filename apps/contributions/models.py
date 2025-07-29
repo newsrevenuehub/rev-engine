@@ -15,7 +15,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Min, Q, Sum
+from django.db.models import Count, Min, Q, Sum
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -273,15 +273,27 @@ class ContributionQuerySet(models.QuerySet):
             )
         return connected_contributions
 
-    def unmarked_abandoned_carts(self) -> models.QuerySet:
+    def unmarked_abandoned_carts(self) -> models.QuerySet[Contribution]:
         """Return contributions that have been abandoned.
 
-        We define abandoned as contributions that have been flagged or are in processing state for more than
-        CONTRIBUTION_ABANDONED_THRESHOLD hours.
+        We define abandoned as contributions that have no payment method ID
+        AND:
+         a. have a status of flagged, processing AND were created more than CONTRIBUTION_ABANDONED_THRESHOLD hours ago.
+         OR
+         b. have a status of canceled and no payments
+
+
+        b. would happen when a contributor completes first page of checkout and their contribution is flagged, and then they
+        cancel the contribution before completing the payment form.
         """
-        return self.filter(
-            status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING],
-            created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
+        return self.annotate(payment_count=Count("payment")).filter(
+            Q(
+                Q(status=ContributionStatus.CANCELED, payment_count=0)
+                | Q(
+                    status__in=[ContributionStatus.PROCESSING, ContributionStatus.FLAGGED],
+                    created__lt=timezone.now() - CONTRIBUTION_ABANDONED_THRESHOLD,
+                ),
+            ),
             provider_payment_method_id__isnull=True,
         )
 
@@ -515,14 +527,6 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def expanded_bad_actor_score(self):
         return None if self.bad_actor_score is None else self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
-
-    @property
-    def is_unmarked_abandoned_cart(self) -> bool:
-        return (
-            not self.provider_payment_method_id
-            and self.status in (ContributionStatus.FLAGGED, ContributionStatus.PROCESSING)
-            and (self.created < datetime.datetime.now(tz=timezone.utc) - CONTRIBUTION_ABANDONED_THRESHOLD)
-        )
 
     def process_flagged_payment(self, new_quarantine_status: QuarantineStatus, reject: bool = False):
         logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)

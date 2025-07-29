@@ -7,7 +7,7 @@ fileignoreconfig:
 - filename: apps/activity_log/migrations/0001_DEV-5825_initial.py
   checksum: 6a3573c9864555ca5b931094e4fc6f0b2139b400843655147aebc4a9bc574200
 - filename: apps/contributions/tests/test_tasks.py
-  checksum: 86a8a7a60d53848f657e80ead3110b25882c019b53a0519f7c3200c15b468e08
+  checksum: 1e18dba640f02a6ae4a4f1528df2563982afd3becdff7bb57dd8895b7f0acbf3
 - filename: spa/package-lock.json
   checksum: 4f7d119274a0b291bb4624eb7c3f28db38b75fa377d273aaee7ad452f5eb9c7d
 # Complaint about on_delete set to protect

@@ -22,9 +22,8 @@ class ActivityLog(IndexedTimeStampedModel):
     """
 
     CANCEL = "cancel"
-    ACTIVITY_ACTION_CHOICES = [
-        (CANCEL, "canceled"),
-    ]
+    SEND_RECEIPT = "send_receipt"
+    ACTIVITY_ACTION_CHOICES = [(CANCEL, "canceled"), (SEND_RECEIPT, "sent receipt")]
 
     actor_content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE, related_name="actor", null=True, blank=True

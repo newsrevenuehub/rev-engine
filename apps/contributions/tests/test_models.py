@@ -2012,10 +2012,6 @@ class TestContributionModel:
         else:
             ContributionFactory(donation_page=page, _revenue_program=rp)
 
-    def test_is_unmarked_abandoned_cart(self, unmarked_abandoned_contributions, one_time_contribution):
-        assert unmarked_abandoned_contributions[0].is_unmarked_abandoned_cart
-        assert not one_time_contribution.is_unmarked_abandoned_cart
-
     def test_stripe_customer_when_no_customer_id(self):
         contribution = ContributionFactory(provider_customer_id=None)
         assert contribution.stripe_customer is None

@@ -31,6 +31,8 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     list_display = ("linked_actor_object", "action", "linked_object_object", "get_on")
     actions = None
+    # TODO @BW: Remove get_queryset override and set search fields to ("actor__email",)
+    # DEV-6403
     search_fields = ("email_deterministic",)
 
     def get_queryset(self, request: HttpRequest):

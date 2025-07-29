@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from django.core.cache import cache
 from django.core.files.images import ImageFile
-from django.utils.timezone import now
+from django.utils import timezone
 
 import PIL.Image
 import pytest
@@ -229,7 +229,7 @@ def switchboard_api_token(switchboard_user):
 @pytest.fixture
 def switchboard_api_expired_token(switchboard_user):
     token, token_string = AuthToken.objects.create(switchboard_user)
-    token.expiry = now() - timedelta(days=1)
+    token.expiry = timezone.now() - timedelta(days=1)
     token.save()
     return token_string
 
@@ -1100,6 +1100,11 @@ def email_customization(revenue_program: "RevenueProgram") -> EmailCustomization
         email_type=TransactionalEmailNames.CONTRIBUTION_RECEIPT,
         email_block=EmailCustomization.EmailBlock.MESSAGE,
     )
+
+
+@pytest.fixture
+def now() -> timezone.datetime:
+    return timezone.now()
 
 
 @pytest.fixture

@@ -19,6 +19,6 @@ class SwitchboardUsersViewSet(RetrieveModelMixin, GenericViewSet):
 
     @action(methods=["get"], url_path="email/(?P<email>[^/]+)", detail=False)
     def get_by_email(self, request, email):
-        user = get_object_or_404(User.objects.all(), email=email)
+        user = get_object_or_404(User.objects.all(), email__iexact=email)
         serializer = serializers.SwitchboardUserSerializer(user)
         return Response(serializer.data)

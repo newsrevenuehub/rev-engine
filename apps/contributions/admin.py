@@ -71,10 +71,7 @@ class ContributorAdmin(RevEngineBaseAdmin):
     list_filter = ("email",)
     ordering = ("email",)
     search_fields = ("email",)
-    readonly_fields = (
-        "email",
-        "email_future",
-    )
+    readonly_fields = ("email",)
 
 
 @admin.register(Payment)
@@ -383,7 +380,7 @@ class QuarantineQueue(admin.ModelAdmin):
     ]
 
     ordering = (
-        "contributor__email_future",
+        "contributor__email",
         "created",
     )
 
@@ -496,7 +493,7 @@ class QuarantineQueue(admin.ModelAdmin):
         # TODO @BW: Remove conditionality around contributor with DEV-5393
         # DEV-5393
         if contributor := getattr(obj, "contributor", None):
-            return contributor.email_future or contributor.email
+            return contributor.email
         return None
 
     def address(self, obj):

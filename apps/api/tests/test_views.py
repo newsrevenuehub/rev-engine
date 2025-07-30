@@ -365,21 +365,21 @@ def test_request_contributor_token_creates_usable_magic_links(mocker, api_client
     html_magic_link = bs4(html_body, "html.parser").find("a", {"data-testid": "magic-link"}).attrs["href"]
     assert html_magic_link in text_body
     assert subject == "Manage your contributions"
-    assert to_email_list[0] == expected
+    assert to_email_list[0].lower() == expected.lower()
     assert len(to_email_list) == 1
-    assert expected in html_body
+    assert expected.lower() in html_body.lower()
     params = parse_qs(urlparse(html_magic_link).query)
     response = api_client.post(
         reverse("contributor-verify-token"), {"email": params["email"][0], "token": params["token"][0]}
     )
     assert response.status_code == 200
-    assert response.json()["contributor"]["email"] == expected
+    assert response.json()["contributor"]["email"].lower() == expected.lower()
     jwt_data = jwt.decode(response.cookies["Authorization"].value, settings.SECRET_KEY, algorithms="HS256")
     assert jwt_data["token_type"] == "access"
     assert jwt_data["ctx"] == LONG_TOKEN
     assert jwt_data["exp"] > jwt_data["iat"]
     assert jwt_data["exp"] > int(time())
-    assert (query := Contributor.objects.filter(email__iexact=expected)).count() == 1
+    assert (query := Contributor.objects.filter(email=expected)).count() == 1
     assert jwt_data["contrib_id"] == str(query.first().uuid)
 
 
@@ -404,7 +404,7 @@ def test_request_contributor_token_vs_dupe_contrib_bug_5865(
     data = {"email": request_email, "subdomain": free_plan_revenue_program.slug}
     response = api_client.post(reverse("contributor-token-request"), data)
     assert response.status_code == 200
-    assert Contributor.objects.filter(email__iexact=expected).count() == 1
+    assert Contributor.objects.filter(email=expected).count() == 1
 
 
 class RequestContributorTokenEmailViewTest(APITestCase):

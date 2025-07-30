@@ -15,7 +15,8 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Count, Min, Q, Sum
+from django.db.models import Count, Min, Q, Sum, UniqueConstraint
+from django.db.models.functions import Lower
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -28,7 +29,7 @@ from stripe.error import CardError, StripeError
 
 from apps.activity_log.models import ActivityLog
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import CREATED, LEFT_UNCHANGED, get_stripe_accounts_and_their_connection_status
+from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus, QuarantineStatus
 from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.typings import (
@@ -69,11 +70,12 @@ class BillingHistoryItem(TypedDict):
 
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
-    email = models.EmailField(unique=True)
-    # TODO @BW: Rename to `email`, replacing current `email` and make non nullable and blank=False
-    # DEV-5782
-    email_future = models.EmailField(blank=True, null=True, unique=True, db_collation="case_insensitive")
-
+    email = models.EmailField(
+        blank=False,
+        null=False,
+        unique=True,
+        db_collation="ci_deterministic",
+    )
     # Allow activity log querysets to filter on this model.
     activity_logs = GenericRelation(
         ActivityLog,
@@ -82,20 +84,8 @@ class Contributor(IndexedTimeStampedModel):
         related_query_name="actor",
     )
 
-    @staticmethod
-    def get_or_create_contributor_by_email(email: str) -> tuple[Contributor, str]:
-        """Get existing contributor for email (case insensitive) or create a new one."""
-        stripped = email.strip()
-        if existing := Contributor.objects.filter(email__iexact=stripped).order_by("created").first():
-            return existing, LEFT_UNCHANGED
-
-        logger.info("Creating new contributor for email %s", stripped)
-        # TODO @BW: Remove this conditionality when email_future moves to email
-        # DEV-5782
-        kwargs = {"email": stripped}
-        if not Contributor.objects.filter(email_future=stripped).exists():
-            kwargs["email_future"] = stripped
-        return Contributor.objects.create(**kwargs), CREATED
+    class Meta:
+        constraints = [UniqueConstraint(Lower("email"), name="unique_email_case_insensitive")]
 
     def get_impact(self, revenue_program_ids: list[int] | None = None):
         """Calculate the total impact of a contributor across multiple revenue programs."""
@@ -134,14 +124,6 @@ class Contributor(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
-
-    def get_contributor_contributions_queryset(self) -> models.QuerySet[Contribution]:
-        """Get all relevant contributions for contributor.
-
-        NB: We return contributions that can be connected by case insensitive email on contributor.
-        See DEV-5494 for more context.
-        """
-        return Contribution.objects.filter(contributor__email__iexact=self.email)
 
 
 class ContributionQuerySet(models.QuerySet):

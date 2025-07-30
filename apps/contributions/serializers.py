@@ -473,7 +473,9 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
         """
         logger.info("`CreateOneTimePaymentSerializer.create` called with validated data: %s", validated_data)
-        contributor, _ = Contributor.get_or_create_contributor_by_email(validated_data["email"])
+        contributor, _ = Contributor.objects.get_or_create(
+            email__iexact=(email := validated_data["email"].strip()), defaults={"email": email}
+        )
         contribution = self.build_contribution(
             contributor,
             validated_data,
@@ -578,7 +580,9 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         that the PaymentElement should not be loaded.
         """
         logger.info("`CreateRecurringPaymentSerializer.create` called with validated data: %s", validated_data)
-        contributor, _ = Contributor.get_or_create_contributor_by_email(validated_data["email"])
+        contributor, _ = Contributor.objects.get_or_create(
+            email__iexact=(email := validated_data["email"].strip()), defaults={"email": email}
+        )
         logger.info("`CreateRecurringPaymentSerializer.create` is building a contribution")
         contribution = self.build_contribution(
             contributor,

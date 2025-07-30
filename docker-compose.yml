@@ -7,7 +7,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: revengine
       DATABASE_URL: postgres://postgres@127.0.01:54000/revengine
-    image: postgres:12-alpine
+    image: postgres:17-alpine
     ports:
       - "54000:5432"
     volumes:

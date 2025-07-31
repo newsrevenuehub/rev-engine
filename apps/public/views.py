@@ -11,7 +11,9 @@ class RevenueProgramViewset(ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsActiveSuperUser]
 
     def get_queryset(self):
-        queryset = RevenueProgram.objects.all()
+        queryset = RevenueProgram.objects.select_related("organization", "payment_provider").prefetch_related(
+            "benefitlevel_set__benefits"
+        )
         stripe_account_id = self.request.query_params.get("stripe_account_id", None)
         if stripe_account_id is not None:
             queryset = queryset.filter(payment_provider__stripe_account_id=stripe_account_id)

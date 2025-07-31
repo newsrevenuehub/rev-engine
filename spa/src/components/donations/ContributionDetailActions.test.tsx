@@ -18,7 +18,8 @@ describe('ContributionDetailActions', () => {
       cancelMutation: { mutateAsync: jest.fn() } as any,
       contribution: {} as any,
       isError: false,
-      isFetching: false
+      isFetching: false,
+      sendReceiptMutation: { mutateAsync: jest.fn() } as any
     });
   });
 
@@ -26,6 +27,37 @@ describe('ContributionDetailActions', () => {
     tree();
     userEvent.click(screen.getByRole('button', { name: 'Actions' }));
     expect(screen.getByRole('menu')).toBeVisible();
+  });
+
+  describe('The resend receipt menu item', () => {
+    it('sends a receipt for the contribution', async () => {
+      const mutateAsync = jest.fn();
+
+      useContributionMock.mockReturnValue({
+        cancelMutation: { mutateAsync: jest.fn() } as any,
+        contribution: { is_cancelable: true } as any,
+        isError: false,
+        isFetching: false,
+        sendReceiptMutation: { isPending: true, mutateAsync } as any
+      });
+      tree();
+      userEvent.click(screen.getByRole('button', { name: 'Actions' }));
+      userEvent.click(screen.getByRole('menuitem', { name: 'Resend Receipt' }));
+      expect(mutateAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('is disabled if a resend request is in progress', () => {
+      useContributionMock.mockReturnValue({
+        cancelMutation: { mutateAsync: jest.fn() } as any,
+        contribution: { is_cancelable: true } as any,
+        isError: false,
+        isFetching: false,
+        sendReceiptMutation: { isPending: true, mutateAsync: jest.fn() } as any
+      });
+      tree();
+      userEvent.click(screen.getByRole('button', { name: 'Actions' }));
+      expect(screen.getByRole('menuitem', { name: 'Resend Receipt' })).toHaveAttribute('aria-disabled', 'true');
+    });
   });
 
   describe('The cancel menu item', () => {
@@ -37,7 +69,8 @@ describe('ContributionDetailActions', () => {
         cancelMutation: {} as any,
         contribution: { is_cancelable } as any,
         isError: false,
-        isFetching: false
+        isFetching: false,
+        sendReceiptMutation: { mutateAsync: jest.fn() } as any
       });
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Actions' }));
@@ -49,10 +82,11 @@ describe('ContributionDetailActions', () => {
 
     it('is disabled if a cancel request is in progress, even if the contribution is cancelable', () => {
       useContributionMock.mockReturnValue({
-        cancelMutation: { isLoading: true } as any,
+        cancelMutation: { isPending: true } as any,
         contribution: { is_cancelable: true } as any,
         isError: false,
-        isFetching: false
+        isFetching: false,
+        sendReceiptMutation: { mutateAsync: jest.fn() } as any
       });
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Actions' }));
@@ -64,7 +98,8 @@ describe('ContributionDetailActions', () => {
         cancelMutation: {} as any,
         contribution: { is_cancelable: true } as any,
         isError: false,
-        isFetching: false
+        isFetching: false,
+        sendReceiptMutation: { mutateAsync: jest.fn() } as any
       });
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Actions' }));
@@ -82,7 +117,8 @@ describe('ContributionDetailActions', () => {
           cancelMutation: { mutateAsync } as any,
           contribution: { is_cancelable: true } as any,
           isError: false,
-          isFetching: false
+          isFetching: false,
+          sendReceiptMutation: { mutateAsync: jest.fn() } as any
         });
       });
 

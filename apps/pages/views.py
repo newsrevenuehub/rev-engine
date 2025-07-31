@@ -42,17 +42,36 @@ class PageFullDetailHelper:
         except KeyError:
             raise PageDetailError("Missing required parameter", status=status.HTTP_400_BAD_REQUEST) from None
         try:
-            self.revenue_program = RevenueProgram.objects.get(slug=self.revenue_program_slug)
+            self.revenue_program = (
+                RevenueProgram.objects.select_related(
+                    "organization", "payment_provider", "default_donation_page__styles"
+                )
+                .prefetch_related("benefitlevel_set", "default_donation_page")
+                .get(slug=self.revenue_program_slug)
+            )
         except RevenueProgram.DoesNotExist:
             logger.info('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
             raise PageDetailError("Could not find revenue program matching those parameters") from None
         self.donation_page = (
-            self.revenue_program.donationpage_set.filter(slug=self.page_slug).first()
+            self.revenue_program.donationpage_set.select_related(
+                "revenue_program__organization", "revenue_program__payment_provider", "styles"
+            )
+            .prefetch_related("revenue_program__benefitlevel_set")
+            .filter(slug=self.page_slug)
+            .first()
             if self.page_slug
             # If no default_donation_page is set, return the first page in the RP
             # We need to return a valid "donation_page" to populate "Welcome to the {page.revenue_program.name}
             # contributor portal" in the UI
-            else self.revenue_program.default_donation_page or self.revenue_program.donationpage_set.first()
+            else (
+                self.revenue_program.default_donation_page
+                if self.revenue_program.default_donation_page
+                else self.revenue_program.donationpage_set.select_related(
+                    "revenue_program__organization", "revenue_program__payment_provider", "styles"
+                )
+                .prefetch_related("revenue_program__benefitlevel_set")
+                .first()
+            )
             # Context why this can be done:
             # The serializer returns rp.default_donation_page, so we can check on the Frontend if the donation page is
             # the default page or not

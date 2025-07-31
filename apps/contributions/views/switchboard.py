@@ -58,7 +58,7 @@ class SwitchboardContributionsViewSet(
         "donation_page__revenue_program__organization", "_revenue_program__organization"
     )
     serializer_class = serializers.SwitchboardContributionSerializer
-    # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5549
+    # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5570
     # DEV-5571
     authentication_classes = [TokenAuthentication, JWTHttpOnlyCookieAuthentication]
     filter_backends = [DjangoFilterBackend]

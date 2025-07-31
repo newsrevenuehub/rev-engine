@@ -1,9 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.db.models import Exists, OuterRef
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -256,10 +254,7 @@ class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, v
     http_method_names = ["get", "post", "patch", "delete"]
 
     def get_queryset(self):
-        return self.filter_queryset_for_superuser_or_ra().annotate(
-            # This annotation is used by the StyleListSerializer serializer and allows us to optimize the query
-            is_used_live=Exists(DonationPage.objects.filter(styles=OuterRef("pk"), published_date__lte=timezone.now()))
-        )
+        return self.filter_queryset_for_superuser_or_ra()
 
 
 class FontViewSet(viewsets.ReadOnlyModelViewSet):

@@ -5,7 +5,6 @@ from typing import Literal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.utils import timezone
 
 import pydantic
 from drf_extra_fields.relations import PresentablePrimaryKeyRelatedField
@@ -73,7 +72,8 @@ class StyleListSerializer(StyleInlineSerializer):
         ]
 
     def get_used_live(self, obj):
-        return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()
+        # Use the annotated field from the queryset to avoid n+1 queries
+        return getattr(obj, "is_used_live", False)
 
     def to_internal_value(self, data):
         """Stick styles in its own value and pull out name.

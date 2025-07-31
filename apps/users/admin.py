@@ -18,6 +18,8 @@ class CustomUserAdmin(RevEngineBaseAdmin, UserAdmin):
         "groups",
         "user_permissions",
     )
+    list_select_related = ("roleassignment", "roleassignment__organization")
+    list_prefetch_related = ("roleassignment__revenue_programs",)
 
     def role_assignment(self, obj):
         return str(obj.get_role_assignment())
@@ -73,6 +75,8 @@ class RoleAssignmentAdmin(RevEngineBaseAdmin):
         "role_type",
         "organization",
     )
+    list_select_related = ("user", "organization")
+    list_prefetch_related = ("revenue_programs",)
 
     #
     form = RoleAssignmentAdminForm

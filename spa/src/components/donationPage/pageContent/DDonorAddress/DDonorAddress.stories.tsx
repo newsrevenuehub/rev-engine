@@ -1,6 +1,6 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { useState } from 'react';
-import { DonationPageContext } from '../DonationPage';
+import { DonationPageContext } from '../../DonationPage';
 import DDonorAddress from './DDonorAddress';
 
 export default {

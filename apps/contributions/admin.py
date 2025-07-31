@@ -299,9 +299,11 @@ class ContributionAdmin(RevEngineBaseAdmin):
         return self.fieldsets
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Contribution]:
-        # Annotate the queryset with the first_payment_date
+        # Annotate the queryset with the first_payment_date and optimize related field access
         queryset = super().get_queryset(request)
-        return queryset.with_first_payment_date()
+        return queryset.with_first_payment_date().select_related(
+            "contributor", "donation_page", "donation_page__revenue_program", "_revenue_program"
+        )
 
     def first_payment_date_display(self, obj):
         return obj.first_payment_date

@@ -4,6 +4,7 @@ import json
 from django.core.exceptions import ValidationError
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
+from django.utils.text import slugify
 
 import pytest
 
@@ -142,6 +143,59 @@ class TestDonationPage:
             "foreign keys: 'Contribution.donation_page'."
         )
 
+    def test_duplicate_has_different_id_and_name(self):
+        original = DonationPageFactory()
+        dupe = original.duplicate()
+        assert dupe.id != original.id
+        assert dupe.name != original.name
+
+    def test_duplicate_has_correct_slug(self):
+        original = DonationPageFactory()
+        dupe = original.duplicate()
+        assert dupe.slug == slugify(dupe.name)
+
+    def test_duplicate_always_unpublished(self):
+        original = DonationPageFactory()
+        original.published_date = "2001-01-01"
+        original.save()
+        dupe = original.duplicate()
+        assert not dupe.published_date
+
+    @pytest.mark.parametrize("field_name", ["graphic", "header_bg_image", "header_logo", "page_screenshot"])
+    def test_duplicate_has_different_image_path_but_same_content(self, field_name, default_logo):
+        original = DonationPageFactory()
+        setattr(original, field_name, default_logo.logo)
+        original.save()
+        dupe = original.duplicate()
+        dupe_field = getattr(dupe, field_name)
+        assert dupe_field.url != default_logo.logo.url
+        assert dupe_field.read() == default_logo.logo.read()
+
+    def test_duplicate_has_different_styles_but_same_content(self):
+        original = DonationPageFactory()
+        original.styles = StyleFactory()
+        original.save()
+        dupe = original.duplicate()
+        assert dupe.styles != original.styles
+        assert dupe.styles.styles == original.styles.styles
+
+    def test_duplicate_has_correct_values(self):
+        original = DonationPageFactory()
+        original.save()
+        dupe = original.duplicate()
+        for field in [
+            "elements",
+            "header_link",
+            "header_logo_alt_text",
+            "heading",
+            "locale",
+            "post_thank_you_redirect",
+            "revenue_program",
+            "sidebar_elements",
+            "thank_you_redirect",
+        ]:
+            assert getattr(original, field) == getattr(dupe, field)
+
     @pytest.mark.parametrize(
         ("site_url", "root"),
         [
@@ -227,6 +281,17 @@ class TestStyle:
     )
     def user(self, request):
         return request.getfixturevalue(request.param)
+
+    def test_duplicate_has_different_id_and_name(self):
+        original = StyleFactory()
+        dupe = original.duplicate()
+        assert dupe.id != original.id
+        assert dupe.name != original.name
+
+    def test_duplicate_has_same_styles(self):
+        original = StyleFactory()
+        dupe = original.duplicate()
+        assert original.styles == dupe.styles
 
     def test_style_filtered_by_role_assignment(self, user, revenue_program):
         # this will be viewable by all three users

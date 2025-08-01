@@ -7,10 +7,12 @@ import pytest
 import pytest_mock
 
 from apps.common.utils import (
+    CantDuplicateException,
     booleanize_string,
     create_stripe_webhook,
     delete_cloudflare_cnames,
     delete_stripe_webhook,
+    duplicate_name,
     extract_ticket_id_from_branch_name,
     get_original_ip_from_request,
     get_subdomain_from_request,
@@ -377,3 +379,22 @@ class Test_upsert_with_diff_check:
                 mock_set_comment.assert_called_once_with(f"{caller} created {self.model.__name__}")
             case _:
                 mock_set_comment.assert_not_called()
+
+
+class TestDuplicateName:
+    def test_under_max_length(self):
+        assert duplicate_name("abcde", max_length=50) == "abcde (Copy)"
+
+    def test_truncation(self):
+        assert duplicate_name("abcde", max_length=9) == "a… (Copy)"
+        assert duplicate_name("abcdef", max_length=10) == "ab… (Copy)"
+
+    def test_custom_suffix(self):
+        assert duplicate_name("abcde", max_length=7, suffix=" test") == "a… test"
+
+    def test_custom_truncation_suffix(self):
+        assert duplicate_name("abcde", max_length=11, truncation_suffix="xyz") == "axyz (Copy)"
+
+    def test_impossible_truncation_raises(self):
+        with pytest.raises(CantDuplicateException):
+            duplicate_name("abcde", max_length=5, suffix="1234")

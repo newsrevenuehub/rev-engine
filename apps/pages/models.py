@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import datetime
 import logging
+from pathlib import Path
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.utils import duplicate_name
 from apps.config.validators import validate_slug_against_denylist
 from apps.pages import defaults, signals
 from apps.pages.validators import style_validator
@@ -17,7 +23,6 @@ from apps.users.models import RoleAssignment
 
 
 PAGE_NAME_MAX_LENGTH = PAGE_HEADING_MAX_LENGTH = 255
-
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -110,6 +115,48 @@ class DonationPage(IndexedTimeStampedModel):
         hostname = ".".join(settings.SITE_URL.replace(http_scheme, "").split(".")[-2:])
         return f"{http_scheme}{self.revenue_program.slug}.{hostname}/{self.slug}"
 
+    def duplicate(self) -> DonationPage:
+        """Create a duplicate, unpublished version of this page.
+
+        This saves the new page to the database and returns it.
+        """
+        duplicate = DonationPage()
+
+        # We need to duplicate image fields last because
+        # _get_screenshot_upload_path() relies on model fields like `name` to
+        # exist.
+
+        image_fields = []
+        for field in self._meta.fields:
+            if isinstance(field, SorlImageField) and (original_image_field := getattr(self, field.name)):
+                image_fields.append([field, original_image_field])
+            else:
+                match field.name:
+                    case "created" | "id" | "modified" | "pk" | "published_date":
+                        continue
+                    case "name":
+                        duplicate.name = duplicate_name(self.name, max_length=PAGE_NAME_MAX_LENGTH)
+                    case "styles":
+                        if self.styles:
+                            duplicate.styles = self.styles.duplicate()
+                    case _:
+                        setattr(duplicate, field.name, getattr(self, field.name))
+        duplicate.slug = slugify(duplicate.name)
+        for [field, original_image_field] in image_fields:
+            # Create a duplicate of the image without changing the original instance.
+            parsed_path = Path(original_image_field.name)
+            getattr(duplicate, field.name).save(
+                # Most OSes have a 255 character limit on file names.
+                duplicate_name(parsed_path.stem, max_length=200, suffix="_copy", truncation_suffix="_")
+                + parsed_path.suffix,
+                ContentFile(original_image_field.file.read()),
+                save=False,
+            )
+            # We need to reset the file position from the read() above.
+            original_image_field.file.seek(0)
+        duplicate.save()
+        return duplicate
+
     def set_default_logo(self):
         """Use DefaultPageLogo.logo as self.header_logo.
 
@@ -158,6 +205,20 @@ class Style(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def duplicate(self) -> Style:
+        """Create a duplicate instance of this set of styles.
+
+        This saves the new instance to the database and returns it.
+        """
+        duplicate = Style()
+        for field in self._meta.fields:
+            if field.name not in ["id", "created", "modified", "name", "pk"]:
+                setattr(duplicate, field.name, getattr(self, field.name))
+        duplicate.name = duplicate_name(self.name, max_length=50)
+        logger.info("Duplicate has name %s", duplicate.name)
+        duplicate.save()
+        return duplicate
 
 
 class Font(models.Model):

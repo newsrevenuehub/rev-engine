@@ -140,6 +140,22 @@ def extract_ticket_id_from_branch_name(branch_name: str) -> str | None:
     return match.group().lower() if match else None
 
 
+class CantDuplicateException(Exception): ...
+
+
+def duplicate_name(value: str, max_length, suffix=" (Copy)", truncation_suffix="…") -> str:
+    """Calculate a name for a duplicated item, keeping the total length below a certain amount."""
+    result = value
+    if len(value) + len(suffix) > max_length:
+        # We need to be able to truncate to at least one original character.
+        if 1 + len(truncation_suffix) + len(suffix) > max_length:
+            raise CantDuplicateException(
+                f"Can't truncate to {max_length}; must be at least {1 + len(truncation_suffix) + len(suffix)}"
+            )
+        result = result[: max_length - len(truncation_suffix) - len(suffix) :] + truncation_suffix
+    return result + suffix
+
+
 def normalize_slug(name="", slug="", max_length=50) -> str:
     """Return a lowercase string of length less than or equal to the max_length.
 

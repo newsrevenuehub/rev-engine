@@ -633,7 +633,7 @@ class TestContributionsViewSet:
         viewset.request = mock_request
         assert not viewset.get_queryset().exists()
 
-    def test_get_queryset_when_unexpected_user(self, mocker: pytest_mock.MockerFixture, user_no_role_assignment: User):
+    def test_get_queryset_when_unexpected_user(self, mocker: pytest_mock.MockerFixture):
         """Show that unexpected users get no contributions."""
         mock_user = mocker.Mock(is_anonymous=False, is_staff=False, is_superuser=False)
         mock_user.get_role_assignment = mocker.Mock(return_value=None)

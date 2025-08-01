@@ -4,7 +4,9 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.db.models.query import QuerySet
 from django.db.utils import IntegrityError
+from django.http import HttpRequest
 
 from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
@@ -125,6 +127,9 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "pages/contributionpage_changeform.html"
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[models.DonationPage]:
+        return super().get_queryset(request).select_related("revenue_program__organization")
 
     def reversion_register(self, model, **options):
         """Set django-reversion options on registered model...

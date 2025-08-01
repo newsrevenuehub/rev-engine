@@ -3,6 +3,7 @@
 import logging
 
 from django.conf import settings
+from django.db.models.query import QuerySet
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
@@ -119,17 +120,27 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend]
     serializer_class = serializers.ContributionSerializer
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Contribution]:
         """Return the right results to the right user."""
         ra = getattr((user := self.request.user), "get_role_assignment", lambda: None)()
         if user.is_anonymous:
-            return self.model.objects.none().with_first_payment_date()
-        if user.is_superuser:
-            return self.model.objects.all().with_first_payment_date()
-        if ra:
-            return self.model.objects.filtered_by_role_assignment(ra).with_first_payment_date()
-        logger.warning("Encountered unexpected user %s", user.id)
-        raise ApiConfigurationError
+            qs = self.model.objects.none()
+        elif user.is_superuser:
+            qs = self.model.objects.all()
+        elif ra:
+            qs = self.model.objects.filtered_by_role_assignment(ra)
+        else:
+            logger.warning("Encountered unexpected user %s", getattr(user, "id", "unknown"))
+            raise ApiConfigurationError
+        return qs.with_first_payment_date().select_related(
+            "_revenue_program__payment_provider",
+            "_revenue_program__organization",
+            "_revenue_program__default_donation_page__styles",
+            "donation_page__revenue_program__payment_provider",
+            "donation_page__revenue_program__organization",
+            "donation_page__revenue_program__default_donation_page__styles",
+            "contributor",
+        )
 
     def destroy(self, request, pk: int) -> Response:
         """Cancel a recurring contribution.

@@ -23,6 +23,7 @@ from stripe.stripe_object import StripeObject
 from waffle import get_waffle_flag_model
 
 from apps.activity_log.models import ActivityLog
+from apps.api.exceptions import ApiConfigurationError
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import (
     Contribution,
@@ -43,6 +44,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.contributions.views.orgs import ContributionsViewSet
 from apps.contributions.views.portal import PortalContributorsViewSet
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -621,6 +623,25 @@ class TestContributionsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         mock_send_receipt.assert_not_called()
+
+    # We want at least one contribution in db so that test assesrtion is non-trivial
+    @pytest.mark.usefixtures("one_time_contribution")
+    def test_get_queryset_when_user_is_anonymous(self, mocker: pytest_mock.MockerFixture):
+        mock_user = mocker.Mock(is_anonymous=True)
+        mock_request = mocker.Mock(user=mock_user)
+        viewset = ContributionsViewSet()
+        viewset.request = mock_request
+        assert not viewset.get_queryset().exists()
+
+    def test_get_queryset_when_unexpected_user(self, mocker: pytest_mock.MockerFixture, user_no_role_assignment: User):
+        """Show that unexpected users get no contributions."""
+        mock_user = mocker.Mock(is_anonymous=False, is_staff=False, is_superuser=False)
+        mock_user.get_role_assignment = mocker.Mock(return_value=None)
+        mock_request = mocker.Mock(user=mock_user)
+        viewset = ContributionsViewSet()
+        viewset.request = mock_request
+        with pytest.raises(ApiConfigurationError):
+            viewset.get_queryset()
 
 
 @pytest.mark.django_db

@@ -6,6 +6,7 @@ from django.template.loader import render_to_string
 import pytest
 import stripe
 from faker import Faker
+from knox.auth import TokenAuthentication
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.permissions import AND, OR, IsAuthenticated
@@ -15,6 +16,7 @@ from reversion.models import Version
 from stripe.error import SignatureVerificationError, StripeError
 from waffle import get_waffle_flag_model
 
+from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.common.secret_manager import GoogleCloudSecretProvider
@@ -901,6 +903,10 @@ class TestRevenueProgramViewSet:
             RevenueProgramViewSet.mailchimp.kwargs.get("serializer_class", None)
             == MailchimpRevenueProgramForSwitchboard
         )
+        assert set(RevenueProgramViewSet.mailchimp.kwargs.get("authentication_classes", [])) == {
+            TokenAuthentication,
+            JWTHttpOnlyCookieAuthentication,
+        }
 
     def test_mailchimp_configure_detail_configured_correctly(self):
         assert RevenueProgramViewSet.mailchimp_configure.detail is True

@@ -1,44 +1,18 @@
 // Needed to type return value from usePlacesWidget
 /// <reference types="google.maps" />
-
+import AddIcon from '@material-design-icons/svg/filled/add.svg?react';
+import MinusIcon from '@material-design-icons/svg/filled/horizontal_rule.svg?react';
+import { Collapse } from '@material-ui/core';
 import Grid from '@material-ui/core/Grid';
 import PropTypes, { InferProps } from 'prop-types';
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CountryOption } from 'components/base';
 import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
-import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress.styled';
 import { DonorAddressElement } from 'hooks/useContributionPage';
-import { Collapse } from '@material-ui/core';
-import { useTranslation } from 'react-i18next';
-import AddIcon from '@material-design-icons/svg/filled/add.svg?react';
-import MinusIcon from '@material-design-icons/svg/filled/horizontal_rule.svg?react';
-import useGoogleMaps from 'hooks/useGoogleMaps';
-
-const mapAddrFieldToComponentTypes = {
-  address: ['street_number', 'street_address', 'route'],
-  zip: ['postal_code'],
-  state: ['administrative_area_level_1'],
-  city: ['locality'],
-  country: ['country']
-};
-
-function reduceAddressComponentsToString(addressComponents: google.maps.GeocoderAddressComponent[], targets: string[]) {
-  return addressComponents
-    .filter(({ types }) => targets.includes(types[0]))
-    .map(({ long_name }) => long_name)
-    .join(' ');
-}
-
-function mapAddressComponentsToAddressFields(addressComponents: google.maps.GeocoderAddressComponent[]) {
-  const address = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['address']);
-  const zip = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['zip']);
-  const state = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['state']);
-  const city = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['city']);
-  const country = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['country']);
-
-  return { address, zip, city, state, country };
-}
+import AddressAutocomplete, { PlaceSelection } from './AddressAutocomplete';
+import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress.styled';
 
 const DDonorAddressPropTypes = {
   element: PropTypes.object.isRequired
@@ -48,7 +22,7 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
   element: DonorAddressElement;
 }
 
-function DDonorAddress({ element }: DDonorAddressProps) {
+export function DDonorAddress({ element }: DDonorAddressProps) {
   const { t } = useTranslation();
   const { errors, mailingCountry, setMailingCountry } = usePage();
   const [address, setAddress] = useState('');
@@ -77,61 +51,11 @@ function DDonorAddress({ element }: DDonorAddressProps) {
 
     return t('donationPage.dDonorAddress.stateLabel.state');
   }, [element.content?.additionalStateFieldLabels, t]);
-  const { error: googleMapsError, loading: googleMapsLoading } = useGoogleMaps();
-  const addressInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // Need this defensive coding because in some instances, there won't be an
-    // error reported, but `google.maps.places` won't be defined, either.
-
-    if (!googleMapsLoading && !googleMapsError && google.maps?.places?.Autocomplete && addressInputRef.current) {
-      // https://developers.google.com/maps/documentation/javascript/reference/places-widget#Autocomplete
-
-      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, { types: ['address'] });
-      const listener = autocomplete.addListener('place_changed', () => {
-        const { address_components } = autocomplete.getPlace();
-
-        // The API will not return this property in all cases; if so, do nothing.
-
-        if (typeof address_components === 'undefined') {
-          return;
-        }
-
-        const addrFields = mapAddressComponentsToAddressFields(address_components);
-        const isoCountry = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
-
-        setAddress(addrFields.address ?? '');
-        setCity(addrFields.city ?? '');
-        setState(addrFields.state ?? '');
-        setZip(addrFields.zip ?? '');
-        setMailingCountry(isoCountry);
-      });
-
-      return () => listener.remove();
-    }
-  }, [googleMapsError, googleMapsLoading, setMailingCountry]);
 
   const toggleComplement = () => {
     setShowComplement((prev) => !prev);
     setComplement('');
   };
-
-  // We disable browser autofill on the address field so that only Google Maps
-  // suggestions appear. If the field loses focus, we re-enable it. The value
-  // `new-password` is what react-google-autocomplete uses to prevent autofill
-  // normally.
-
-  function disableBrowserAutofillOnAddress() {
-    if (addressInputRef?.current) {
-      addressInputRef.current.setAttribute('autocomplete', 'new-password');
-    }
-  }
-
-  function enableBrowserAutofillOnAddress() {
-    if (addressInputRef?.current) {
-      addressInputRef.current.setAttribute('autocomplete', '');
-    }
-  }
 
   // The change event on <CountrySelect> sends an object value, but the
   // underlying input will always show the label.
@@ -140,25 +64,31 @@ function DDonorAddress({ element }: DDonorAddressProps) {
     setMailingCountry(value.isoCode);
   }
 
+  function handleChangePlace({ address, city, countryIsoCode, state, zip }: PlaceSelection) {
+    setAddress(address);
+    setCity(city);
+    setMailingCountry(countryIsoCode);
+    setState(state);
+    setZip(zip);
+  }
+
   return (
     <DElement>
       <Grid container spacing={3}>
         {!zipAndCountryOnly && (
           <>
             <Grid item xs={12}>
-              <TextField
+              <AddressAutocomplete
                 error={!!errors.mailing_street}
                 fullWidth
                 id="mailing_street"
                 name="mailing_street"
                 label={t('donationPage.dDonorAddress.address')}
-                value={address}
-                onBlur={enableBrowserAutofillOnAddress}
+                onSelectPlace={handleChangePlace}
                 onChange={(e) => setAddress(e.target.value)}
-                onFocus={disableBrowserAutofillOnAddress}
                 helperText={errors.mailing_street}
-                inputRef={addressInputRef}
                 required={!isOptional}
+                value={address}
                 data-testid="mailing_street"
               />
               <Button

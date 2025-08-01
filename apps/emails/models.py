@@ -32,6 +32,12 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class TransactionalEmailNames(models.TextChoices):
     CONTRIBUTION_RECEIPT = "contribution_receipt", "Contribution Receipt"
     ANNUAL_PAYMENT_REMINDER = "annual_payment_reminder", "Annual Payment Reminder"
+    FAILED_PAYMENT_NOTIFICATION = "failed_payment_notification", "Failed Payment Notification"
+
+    @classmethod
+    def email_customization_choices(cls):
+        """Return a list of choices for email customizations."""
+        return [cls.CONTRIBUTION_RECEIPT, cls.ANNUAL_PAYMENT_REMINDER]
 
 
 class EmailCustomization(IndexedTimeStampedModel):
@@ -42,7 +48,9 @@ class EmailCustomization(IndexedTimeStampedModel):
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     content_html = models.TextField(max_length=5000, help_text="HTML source code of the custom content")
     email_type = models.CharField(
-        max_length=30, choices=TransactionalEmailNames.choices, help_text="Type of email this relates to"
+        max_length=30,
+        choices=TransactionalEmailNames.email_customization_choices,
+        help_text="Type of email this relates to",
     )
     email_block = models.CharField(
         max_length=30, choices=EmailBlock.choices, help_text="Which block of content in an email this relates to"

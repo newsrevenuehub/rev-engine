@@ -19,6 +19,13 @@ class EmailCustomizationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "content_plain_text"]
 
 
+class TriggerFailedPaymentNotificationSerializer(serializers.Serializer):
+    contribution = serializers.PrimaryKeyRelatedField(
+        queryset=Contribution.objects.all(),
+        help_text="The contribution for which the email is being sent.",
+    )
+
+
 class TriggerAnnualPaymentReminderSerializer(serializers.Serializer):
 
     contribution = serializers.PrimaryKeyRelatedField(

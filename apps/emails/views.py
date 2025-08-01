@@ -137,10 +137,23 @@ class TriggerTransactionalEmailViewSet(viewsets.GenericViewSet):
 
     permission_classes = [IsSwitchboardAccount]
     authentication_classes = [TokenAuthentication]
+    http_method_names = ["post"]
 
-    @action(detail=False, methods=["post"], url_path="annual-payment-reminder", url_name="annual-payment-reminder")
+    @action(detail=False, url_path="annual-payment-reminder", url_name="annual-payment-reminder")
     def trigger_annual_payment_reminder(self, request: Request) -> Response:
         serializer = TriggerAnnualPaymentReminderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         TransactionalEmailRecord.handle_annual_payment_reminder(**serializer.validated_data)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        url_path="failed-payment-notification",
+        url_name="failed-payment-notification",
+    )
+    def trigger_failed_payment_notification(self, request: Request) -> Response:
+        """Trigger a failed payment notification email."""
+        serializer = TriggerAnnualPaymentReminderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        TransactionalEmailRecord.handle_failed_payment_notification(**serializer.validated_data)
         return Response(status=status.HTTP_204_NO_CONTENT)

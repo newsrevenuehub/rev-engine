@@ -154,11 +154,8 @@ class TestDonationPage:
         dupe = original.duplicate()
         assert dupe.slug == slugify(dupe.name)
 
-    def test_duplicate_always_unpublished(self):
-        original = DonationPageFactory()
-        original.published_date = "2001-01-01"
-        original.save()
-        dupe = original.duplicate()
+    def test_duplicate_always_unpublished(self, live_donation_page):
+        dupe = live_donation_page.duplicate()
         assert not dupe.published_date
 
     @pytest.mark.parametrize("field_name", ["graphic", "header_bg_image", "header_logo", "page_screenshot"])

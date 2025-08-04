@@ -23,6 +23,7 @@ from apps.users.models import RoleAssignment
 
 
 PAGE_NAME_MAX_LENGTH = PAGE_HEADING_MAX_LENGTH = 255
+STYLE_NAME_MAX_LENGTH = 50
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -189,7 +190,7 @@ class DonationPage(IndexedTimeStampedModel):
 class Style(IndexedTimeStampedModel):
     """Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram."""
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=STYLE_NAME_MAX_LENGTH)
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
@@ -215,7 +216,7 @@ class Style(IndexedTimeStampedModel):
         for field in self._meta.fields:
             if field.name not in ["id", "created", "modified", "name", "pk"]:
                 setattr(duplicate, field.name, getattr(self, field.name))
-        duplicate.name = duplicate_name(self.name, max_length=50)
+        duplicate.name = duplicate_name(self.name, max_length=STYLE_NAME_MAX_LENGTH)
         logger.info("Duplicate has name %s", duplicate.name)
         duplicate.save()
         return duplicate

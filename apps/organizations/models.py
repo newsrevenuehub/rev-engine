@@ -828,8 +828,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return [MailchimpEmailList(**x) for x in lists]
         except ApiClientError as exc:
             logger.exception(
-                "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s."
-                " The error text is %s",
+                "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s. The error text is %s",
                 self.id,
                 self.mailchimp_server_prefix,
                 exc.text,
@@ -991,3 +990,27 @@ class PaymentProvider(IndexedTimeStampedModel):
                 settings.CURRENCIES,
             )
             return {"code": "", "symbol": ""}
+
+
+CSP_TYPE_CHOICES = (
+    ("connect-src", "Connect"),
+    ("default-src", "Default"),
+    ("font-src", "Font"),
+    ("frame-src", "Frame"),
+    ("img-src", "Image"),
+    ("object-src", "Object"),
+    ("script-src", "Script"),
+    ("style-src", "Style"),
+)
+
+
+class RevenueProgramContentSecurityPolicy(IndexedTimeStampedModel):
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
+    directive_type = models.CharField(max_length=20, choices=CSP_TYPE_CHOICES)
+    directive_value = models.CharField(max_length=1000)
+
+    class Meta:
+        unique_together = ("revenue_program", "directive_type")
+
+    def __str__(self):
+        return f"{self.revenue_program} {self.directive_type} CSP policy"

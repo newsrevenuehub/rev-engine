@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import json
 import logging
 import os
+from csp.constants import NONCE, SELF
 from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
@@ -124,6 +125,7 @@ INSTALLED_APPS = [
     "apps.google_cloud",
     "apps.public",
     "apps.config",
+    "csp",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -166,7 +168,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
-    "csp.middleware.CSPMiddleware",
+    "apps.common.middleware.RevenueProgramCSPMiddleware",
     "waffle.middleware.WaffleMiddleware",
 ]
 
@@ -372,78 +374,82 @@ DTM_IGNORED_MIGRATIONS = {
 # Google Maps API reference: https://developers.google.com/maps/documentation/javascript/content-security-policy
 # Google Tag Manager reference: https://developers.google.com/tag-platform/security/guides/csp
 
-# TODO @BW: Fix CSP violation caused by react-select emotion
-# DEV-2359
-ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
-if not ENFORCE_CSP:
-    CSP_REPORT_ONLY = True
-CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
+csp_policy = {
+    "DIRECTIVES": {
+        "connect-src": [
+            SELF,
+            "https://www.google-analytics.com",
+            "https://maps.googleapis.com",
+            "https://www.googletagmanager.com",
+            "https://maps.gstatic.com",
+            "https://*.sentry.io",
+            "https://risk.clearbit.com",
+            "https://static.cloudflareinsights.com",
+            "https://p1.parsely.com",
+            "https://api.stripe.com",
+        ],
+        "default-src": [SELF, "*.fundjournalism.org"],
+        "font-src": [
+            SELF,
+            "data:",
+            "https://fonts.gstatic.com",
+            "https://use.typekit.net",
+            "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
+        ],
+        "frame-src": [
+            "https://*.js.stripe.com",
+            "https://js.stripe.com",
+            "https://hooks.stripe.com",
+            "https://www.google.com/recaptcha/",
+            "https://recaptcha.google.com/recaptcha/",
+            "https://pay.google.com",
+            "https://www.facebook.com",
+            "https://td.doubleclick.net",
+        ],
+        "img-src": ["*", SELF, "blob:", "data:", "https://maps.gstatic.com", "https://www.googletagmanager.com"],
+        "object-src": ["none"],
+        "script-src": [
+            SELF,
+            NONCE,
+            "https://*.js.stripe.com",
+            "https://js.stripe.com",
+            "https://risk.clearbit.com",
+            "https://www.googletagmanager.com",
+            "https://www.google-analytics.com",
+            "https://maps.googleapis.com",
+            "https://www.google.com/recaptcha/",
+            "https://www.gstatic.com/recaptcha/",
+            "https://pay.google.com",
+            "https://connect.facebook.net",
+            "https://ajax.googleapis.com",
+            "https://static.cloudflareinsights.com",
+            "https://cdnjs.cloudflare.com",
+            "https://dash.parsely.com",
+            "https://cdn.parsely.com",
+            "https://browser.sentry-cdn.com",
+            "https://js.sentry-cdn.com",
+            "https://use.typekit.net",
+        ],
+        "style-src": [
+            SELF,
+            NONCE,
+            "https://fonts.googleapis.com",
+            "https://maps.googleapis.com",
+            "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
+        ],
+    }
+}
+
 CSP_REPORTING_ENABLE = os.getenv("CSP_REPORTING_ENABLE", "false").lower() == "true"
 if CSP_REPORTING_ENABLE:
-    CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
-CSP_DEFAULT_SRC = (
-    "'self'",
-    "*.fundjournalism.org",
-)
-CSP_SCRIPT_SRC = (
-    "'self'",
-    "https://*.js.stripe.com",
-    "https://js.stripe.com",
-    "https://risk.clearbit.com",
-    "https://www.googletagmanager.com",
-    "https://www.google-analytics.com",
-    "https://maps.googleapis.com",
-    "https://www.google.com/recaptcha/",
-    "https://www.gstatic.com/recaptcha/",
-    "https://pay.google.com",
-    "https://connect.facebook.net",
-    "https://ajax.googleapis.com",
-    "https://static.cloudflareinsights.com",
-    "https://cdnjs.cloudflare.com",
-    "https://dash.parsely.com",
-    "https://cdn.parsely.com",
-    "https://browser.sentry-cdn.com",
-    "https://js.sentry-cdn.com",
-    "https://use.typekit.net",
-)
-CSP_STYLE_SRC = (
-    "'self'",
-    "https://fonts.googleapis.com",
-    "https://maps.googleapis.com",
-    "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
-)
-CSP_IMG_SRC = ("*", "'self'", "blob:", "data:", "https://maps.gstatic.com", "https://www.googletagmanager.com")
-CSP_FONT_SRC = (
-    "'self'",
-    "data:",
-    "https://fonts.gstatic.com",
-    "https://use.typekit.net",
-    "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
-)
-CSP_FRAME_SRC = (
-    "https://*.js.stripe.com",
-    "https://js.stripe.com",
-    "https://hooks.stripe.com",
-    "https://www.google.com/recaptcha/",
-    "https://recaptcha.google.com/recaptcha/",
-    "https://pay.google.com",
-    "https://www.facebook.com",
-    "https://td.doubleclick.net",
-)
-CSP_CONNECT_SRC = (
-    "'self'",
-    "https://www.google-analytics.com",
-    "https://maps.googleapis.com",
-    "https://www.googletagmanager.com",
-    "https://maps.gstatic.com",
-    "https://*.sentry.io",
-    "https://risk.clearbit.com",
-    "https://static.cloudflareinsights.com",
-    "https://p1.parsely.com",
-    "https://api.stripe.com",
-)
-CSP_OBJECT_SRC = ("'none'",)
+    csp_policy["DIRECTIVES"]["report-uri"] = os.getenv("CSP_REPORT_URI")
 
+ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
+
+if ENFORCE_CSP:
+    CONTENT_SECURITY_POLICY = csp_policy
+else:
+    CONTENT_SECURITY_POLICY_REPORT_ONLY = csp_policy
 
 ### https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
 SIMPLE_JWT = {

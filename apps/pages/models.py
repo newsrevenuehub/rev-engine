@@ -129,8 +129,8 @@ class DonationPage(IndexedTimeStampedModel):
 
         image_fields = []
         for field in self._meta.fields:
-            if isinstance(field, SorlImageField) and (original_image_field := getattr(self, field.name)):
-                image_fields.append([field, original_image_field])
+            if isinstance(field, SorlImageField) and (original_image := getattr(self, field.name)):
+                image_fields.append([field, original_image])
             else:
                 match field.name:
                     case "created" | "id" | "modified" | "pk" | "published_date":
@@ -143,18 +143,18 @@ class DonationPage(IndexedTimeStampedModel):
                     case _:
                         setattr(duplicate, field.name, getattr(self, field.name))
         duplicate.slug = slugify(duplicate.name)
-        for [field, original_image_field] in image_fields:
+        for [field, original_image] in image_fields:
             # Create a duplicate of the image without changing the original instance.
-            parsed_path = Path(original_image_field.name)
+            parsed_path = Path(original_image.name)
             getattr(duplicate, field.name).save(
                 # Most OSes have a 255 character limit on file names.
                 duplicate_name(parsed_path.stem, max_length=200, suffix="_copy", truncation_suffix="_")
                 + parsed_path.suffix,
-                ContentFile(original_image_field.file.read()),
+                ContentFile(original_image.file.read()),
                 save=False,
             )
             # We need to reset the file position from the read() above.
-            original_image_field.file.seek(0)
+            original_image.file.seek(0)
         duplicate.save()
         return duplicate
 

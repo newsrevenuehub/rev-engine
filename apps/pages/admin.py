@@ -121,7 +121,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
     readonly_fields = ["page_screenshot", "locale"]
 
-    actions = ("make_template", "undelete_selected")
+    actions = ("make_template", "undelete_selected", "duplicate_selected")
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "pages/contributionpage_changeform.html"
@@ -156,6 +156,25 @@ class DonationPageAdmin(DonationPageAdminAbstract):
                 f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
                 messages.SUCCESS,
             )
+
+    @admin.action(description="Duplicate selected pages")
+    def duplicate_selected(self, request, queryset):
+        duplicated_count = 0
+        for page in queryset:
+            try:
+                page.duplicate()
+                duplicated_count += 1
+            except ValidationError as error:
+                self.message_user(
+                    request,
+                    f"Could not duplicate page '{page.name}': {error}",
+                    messages.ERROR,
+                )
+        self.message_user(
+            request,
+            f"{duplicated_count} {'page' if duplicated_count == 1 else 'pages'} duplicated successfully.",
+            messages.SUCCESS,
+        )
 
 
 @admin.register(models.Style)

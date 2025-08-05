@@ -20,6 +20,7 @@ from apps.organizations.models import (
     Organization,
     PaymentProvider,
     RevenueProgram,
+    RevenueProgramContentSecurityPolicy,  # Added import
 )
 from apps.users.validators import tax_id_validator
 
@@ -385,3 +386,16 @@ class PaymentProviderAdmin(RevEngineBaseAdmin):
         """Comma-Separated list of revenue programs associated with the requested payment provider."""
         revenue_programs = RevenueProgram.objects.filter(Q(payment_provider_id=request.id))
         return ", ".join(x.name for x in revenue_programs)
+
+
+@admin.register(RevenueProgramContentSecurityPolicy)
+class RevenueProgramContentSecurityPolicyAdmin(RevEngineBaseAdmin):
+    list_display = [
+        "revenue_program",
+        "directive_type",
+        "directive_value",
+        "created",
+        "modified",
+    ]
+    list_filter = ["revenue_program", "directive_type"]
+    search_fields = ["revenue_program__name", "directive_type", "directive_value"]

@@ -1,10 +1,13 @@
 from django.urls import reverse
 
 import pytest
+from knox.auth import TokenAuthentication
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.organizations.models import Organization
+from apps.organizations.views.switchboard import get_revenue_program_activecampaign_detail
 from apps.users.models import User
 
 
@@ -42,6 +45,13 @@ def test_switchboard_rp_activecampaign_detail(request, user_fixture, permitted, 
             "activecampaign_integration_connected": is_connected,
             "activecampaign_server_url": revenue_program.activecampaign_server_url,
         }
+
+
+def test_get_revenue_program_activecampaign_detail_authentication_classes():
+    assert set(get_revenue_program_activecampaign_detail.cls.authentication_classes) == {
+        TokenAuthentication,
+        JWTHttpOnlyCookieAuthentication,
+    }
 
 
 @pytest.mark.django_db

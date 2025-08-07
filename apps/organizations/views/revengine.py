@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 
 import reversion
 import stripe
+from knox.auth import TokenAuthentication
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
@@ -17,6 +18,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from stripe.error import StripeError
 
+from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import (
     HasFlaggedAccessToMailchimp,
     HasRoleAssignment,
@@ -256,9 +258,14 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
     @action(
         methods=["GET"],
         detail=True,
+        # TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5570
+        # DEV-5571
+        authentication_classes=[TokenAuthentication, JWTHttpOnlyCookieAuthentication],
         permission_classes=[IsAuthenticated, IsActiveSuperUser],
         serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
     )
+    # TODO @BW: Move mailchimp config endpoint to SB viewset
+    # DEV-6420
     def mailchimp(self, request, pk=None):
         """Return the mailchimp data for the revenue program with the given pk.
 

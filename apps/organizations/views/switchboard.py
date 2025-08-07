@@ -3,9 +3,10 @@ from django.shortcuts import get_object_or_404
 
 from knox.auth import TokenAuthentication
 from rest_framework import mixins, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
+from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import IsSwitchboardAccount
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
@@ -42,6 +43,9 @@ class OrganizationViewSet(
 
 @api_view(["GET"])
 @permission_classes([IsSwitchboardAccount])
+# TODO @BW: Remove JWTHttpOnlyCookieAuthentication after DEV-5570
+# DEV-5571
+@authentication_classes([TokenAuthentication, JWTHttpOnlyCookieAuthentication])
 def get_revenue_program_activecampaign_detail(_: HttpRequest, pk: int) -> Response:
     """Return the ActiveCampaign data for the revenue program with the given ID."""
     revenue_program = get_object_or_404(RevenueProgram, pk=pk)

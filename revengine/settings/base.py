@@ -369,7 +369,8 @@ DTM_IGNORED_MIGRATIONS = {
 ### Django-CSP Settings
 
 # Stripe reference: https://docs.stripe.com/security/guide?csp=csp-js#content-security-policy
-# Google Maps API reference: https://developers.google.com/maps/documentation/javascript/content-security-policy
+# Google Maps API reference, for address autocomplete on contribution pages:
+# https://developers.google.com/maps/documentation/javascript/content-security-policy
 # Google Tag Manager reference: https://developers.google.com/tag-platform/security/guides/csp
 
 # TODO @BW: Fix CSP violation caused by react-select emotion
@@ -392,7 +393,6 @@ CSP_SCRIPT_SRC = (
     "https://risk.clearbit.com",
     "https://www.googletagmanager.com",
     "https://www.google-analytics.com",
-    "https://maps.googleapis.com",
     "https://www.google.com/recaptcha/",
     "https://www.gstatic.com/recaptcha/",
     "https://pay.google.com",
@@ -409,7 +409,6 @@ CSP_SCRIPT_SRC = (
 CSP_STYLE_SRC = (
     "'self'",
     "https://fonts.googleapis.com",
-    "https://maps.googleapis.com",
     "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
 )
 CSP_IMG_SRC = ("*", "'self'", "blob:", "data:", "https://maps.gstatic.com", "https://www.googletagmanager.com")
@@ -433,9 +432,9 @@ CSP_FRAME_SRC = (
 CSP_CONNECT_SRC = (
     "'self'",
     "https://www.google-analytics.com",
-    "https://maps.googleapis.com",
     "https://www.googletagmanager.com",
-    "https://maps.gstatic.com",
+    "https://maps.googleapis.com",
+    "https://places.googleapis.com",
     "https://*.sentry.io",
     "https://risk.clearbit.com",
     "https://static.cloudflareinsights.com",

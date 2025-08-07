@@ -1,6 +1,10 @@
+import datetime
+import json
 import logging
 import sys
+from typing import Any
 
+import django.middleware.csrf
 from django.apps import apps
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
@@ -18,6 +22,7 @@ import requests
 from apps.common.serializers import SocialMetaInlineSerializer
 from apps.common.utils import get_subdomain_from_request
 from apps.organizations.models import RevenueProgram
+from apps.pages.models import DonationPage
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -37,13 +42,60 @@ class ReactAppView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        self._add_gtm_id(context)
         self._add_spa_env(context)
-        if revenue_program := self._get_revenue_program_from_subdomain():
+        revenue_program = self._get_revenue_program_from_subdomain()
+        if revenue_program and self.request.path_info != "/payment/success/":
+            self.template_name = "contribution-page.html"
+            self._add_gtm_id(context)
+            self._add_contribution_page_data(
+                revenue_program=revenue_program, page_slug=self.request.path_info.strip("/"), context=context
+            )
             self._add_social_media_context(revenue_program, context)
             context["revenue_program_name"] = revenue_program.name
-
         return context
+
+    def _add_contribution_page_data(self, revenue_program: RevenueProgram, page_slug: str, context: dict[str, Any]):
+        if page_slug == "":
+            page = revenue_program.default_donation_page
+        else:
+            page = DonationPage.objects.get(revenue_program=revenue_program, slug=page_slug)
+        if page and page.published_date and page.published_date <= datetime.datetime.now(tz=datetime.timezone.utc):
+            # Inject page data and set CSRF token. We need the token to be in
+            # this response because the SPA will not be making any API calls
+            # before creating a payment, and that requires a CSRF token.
+            # See https://docs.djangoproject.com/en/5.2/ref/csrf/#how-it-works
+            django.middleware.csrf.get_token(self.request)
+            context["contribution_page_data"] = json.dumps(
+                {
+                    "currency": (
+                        page.revenue_program.payment_provider.get_currency_dict()
+                        if page.revenue_program.payment_provider
+                        else None
+                    ),
+                    "graphic": page.graphic.url if page.graphic else None,
+                    "header_bg_image": page.header_bg_image.url if page.header_bg_image else None,
+                    "header_link": page.header_link,
+                    "header_logo": page.header_logo.url if page.header_logo else None,
+                    "header_logo_alt_text": page.header_logo_alt_text,
+                    "heading": page.heading,
+                    "id": page.id,
+                    "locale": page.locale,
+                    "name": page.name,
+                    "payment_provider": {"stripe_account_id": page.revenue_program.payment_provider.stripe_account_id},
+                    "revenue_program": {
+                        "country": page.revenue_program.country,
+                        "is_nonprofit": page.revenue_program.non_profit,
+                        "slug": page.revenue_program.slug,
+                    },
+                    "elements": page.elements,
+                    "sidebar_elements": page.sidebar_elements,
+                    "slug": page.slug,
+                    "thank_you_redirect": page.thank_you_redirect,
+                    # "styles": json.dumps(page.styles), TODO serialize this
+                }
+            )
+        else:
+            context["contribution_page_data"] = "{}"
 
     def _add_spa_env(self, context):
         context["spa_env"] = settings.SPA_ENV_VARS

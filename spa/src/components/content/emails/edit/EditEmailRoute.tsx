@@ -176,12 +176,7 @@ export function EditEmailRoute() {
           )}
         </SettingsSection>
         <Actions>
-          <DiscardChangesButton
-            changesPending={changesPending}
-            color="secondary"
-            onDiscard={() => push(EMAILS_SLUG)}
-            startIcon={<ArrowBackOutlined />}
-          >
+          <DiscardChangesButton changesPending={changesPending} color="secondary" onDiscard={() => push(EMAILS_SLUG)}>
             Cancel Changes
           </DiscardChangesButton>
           <Button color="primaryDark" disabled={!changesPending} onClick={handleSave} startIcon={<SaveOutlined />}>

@@ -1,0 +1,86 @@
+{% load revengine_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta property="csp-nonce" content="{{ request.csp_nonce }}" />
+
+    <!-- Shim for Node modules -->
+    <script nonce="{{ request.csp_nonce }}">
+      window.global ||= window;
+    </script>
+
+    <!-- Google Tag Manager -->
+    {% if gtm_id %}
+    <script nonce="{{ request.csp_nonce }}">
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != 'dataLayer' ? '&l=' + l : '';
+        j.async = true;
+        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', '{{ gtm_id }}');
+    </script>
+    {% endif %}
+    <!-- End Google Tag Manager -->
+
+    {% if request.csp_nonce %}
+    <script type="text/javascript" nonce="{{ request.csp_nonce }}">
+      window.csp_nonce = '{{ request.csp_nonce }}';
+      // the webpack nonce causes client libraries like styled-components to add a nonce and therefore not violate CSP
+      window.__webpack_nonce__ = '{{ request.csp_nonce }}';
+    </script>
+    {% endif %} {% include "spa_env.html" %}
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;1,100;1,300;1,400;1,500;1,700&display=swap"
+      rel="stylesheet"
+    />
+    {% if social_meta %}
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ social_meta.url }}" />
+    <meta property="og:title" content="{{ social_meta.title }}" />
+    <meta property="og:description" content="{{ social_meta.description }}" />
+    <meta property="og:image:alt" content="{{ social_meta.image_alt }}" />
+    <meta property="og:image" content="{{ social_meta.card }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="{{ social_meta.twitter_handle }}" />
+    <meta name="twitter:creator" content="{{ social_meta.twitter_handle }}" />
+    {% endif %}
+
+    <title>
+      {% if revenue_program_name %}Join | {{ revenue_program_name }}{% else %}News Revenue Engine{% endif %}
+    </title>
+    <link rel="icon" href="/static/favicon.ico" sizes="any" />
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+    <link rel="manifest" href="/static/manifest.webmanifest" />
+  </head>
+
+  <body>
+    {% if gtm_id %}
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    {% endif %}
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <template id="contribution_page_data" hidden>{{ contribution_page_data }}</template>
+    </pre>
+  </body>
+  <script src="./src/contribution-page.tsx" type="module"></script>
+</html>

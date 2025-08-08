@@ -1,3 +1,5 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import browserslistToEsbuild from 'browserslist-to-esbuild';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
@@ -5,11 +7,19 @@ import checker from 'vite-plugin-checker';
 import svgr from 'vite-plugin-svgr';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const config = defineConfig({
   build: {
     // This must match the static asset path used by Django.
     assetsDir: 'static',
     outDir: 'build',
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        contributionPage: resolve(__dirname, 'contribution-page.html')
+      }
+    },
     sourcemap: true,
     target: browserslistToEsbuild(['>0.2%', 'not dead', 'not op_mini all'])
   },
